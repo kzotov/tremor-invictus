@@ -209,6 +209,8 @@ vmCvar_t	g_overtime;
 vmCvar_t	g_duelReadyUp;
 vmCvar_t	g_duelFraglimit;
 vmCvar_t	g_tdmFraglimit;
+vmCvar_t	g_teamSize;
+vmCvar_t	g_voteTypes;
 vmCvar_t	g_mapVote;
 vmCvar_t	g_mapVoteTime;
 vmCvar_t	g_mapVoteDelay;
@@ -272,6 +274,8 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_duelReadyUp, "g_duelReadyUp", "1", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_duelFraglimit, "g_duelFraglimit", "0", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_tdmFraglimit, "g_tdmFraglimit", "75", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_teamSize, "g_teamSize", "0", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue },		// players per team, 0 = no limit
+	{ &g_voteTypes, "g_voteTypes", "map nextmap map_restart kick shuffle teamsize timelimit fraglimit capturelimit roundlimit mode cointoss", CVAR_ARCHIVE, 0, qfalse },
 	{ &g_mapVote, "g_mapVote", "1", CVAR_ARCHIVE, 0, qtrue },			// end-of-match map vote; 0 = the rotation decides
 	{ &g_mapVoteTime, "g_mapVoteTime", "20", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_mapVoteDelay, "g_mapVoteDelay", "6000", 0, 0, qtrue },		// msec of podium before the vote
@@ -2063,14 +2067,20 @@ void CheckVote( void ) {
 		return;
 	}
 	if ( level.time - level.voteTime >= VOTE_TIME ) {
-		trap_SendServerCommand( -1, "print \"Vote failed.\n\"" );
+		// time is up: more yes than no passes
+		if ( level.voteYes > level.voteNo ) {
+			trap_SendServerCommand( -1, "print \"Vote passed.\n\"" );
+			level.voteExecuteTime = level.time + 3000;
+		} else {
+			trap_SendServerCommand( -1, "print \"Vote failed.\n\"" );
+		}
 	} else {
 		// ATVI Q3 1.32 Patch #9, WNF
 		if ( level.voteYes > level.numVotingClients/2 ) {
 			// execute the command, then remove the vote
 			trap_SendServerCommand( -1, "print \"Vote passed.\n\"" );
 			level.voteExecuteTime = level.time + 3000;
-		} else if ( level.voteNo >= level.numVotingClients/2 ) {
+		} else if ( level.voteNo > level.numVotingClients/2 ) {
 			// same behavior as a timeout
 			trap_SendServerCommand( -1, "print \"Vote failed.\n\"" );
 		} else {

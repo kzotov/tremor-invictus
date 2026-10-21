@@ -440,6 +440,47 @@ void	Svcmd_ForceTeam_f( void ) {
 	SetTeam( &g_entities[cl - level.clients], str );
 }
 
+/*
+===================
+Svcmd_ForceShuffle_f
+
+Deals the players out to red and blue by score, best first, so the teams
+come out even (red, blue, blue, red, ...)
+===================
+*/
+void	Svcmd_ForceShuffle_f( void ) {
+	int		order[MAX_CLIENTS], count = 0, i, j, swap, team;
+	gclient_t	*cl;
+
+	if ( g_gametype.integer < GT_TEAM ) {
+		return;
+	}
+	for ( i = 0 ; i < level.maxclients ; i++ ) {
+		cl = &level.clients[i];
+		if ( cl->pers.connected == CON_CONNECTED
+			&& ( cl->sess.sessionTeam == TEAM_RED || cl->sess.sessionTeam == TEAM_BLUE ) ) {
+			order[count++] = i;
+		}
+	}
+	for ( i = 1 ; i < count ; i++ ) {
+		swap = order[i];
+		for ( j = i ; j > 0 && level.clients[order[j - 1]].ps.persistant[PERS_SCORE] < level.clients[swap].ps.persistant[PERS_SCORE] ; j-- ) {
+			order[j] = order[j - 1];
+		}
+		order[j] = swap;
+	}
+	for ( i = 0 ; i < count ; i++ ) {
+		team = ( ( i + 1 ) / 2 ) % 2 ? TEAM_BLUE : TEAM_RED;
+		cl = &level.clients[order[i]];
+		if ( cl->sess.sessionTeam != team ) {
+			cl->sess.sessionTeam = team;
+			ClientUserinfoChanged( order[i] );
+			ClientBegin( order[i] );
+		}
+	}
+	trap_SendServerCommand( -1, "print \"Teams shuffled.\n\"" );
+}
+
 char	*ConcatArgs( int start );
 
 /*
@@ -460,6 +501,19 @@ qboolean	ConsoleCommand( void ) {
 
 	if ( Q_stricmp (cmd, "forceteam") == 0 ) {
 		Svcmd_ForceTeam_f();
+		return qtrue;
+	}
+
+	if ( Q_stricmp (cmd, "forceshuffle") == 0 ) {
+		Svcmd_ForceShuffle_f();
+		return qtrue;
+	}
+
+	if ( Q_stricmp (cmd, "cointoss") == 0 ) {
+		const char	*side = BG_String( rand() & 1 ? STR_VOTE_HEADS : STR_VOTE_TAILS );
+
+		trap_SendServerCommand( -1, va( "cp \"%s\"", side ) );
+		trap_SendServerCommand( -1, va( "print \"%s\n\"", side ) );
 		return qtrue;
 	}
 

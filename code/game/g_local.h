@@ -269,6 +269,7 @@ typedef struct {
 	int			enterTime;			// level.time the client entered the game
 	playerTeamState_t teamState;	// status in teamplay games
 	int			voteCount;			// to prevent people from constantly calling votes
+	int			lastVoteTime;		// level.time this player last called a vote
 	int			teamVoteCount;		// to prevent people from constantly calling votes
 	qboolean	teamInfo;			// send team overlay updates?
 } clientPersistant_t;
@@ -966,6 +967,8 @@ extern	vmCvar_t	g_overtime;
 extern	vmCvar_t	g_duelReadyUp;
 extern	vmCvar_t	g_duelFraglimit;
 extern	vmCvar_t	g_tdmFraglimit;
+extern	vmCvar_t	g_teamSize;
+extern	vmCvar_t	g_voteTypes;
 extern	vmCvar_t	g_mapVote;
 extern	vmCvar_t	g_mapVoteTime;
 extern	vmCvar_t	g_mapVoteDelay;

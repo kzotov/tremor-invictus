@@ -45,6 +45,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define	SCORE_NOT_PRESENT	-9999	// for the CS_SCORES[12] when only one player is present
 
 #define	VOTE_TIME			30000	// 30 seconds before vote times out
+#define	VOTE_CALL_GAP		30000	// one call per player per 30 seconds
 
 #define PLAYER_WIDTH		18		// medium body; see bg_classInfo
 #define	MINS_Z				-24
@@ -429,6 +430,15 @@ typedef enum {
 	STR_MV_HELP,
 	STR_MV_ENDS,
 	STR_MV_VOTES,
+	STR_VOTE_WAIT,
+	STR_VOTE_LIST,
+	STR_VOTE_NOMAP,
+	STR_VOTE_TEAMSONLY,
+	STR_VOTE_MODES,
+	STR_VOTE_TEAMFULL,
+	STR_VOTE_HEADS,
+	STR_VOTE_TAILS,
+	STR_VOTE_NUMBER,
 	STR_MEDAL_FIRSTBLOOD,
 	STR_MEDAL_MIDAIR,
 	STR_MEDAL_AIRBORNE,
