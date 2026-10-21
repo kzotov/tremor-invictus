@@ -1101,6 +1101,7 @@ static void CG_DrawHud( void ) {
 	CG_DrawPic( 344 + 8 + CHAR_WIDTH * 3 + 4, 440, 28, 28, cgs.media.armorIcon );
 
 	// ammo, bottom right
+	cg_hudAnchor = ANCHOR_RIGHT;
 	if ( cent->currentState.weapon && ps->ammo[cent->currentState.weapon] > -1 ) {
 		value = ps->ammo[cent->currentState.weapon];
 		trap_R_SetColor( value <= 5 ? colorRed : NULL );
@@ -1110,6 +1111,7 @@ static void CG_DrawHud( void ) {
 			CG_DrawPic( 640 - CHAR_WIDTH * 3 - 40, 440, 28, 28, cg_weapons[cent->currentState.weapon].ammoIcon );
 		}
 	}
+	cg_hudAnchor = ANCHOR_CENTER;
 
 	// the ability arc by the crosshair: 1 bottom (default 3), 2 top, 4 left, 5 right
 	switch ( cg_drawCooldownArc.integer ) {
@@ -1120,7 +1122,9 @@ static void CG_DrawHud( void ) {
 	default:	break;
 	}
 
+	cg_hudAnchor = ANCHOR_RIGHT;
 	CG_DrawWeaponBar();
+	cg_hudAnchor = ANCHOR_CENTER;
 	CG_DrawHudPowerups();
 	CG_DrawHudPickup();
 	CG_DrawPassiveState();
@@ -2810,7 +2814,11 @@ static void CG_DrawCrosshair(void)
 
 	x = cg_crosshairX.integer;
 	y = cg_crosshairY.integer;
-	CG_AdjustFrom640( &x, &y, &w, &h );
+	// an offset from the view's centre, so scaled but not anchored
+	x *= cgs.screenXScale;
+	y *= cgs.screenYScale;
+	w *= cgs.screenXScale;
+	h *= cgs.screenYScale;
 
 	ca = cg_drawCrosshair.integer;
 	if (ca < 0) {
@@ -3786,14 +3794,20 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	CG_DrawVote();
 	CG_DrawTeamVote();
 
+	cg_hudAnchor = ANCHOR_RIGHT;
 	CG_DrawLagometer();
+	cg_hudAnchor = ANCHOR_CENTER;
 
 #ifdef MISSIONPACK
 	if (!cg_paused.integer) {
+		cg_hudAnchor = ANCHOR_RIGHT;
 		CG_DrawUpperRight(stereoFrame);
+		cg_hudAnchor = ANCHOR_CENTER;
 	}
 #else
+	cg_hudAnchor = ANCHOR_RIGHT;
 	CG_DrawUpperRight(stereoFrame);
+	cg_hudAnchor = ANCHOR_CENTER;
 #endif
 
 #ifndef MISSIONPACK
@@ -3801,17 +3815,31 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 		if ( cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
 			CG_DrawHudClock();
 		}
+		cg_hudAnchor = ANCHOR_RIGHT;
 		CG_DrawKillFeed();
+		cg_hudAnchor = ANCHOR_CENTER;
 		if ( cgs.gametype >= GT_TEAM && cg_drawTeamOverlay.integer == 1 ) {
+			cg_hudAnchor = ANCHOR_LEFT;
 			CG_DrawTeamOverlay( 28, qfalse, qtrue );	// top left, under the clock
+			cg_hudAnchor = ANCHOR_CENTER;
 		}
+		cg_hudAnchor = ANCHOR_LEFT;
 		CG_DrawLowerLeft();
+		cg_hudAnchor = ANCHOR_CENTER;
 	} else {
+		cg_hudAnchor = ANCHOR_RIGHT;
 		CG_DrawLowerRight();
+		cg_hudAnchor = ANCHOR_CENTER;
+		cg_hudAnchor = ANCHOR_LEFT;
 		CG_DrawLowerLeft();
+		cg_hudAnchor = ANCHOR_CENTER;
 	}
+	cg_hudAnchor = ANCHOR_LEFT;
 	CG_DrawChat();
+	cg_hudAnchor = ANCHOR_CENTER;
+	cg_hudAnchor = ANCHOR_LEFT;
 	CG_DrawSpecItemTimers();
+	cg_hudAnchor = ANCHOR_CENTER;
 	CG_DrawDuelBars();
 	CG_DrawTimeout();
 	CG_DrawAccuracy();

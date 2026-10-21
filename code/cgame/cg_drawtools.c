@@ -30,15 +30,24 @@ CG_AdjustFrom640
 Adjusted for resolution and screen aspect ratio
 ================
 */
+int		cg_hudAnchor = ANCHOR_CENTER;
+
 void CG_AdjustFrom640( float *x, float *y, float *w, float *h ) {
-#if 0
-	// adjust for wide screens
-	if ( cgs.glconfig.vidWidth * 480 > cgs.glconfig.vidHeight * 640 ) {
-		*x += 0.5 * ( cgs.glconfig.vidWidth - ( cgs.glconfig.vidHeight * 640 / 480 ) );
+	// whole-screen fills and backdrops stretch to the real edges
+	if ( *x <= 0 && *x + *w >= 640 ) {
+		float	full = cgs.glconfig.vidWidth / 640.0f;
+
+		*x *= full;
+		*w *= full;
+		*y *= cgs.screenYScale;
+		*h *= cgs.screenYScale;
+		return;
 	}
-#endif
-	// scale for screen sizes
-	*x *= cgs.screenXScale;
+
+	// the rest keeps its shape and sits by its anchor: the 4:3 area's
+	// middle, or the screen's left or right edge
+	*x = *x * cgs.screenXScale + ( cg_hudAnchor == ANCHOR_LEFT ? 0
+		: cg_hudAnchor == ANCHOR_RIGHT ? 2 * cgs.screenXBias : cgs.screenXBias );
 	*y *= cgs.screenYScale;
 	*w *= cgs.screenXScale;
 	*h *= cgs.screenYScale;

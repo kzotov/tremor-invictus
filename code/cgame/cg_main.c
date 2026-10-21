@@ -1977,8 +1977,14 @@ void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum ) {
 
 	// get the rendering configuration from the client system
 	trap_GetGlconfig( &cgs.glconfig );
-	cgs.screenXScale = cgs.glconfig.vidWidth / 640.0;
+	// one scale for both directions so nothing is stretched on wide screens;
+	// the extra width is shared out by each element's anchor (CG_AdjustFrom640)
 	cgs.screenYScale = cgs.glconfig.vidHeight / 480.0;
+	cgs.screenXScale = cgs.screenYScale;
+	if ( cgs.glconfig.vidWidth * 480 < cgs.glconfig.vidHeight * 640 ) {
+		cgs.screenXScale = cgs.glconfig.vidWidth / 640.0;		// narrower than 4:3: fit the width
+	}
+	cgs.screenXBias = 0.5f * ( cgs.glconfig.vidWidth - 640 * cgs.screenXScale );
 
 	// get the gamestate from the client system
 	trap_GetGameState( &cgs.gameState );

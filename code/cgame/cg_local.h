@@ -1793,3 +1793,9 @@ void CG_AddKillFeed( const char *killer, const char *victim, int weapon );
 void CG_AddChat( const char *text );
 void CG_DrawDuelBoard( void );
 void CG_LayoutFrameEnd( void );
+
+// where 2D elements sit on screens wider than 4:3 (CG_AdjustFrom640)
+#define ANCHOR_CENTER	0
+#define ANCHOR_LEFT		1
+#define ANCHOR_RIGHT	2
+extern int	cg_hudAnchor;
