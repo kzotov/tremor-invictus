@@ -34,6 +34,7 @@ int				MTL_SetSwapInterval( int interval );
 void			*MTL_GetProcAddress( const char *name );
 SDL_bool		MTL_ExtensionSupported( const char *extension );
 int				MTL_GetAttribute( SDL_GLattr attr, int *value );
+void			MTL_SetGamma( const unsigned char *red, const unsigned char *green, const unsigned char *blue );
 
 #define SDL_GLContext				void *
 #define SDL_GL_CreateContext		MTL_CreateContext

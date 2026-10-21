@@ -29,6 +29,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../renderercommon/tr_common.h"
 #include "../qcommon/qcommon.h"
 
+#ifdef USE_METAL
+#include "../renderermetal/mtl_sdlgl.h"
+#endif
+
 extern SDL_Window *SDL_window;
 
 /*
@@ -43,6 +47,12 @@ void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 
 	if( !glConfig.deviceSupportsGamma || r_ignorehwgamma->integer > 0 )
 		return;
+
+#ifdef USE_METAL
+	// applied to the frame on its way to the window, not to the display
+	MTL_SetGamma( red, green, blue );
+	return;
+#endif
 
 	for (i = 0; i < 256; i++)
 	{

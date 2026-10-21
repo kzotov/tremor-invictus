@@ -758,6 +758,18 @@ static float CG_DrawFPS( float y ) {
 		}
 		fps = 1000 * FPS_FRAMES / total;
 
+		// a capped game reads as its cap, not one below it
+		{
+			char	buf[16];
+			int		cap;
+
+			trap_Cvar_VariableStringBuffer( "com_maxfps", buf, sizeof( buf ) );
+			cap = atoi( buf );
+			if ( cap > 0 && abs( fps - cap ) <= 1 ) {
+				fps = cap;
+			}
+		}
+
 		s = va( "%ifps", fps );
 		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
 

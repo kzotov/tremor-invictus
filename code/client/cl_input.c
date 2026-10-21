@@ -456,16 +456,36 @@ void CL_MouseMove(usercmd_t *cmd)
 	if (mx == 0.0f && my == 0.0f)
 		return;
 	
+	// with the mouse's counts per inch known, move in centimetres, so
+	// sensitivity is degrees per centimetre
+	if (m_cpi->value > 0.0f)
+	{
+		mx *= 2.54f / m_cpi->value * ( 1.0f / 0.022f );
+		my *= 2.54f / m_cpi->value * ( 1.0f / 0.022f );
+	}
+
 	if (cl_mouseAccel->value != 0.0f)
 	{
 		if(cl_mouseAccelStyle->integer == 0)
 		{
 			float accelSensitivity;
-			float rate;
-			
-			rate = sqrt(mx * mx + my * my) / (float) frame_msec;
+			float rate, base;
 
-			accelSensitivity = cl_sensitivity->value + rate * cl_mouseAccel->value;
+			// counts per ms, or cm per second with m_cpi
+			rate = sqrt(mx * mx + my * my) / (float) frame_msec;
+			if (m_cpi->value > 0.0f)
+				rate *= 0.022f * 1000.0f;
+
+			// sensitivity plus (accel * (rate - offset)) ^ (power - 1); negative accel takes away
+			base = fabs(cl_mouseAccel->value) * (rate - cl_mouseAccelOffset->value);
+			if (base < 0.0f)
+				base = 0.0f;
+			base = powf(base, cl_mouseAccelPower->value - 1.0f);
+			if (cl_mouseAccel->value < 0.0f)
+				base = -base;
+			accelSensitivity = cl_sensitivity->value + base;
+			if (cl_mouseSensCap->value > 0.0f && accelSensitivity > cl_mouseSensCap->value)
+				accelSensitivity = cl_mouseSensCap->value;
 			mx *= accelSensitivity;
 			my *= accelSensitivity;
 			
@@ -484,11 +504,15 @@ void CL_MouseMove(usercmd_t *cmd)
 
 			rate[0] = fabs(mx) / (float) frame_msec;
 			rate[1] = fabs(my) / (float) frame_msec;
-			power[0] = powf(rate[0] / cl_mouseAccelOffset->value, cl_mouseAccel->value);
-			power[1] = powf(rate[1] / cl_mouseAccelOffset->value, cl_mouseAccel->value);
+			{
+				float offset = cl_mouseAccelOffset->value > 0.001f ? cl_mouseAccelOffset->value : 0.001f;
 
-			mx = cl_sensitivity->value * (mx + ((mx < 0) ? -power[0] : power[0]) * cl_mouseAccelOffset->value);
-			my = cl_sensitivity->value * (my + ((my < 0) ? -power[1] : power[1]) * cl_mouseAccelOffset->value);
+				power[0] = powf(rate[0] / offset, cl_mouseAccel->value);
+				power[1] = powf(rate[1] / offset, cl_mouseAccel->value);
+
+				mx = cl_sensitivity->value * (mx + ((mx < 0) ? -power[0] : power[0]) * offset);
+				my = cl_sensitivity->value * (my + ((my < 0) ? -power[1] : power[1]) * offset);
+			}
 
 			if(cl_showMouseRate->integer)
 				Com_Printf("ratex: %f, ratey: %f, powx: %f, powy: %f\n", rate[0], rate[1], power[0], power[1]);

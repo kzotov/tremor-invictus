@@ -92,7 +92,7 @@ The engine settings behind it are `in_ignoreInput 1` and
 | Action | How |
 |---|---|
 | Pick a champion | Esc, then **Champion**, or `/champion <name>`; it applies when you next spawn |
-| Champion ability | bind a key to `+button12`, for example `bind e +button12` |
+| Champion ability | `Q` by default (`+button12`); rebind with e.g. `bind e +button12` |
 | Auto-hop | holding jump jumps again on landing; turn off with `cg_autoHop 0` |
 
 ### Player colours

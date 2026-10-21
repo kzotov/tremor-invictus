@@ -2048,7 +2048,7 @@ static void PM_FinishWeaponChange( void ) {
 
 	pm->ps->weapon = weapon;
 	pm->ps->weaponstate = WEAPON_RAISING;
-	pm->ps->weaponTime += 250 * PM_WeaponTimeScale();
+	pm->ps->weaponTime += 200 * PM_WeaponTimeScale();		// raise as long as the lower
 	PM_StartTorsoAnim( TORSO_RAISE );
 }
 

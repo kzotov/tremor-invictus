@@ -1274,11 +1274,13 @@ void R_SetColorMappings( void ) {
 		tr.overbrightBits = 0;		// need hardware gamma for overbright
 	}
 
-	// never overbright in windowed mode
+#ifndef USE_METAL
+	// never overbright in windowed mode (Metal's gamma pass works in a window)
 	if ( !glConfig.isFullscreen ) 
 	{
 		tr.overbrightBits = 0;
 	}
+#endif
 
 	// allow 2 overbright bits in 24 bit, but only 1 in 16 bit
 	if ( glConfig.colorBits > 16 ) {

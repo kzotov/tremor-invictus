@@ -389,6 +389,9 @@ extern	cvar_t	*cl_freelook;
 extern	cvar_t	*cl_mouseAccel;
 extern	cvar_t	*cl_mouseAccelOffset;
 extern	cvar_t	*cl_mouseAccelStyle;
+extern	cvar_t	*cl_mouseAccelPower;
+extern	cvar_t	*cl_mouseSensCap;
+extern	cvar_t	*m_cpi;
 extern	cvar_t	*cl_showMouseRate;
 
 extern	cvar_t	*m_pitch;

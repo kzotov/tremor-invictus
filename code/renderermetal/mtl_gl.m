@@ -171,6 +171,11 @@ static struct {
 	mtlVertex_t					immediate[MAX_IMMEDIATE];
 
 	int							swapInterval;
+
+	// brightness: the game's gamma table, applied when the frame goes to the window
+	id<MTLTexture>				gammaTable;
+	id<MTLRenderPipelineState>	gammaPipeline;
+	qboolean					gammaActive;
 } mtl;
 
 static const char *mtlShaderSource =
@@ -195,6 +200,17 @@ static const char *mtlShaderSource =
 	"  if ( mode == 3 ) return float4( c.rgb + t.rgb, c.a * t.a );\n"
 	"  if ( mode == 4 ) return float4( mix( c.rgb, t.rgb, t.a ), c.a );\n"
 	"  return c * t;\n"
+	"}\n"
+	// the finished frame through the gamma table, onto the window
+	"struct GOut { float4 pos [[position]]; };\n"
+	"vertex GOut gvmain( uint id [[vertex_id]] ) {\n"
+	"  GOut o; float2 p = float2( ( id << 1 ) & 2, id & 2 );\n"
+	"  o.pos = float4( p * 2.0 - 1.0, 0.0, 1.0 ); return o;\n"
+	"}\n"
+	"fragment float4 gfmain( GOut in [[stage_in]], texture2d<float> frame [[texture(0)]], texture2d<float> table [[texture(1)]] ) {\n"
+	"  float4 c = frame.read( uint2( in.pos.xy ) );\n"
+	"  uint3 i = uint3( c.rgb * 255.0 + 0.5 );\n"
+	"  return float4( table.read( uint2( i.r, 0 ) ).r, table.read( uint2( i.g, 0 ) ).g, table.read( uint2( i.b, 0 ) ).b, 1.0 );\n"
 	"}\n"
 	"fragment float4 fmain( FIn in [[stage_in]], constant FU &u [[buffer(0)]],\n"
 	"    texture2d<float> t0 [[texture(0)]], texture2d<float> t1 [[texture(1)]],\n"
@@ -1507,6 +1523,18 @@ void *MTL_CreateContext( SDL_Window *window ) {
 	mtl.vertexFunction = [mtl.library newFunctionWithName:@"vmain"];
 	mtl.fragmentFunction = [mtl.library newFunctionWithName:@"fmain"];
 
+	{
+		MTLRenderPipelineDescriptor	*gdesc = [MTLRenderPipelineDescriptor new];
+
+		gdesc.vertexFunction = [mtl.library newFunctionWithName:@"gvmain"];
+		gdesc.fragmentFunction = [mtl.library newFunctionWithName:@"gfmain"];
+		gdesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+		mtl.gammaPipeline = [mtl.device newRenderPipelineStateWithDescriptor:gdesc error:&error];
+		desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:256 height:1 mipmapped:NO];
+		mtl.gammaTable = [mtl.device newTextureWithDescriptor:desc];
+		mtl.gammaActive = qfalse;
+	}
+
 	mtl.vertexDescriptor = [MTLVertexDescriptor vertexDescriptor];
 	mtl.vertexDescriptor.attributes[0].format = MTLVertexFormatFloat3;
 	mtl.vertexDescriptor.attributes[0].offset = offsetof( mtlVertex_t, xyz );
@@ -1564,6 +1592,8 @@ void MTL_DestroyContext( void *context ) {
 	mtl.lastPipeline = mtl.lastDepthState = nil;
 	mtl.colorTarget = mtl.depthTarget = mtl.whiteTexture = nil;
 	mtl.whiteSampler = nil;
+	mtl.gammaTable = nil;
+	mtl.gammaPipeline = nil;
 	mtl.samplers = nil;
 	mtl.vertexFunction = mtl.fragmentFunction = nil;
 	mtl.library = nil;
@@ -1593,9 +1623,24 @@ void MTL_SwapWindow( SDL_Window *window ) {
 	@autoreleasepool {
 		drawable = [mtl.layer nextDrawable];
 		if ( drawable && drawable.texture.width == (NSUInteger)mtl.width && drawable.texture.height == (NSUInteger)mtl.height ) {
-			blit = [mtl.commandBuffer blitCommandEncoder];
-			[blit copyFromTexture:mtl.colorTarget toTexture:drawable.texture];
-			[blit endEncoding];
+			if ( mtl.gammaActive && mtl.gammaPipeline ) {
+				MTLRenderPassDescriptor		*pass = [MTLRenderPassDescriptor renderPassDescriptor];
+				id<MTLRenderCommandEncoder>	enc;
+
+				pass.colorAttachments[0].texture = drawable.texture;
+				pass.colorAttachments[0].loadAction = MTLLoadActionDontCare;
+				pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+				enc = [mtl.commandBuffer renderCommandEncoderWithDescriptor:pass];
+				[enc setRenderPipelineState:mtl.gammaPipeline];
+				[enc setFragmentTexture:mtl.colorTarget atIndex:0];
+				[enc setFragmentTexture:mtl.gammaTable atIndex:1];
+				[enc drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
+				[enc endEncoding];
+			} else {
+				blit = [mtl.commandBuffer blitCommandEncoder];
+				[blit copyFromTexture:mtl.colorTarget toTexture:drawable.texture];
+				[blit endEncoding];
+			}
 			[mtl.commandBuffer presentDrawable:drawable];
 		}
 		[mtl.commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> cb) {
@@ -1615,4 +1660,33 @@ void MTL_SwapWindow( SDL_Window *window ) {
 		mtl.layer.drawableSize = CGSizeMake( w, h );
 		MTL_CreateTargets( w, h );
 	}
+}
+
+/*
+=================
+MTL_SetGamma
+
+The game's brightness table, applied to the finished frame as it goes to
+the window: works in a window too, and never touches the display itself
+=================
+*/
+void MTL_SetGamma( const unsigned char *red, const unsigned char *green, const unsigned char *blue ) {
+	uint8_t		table[256 * 4];
+	qboolean	identity = qtrue;
+	int			i;
+
+	if ( !mtl.gammaTable ) {
+		return;
+	}
+	for ( i = 0 ; i < 256 ; i++ ) {
+		table[i * 4 + 0] = red[i];
+		table[i * 4 + 1] = green[i];
+		table[i * 4 + 2] = blue[i];
+		table[i * 4 + 3] = 255;
+		if ( red[i] != i || green[i] != i || blue[i] != i ) {
+			identity = qfalse;
+		}
+	}
+	[mtl.gammaTable replaceRegion:MTLRegionMake2D( 0, 0, 256, 1 ) mipmapLevel:0 withBytes:table bytesPerRow:256 * 4];
+	mtl.gammaActive = !identity;
 }

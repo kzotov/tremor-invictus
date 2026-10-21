@@ -47,6 +47,11 @@ static qboolean mouseActive = qfalse;
 
 static cvar_t *in_mouse             = NULL;
 static cvar_t *in_ignoreInput       = NULL;	// test runs: drop all keyboard and mouse input
+#ifdef __APPLE__
+#include "sdl_rawmouse.h"
+static cvar_t *in_rawMouse          = NULL;	// read counts from the mice, not SDL's accelerated deltas
+static qboolean rawMouseActive      = qfalse;
+#endif
 static cvar_t *in_nograb;
 
 static cvar_t *in_joystick          = NULL;
@@ -1131,6 +1136,10 @@ static void IN_ProcessEvents( void )
 				break;
 
 			case SDL_MOUSEMOTION:
+#ifdef __APPLE__
+				if( rawMouseActive )
+					break;
+#endif
 				if( mouseActive )
 				{
 					if( !e.motion.xrel && !e.motion.yrel )
@@ -1291,6 +1300,18 @@ void IN_Frame( void )
 
 	IN_ProcessEvents( );
 
+#ifdef __APPLE__
+	if( rawMouseActive )
+	{
+		int dx, dy;
+
+		// counts arrive while events are pumped; only aim with them while grabbed
+		IN_RawMouseTake( &dx, &dy );
+		if( mouseActive && ( dx || dy ) )
+			Com_QueueEvent( in_eventTime, SE_MOUSE, dx, dy, 0, NULL );
+	}
+#endif
+
 	// Set event time for next frame to earliest possible time an event could happen
 	in_eventTime = Sys_Milliseconds( );
 
@@ -1339,6 +1360,12 @@ void IN_Init( void *windowData )
 		SDL_StartTextInput( );
 
 	mouseAvailable = ( in_mouse->value != 0 ) && !in_ignoreInput->integer;
+
+#ifdef __APPLE__
+	in_rawMouse = Cvar_Get( "in_rawMouse", "1", CVAR_ARCHIVE | CVAR_LATCH );
+	rawMouseActive = mouseAvailable && in_rawMouse->integer && IN_RawMouseStart( );
+	Com_Printf( "Mouse input: %s\n", rawMouseActive ? "raw counts from the mouse" : "SDL relative motion" );
+#endif
 	IN_DeactivateMouse( Cvar_VariableIntegerValue( "r_fullscreen" ) != 0 );
 
 	appState = SDL_GetWindowFlags( SDL_window );
@@ -1360,6 +1387,11 @@ void IN_Shutdown( void )
 
 	IN_DeactivateMouse( Cvar_VariableIntegerValue( "r_fullscreen" ) != 0 );
 	mouseAvailable = qfalse;
+
+#ifdef __APPLE__
+	IN_RawMouseStop( );
+	rawMouseActive = qfalse;
+#endif
 
 	IN_ShutdownJoystick( );
 

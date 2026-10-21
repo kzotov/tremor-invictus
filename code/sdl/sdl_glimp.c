@@ -801,6 +801,11 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder, qbool
 			desiredMode.w = glConfig.vidWidth;
 			desiredMode.h = glConfig.vidHeight;
 			desiredMode.refresh_rate = glConfig.displayFrequency = ri.Cvar_VariableIntegerValue( "r_displayRefresh" );
+			if( desiredMode.refresh_rate <= 0 )
+			{
+				// no rate asked for: keep the desktop's, never a 60 Hz fallback
+				desiredMode.refresh_rate = glConfig.displayFrequency = desktopMode.refresh_rate;
+			}
 			desiredMode.driverdata = NULL;
 
 			if( SDL_SetWindowDisplayMode( SDL_window, &desiredMode ) < 0 )
@@ -1142,9 +1147,14 @@ success:
 	glConfig.driverType = GLDRV_ICD;
 	glConfig.hardwareType = GLHW_GENERIC;
 
+#ifdef USE_METAL
+	// Metal applies gamma itself as the frame goes to the window
+	glConfig.deviceSupportsGamma = !r_ignorehwgamma->integer;
+#else
 	// Only using SDL_SetWindowBrightness to determine if hardware gamma is supported
 	glConfig.deviceSupportsGamma = !r_ignorehwgamma->integer &&
 		SDL_SetWindowBrightness( SDL_window, 1.0f ) >= 0;
+#endif
 
 	// get our config strings
 	Q_strncpyz( glConfig.vendor_string, (char *) qglGetString (GL_VENDOR), sizeof( glConfig.vendor_string ) );

@@ -2372,6 +2372,11 @@ void Com_ExecuteCfg(void)
 	Cbuf_ExecuteText(EXEC_NOW, "exec default.cfg\n");
 	Cbuf_Execute(); // Always execute after exec to prevent text buffer overflowing
 
+	// our own default keys on top: the champion ability on Q, the gauntlet on 1;
+	// a player's saved config still overrides them
+	Cbuf_ExecuteText(EXEC_APPEND, "bind q +button12; bind 1 \"weapon 1\"\n");
+	Cbuf_Execute();
+
 	if(!Com_SafeMode())
 	{
 		// skip the q3config.cfg and autoexec.cfg if "safe" is on the command line
@@ -2757,7 +2762,7 @@ void Com_Init( char *commandLine ) {
 	// browser-driven event loop. So default throttling to off.
 	com_maxfps = Cvar_Get ("com_maxfps", "0", CVAR_ARCHIVE);
 #else
-	com_maxfps = Cvar_Get ("com_maxfps", "85", CVAR_ARCHIVE);
+	com_maxfps = Cvar_Get ("com_maxfps", "125", CVAR_ARCHIVE);
 #endif
 	com_blood = Cvar_Get ("com_blood", "1", CVAR_ARCHIVE);
 
