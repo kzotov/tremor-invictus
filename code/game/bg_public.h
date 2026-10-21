@@ -409,6 +409,8 @@ typedef enum {
 #define	MOVEABIL_ACCELERATION	8	// running straight raises run speed
 #define	MOVEABIL_HEAVYWEIGHT	16	// own speed becomes collision damage
 #define	MOVEABIL_RAMPJUMP		32	// jumping off a climb goes higher
+#define	MOVEABIL_BUNNYHOP		64	// each jump adds a share of the speed, up to a cap
+#define	MOVEABIL_EASYSTRAFE		128	// extra air acceleration up to a speed
 
 // active abilities, on BUTTON_ABILITY
 typedef enum {
@@ -566,6 +568,10 @@ typedef struct {
 	float	acStrafeSpeed;
 	float	acBrakeAccel;
 	float	acAirControl;
+	float	hopAccel;
+	float	hopMaxSpeed;
+	float	easyStrafeAccel;
+	float	easyStrafeMaxSpeed;
 
 	float	chainTime;				// msec after a jump that a new jump goes higher
 	float	chainVelocity;			// air-control style: added upward speed
@@ -597,9 +603,6 @@ typedef struct {
 	float	dodgeGroundSpeed;
 	float	dodgeGroundUp;
 
-	float	accelRate;				// u/s gained per second running straight
-	float	accelMax;				// total run speed cap
-	float	accelMaxHeavyweight;	// Scalebearer's run-up cap
 	float	accelAngle;				// degrees between aim and velocity still "straight"
 
 	float	rushSpeed;				// speed reached at the end of the rush
@@ -674,9 +677,14 @@ typedef enum {
 
 // STAT_MOVE_STATE holds one champion-specific value:
 //   slide style		msec of slide charge left
-//   acceleration		run speed bonus in tenths of u/s
+//   acceleration		run speed bonus in tenths of u/s (low 11 bits) and
+//						time held at the current step in ACCEL_HOLD_UNIT ms
 //   ramp jump			upward speed climbed on the last ground frame (u/s),
 //						or the locked rope length while swinging on the hook
+
+#define	ACCEL_BONUS_MASK	0x07ff
+#define	ACCEL_HOLD_SHIFT	11
+#define	ACCEL_HOLD_UNIT		125
 
 // STAT_TAPS fields; read through & 0xffff, the network sign-extends bit 15
 #define	TAP_HELD_MASK		0x000f	// movement directions held last frame

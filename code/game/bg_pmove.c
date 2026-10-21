@@ -71,8 +71,12 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_acFriction",			"8",	&bg_pmoveSettings.acFriction },
 	{ {0}, "pm_acStrafeAccel",		"70",	&bg_pmoveSettings.acStrafeAccel },
 	{ {0}, "pm_acStrafeSpeed",		"30",	&bg_pmoveSettings.acStrafeSpeed },
-	{ {0}, "pm_acBrakeAccel",		"1.5",	&bg_pmoveSettings.acBrakeAccel },
-	{ {0}, "pm_acAirControl",		"50",	&bg_pmoveSettings.acAirControl },
+	{ {0}, "pm_acBrakeAccel",		"2.5",	&bg_pmoveSettings.acBrakeAccel },
+	{ {0}, "pm_acAirControl",		"150",	&bg_pmoveSettings.acAirControl },
+	{ {0}, "pm_hopAccel",			"0.05",	&bg_pmoveSettings.hopAccel },
+	{ {0}, "pm_hopMaxSpeed",		"500",	&bg_pmoveSettings.hopMaxSpeed },
+	{ {0}, "pm_easyStrafeAccel",	"0.1",	&bg_pmoveSettings.easyStrafeAccel },
+	{ {0}, "pm_easyStrafeMaxSpeed",	"400",	&bg_pmoveSettings.easyStrafeMaxSpeed },
 
 	{ {0}, "pm_chainTime",			"500",	&bg_pmoveSettings.chainTime },
 	{ {0}, "pm_chainVelocity",		"110",	&bg_pmoveSettings.chainVelocity },
@@ -104,9 +108,6 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_dodgeGroundSpeed",	"480",	&bg_pmoveSettings.dodgeGroundSpeed },
 	{ {0}, "pm_dodgeGroundUp",		"0.15",	&bg_pmoveSettings.dodgeGroundUp },
 
-	{ {0}, "pm_accelRate",			"50",	&bg_pmoveSettings.accelRate },
-	{ {0}, "pm_accelMax",			"800",	&bg_pmoveSettings.accelMax },
-	{ {0}, "pm_accelMaxHeavyweight",	"450",	&bg_pmoveSettings.accelMaxHeavyweight },
 	{ {0}, "pm_accelAngle",			"15",	&bg_pmoveSettings.accelAngle },
 
 	{ {0}, "pm_rushSpeed",			"700",	&bg_pmoveSettings.rushSpeed },
@@ -708,6 +709,22 @@ static qboolean PM_CheckJump( void ) {
 	if ( style == MOVE_SLIDE ) {
 		pm->ps->stats[STAT_MOVE_STATE] = 0;
 	}
+
+	// bunny hop: each jump adds a share of the running speed, up to a cap
+	if ( pml.champion->abilities & MOVEABIL_BUNNYHOP ) {
+		float	h = sqrt( pm->ps->velocity[0] * pm->ps->velocity[0]
+			+ pm->ps->velocity[1] * pm->ps->velocity[1] );
+
+		if ( h > 1 && h < bg_pmoveSettings.hopMaxSpeed ) {
+			float	nh = h * ( 1.0f + bg_pmoveSettings.hopAccel );
+
+			if ( nh > bg_pmoveSettings.hopMaxSpeed ) {
+				nh = bg_pmoveSettings.hopMaxSpeed;
+			}
+			pm->ps->velocity[0] *= nh / h;
+			pm->ps->velocity[1] *= nh / h;
+		}
+	}
 	pm->ps->stats[STAT_JUMP_TIME] = 0;
 
 	// optional per-champion horizontal speed cap; sliders always have theirs
@@ -1173,6 +1190,12 @@ static void PM_AirMove( void ) {
 		}
 	}
 	PM_Accelerate (wishdir, accelspeed, accelerate);
+
+	// easy strafe jump: a little extra air acceleration toward the wish
+	// direction, until a set speed
+	if ( ( pml.champion->abilities & MOVEABIL_EASYSTRAFE ) && wishspeed > 0 ) {
+		PM_Accelerate( wishdir, bg_pmoveSettings.easyStrafeMaxSpeed, bg_pmoveSettings.easyStrafeAccel );
+	}
 
 	if ( pml.champion->moveStyle == MOVE_AIRCONTROL && fmove != 0 && smove == 0 ) {
 		PM_AirControl( wishdir, wishspeed );
@@ -2585,15 +2608,32 @@ turning, strafing or slowing down on the ground loses the bonus
 ================
 */
 static void PM_Acceleration( void ) {
-	int		bonus, maxBonus;
+	// speed steps: each step's top speed, acceleration toward it (u/s per
+	// second) and how long the previous top speed must be held first (ms)
+	static const int	clutchTop[] = { 350, 400, 450 };
+	static const int	clutchAccel[] = { 50, 40, 30 };
+	static const int	clutchHold[] = { 0, 1250, 1000 };
+	static const int	heavyTop[] = { 450 };
+	static const int	heavyAccel[] = { 50 };
+	static const int	heavyHold[] = { 0 };
+	const int	*top, *accel, *hold;
+	int		steps, state, bonus, held, i, maxBonus;
 	vec3_t	flatvel, forward;
-	float	speed;
+	float	speed, run;
 
 	if ( !( pml.champion->abilities & MOVEABIL_ACCELERATION ) ) {
 		return;
 	}
+	if ( pml.champion->abilities & MOVEABIL_HEAVYWEIGHT ) {
+		top = heavyTop; accel = heavyAccel; hold = heavyHold; steps = 1;
+	} else {
+		top = clutchTop; accel = clutchAccel; hold = clutchHold; steps = 3;
+	}
 
-	bonus = pm->ps->stats[STAT_MOVE_STATE];
+	state = pm->ps->stats[STAT_MOVE_STATE] & 0xffff;
+	bonus = state & ACCEL_BONUS_MASK;
+	held = state >> ACCEL_HOLD_SHIFT;
+
 	if ( pml.walking ) {
 		VectorSet( flatvel, pm->ps->velocity[0], pm->ps->velocity[1], 0 );
 		speed = VectorNormalize( flatvel );
@@ -2601,21 +2641,38 @@ static void PM_Acceleration( void ) {
 		if ( pm->cmd.forwardmove > 0 && pm->cmd.rightmove == 0
 			&& speed >= pm->ps->speed * 0.9f
 			&& DotProduct( flatvel, forward ) >= cos( DEG2RAD( bg_pmoveSettings.accelAngle ) ) ) {
-			bonus += (int)( bg_pmoveSettings.accelRate * 10 * pml.frametime + 0.5f );
+			run = pm->ps->speed + bonus * 0.1f;
+			for ( i = 0; i < steps - 1 && run >= top[i]; i++ ) {
+			}
+			if ( run < top[i] && ( i == 0 || held * ACCEL_HOLD_UNIT >= hold[i] ) ) {
+				// climbing toward the next step
+				bonus += (int)( accel[i] * 10 * pml.frametime + 0.5f );
+				if ( pm->ps->speed + bonus * 0.1f > top[i] ) {
+					bonus = ( top[i] - pm->ps->speed ) * 10;
+				}
+				held = 0;
+			} else if ( run < top[i] ) {
+				// holding the previous step's top speed (whole steps of
+				// time, so prediction and server agree)
+				held += pm->cmd.serverTime / ACCEL_HOLD_UNIT - pm->ps->commandTime / ACCEL_HOLD_UNIT;
+				if ( held > 15 ) {
+					held = 15;
+				}
+			}
 		} else {
 			bonus = 0;
+			held = 0;
 		}
 	}
 
-	maxBonus = ( ( ( pml.champion->abilities & MOVEABIL_HEAVYWEIGHT ) ? bg_pmoveSettings.accelMaxHeavyweight
-		: bg_pmoveSettings.accelMax ) - pm->ps->speed ) * 10;
+	maxBonus = ( top[steps - 1] - pm->ps->speed ) * 10;
 	if ( bonus > maxBonus ) {
 		bonus = maxBonus;
 	}
 	if ( bonus < 0 ) {
 		bonus = 0;
 	}
-	pm->ps->stats[STAT_MOVE_STATE] = bonus;
+	pm->ps->stats[STAT_MOVE_STATE] = bonus | ( held << ACCEL_HOLD_SHIFT );
 	pml.runSpeed = pm->ps->speed + bonus * 0.1f;
 }
 
