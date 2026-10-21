@@ -50,7 +50,7 @@ static void UI_PlayMenu_Event( void *ptr, int event ) {
 	}
 	switch ( ((menucommon_s *)ptr)->id ) {
 	case ID_PRACTICE:
-		UI_StartServerMenu( qfalse );
+		UI_PracticeMenu();
 		break;
 	case ID_FIND:
 		UI_ArenaServersMenu();

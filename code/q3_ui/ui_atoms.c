@@ -1018,6 +1018,14 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	if ( Q_stricmp (cmd, "ui_practice") == 0 ) {
+		UI_PracticeMenu();
+		if ( !Q_stricmp( UI_Argv( 1 ), "start" ) ) {
+			UI_PracticeStart();
+		}
+		return qtrue;
+	}
+
 	if ( Q_stricmp (cmd, "ui_champions") == 0 ) {
 		UI_ChampionMenu();
 		return qtrue;

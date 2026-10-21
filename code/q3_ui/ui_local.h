@@ -365,6 +365,12 @@ extern void UI_SettingsRefresh( void );
 extern void UI_SettingsTab( int tab );
 
 //
+// ui_practice.c
+//
+extern void UI_PracticeMenu( void );
+extern void UI_PracticeStart( void );
+
+//
 // ui_team.c
 //
 extern void UI_TeamMainMenu( void );

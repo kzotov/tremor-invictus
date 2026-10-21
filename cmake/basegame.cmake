@@ -116,6 +116,7 @@ set(UI_SOURCES
     ${SOURCE_DIR}/q3_ui/ui_saveconfig.c
     ${SOURCE_DIR}/q3_ui/ui_serverinfo.c
     ${SOURCE_DIR}/q3_ui/ui_servers2.c
+    ${SOURCE_DIR}/q3_ui/ui_practice.c
     ${SOURCE_DIR}/q3_ui/ui_settings.c
     ${SOURCE_DIR}/q3_ui/ui_setup.c
     ${SOURCE_DIR}/q3_ui/ui_sound.c

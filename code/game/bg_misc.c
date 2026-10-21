@@ -1406,7 +1406,20 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"easy strafe jump",
 	"Machinegun",
 	"Shotgun",
-	"Nailgun"
+	"Nailgun",
+	"Mode",
+	"Opponents",
+	"Teammates",
+	"Bot skill",
+	"Time limit, minutes",
+	"Frag limit",
+	"Half length, minutes",
+	"Capture limit",
+	"Rounds to win",
+	"START",
+	"page %i of %i",
+	"No maps support this mode",
+	"0 is no limit"
 };
 
 /*
