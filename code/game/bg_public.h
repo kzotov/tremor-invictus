@@ -237,6 +237,20 @@ typedef enum {
 
 	STR_ABILITY_HOOK,
 	STR_ABILITY_BULLRUSH,
+	STR_ABILITY_INJECTION,
+	STR_ABILITY_DUALWIELD,
+	STR_ABILITY_BARRIER,
+	STR_ABILITY_FLAMESTRIKE,
+	STR_ABILITY_BERSERK,
+	STR_ABILITY_TURRET,
+	STR_ABILITY_TOTEM,
+	STR_ABILITY_GRENADES,
+	STR_ABILITY_GHOSTWALK,
+	STR_ABILITY_ORB,
+	STR_ABILITY_PLASMATRAIL,
+	STR_ABILITY_ACIDSPIT,
+	STR_ABILITY_DRONE,
+	STR_ABILITY_PIERCINGSIGHT,
 	STR_ABILITY_RECHARGE,			// "next in %i s"
 
 	STR_MENU_CHAMPION,
@@ -282,9 +296,56 @@ typedef enum {
 	ACTIVE_NONE,
 	ACTIVE_HOOK,					// grappling hook with charges
 	ACTIVE_BULLRUSH,				// forward charge
+	ACTIVE_INJECTION,				// heal and a speed boost
+	ACTIVE_DUALWIELD,				// faster firing
+	ACTIVE_BARRIER,					// damage shield, then a laser
+	ACTIVE_FLAMESTRIKE,				// three fireballs
+	ACTIVE_BERSERK,					// fists only, fast and hard-hitting
+	ACTIVE_TURRET,					// placed sentry
+	ACTIVE_TOTEM,					// thrown heal / trap totem
+	ACTIVE_GRENADES,				// stored grenades
+	ACTIVE_GHOSTWALK,				// invisible and untouchable
+	ACTIVE_ORB,						// thrown orb, teleport on re-press
+	ACTIVE_PLASMATRAIL,				// damaging trail, detonate on re-press
+	ACTIVE_ACIDSPIT,				// acid blobs and pools
+	ACTIVE_DRONE,					// remote drone
+	ACTIVE_PIERCINGSIGHT,			// see enemies through walls
 
 	ACTIVE_NUM_ABILITIES
 } activeAbility_t;
+
+// per-ability timing, all cvars named ab_<name>_<param>, sent to clients
+typedef enum {
+	AP_CHARGES,						// charges when full
+	AP_RECHARGE,					// msec to recharge one charge
+	AP_DELAY,						// msec from the press to the effect
+	AP_DURATION,					// msec the ability stays active, 0 = instant
+	AP_LOCKOUT,						// msec the weapon is disabled
+
+	AP_NUM_PARAMS
+} abilityParam_t;
+
+typedef struct {
+	char		*cvarName;			// ab_<cvarName>_<param>
+	int			nameString;			// stringId_t
+	int			lockoutAtEnd;		// qtrue: weapon lockout when it ends, else when it starts
+	char		*defaults[AP_NUM_PARAMS];
+} abilityInfo_t;
+
+extern	const abilityInfo_t	bg_abilityInfo[ACTIVE_NUM_ABILITIES];
+
+float	BG_AbilityParam( int active, int param );
+
+// passive champion traits, champion_t.passives bits
+#define	PASSIVE_REGENERATION	1		// refill to the top of the 25 HP block
+#define	PASSIVE_SELFDAMAGE		2		// less self-damage
+#define	PASSIVE_SPLASHRESIST	4		// less splash damage
+#define	PASSIVE_FIREPROOF		8		// immune to fire and lava
+#define	PASSIVE_ACIDPROOF		16		// immune to acid and slime
+#define	PASSIVE_ARMORCOOLDOWN	32		// armor pickups cut the cooldown
+#define	PASSIVE_HEALTHCOOLDOWN	64		// health pickups cut the cooldown
+#define	PASSIVE_AMMOCOOLDOWN	128		// ammo pickups cut the cooldown
+#define	PASSIVE_FULLSPRINT		256		// higher air acceleration
 
 typedef struct {
 	char		*name;				// userinfo "champion" value
@@ -294,6 +355,7 @@ typedef struct {
 	int			moveStyle;			// moveStyle_t
 	int			abilities;			// MOVEABIL_* bits
 	int			active;				// activeAbility_t
+	int			passives;			// PASSIVE_* bits
 	char		*model;				// player model, "name" or "name/skin"
 	int			nameString;			// stringId_t of the display name
 } champion_t;
@@ -356,12 +418,10 @@ typedef struct {
 	float	accelMax;				// total run speed cap
 	float	accelAngle;				// degrees between aim and velocity still "straight"
 
-	float	rushDuration;
 	float	rushSpeed;				// speed reached at the end of the rush
 	float	rushTurnRate;			// degrees per second
 	float	rushStopFraction;		// rush ends if a hit leaves less of the speed
 
-	float	hookFireDelay;
 	float	hookImpulse;
 	float	hookPullStart;
 	float	hookPullAccel;
@@ -372,7 +432,14 @@ typedef struct {
 	float	rampJumpScale;
 	float	rampJumpMax;
 
-	float	abilityWeaponDelay;		// weapon disabled after a hook throw or a rush
+	float	airAccelLight;			// class air acceleration, scaled by airAccelerate
+	float	airAccelMedium;
+	float	airAccelHeavy;
+	float	airAccelFullSprint;
+
+	float	injectionSpeed;			// run speed multiplier
+	float	dualWieldRate;			// fire rate multiplier
+	float	berserkSpeed;			// run speed while berserk
 } pmoveSettings_t;
 
 extern	pmoveSettings_t	bg_pmoveSettings;
@@ -428,7 +495,8 @@ typedef enum {
 	ABILITY_WINDUP,					// STAT_ABILITY_TIME counts down to the throw
 	ABILITY_HOOK_FLYING,			// hook thrown, not attached yet
 	ABILITY_HOOK_PULL,				// attached; STAT_ABILITY_TIME counts up
-	ABILITY_RUSH					// STAT_ABILITY_TIME counts down to the end
+	ABILITY_RUSH,					// STAT_ABILITY_TIME counts down to the end
+	ABILITY_ACTIVE					// generic timed ability; STAT_ABILITY_TIME counts down
 } abilityState_t;
 
 #define	BG_AbilityCharges( ps )		( (ps)->stats[STAT_ABILITY] & ABILITY_CHARGES_MASK )
@@ -673,7 +741,8 @@ typedef enum {
 	EV_TAUNT_GUARDBASE,
 	EV_TAUNT_PATROL,
 
-	EV_USE_ABILITY					// throw the hook (game side)
+	EV_USE_ABILITY,					// active ability takes effect (game side)
+	EV_ABILITY_REPRESS				// ability pressed again while active
 } entity_event_t;
 
 

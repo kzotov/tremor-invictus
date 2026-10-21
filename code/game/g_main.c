@@ -50,14 +50,22 @@ vmCvar_t	g_maxclients;
 vmCvar_t	g_maxGameClients;
 vmCvar_t	g_dedicated;
 vmCvar_t	g_speed;
-vmCvar_t	g_hookCharges;
-vmCvar_t	g_hookRecharge;
+vmCvar_t	g_injectionHeal;
+vmCvar_t	g_berserkDamage;
+vmCvar_t	g_ghostWalkTelefrag;
+vmCvar_t	g_regenDelay;
+vmCvar_t	g_regenRate;
+vmCvar_t	g_selfDamageScale;
+vmCvar_t	g_splashResistScale;
+vmCvar_t	g_cooldownArmorLight;
+vmCvar_t	g_cooldownArmorHeavy;
+vmCvar_t	g_cooldownHealth;
+vmCvar_t	g_cooldownMega;
+vmCvar_t	g_cooldownAmmo;
 vmCvar_t	g_hookSpeed;
 vmCvar_t	g_hookRange;
 vmCvar_t	g_hookDamage;
 vmCvar_t	g_hookSwingDamage;
-vmCvar_t	g_rushCharges;
-vmCvar_t	g_rushRecharge;
 vmCvar_t	g_rushDamageScale;
 vmCvar_t	g_hwSpeed;
 vmCvar_t	g_hwDamage;
@@ -157,14 +165,22 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_speed, "g_speed", "320", 0, 0, qtrue  },
 
 	// champion abilities; numbers are placeholders until measured
-	{ &g_hookCharges, "g_hookCharges", "3", 0, 0, qtrue },
-	{ &g_hookRecharge, "g_hookRecharge", "15000", 0, 0, qtrue },
+	{ &g_injectionHeal, "g_injectionHeal", "50", 0, 0, qtrue },
+	{ &g_berserkDamage, "g_berserkDamage", "75", 0, 0, qtrue },
+	{ &g_ghostWalkTelefrag, "g_ghostWalkTelefrag", "125", 0, 0, qtrue },
+	{ &g_regenDelay, "g_regenDelay", "3000", 0, 0, qtrue },
+	{ &g_regenRate, "g_regenRate", "10", 0, 0, qtrue },
+	{ &g_selfDamageScale, "g_selfDamageScale", "0.25", 0, 0, qtrue },
+	{ &g_splashResistScale, "g_splashResistScale", "0.9", 0, 0, qtrue },
+	{ &g_cooldownArmorLight, "g_cooldownArmorLight", "0.1", 0, 0, qtrue },
+	{ &g_cooldownArmorHeavy, "g_cooldownArmorHeavy", "0.2", 0, 0, qtrue },
+	{ &g_cooldownHealth, "g_cooldownHealth", "0.05", 0, 0, qtrue },
+	{ &g_cooldownMega, "g_cooldownMega", "0.2", 0, 0, qtrue },
+	{ &g_cooldownAmmo, "g_cooldownAmmo", "0.05", 0, 0, qtrue },
 	{ &g_hookSpeed, "g_hookSpeed", "3000", 0, 0, qtrue },
 	{ &g_hookRange, "g_hookRange", "4000", 0, 0, qtrue },
 	{ &g_hookDamage, "g_hookDamage", "25", 0, 0, qtrue },
 	{ &g_hookSwingDamage, "g_hookSwingDamage", "25", 0, 0, qtrue },
-	{ &g_rushCharges, "g_rushCharges", "1", 0, 0, qtrue },
-	{ &g_rushRecharge, "g_rushRecharge", "45000", 0, 0, qtrue },
 	{ &g_rushDamageScale, "g_rushDamageScale", "0.5", 0, 0, qtrue },
 	{ &g_hwSpeed, "g_hwSpeed", "320", 0, 0, qtrue },
 	{ &g_hwDamage, "g_hwDamage", "25", 0, 0, qtrue },
@@ -1906,6 +1922,8 @@ void G_RunFrame( int levelTime ) {
 			ClientEndFrame( ent );
 		}
 	}
+
+	G_UpdateRevealedPlayers();
 
 	// see if it is time to do a tournement restart
 	CheckTournament();

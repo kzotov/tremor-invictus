@@ -226,6 +226,10 @@ int Pickup_Ammo (gentity_t *ent, gentity_t *other)
 
 	Add_Ammo (other, ent->item->giTag, quantity);
 
+	if ( BG_Champion( other->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_AMMOCOOLDOWN ) {
+		G_CutAbilityCooldown( other, g_cooldownAmmo.value );
+	}
+
 	return RESPAWN_AMMO;
 }
 
@@ -305,6 +309,10 @@ int Pickup_Health (gentity_t *ent, gentity_t *other) {
 	}
 	other->client->ps.stats[STAT_HEALTH] = other->health;
 
+	if ( BG_Champion( other->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_HEALTHCOOLDOWN ) {
+		G_CutAbilityCooldown( other, ent->item->quantity == 100 ? g_cooldownMega.value : g_cooldownHealth.value );
+	}
+
 	if ( ent->item->quantity == 100 ) {		// mega health respawns slow
 		return RESPAWN_MEGAHEALTH;
 	}
@@ -336,6 +344,12 @@ int Pickup_Armor( gentity_t *ent, gentity_t *other ) {
 		other->client->ps.stats[STAT_ARMOR] = G_ClassInfo( other->client )->maxArmor;
 	}
 #endif
+
+	// light armor cuts the cooldown less than heavy; shards not at all
+	if ( ( BG_Champion( other->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_ARMORCOOLDOWN )
+		&& ent->item->quantity >= 25 ) {
+		G_CutAbilityCooldown( other, ent->item->quantity >= 100 ? g_cooldownArmorHeavy.value : g_cooldownArmorLight.value );
+	}
 
 	return RESPAWN_ARMOR;
 }

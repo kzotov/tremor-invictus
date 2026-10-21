@@ -44,6 +44,10 @@ int		c_pmove = 0;
 
 pmoveSettings_t	bg_pmoveSettings;
 
+static qboolean	PM_AbilityActive( int active );
+static float	PM_WeaponTimeScale( void );
+static float	PM_ClassAirAccelerate( void );
+
 typedef struct {
 	vmCvar_t	vmCvar;
 	char		*name;
@@ -90,12 +94,10 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_accelMax",			"800",	&bg_pmoveSettings.accelMax },
 	{ {0}, "pm_accelAngle",			"15",	&bg_pmoveSettings.accelAngle },
 
-	{ {0}, "pm_rushDuration",		"3000",	&bg_pmoveSettings.rushDuration },
 	{ {0}, "pm_rushSpeed",			"800",	&bg_pmoveSettings.rushSpeed },
 	{ {0}, "pm_rushTurnRate",		"120",	&bg_pmoveSettings.rushTurnRate },
 	{ {0}, "pm_rushStopFraction",	"0.5",	&bg_pmoveSettings.rushStopFraction },
 
-	{ {0}, "pm_hookFireDelay",		"100",	&bg_pmoveSettings.hookFireDelay },
 	{ {0}, "pm_hookImpulse",		"400",	&bg_pmoveSettings.hookImpulse },
 	{ {0}, "pm_hookPullStart",		"400",	&bg_pmoveSettings.hookPullStart },
 	{ {0}, "pm_hookPullAccel",		"1000",	&bg_pmoveSettings.hookPullAccel },
@@ -106,8 +108,30 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_rampJumpScale",		"1",	&bg_pmoveSettings.rampJumpScale },
 	{ {0}, "pm_rampJumpMax",		"200",	&bg_pmoveSettings.rampJumpMax },
 
-	{ {0}, "pm_abilityWeaponDelay",	"500",	&bg_pmoveSettings.abilityWeaponDelay }
+	{ {0}, "pm_airAccelLight",		"0.85",	&bg_pmoveSettings.airAccelLight },
+	{ {0}, "pm_airAccelMedium",		"0.906",	&bg_pmoveSettings.airAccelMedium },
+	{ {0}, "pm_airAccelHeavy",		"0.967",	&bg_pmoveSettings.airAccelHeavy },
+	{ {0}, "pm_airAccelFullSprint",	"1.012",	&bg_pmoveSettings.airAccelFullSprint },
+
+	{ {0}, "pm_injectionSpeed",		"1.2",	&bg_pmoveSettings.injectionSpeed },
+	{ {0}, "pm_dualWieldRate",		"1.3",	&bg_pmoveSettings.dualWieldRate },
+	{ {0}, "pm_berserkSpeed",		"500",	&bg_pmoveSettings.berserkSpeed }
 };
+
+static vmCvar_t	abilityCvars[ACTIVE_NUM_ABILITIES][AP_NUM_PARAMS];
+static char		*abilityParamNames[AP_NUM_PARAMS] = { "charges", "recharge", "delay", "duration", "lockout" };
+
+/*
+===============
+BG_AbilityParam
+===============
+*/
+float BG_AbilityParam( int active, int param ) {
+	if ( active <= ACTIVE_NONE || active >= ACTIVE_NUM_ABILITIES || param < 0 || param >= AP_NUM_PARAMS ) {
+		return 0;
+	}
+	return abilityCvars[active][param].value;
+}
 
 static const int pmoveCvarCount = ARRAY_LEN( pmoveCvars );
 
@@ -123,12 +147,20 @@ cgame registers with CVAR_SYSTEMINFO so it accepts them
 ===============
 */
 void BG_RegisterPmoveCvars( int flags ) {
-	int		i;
+	int		i, j;
+	char	name[MAX_CVAR_VALUE_STRING];
 
 	for ( i = 0 ; i < pmoveCvarCount ; i++ ) {
 		trap_Cvar_Register( &pmoveCvars[i].vmCvar, pmoveCvars[i].name,
 			pmoveCvars[i].defaultString, flags );
 		*pmoveCvars[i].value = pmoveCvars[i].vmCvar.value;
+	}
+
+	for ( i = ACTIVE_NONE + 1 ; i < ACTIVE_NUM_ABILITIES ; i++ ) {
+		for ( j = 0 ; j < AP_NUM_PARAMS ; j++ ) {
+			Com_sprintf( name, sizeof( name ), "ab_%s_%s", bg_abilityInfo[i].cvarName, abilityParamNames[j] );
+			trap_Cvar_Register( &abilityCvars[i][j], name, bg_abilityInfo[i].defaults[j], flags );
+		}
 	}
 }
 
@@ -138,11 +170,17 @@ BG_UpdatePmoveCvars
 ===============
 */
 void BG_UpdatePmoveCvars( void ) {
-	int		i;
+	int		i, j;
 
 	for ( i = 0 ; i < pmoveCvarCount ; i++ ) {
 		trap_Cvar_Update( &pmoveCvars[i].vmCvar );
 		*pmoveCvars[i].value = pmoveCvars[i].vmCvar.value;
+	}
+
+	for ( i = ACTIVE_NONE + 1 ; i < ACTIVE_NUM_ABILITIES ; i++ ) {
+		for ( j = 0 ; j < AP_NUM_PARAMS ; j++ ) {
+			trap_Cvar_Update( &abilityCvars[i][j] );
+		}
 	}
 }
 
@@ -976,7 +1014,7 @@ static void PM_AirMove( void ) {
 	}
 
 	// not on ground, so little effect on velocity
-	accelerate = bg_pmoveSettings.airAccelerate;
+	accelerate = PM_ClassAirAccelerate();
 	accelspeed = wishspeed;
 	if ( pml.champion->moveStyle == MOVE_AIRCONTROL ) {
 		if ( fmove == 0 && smove != 0 ) {
@@ -1894,7 +1932,7 @@ static void PM_BeginWeaponChange( int weapon ) {
 
 	PM_AddEvent( EV_CHANGE_WEAPON );
 	pm->ps->weaponstate = WEAPON_DROPPING;
-	pm->ps->weaponTime += 200;
+	pm->ps->weaponTime += 200 * PM_WeaponTimeScale();
 	PM_StartTorsoAnim( TORSO_DROP );
 }
 
@@ -1918,7 +1956,7 @@ static void PM_FinishWeaponChange( void ) {
 
 	pm->ps->weapon = weapon;
 	pm->ps->weaponstate = WEAPON_RAISING;
-	pm->ps->weaponTime += 250;
+	pm->ps->weaponTime += 250 * PM_WeaponTimeScale();
 	PM_StartTorsoAnim( TORSO_RAISE );
 }
 
@@ -1951,9 +1989,15 @@ Generates weapon events and modifes the weapon counter
 static void PM_Weapon( void ) {
 	int		addTime;
 
-	// no firing or switching during a bull rush
-	if ( BG_AbilityState( pm->ps ) == ABILITY_RUSH ) {
+	// no firing or switching during a bull rush or ghost walk
+	if ( BG_AbilityState( pm->ps ) == ABILITY_RUSH || PM_AbilityActive( ACTIVE_GHOSTWALK ) ) {
 		return;
+	}
+
+	// berserk is fists only
+	if ( pml.champion->active == ACTIVE_BERSERK
+		&& ( PM_AbilityActive( ACTIVE_BERSERK ) || BG_AbilityState( pm->ps ) == ABILITY_WINDUP ) ) {
+		pm->cmd.weapon = WP_GAUNTLET;
 	}
 
 	// don't allow attack until all buttons are up
@@ -2120,7 +2164,7 @@ static void PM_Weapon( void ) {
 		addTime /= 1.3;
 	}
 
-	pm->ps->weaponTime += addTime;
+	pm->ps->weaponTime += addTime * PM_WeaponTimeScale();
 }
 
 /*
@@ -2339,13 +2383,59 @@ static void PM_Acceleration( void ) {
 
 /*
 ================
+PM_WeaponLockout
+================
+*/
+static void PM_WeaponLockout( int active ) {
+	int		lockout = BG_AbilityParam( active, AP_LOCKOUT );
+
+	if ( pm->ps->weaponTime < lockout ) {
+		pm->ps->weaponTime = lockout;
+	}
+}
+
+/*
+================
 PM_EndAbility
 ================
 */
 static void PM_EndAbility( void ) {
+	int		active = pml.champion->active;
+
 	BG_SetAbility( pm->ps, ABILITY_IDLE, BG_AbilityCharges( pm->ps ) );
 	pm->ps->stats[STAT_ABILITY_TIME] = 0;
 	pm->ps->pm_flags &= ~PMF_GRAPPLE_PULL;
+	if ( bg_abilityInfo[active].lockoutAtEnd ) {
+		PM_WeaponLockout( active );
+	}
+}
+
+/*
+================
+PM_StartAbility
+
+The press delay is over: the ability takes effect
+================
+*/
+static void PM_StartAbility( int *state, int *time ) {
+	int		active = pml.champion->active;
+
+	switch ( active ) {
+	case ACTIVE_HOOK:
+		*state = ABILITY_HOOK_FLYING;
+		*time = 0;
+		PM_AddEvent( EV_USE_ABILITY );
+		break;
+	case ACTIVE_BULLRUSH:
+		*state = ABILITY_RUSH;
+		*time = BG_AbilityParam( active, AP_DURATION );
+		break;
+	default:
+		PM_AddEvent( EV_USE_ABILITY );
+		*time = BG_AbilityParam( active, AP_DURATION );
+		*state = *time > 0 ? ABILITY_ACTIVE : ABILITY_IDLE;
+		break;
+	}
 }
 
 /*
@@ -2353,11 +2443,12 @@ static void PM_EndAbility( void ) {
 PM_Ability
 
 Active ability on BUTTON_ABILITY. Charges are spent here and given back by
-the game; the hook entity itself is thrown and freed by the game too.
+the game; effects outside movement (projectiles, heals, the hook entity)
+happen in the game on EV_USE_ABILITY and EV_ABILITY_REPRESS.
 ================
 */
 static void PM_Ability( void ) {
-	int			state, charges, time;
+	int			state, charges, time, active;
 	qboolean	pressed;
 	vec3_t		dir;
 
@@ -2369,7 +2460,8 @@ static void PM_Ability( void ) {
 		pm->ps->pm_flags &= ~PMF_ABILITY_HELD;
 	}
 
-	if ( pml.champion->active == ACTIVE_NONE || pm->ps->pm_type != PM_NORMAL ) {
+	active = pml.champion->active;
+	if ( active == ACTIVE_NONE || pm->ps->pm_type != PM_NORMAL ) {
 		return;
 	}
 
@@ -2382,22 +2474,19 @@ static void PM_Ability( void ) {
 			return;
 		}
 		charges--;
-		if ( pml.champion->active == ACTIVE_HOOK ) {
+		if ( !bg_abilityInfo[active].lockoutAtEnd ) {
+			PM_WeaponLockout( active );
+		}
+		time = BG_AbilityParam( active, AP_DELAY );
+		if ( time > 0 ) {
 			state = ABILITY_WINDUP;
-			time = bg_pmoveSettings.hookFireDelay;
-			if ( pm->ps->weaponTime < bg_pmoveSettings.abilityWeaponDelay ) {
-				pm->ps->weaponTime = bg_pmoveSettings.abilityWeaponDelay;
-			}
 		} else {
-			state = ABILITY_RUSH;
-			time = bg_pmoveSettings.rushDuration;
+			PM_StartAbility( &state, &time );
 		}
 	} else if ( state == ABILITY_WINDUP ) {
 		time -= pml.msec;
 		if ( time <= 0 ) {
-			time = 0;
-			state = ABILITY_HOOK_FLYING;
-			PM_AddEvent( EV_USE_ABILITY );
+			PM_StartAbility( &state, &time );
 		}
 	} else if ( state == ABILITY_HOOK_FLYING ) {
 		if ( pm->ps->pm_flags & PMF_GRAPPLE_PULL ) {
@@ -2422,20 +2511,82 @@ static void PM_Ability( void ) {
 		if ( time > STAT_TIME_CAP ) {
 			time = STAT_TIME_CAP;
 		}
-	} else if ( state == ABILITY_RUSH ) {
+	} else if ( state == ABILITY_RUSH || state == ABILITY_ACTIVE ) {
+		if ( pressed && state == ABILITY_ACTIVE ) {
+			PM_AddEvent( EV_ABILITY_REPRESS );
+		}
 		time -= pml.msec;
 		if ( time <= 0 ) {
 			BG_SetAbility( pm->ps, ABILITY_IDLE, charges );
 			PM_EndAbility();
-			if ( pm->ps->weaponTime < bg_pmoveSettings.abilityWeaponDelay ) {
-				pm->ps->weaponTime = bg_pmoveSettings.abilityWeaponDelay;
-			}
 			return;
 		}
 	}
 
 	BG_SetAbility( pm->ps, state, charges );
 	pm->ps->stats[STAT_ABILITY_TIME] = time;
+}
+
+/*
+================
+PM_AbilityActive
+
+True while the given active ability is running
+================
+*/
+static qboolean PM_AbilityActive( int active ) {
+	return pml.champion->active == active && BG_AbilityState( pm->ps ) == ABILITY_ACTIVE;
+}
+
+/*
+================
+PM_AbilitySpeed
+
+Run speed changes from timed abilities
+================
+*/
+static void PM_AbilitySpeed( void ) {
+	if ( PM_AbilityActive( ACTIVE_INJECTION ) ) {
+		pml.runSpeed *= bg_pmoveSettings.injectionSpeed;
+	} else if ( PM_AbilityActive( ACTIVE_BERSERK ) ) {
+		pml.runSpeed = bg_pmoveSettings.berserkSpeed;
+	}
+}
+
+/*
+================
+PM_ClassAirAccelerate
+
+Air acceleration for the champion's body class, scaled by pm_airAccelerate
+================
+*/
+static float PM_ClassAirAccelerate( void ) {
+	float	accel;
+
+	if ( pml.champion->passives & PASSIVE_FULLSPRINT ) {
+		accel = bg_pmoveSettings.airAccelFullSprint;
+	} else if ( pml.champion->bodyClass == CLASS_LIGHT ) {
+		accel = bg_pmoveSettings.airAccelLight;
+	} else if ( pml.champion->bodyClass == CLASS_HEAVY ) {
+		accel = bg_pmoveSettings.airAccelHeavy;
+	} else {
+		accel = bg_pmoveSettings.airAccelMedium;
+	}
+	return accel * bg_pmoveSettings.airAccelerate;
+}
+
+/*
+================
+PM_WeaponTimeScale
+
+Dual wield fires and switches faster
+================
+*/
+static float PM_WeaponTimeScale( void ) {
+	if ( PM_AbilityActive( ACTIVE_DUALWIELD ) && bg_pmoveSettings.dualWieldRate > 0 ) {
+		return 1.0f / bg_pmoveSettings.dualWieldRate;
+	}
+	return 1.0f;
 }
 
 /*
@@ -2472,7 +2623,7 @@ static void PM_RushMove( void ) {
 	vec3_t	forward;
 	float	frac;
 
-	frac = 1.0f - pm->ps->stats[STAT_ABILITY_TIME] / bg_pmoveSettings.rushDuration;
+	frac = 1.0f - pm->ps->stats[STAT_ABILITY_TIME] / BG_AbilityParam( ACTIVE_BULLRUSH, AP_DURATION );
 	if ( frac < 0 ) {
 		frac = 0;
 	}
@@ -2509,9 +2660,6 @@ static void PM_CheckRushBlocked( void ) {
 	PM_FlatDirection( 0, forward );
 	if ( DotProduct( pm->ps->velocity, forward ) < pml.rushSpeed * bg_pmoveSettings.rushStopFraction ) {
 		PM_EndAbility();
-		if ( pm->ps->weaponTime < bg_pmoveSettings.abilityWeaponDelay ) {
-			pm->ps->weaponTime = bg_pmoveSettings.abilityWeaponDelay;
-		}
 	}
 }
 
@@ -2706,7 +2854,8 @@ void PmoveSingle (pmove_t *pmove) {
 	// set the firing flag for continuous beam weapons
 	if ( !(pm->ps->pm_flags & PMF_RESPAWNED) && pm->ps->pm_type != PM_INTERMISSION && pm->ps->pm_type != PM_NOCLIP
 		&& ( pm->cmd.buttons & BUTTON_ATTACK ) && pm->ps->ammo[ pm->ps->weapon ]
-		&& BG_AbilityState( pm->ps ) != ABILITY_RUSH ) {
+		&& BG_AbilityState( pm->ps ) != ABILITY_RUSH
+		&& !( BG_AbilityState( pm->ps ) == ABILITY_ACTIVE && pml.champion->active == ACTIVE_GHOSTWALK ) ) {
 		pm->ps->eFlags |= EF_FIRING;
 	} else {
 		pm->ps->eFlags &= ~EF_FIRING;
@@ -2832,6 +2981,7 @@ void PmoveSingle (pmove_t *pmove) {
 	PM_MoveTimers();
 	PM_Acceleration();
 	PM_Ability();
+	PM_AbilitySpeed();
 	PM_AirDodge();
 	if ( BG_AbilityState( pm->ps ) == ABILITY_RUSH && pm->ps->pm_type == PM_NORMAL ) {
 		PM_RushMove();

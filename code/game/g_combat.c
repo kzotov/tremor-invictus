@@ -458,6 +458,9 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	}
 	G_EndRush( self );
 	BG_SetAbility( &self->client->ps, ABILITY_IDLE, BG_AbilityCharges( &self->client->ps ) );
+	self->client->ps.stats[STAT_ABILITY_TIME] = 0;
+	self->client->abilityPrevState = ABILITY_IDLE;
+	self->client->ps.powerups[PW_INVIS] = 0;
 #ifdef MISSIONPACK
 	if ((self->client->ps.eFlags & EF_TICKING) && self->activator) {
 		self->client->ps.eFlags &= ~EF_TICKING;
@@ -946,6 +949,21 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		}
 	}
 
+	// champion immunities
+	if ( client ) {
+		int		passives = BG_Champion( client->ps.stats[STAT_CHAMPION] )->passives;
+
+		if ( G_AbilityActive( targ, ACTIVE_GHOSTWALK ) ) {
+			return;
+		}
+		if ( ( passives & PASSIVE_FIREPROOF ) && mod == MOD_LAVA ) {
+			return;
+		}
+		if ( ( passives & PASSIVE_ACIDPROOF ) && mod == MOD_SLIME ) {
+			return;
+		}
+	}
+
 	// battlesuit protects from all radius damage (but takes knockback)
 	// and protects 50% against all damage
 	if ( client && client->ps.powerups[PW_BATTLESUIT] ) {
@@ -973,6 +991,18 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	// calculated after knockback, so rocket jumping works
 	if ( targ == attacker) {
 		damage *= 0.5;
+	}
+
+	// champion damage passives, also after knockback
+	if ( client ) {
+		int		passives = BG_Champion( client->ps.stats[STAT_CHAMPION] )->passives;
+
+		if ( ( passives & PASSIVE_SELFDAMAGE ) && targ == attacker ) {
+			damage *= g_selfDamageScale.value;
+		}
+		if ( ( passives & PASSIVE_SPLASHRESIST ) && ( dflags & DAMAGE_RADIUS ) ) {
+			damage *= g_splashResistScale.value;
+		}
 	}
 
 	if ( damage < 1 ) {
@@ -1033,6 +1063,9 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
 	// do the damage
 	if (take) {
+		if ( targ->client ) {
+			targ->client->lastDamageTime = level.time;
+		}
 		targ->health = targ->health - take;
 		if ( targ->client ) {
 			targ->client->ps.stats[STAT_HEALTH] = targ->health;

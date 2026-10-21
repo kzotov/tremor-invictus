@@ -452,6 +452,10 @@ void CG_PredictPlayerState( void ) {
 	if ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR ) {
 		cg_pmove.tracemask &= ~CONTENTS_BODY;	// spectators can fly through bodies
 	}
+	if ( BG_Champion( cg_pmove.ps->stats[STAT_CHAMPION] )->active == ACTIVE_GHOSTWALK
+		&& BG_AbilityState( cg_pmove.ps ) == ABILITY_ACTIVE ) {
+		cg_pmove.tracemask &= ~CONTENTS_BODY;	// ghost walk passes through players
+	}
 	cg_pmove.noFootsteps = ( cgs.dmflags & DF_NO_FOOTSTEPS ) > 0;
 
 	// save the state before the pmove so we can detect transitions

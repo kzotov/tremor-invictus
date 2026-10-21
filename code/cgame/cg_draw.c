@@ -1426,6 +1426,73 @@ static void CG_DrawHoldableItem( void ) {
 }
 #endif // MISSIONPACK
 
+/*
+===================
+CG_WorldToScreen
+
+Projects a world point to 640x480 screen coordinates; qfalse if behind
+===================
+*/
+static qboolean CG_WorldToScreen( const vec3_t point, float *x, float *y ) {
+	vec3_t	vec;
+	float	front, left, up;
+
+	VectorSubtract( point, cg.refdef.vieworg, vec );
+	front = DotProduct( vec, cg.refdef.viewaxis[0] );
+	if ( front < 1 ) {
+		return qfalse;
+	}
+	left = DotProduct( vec, cg.refdef.viewaxis[1] );
+	up = DotProduct( vec, cg.refdef.viewaxis[2] );
+	*x = 320 - left / front * 320 / tan( DEG2RAD( cg.refdef.fov_x * 0.5f ) );
+	*y = 240 - up / front * 240 / tan( DEG2RAD( cg.refdef.fov_y * 0.5f ) );
+	return qtrue;
+}
+
+/*
+===================
+CG_DrawRevealedPlayers
+
+Piercing sight: outline enemies through walls
+===================
+*/
+static void CG_DrawRevealedPlayers( void ) {
+	playerState_t	*ps = &cg.snap->ps;
+	centity_t		*cent;
+	vec3_t			feet, head;
+	float			x1, y1, x2, y2, w;
+	int				i, myTeam;
+	static vec4_t	revealColor = { 1.0f, 0.2f, 0.1f, 0.8f };
+
+	if ( BG_Champion( ps->stats[STAT_CHAMPION] )->active != ACTIVE_PIERCINGSIGHT
+		|| BG_AbilityState( ps ) != ABILITY_ACTIVE ) {
+		return;
+	}
+
+	myTeam = ps->persistant[PERS_TEAM];
+	for ( i = 0 ; i < MAX_CLIENTS ; i++ ) {
+		cent = &cg_entities[i];
+		if ( i == ps->clientNum || !cent->currentValid || cent->currentState.eType != ET_PLAYER ) {
+			continue;
+		}
+		if ( cent->currentState.eFlags & EF_DEAD ) {
+			continue;
+		}
+		if ( cgs.gametype >= GT_TEAM && cgs.clientinfo[i].team == myTeam ) {
+			continue;
+		}
+		VectorCopy( cent->lerpOrigin, feet );
+		VectorCopy( cent->lerpOrigin, head );
+		feet[2] += MINS_Z;
+		head[2] += DEFAULT_HEIGHT;
+		if ( !CG_WorldToScreen( feet, &x1, &y1 ) || !CG_WorldToScreen( head, &x2, &y2 ) ) {
+			continue;
+		}
+		w = ( y1 - y2 ) * 0.4f;
+		CG_DrawRect( x1 - w * 0.5f, y2, w, y1 - y2, 1, revealColor );
+	}
+}
+
 #ifndef MISSIONPACK
 /*
 ===================
@@ -1448,8 +1515,10 @@ static void CG_DrawAbility( void ) {
 	}
 
 	color = BG_AbilityCharges( ps ) > 0 ? colorWhite : colorMdGrey;
-	s = va( "%s %i", BG_String( champ->active == ACTIVE_HOOK ? STR_ABILITY_HOOK : STR_ABILITY_BULLRUSH ),
-		BG_AbilityCharges( ps ) );
+	if ( BG_AbilityState( ps ) == ABILITY_ACTIVE || BG_AbilityState( ps ) == ABILITY_RUSH ) {
+		color = colorYellow;
+	}
+	s = va( "%s %i", BG_String( bg_abilityInfo[champ->active].nameString ), BG_AbilityCharges( ps ) );
 	y = ( SCREEN_HEIGHT + ICON_SIZE ) / 2 + 8;
 	CG_DrawStringExt( 640 - 8 - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH, y, s, color, qfalse, qtrue,
 		SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
@@ -2607,6 +2676,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 #ifdef MISSIONPACK
 			CG_DrawProxWarning();
 #endif      
+			CG_DrawRevealedPlayers();
 			if(stereoFrame == STEREO_CENTER)
 				CG_DrawCrosshair();
 			CG_DrawCrosshairNames();

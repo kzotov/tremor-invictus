@@ -116,6 +116,9 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 #endif
 
 	damage = 50 * s_quadFactor;
+	if ( G_AbilityActive( ent, ACTIVE_BERSERK ) ) {
+		damage = g_berserkDamage.value * s_quadFactor;
+	}
 	G_Damage( traceEnt, ent, ent, forward, tr.endpos,
 		damage, 0, MOD_GAUNTLET );
 

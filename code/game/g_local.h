@@ -305,6 +305,9 @@ struct gclient_s {
 	qboolean	fireHeld;			// used for hook
 	gentity_t	*hook;				// grapple hook if out
 	int			abilityRecharge;	// msec toward the next ability charge
+	int			abilityPrevState;	// ability state after the last think
+	int			lastDamageTime;		// level.time this client last lost health
+	int			regenResidual;		// msec of regeneration not yet turned into health
 	int			collisionTime[MAX_CLIENTS];	// level.time of the last collision hit per victim
 
 	int			switchTeamTime;		// time the player switched teams
@@ -560,6 +563,9 @@ qboolean CheckGauntletAttack( gentity_t *ent );
 void Weapon_HookFree (gentity_t *ent);
 void Ability_HookFire( gentity_t *ent );
 void G_EndRush( gentity_t *ent );
+void G_CutAbilityCooldown( gentity_t *ent, float fraction );
+void G_UpdateRevealedPlayers( void );
+qboolean G_AbilityActive( gentity_t *ent, int active );
 
 #define	G_ClassInfo( client )	( &bg_classInfo[BG_Champion( (client)->ps.stats[STAT_CHAMPION] )->bodyClass] )
 void Weapon_HookThink (gentity_t *ent);
@@ -718,14 +724,22 @@ extern	vmCvar_t	g_password;
 extern	vmCvar_t	g_needpass;
 extern	vmCvar_t	g_gravity;
 extern	vmCvar_t	g_speed;
-extern	vmCvar_t	g_hookCharges;
-extern	vmCvar_t	g_hookRecharge;
+extern	vmCvar_t	g_injectionHeal;
+extern	vmCvar_t	g_berserkDamage;
+extern	vmCvar_t	g_ghostWalkTelefrag;
+extern	vmCvar_t	g_regenDelay;
+extern	vmCvar_t	g_regenRate;
+extern	vmCvar_t	g_selfDamageScale;
+extern	vmCvar_t	g_splashResistScale;
+extern	vmCvar_t	g_cooldownArmorLight;
+extern	vmCvar_t	g_cooldownArmorHeavy;
+extern	vmCvar_t	g_cooldownHealth;
+extern	vmCvar_t	g_cooldownMega;
+extern	vmCvar_t	g_cooldownAmmo;
 extern	vmCvar_t	g_hookSpeed;
 extern	vmCvar_t	g_hookRange;
 extern	vmCvar_t	g_hookDamage;
 extern	vmCvar_t	g_hookSwingDamage;
-extern	vmCvar_t	g_rushCharges;
-extern	vmCvar_t	g_rushRecharge;
 extern	vmCvar_t	g_rushDamageScale;
 extern	vmCvar_t	g_hwSpeed;
 extern	vmCvar_t	g_hwDamage;

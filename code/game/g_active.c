@@ -311,10 +311,174 @@ void	G_TouchTriggers( gentity_t *ent ) {
 
 /*
 =================
+G_AbilityActive
+=================
+*/
+qboolean G_AbilityActive( gentity_t *ent, int active ) {
+	if ( !ent->client ) {
+		return qfalse;
+	}
+	return BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->active == active
+		&& BG_AbilityState( &ent->client->ps ) == ABILITY_ACTIVE;
+}
+
+/*
+=================
+G_CutAbilityCooldown
+
+Pickup passives: take a fraction of the full recharge time off the wait
+=================
+*/
+void G_CutAbilityCooldown( gentity_t *ent, float fraction ) {
+	int		active;
+
+	if ( !ent->client ) {
+		return;
+	}
+	active = BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->active;
+	if ( BG_AbilityCharges( &ent->client->ps ) < BG_AbilityParam( active, AP_CHARGES ) ) {
+		ent->client->abilityRecharge += fraction * BG_AbilityParam( active, AP_RECHARGE );
+	}
+}
+
+/*
+=================
+G_GhostWalkEnd
+
+Coming out of ghost walk inside an enemy telefrags them
+=================
+*/
+static void G_GhostWalkEnd( gentity_t *ent ) {
+	int			touch[MAX_GENTITIES];
+	vec3_t		mins, maxs;
+	gentity_t	*other;
+	int			i, num;
+
+	ent->client->ps.powerups[PW_INVIS] = 0;
+	ent->r.contents = CONTENTS_BODY;
+
+	VectorAdd( ent->client->ps.origin, ent->r.mins, mins );
+	VectorAdd( ent->client->ps.origin, ent->r.maxs, maxs );
+	num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
+	for ( i = 0 ; i < num ; i++ ) {
+		other = &g_entities[touch[i]];
+		if ( other == ent || !other->client || other->health <= 0 ) {
+			continue;
+		}
+		if ( OnSameTeam( ent, other ) ) {
+			continue;
+		}
+		G_Damage( other, ent, ent, NULL, NULL, g_ghostWalkTelefrag.integer,
+			DAMAGE_NO_PROTECTION, MOD_TELEFRAG );
+	}
+}
+
+/*
+=================
+G_UseAbility
+
+EV_USE_ABILITY from pmove: the press delay is over
+=================
+*/
+static void G_UseAbility( gentity_t *ent ) {
+	gclient_t	*client = ent->client;
+	int			max;
+
+	switch ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active ) {
+	case ACTIVE_HOOK:
+		Ability_HookFire( ent );
+		break;
+
+	case ACTIVE_INJECTION:
+		max = client->ps.stats[STAT_MAX_HEALTH] + G_ClassInfo( client )->maxHealthBonus;
+		if ( ent->health < max ) {
+			ent->health += g_injectionHeal.integer;
+			if ( ent->health > max ) {
+				ent->health = max;
+			}
+			client->ps.stats[STAT_HEALTH] = ent->health;
+		}
+		break;
+
+	case ACTIVE_GHOSTWALK:
+		client->ps.powerups[PW_INVIS] = level.time + BG_AbilityParam( ACTIVE_GHOSTWALK, AP_DURATION ) + 100;
+		ent->r.contents = 0;
+		break;
+
+	default:
+		break;
+	}
+}
+
+/*
+=================
+G_Regeneration
+
+After a while without damage, refill health to the top of its 25 HP block
+=================
+*/
+static void G_Regeneration( gentity_t *ent, int msec ) {
+	gclient_t	*client = ent->client;
+	int			top, add;
+
+	if ( !( BG_Champion( client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_REGENERATION ) ) {
+		return;
+	}
+	if ( ent->health <= 0 || level.time - client->lastDamageTime < g_regenDelay.integer ) {
+		client->regenResidual = 0;
+		return;
+	}
+	top = ( ( ent->health + 24 ) / 25 ) * 25;
+	if ( ent->health >= top || top > client->ps.stats[STAT_MAX_HEALTH] ) {
+		return;
+	}
+	client->regenResidual += msec * g_regenRate.integer;
+	add = client->regenResidual / 1000;
+	client->regenResidual -= add * 1000;
+	ent->health += add;
+	if ( ent->health > top ) {
+		ent->health = top;
+	}
+	client->ps.stats[STAT_HEALTH] = ent->health;
+}
+
+/*
+=================
+G_UpdateRevealedPlayers
+
+Piercing sight: while any player has it running, every player entity is sent
+to all clients so it can be shown through walls
+=================
+*/
+void G_UpdateRevealedPlayers( void ) {
+	gentity_t	*ent;
+	qboolean	reveal = qfalse;
+	int			i;
+
+	for ( i = 0, ent = g_entities ; i < level.maxclients ; i++, ent++ ) {
+		if ( ent->inuse && G_AbilityActive( ent, ACTIVE_PIERCINGSIGHT ) ) {
+			reveal = qtrue;
+			break;
+		}
+	}
+	for ( i = 0, ent = g_entities ; i < level.maxclients ; i++, ent++ ) {
+		if ( !ent->inuse || !ent->client ) {
+			continue;
+		}
+		if ( reveal ) {
+			ent->r.svFlags |= SVF_BROADCAST;
+		} else {
+			ent->r.svFlags &= ~SVF_BROADCAST;
+		}
+	}
+}
+
+/*
+=================
 G_AbilityUpkeep
 
-Gives back ability charges and keeps the hook entity in step with the
-ability state that pmove drives
+Gives back ability charges, follows the ability state that pmove drives,
+and keeps the hook entity in step
 =================
 */
 static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
@@ -322,17 +486,18 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 	const champion_t	*champ = BG_Champion( client->ps.stats[STAT_CHAMPION] );
 	int					state, charges, maxCharges, recharge;
 
+	G_Regeneration( ent, msec );
+
 	if ( champ->active == ACTIVE_NONE ) {
 		return;
 	}
 
 	state = BG_AbilityState( &client->ps );
 	charges = BG_AbilityCharges( &client->ps );
+	maxCharges = BG_AbilityParam( champ->active, AP_CHARGES );
+	recharge = BG_AbilityParam( champ->active, AP_RECHARGE );
 
 	if ( champ->active == ACTIVE_HOOK ) {
-		maxCharges = g_hookCharges.integer;
-		recharge = g_hookRecharge.integer;
-
 		// pmove let go, or the hook expired or missed
 		if ( client->hook && state != ABILITY_HOOK_FLYING && state != ABILITY_HOOK_PULL ) {
 			Weapon_HookFree( client->hook );
@@ -342,10 +507,15 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 			client->ps.stats[STAT_ABILITY_TIME] = 0;
 			client->ps.pm_flags &= ~PMF_GRAPPLE_PULL;
 		}
-	} else {
-		maxCharges = g_rushCharges.integer;
-		recharge = g_rushRecharge.integer;
 	}
+
+	// timed abilities ending
+	if ( client->abilityPrevState == ABILITY_ACTIVE && state != ABILITY_ACTIVE ) {
+		if ( champ->active == ACTIVE_GHOSTWALK ) {
+			G_GhostWalkEnd( ent );
+		}
+	}
+	client->abilityPrevState = state;
 
 	// one charge recharges at a time
 	if ( charges < maxCharges ) {
@@ -379,8 +549,8 @@ void G_EndRush( gentity_t *ent ) {
 	}
 	BG_SetAbility( &client->ps, ABILITY_IDLE, BG_AbilityCharges( &client->ps ) );
 	client->ps.stats[STAT_ABILITY_TIME] = 0;
-	if ( client->ps.weaponTime < bg_pmoveSettings.abilityWeaponDelay ) {
-		client->ps.weaponTime = bg_pmoveSettings.abilityWeaponDelay;
+	if ( client->ps.weaponTime < BG_AbilityParam( ACTIVE_BULLRUSH, AP_LOCKOUT ) ) {
+		client->ps.weaponTime = BG_AbilityParam( ACTIVE_BULLRUSH, AP_LOCKOUT );
 	}
 }
 
@@ -709,9 +879,7 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 
 		switch ( event ) {
 		case EV_USE_ABILITY:
-			if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_HOOK ) {
-				Ability_HookFire( ent );
-			}
+			G_UseAbility( ent );
 			break;
 
 		case EV_FALL_MEDIUM:
@@ -1074,6 +1242,9 @@ void ClientThink_real( gentity_t *ent ) {
 	}
 	else {
 		pm.tracemask = MASK_PLAYERSOLID;
+	}
+	if ( G_AbilityActive( ent, ACTIVE_GHOSTWALK ) ) {
+		pm.tracemask &= ~CONTENTS_BODY;		// ghost walk passes through players
 	}
 	pm.trace = trap_Trace;
 	pm.pointcontents = trap_PointContents;
