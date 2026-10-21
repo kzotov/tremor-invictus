@@ -792,8 +792,8 @@ void ClientUserinfoChanged( int clientNum ) {
 		Q_strncpyz( headModel, Info_ValueForKey (userinfo, "headmodel"), sizeof( headModel ) );
 	}
 
-	// the champion decides the model
-	Q_strncpyz( model, BG_Champion( client->pers.champion )->model, sizeof( model ) );
+	// the champion being played decides the model; a new pick shows on respawn
+	Q_strncpyz( model, BG_Champion( client->ps.stats[STAT_CHAMPION] )->model, sizeof( model ) );
 	Q_strncpyz( headModel, model, sizeof( headModel ) );
 
 /*	NOTE: all client side now
@@ -1186,6 +1186,7 @@ void ClientSpawn(gentity_t *ent) {
 	client->ps.clientNum = index;
 
 	client->ps.stats[STAT_CHAMPION] = client->pers.champion;
+	ClientUserinfoChanged( index );		// show this champion's model
 	switch ( BG_Champion( client->pers.champion )->active ) {
 	case ACTIVE_HOOK:
 		BG_SetAbility( &client->ps, ABILITY_IDLE, g_hookCharges.integer );
