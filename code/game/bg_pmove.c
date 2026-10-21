@@ -94,7 +94,7 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_wallJumpPush",		"200",	&bg_pmoveSettings.wallJumpPush },
 	{ {0}, "pm_wallJumpNormal",		"0.3",	&bg_pmoveSettings.wallJumpNormal },
 
-	{ {0}, "pm_doubleJumpVelocity",	"270",	&bg_pmoveSettings.doubleJumpVelocity },
+	{ {0}, "pm_doubleJumpVelocity",	"275",	&bg_pmoveSettings.doubleJumpVelocity },
 
 	{ {0}, "pm_dodgeTapWindow",		"250",	&bg_pmoveSettings.dodgeTapWindow },
 	{ {0}, "pm_dodgeSpeed",			"550",	&bg_pmoveSettings.dodgeSpeed },
