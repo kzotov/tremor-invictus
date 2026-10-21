@@ -1274,6 +1274,7 @@ extern	vmCvar_t		cg_showLineup;
 extern	vmCvar_t		cg_loadingTips;
 extern	vmCvar_t		cg_damageArc;
 extern	vmCvar_t		cg_zoomToggle;
+extern	vmCvar_t		cg_worldItemTimers;
 extern	vmCvar_t		cg_lowHealthWarning;
 extern	vmCvar_t		cg_drawLineup;
 extern	vmCvar_t		cg_layoutDump;

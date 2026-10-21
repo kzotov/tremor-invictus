@@ -470,8 +470,9 @@ void G_UpdateItemTimers( void ) {
 		if ( !BG_ItemTimerClass( ent->item ) ) {
 			continue;
 		}
-		Q_strcat( info, sizeof( info ), va( "%i %i ", ent->s.modelindex,
-			( ent->s.eFlags & EF_NODRAW ) && ent->nextthink ? ent->nextthink : 0 ) );
+		Q_strcat( info, sizeof( info ), va( "%i %i %i %i %i ", ent->s.modelindex,
+			( ent->s.eFlags & EF_NODRAW ) && ent->nextthink ? ent->nextthink : 0,
+			(int)ent->s.pos.trBase[0], (int)ent->s.pos.trBase[1], (int)ent->s.pos.trBase[2] ) );
 	}
 	if ( strcmp( info, last ) ) {
 		Q_strncpyz( last, info, sizeof( last ) );
