@@ -309,7 +309,8 @@ char	*modNames[] = {
 	"MOD_KAMIKAZE",
 	"MOD_JUICED",
 #endif
-	"MOD_GRAPPLE"
+	"MOD_GRAPPLE",
+	"MOD_HEAVYWEIGHT"
 };
 
 #ifdef MISSIONPACK
@@ -455,6 +456,8 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	if (self->client && self->client->hook) {
 		Weapon_HookFree(self->client->hook);
 	}
+	G_EndRush( self );
+	BG_SetAbility( &self->client->ps, ABILITY_IDLE, BG_AbilityCharges( &self->client->ps ) );
 #ifdef MISSIONPACK
 	if ((self->client->ps.eFlags & EF_TICKING) && self->activator) {
 		self->client->ps.eFlags &= ~EF_TICKING;
@@ -975,6 +978,12 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if ( damage < 1 ) {
 		damage = 1;
 	}
+	// bull rush shrugs off part of the damage
+	if ( client && BG_AbilityState( &client->ps ) == ABILITY_RUSH ) {
+		take = damage * g_rushDamageScale.value;
+		damage = take < 1 ? 1 : take;
+	}
+
 	take = damage;
 
 	// save some from armor

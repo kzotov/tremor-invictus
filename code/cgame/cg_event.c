@@ -250,6 +250,9 @@ static void CG_Obituary( entityState_t *ent ) {
 		case MOD_GRAPPLE:
 			message = "was caught by";
 			break;
+		case MOD_HEAVYWEIGHT:
+			message = "was trampled by";
+			break;
 		case MOD_GAUNTLET:
 			message = "was pummeled by";
 			break;
@@ -676,6 +679,9 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	case EV_JUMP:
 		DEBUGNAME("EV_JUMP");
 		trap_S_StartSound (NULL, es->number, CHAN_VOICE, CG_CustomSound( es->number, "*jump1.wav" ) );
+		break;
+	case EV_USE_ABILITY:
+		DEBUGNAME("EV_USE_ABILITY");
 		break;
 	case EV_TAUNT:
 		DEBUGNAME("EV_TAUNT");

@@ -311,6 +311,156 @@ void	G_TouchTriggers( gentity_t *ent ) {
 
 /*
 =================
+G_AbilityUpkeep
+
+Gives back ability charges and keeps the hook entity in step with the
+ability state that pmove drives
+=================
+*/
+static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
+	gclient_t			*client = ent->client;
+	const champion_t	*champ = BG_Champion( client->ps.stats[STAT_CHAMPION] );
+	int					state, charges, maxCharges, recharge;
+
+	if ( champ->active == ACTIVE_NONE ) {
+		return;
+	}
+
+	state = BG_AbilityState( &client->ps );
+	charges = BG_AbilityCharges( &client->ps );
+
+	if ( champ->active == ACTIVE_HOOK ) {
+		maxCharges = g_hookCharges.integer;
+		recharge = g_hookRecharge.integer;
+
+		// pmove let go, or the hook expired or missed
+		if ( client->hook && state != ABILITY_HOOK_FLYING && state != ABILITY_HOOK_PULL ) {
+			Weapon_HookFree( client->hook );
+		}
+		if ( !client->hook && ( state == ABILITY_HOOK_FLYING || state == ABILITY_HOOK_PULL ) ) {
+			state = ABILITY_IDLE;
+			client->ps.stats[STAT_ABILITY_TIME] = 0;
+			client->ps.pm_flags &= ~PMF_GRAPPLE_PULL;
+		}
+	} else {
+		maxCharges = g_rushCharges.integer;
+		recharge = g_rushRecharge.integer;
+	}
+
+	// one charge recharges at a time
+	if ( charges < maxCharges ) {
+		client->abilityRecharge += msec;
+		if ( client->abilityRecharge >= recharge ) {
+			client->abilityRecharge = 0;
+			charges++;
+		}
+	} else {
+		client->abilityRecharge = 0;
+	}
+
+	BG_SetAbility( &client->ps, state, charges );
+}
+
+/*
+=================
+G_EndRush
+=================
+*/
+void G_EndRush( gentity_t *ent ) {
+	gclient_t	*client = ent->client;
+
+	if ( BG_AbilityState( &client->ps ) != ABILITY_RUSH ) {
+		return;
+	}
+	BG_SetAbility( &client->ps, ABILITY_IDLE, BG_AbilityCharges( &client->ps ) );
+	client->ps.stats[STAT_ABILITY_TIME] = 0;
+	if ( client->ps.weaponTime < bg_pmoveSettings.abilityWeaponDelay ) {
+		client->ps.weaponTime = bg_pmoveSettings.abilityWeaponDelay;
+	}
+}
+
+/*
+=================
+G_HeavyweightDamage
+
+Collision damage for a given impact speed, 0 below the threshold
+=================
+*/
+static int G_HeavyweightDamage( float speed ) {
+	if ( speed < g_hwSpeed.value ) {
+		return 0;
+	}
+	if ( speed < g_hwSpeed2.value ) {
+		return g_hwDamage.value + ( g_hwDamage2.value - g_hwDamage.value )
+			* ( speed - g_hwSpeed.value ) / ( g_hwSpeed2.value - g_hwSpeed.value );
+	}
+	return g_hwDamage2.value + g_hwDamagePer100.value * ( speed - g_hwSpeed2.value ) / 100;
+}
+
+/*
+=================
+G_CollisionDamage
+
+Heavyweight: running or falling into an enemy hurts them and knocks them back.
+Athena's hook swing hurts whoever she swings into.
+=================
+*/
+static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed ) {
+	gclient_t			*client = ent->client;
+	const champion_t	*champ = BG_Champion( client->ps.stats[STAT_CHAMPION] );
+	gentity_t			*other;
+	vec3_t				dir;
+	int					i, damage;
+	qboolean			swinging;
+
+	if ( client->ps.stats[STAT_HEALTH] <= 0 ) {
+		return;
+	}
+	swinging = BG_AbilityState( &client->ps ) == ABILITY_HOOK_PULL
+		&& ( client->buttons & BUTTON_ABILITY );
+	if ( !( champ->abilities & MOVEABIL_HEAVYWEIGHT ) && !swinging ) {
+		return;
+	}
+
+	for ( i = 0 ; i < pm->numtouch ; i++ ) {
+		if ( pm->touchents[i] >= MAX_CLIENTS ) {
+			continue;
+		}
+		other = &g_entities[ pm->touchents[i] ];
+		if ( other == ent || !other->client || other->health <= 0 || !other->takedamage ) {
+			continue;
+		}
+		if ( level.time - client->collisionTime[other->s.number] < g_collisionRepeat.integer ) {
+			continue;
+		}
+
+		if ( champ->abilities & MOVEABIL_HEAVYWEIGHT ) {
+			damage = G_HeavyweightDamage( impactSpeed );
+		} else {
+			damage = g_hookSwingDamage.integer;
+		}
+		if ( damage <= 0 ) {
+			continue;
+		}
+		client->collisionTime[other->s.number] = level.time;
+
+		VectorSubtract( other->r.currentOrigin, ent->r.currentOrigin, dir );
+		dir[2] = 0;
+		if ( VectorNormalize( dir ) == 0 ) {
+			VectorSet( dir, 0, 0, 1 );
+		}
+		G_Damage( other, ent, ent, dir, other->r.currentOrigin, damage,
+			DAMAGE_NO_KNOCKBACK, MOD_HEAVYWEIGHT );
+		if ( other->health > 0 ) {
+			VectorMA( other->client->ps.velocity, g_hwKnockback.value, dir, other->client->ps.velocity );
+			// a survivor stops the bull rush; a kill does not
+			G_EndRush( ent );
+		}
+	}
+}
+
+/*
+=================
 SpectatorThink
 =================
 */
@@ -553,6 +703,12 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 		event = client->ps.events[ i & (MAX_PS_EVENTS-1) ];
 
 		switch ( event ) {
+		case EV_USE_ABILITY:
+			if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_HOOK ) {
+				Ability_HookFire( ent );
+			}
+			break;
+
 		case EV_FALL_MEDIUM:
 		case EV_FALL_FAR:
 			if ( ent->s.eType != ET_PLAYER ) {
@@ -756,6 +912,7 @@ void ClientThink_real( gentity_t *ent ) {
 	pmove_t		pm;
 	int			oldEventSequence;
 	int			msec;
+	float		impactSpeed;
 	usercmd_t	*ucmd;
 
 	client = ent->client;
@@ -922,6 +1079,8 @@ void ClientThink_real( gentity_t *ent ) {
 	pm.pmove_msec = pmove_msec.integer;
 	pm.autoHop = client->pers.autoHop;
 
+	impactSpeed = VectorLength( client->ps.velocity );
+
 	VectorCopy( client->ps.origin, client->oldOrigin );
 
 #ifdef MISSIONPACK
@@ -984,6 +1143,10 @@ void ClientThink_real( gentity_t *ent ) {
 
 	// touch other objects
 	ClientImpacts( ent, &pm );
+
+	// champion collisions and ability bookkeeping
+	G_CollisionDamage( ent, &pm, impactSpeed );
+	G_AbilityUpkeep( ent, msec );
 
 	// save results of triggers and client events
 	if (ent->client->ps.eventSequence != oldEventSequence) {

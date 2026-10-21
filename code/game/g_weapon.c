@@ -793,6 +793,33 @@ void CalcMuzzlePointOrigin ( gentity_t *ent, vec3_t origin, vec3_t localForward,
 }
 
 
+/*
+===============
+Ability_HookFire
+
+Athena's hook, thrown by EV_USE_ABILITY from pmove
+===============
+*/
+void Ability_HookFire( gentity_t *ent ) {
+	gentity_t	*hook;
+	float		speed;
+
+	if ( ent->client->hook ) {
+		Weapon_HookFree( ent->client->hook );
+	}
+
+	AngleVectors( ent->client->ps.viewangles, forward, right, up );
+	CalcMuzzlePointOrigin( ent, ent->client->oldOrigin, forward, right, up, muzzle );
+
+	hook = fire_grapple( ent, muzzle, forward );
+	speed = g_hookSpeed.value > 0 ? g_hookSpeed.value : 800;
+	VectorScale( forward, speed, hook->s.pos.trDelta );
+	SnapVector( hook->s.pos.trDelta );
+	hook->nextthink = level.time + 1000 * g_hookRange.value / speed;
+	hook->damage = g_hookDamage.integer;
+}
+
+
 
 /*
 ===============

@@ -50,6 +50,22 @@ vmCvar_t	g_maxclients;
 vmCvar_t	g_maxGameClients;
 vmCvar_t	g_dedicated;
 vmCvar_t	g_speed;
+vmCvar_t	g_hookCharges;
+vmCvar_t	g_hookRecharge;
+vmCvar_t	g_hookSpeed;
+vmCvar_t	g_hookRange;
+vmCvar_t	g_hookDamage;
+vmCvar_t	g_hookSwingDamage;
+vmCvar_t	g_rushCharges;
+vmCvar_t	g_rushRecharge;
+vmCvar_t	g_rushDamageScale;
+vmCvar_t	g_hwSpeed;
+vmCvar_t	g_hwDamage;
+vmCvar_t	g_hwSpeed2;
+vmCvar_t	g_hwDamage2;
+vmCvar_t	g_hwDamagePer100;
+vmCvar_t	g_hwKnockback;
+vmCvar_t	g_collisionRepeat;
 vmCvar_t	g_gravity;
 vmCvar_t	g_cheats;
 vmCvar_t	g_knockback;
@@ -139,6 +155,24 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_dedicated, "dedicated", "0", 0, 0, qfalse  },
 
 	{ &g_speed, "g_speed", "320", 0, 0, qtrue  },
+
+	// champion abilities; numbers are placeholders until measured
+	{ &g_hookCharges, "g_hookCharges", "3", 0, 0, qtrue },
+	{ &g_hookRecharge, "g_hookRecharge", "15000", 0, 0, qtrue },
+	{ &g_hookSpeed, "g_hookSpeed", "3000", 0, 0, qtrue },
+	{ &g_hookRange, "g_hookRange", "4000", 0, 0, qtrue },
+	{ &g_hookDamage, "g_hookDamage", "25", 0, 0, qtrue },
+	{ &g_hookSwingDamage, "g_hookSwingDamage", "25", 0, 0, qtrue },
+	{ &g_rushCharges, "g_rushCharges", "1", 0, 0, qtrue },
+	{ &g_rushRecharge, "g_rushRecharge", "45000", 0, 0, qtrue },
+	{ &g_rushDamageScale, "g_rushDamageScale", "0.5", 0, 0, qtrue },
+	{ &g_hwSpeed, "g_hwSpeed", "320", 0, 0, qtrue },
+	{ &g_hwDamage, "g_hwDamage", "25", 0, 0, qtrue },
+	{ &g_hwSpeed2, "g_hwSpeed2", "400", 0, 0, qtrue },
+	{ &g_hwDamage2, "g_hwDamage2", "50", 0, 0, qtrue },
+	{ &g_hwDamagePer100, "g_hwDamagePer100", "25", 0, 0, qtrue },
+	{ &g_hwKnockback, "g_hwKnockback", "100", 0, 0, qtrue },
+	{ &g_collisionRepeat, "g_collisionRepeat", "500", 0, 0, qtrue },
 	{ &g_gravity, "g_gravity", "800", 0, 0, qtrue  },
 	{ &g_knockback, "g_knockback", "1000", 0, 0, qtrue  },
 	{ &g_quadfactor, "g_quadfactor", "3", 0, 0, qtrue  },

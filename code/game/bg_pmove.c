@@ -78,7 +78,35 @@ static pmoveCvar_t pmoveCvars[] = {
 
 	{ {0}, "pm_wallJumpVelocity",	"350",	&bg_pmoveSettings.wallJumpVelocity },
 	{ {0}, "pm_wallJumpPush",		"200",	&bg_pmoveSettings.wallJumpPush },
-	{ {0}, "pm_wallJumpNormal",		"0.3",	&bg_pmoveSettings.wallJumpNormal }
+	{ {0}, "pm_wallJumpNormal",		"0.3",	&bg_pmoveSettings.wallJumpNormal },
+
+	{ {0}, "pm_doubleJumpVelocity",	"270",	&bg_pmoveSettings.doubleJumpVelocity },
+
+	{ {0}, "pm_dodgeTapWindow",		"250",	&bg_pmoveSettings.dodgeTapWindow },
+	{ {0}, "pm_dodgeSpeed",			"550",	&bg_pmoveSettings.dodgeSpeed },
+	{ {0}, "pm_dodgeUp",			"0",	&bg_pmoveSettings.dodgeUp },
+
+	{ {0}, "pm_accelRate",			"50",	&bg_pmoveSettings.accelRate },
+	{ {0}, "pm_accelMax",			"800",	&bg_pmoveSettings.accelMax },
+	{ {0}, "pm_accelAngle",			"15",	&bg_pmoveSettings.accelAngle },
+
+	{ {0}, "pm_rushDuration",		"3000",	&bg_pmoveSettings.rushDuration },
+	{ {0}, "pm_rushSpeed",			"800",	&bg_pmoveSettings.rushSpeed },
+	{ {0}, "pm_rushTurnRate",		"120",	&bg_pmoveSettings.rushTurnRate },
+	{ {0}, "pm_rushStopFraction",	"0.5",	&bg_pmoveSettings.rushStopFraction },
+
+	{ {0}, "pm_hookFireDelay",		"100",	&bg_pmoveSettings.hookFireDelay },
+	{ {0}, "pm_hookImpulse",		"400",	&bg_pmoveSettings.hookImpulse },
+	{ {0}, "pm_hookPullStart",		"400",	&bg_pmoveSettings.hookPullStart },
+	{ {0}, "pm_hookPullAccel",		"1000",	&bg_pmoveSettings.hookPullAccel },
+	{ {0}, "pm_hookPullMax",		"800",	&bg_pmoveSettings.hookPullMax },
+	{ {0}, "pm_hookDeadZone",		"68",	&bg_pmoveSettings.hookDeadZone },
+	{ {0}, "pm_hookSwingMax",		"1000",	&bg_pmoveSettings.hookSwingMax },
+
+	{ {0}, "pm_rampJumpScale",		"1",	&bg_pmoveSettings.rampJumpScale },
+	{ {0}, "pm_rampJumpMax",		"200",	&bg_pmoveSettings.rampJumpMax },
+
+	{ {0}, "pm_abilityWeaponDelay",	"500",	&bg_pmoveSettings.abilityWeaponDelay }
 };
 
 static const int pmoveCvarCount = ARRAY_LEN( pmoveCvars );
@@ -242,7 +270,7 @@ Slide style: crouching on the ground with slide charge left
 static qboolean PM_IsSliding( void ) {
 	return pml.champion->moveStyle == MOVE_SLIDE && pml.walking
 		&& ( pm->ps->pm_flags & PMF_DUCKED )
-		&& pm->ps->stats[STAT_SLIDE_CHARGE] > 0;
+		&& pm->ps->stats[STAT_MOVE_STATE] > 0;
 }
 
 /*
@@ -404,7 +432,7 @@ static float PM_CmdScale( usercmd_t *cmd ) {
 
 	total = sqrt( cmd->forwardmove * cmd->forwardmove
 		+ cmd->rightmove * cmd->rightmove + cmd->upmove * cmd->upmove );
-	scale = (float)pm->ps->speed * max / ( 127.0 * total );
+	scale = pml.runSpeed * max / ( 127.0 * total );
 
 	return scale;
 }
@@ -488,6 +516,17 @@ static qboolean PM_CheckJump( void ) {
 	pm->ps->groundEntityNum = ENTITYNUM_NONE;
 	pm->ps->velocity[2] = bg_pmoveSettings.jumpVelocity;
 
+	// jumping off a climb adds the climbing speed
+	if ( pml.champion->abilities & MOVEABIL_RAMPJUMP ) {
+		speed = pm->ps->stats[STAT_MOVE_STATE];
+		if ( speed > bg_pmoveSettings.rampJumpMax ) {
+			speed = bg_pmoveSettings.rampJumpMax;
+		}
+		if ( speed > 0 ) {
+			pm->ps->velocity[2] += bg_pmoveSettings.rampJumpScale * speed;
+		}
+	}
+
 	style = pml.champion->moveStyle;
 	if ( style == MOVE_AIRCONTROL || style == MOVE_SLIDE ) {
 		// chained jumps go higher
@@ -496,7 +535,7 @@ static qboolean PM_CheckJump( void ) {
 		}
 	}
 	if ( style == MOVE_SLIDE ) {
-		pm->ps->stats[STAT_SLIDE_CHARGE] = 0;
+		pm->ps->stats[STAT_MOVE_STATE] = 0;
 	}
 	pm->ps->stats[STAT_JUMP_TIME] = 0;
 
@@ -771,10 +810,10 @@ static qboolean PM_CheckWallJump( const vec3_t wishdir ) {
 	if ( !( pml.champion->abilities & MOVEABIL_WALLJUMP ) ) {
 		return qfalse;
 	}
-	if ( pm->ps->pm_flags & ( PMF_WALLJUMPED | PMF_RESPAWNED ) ) {
+	if ( pm->ps->pm_flags & ( PMF_AIRMOVE_USED | PMF_RESPAWNED ) ) {
 		return qfalse;
 	}
-	if ( pm->cmd.upmove < 10 || pml.jumpWasDown ) {
+	if ( pm->cmd.upmove < 10 || pml.jumpWasDown || pml.jumped ) {
 		return qfalse;
 	}
 	if ( pm->ps->groundEntityNum != ENTITYNUM_NONE ) {
@@ -806,12 +845,48 @@ static qboolean PM_CheckWallJump( const vec3_t wishdir ) {
 		VectorMA( pm->ps->velocity, bg_pmoveSettings.wallJumpPush * away, normal, pm->ps->velocity );
 	}
 
-	pm->ps->pm_flags |= PMF_WALLJUMPED | PMF_JUMP_HELD;
+	pm->ps->pm_flags |= PMF_AIRMOVE_USED | PMF_JUMP_HELD;
 	pml.jumped = qtrue;
 	PM_AddEvent( EV_JUMP );
 	PM_ForceLegsAnim( LEGS_JUMP );
 	pm->ps->pm_flags &= ~PMF_BACKWARDS_JUMP;
 
+	return qtrue;
+}
+
+/*
+===================
+PM_CheckDoubleJump
+
+A fresh jump press in the air jumps again, once per airtime
+===================
+*/
+static qboolean PM_CheckDoubleJump( void ) {
+	if ( !( pml.champion->abilities & MOVEABIL_DOUBLEJUMP ) ) {
+		return qfalse;
+	}
+	if ( pm->ps->pm_flags & ( PMF_AIRMOVE_USED | PMF_RESPAWNED ) ) {
+		return qfalse;
+	}
+	if ( pm->cmd.upmove < 10 || pml.jumpWasDown || pml.jumped ) {
+		return qfalse;
+	}
+	if ( pm->ps->groundEntityNum != ENTITYNUM_NONE ) {
+		return qfalse;
+	}
+
+	pm->ps->velocity[2] = bg_pmoveSettings.doubleJumpVelocity;
+	pm->ps->pm_flags |= PMF_AIRMOVE_USED | PMF_JUMP_HELD;
+	pm->ps->stats[STAT_JUMP_TIME] = 0;
+	pml.jumped = qtrue;
+	PM_AddEvent( EV_JUMP );
+	if ( pm->cmd.forwardmove >= 0 ) {
+		PM_ForceLegsAnim( LEGS_JUMP );
+		pm->ps->pm_flags &= ~PMF_BACKWARDS_JUMP;
+	} else {
+		PM_ForceLegsAnim( LEGS_JUMPB );
+		pm->ps->pm_flags |= PMF_BACKWARDS_JUMP;
+	}
 	return qtrue;
 }
 
@@ -896,7 +971,9 @@ static void PM_AirMove( void ) {
 	wishspeed = VectorNormalize(wishdir);
 	wishspeed *= scale;
 
-	PM_CheckWallJump( wishdir );
+	if ( !PM_CheckWallJump( wishdir ) ) {
+		PM_CheckDoubleJump();
+	}
 
 	// not on ground, so little effect on velocity
 	accelerate = bg_pmoveSettings.airAccelerate;
@@ -1496,7 +1573,7 @@ static void PM_GroundTrace( void ) {
 
 	pml.groundPlane = qtrue;
 	pml.walking = qtrue;
-	pm->ps->pm_flags &= ~PMF_WALLJUMPED;
+	pm->ps->pm_flags &= ~PMF_AIRMOVE_USED;
 
 	// hitting solid ground will end a waterjump
 	if (pm->ps->pm_flags & PMF_TIME_WATERJUMP)
@@ -1874,6 +1951,11 @@ Generates weapon events and modifes the weapon counter
 static void PM_Weapon( void ) {
 	int		addTime;
 
+	// no firing or switching during a bull rush
+	if ( BG_AbilityState( pm->ps ) == ABILITY_RUSH ) {
+		return;
+	}
+
 	// don't allow attack until all buttons are up
 	if ( pm->ps->pm_flags & PMF_RESPAWNED ) {
 		return;
@@ -2110,11 +2192,10 @@ static void PM_MoveTimers( void ) {
 	}
 
 	if ( pml.champion->moveStyle != MOVE_SLIDE ) {
-		pm->ps->stats[STAT_SLIDE_CHARGE] = 0;
-		return;
+		return;		// STAT_MOVE_STATE belongs to another mechanic
 	}
 
-	charge = pm->ps->stats[STAT_SLIDE_CHARGE];
+	charge = pm->ps->stats[STAT_MOVE_STATE];
 	if ( pml.walking ) {
 		charge -= bg_pmoveSettings.slideDrain * pml.msec;
 	} else if ( pm->ps->groundEntityNum == ENTITYNUM_NONE
@@ -2128,7 +2209,388 @@ static void PM_MoveTimers( void ) {
 	if ( charge < 0 ) {
 		charge = 0;
 	}
-	pm->ps->stats[STAT_SLIDE_CHARGE] = charge;
+	pm->ps->stats[STAT_MOVE_STATE] = charge;
+}
+
+/*
+================
+PM_FlatDirection
+
+Horizontal unit vector for a movement direction relative to the view yaw:
+0 forward, 1 back, 2 left, 3 right
+================
+*/
+static void PM_FlatDirection( int which, vec3_t dir ) {
+	vec3_t	angles, forward, right;
+
+	VectorSet( angles, 0, pm->ps->viewangles[YAW], 0 );
+	AngleVectors( angles, forward, right, NULL );
+	switch ( which ) {
+	case 0:		VectorCopy( forward, dir ); break;
+	case 1:		VectorNegate( forward, dir ); break;
+	case 2:		VectorNegate( right, dir ); break;
+	default:	VectorCopy( right, dir ); break;
+	}
+	dir[2] = 0;
+	VectorNormalize( dir );
+}
+
+/*
+================
+PM_AirDodge
+
+Double-tapping a movement direction dashes that way while airborne,
+once per airtime
+================
+*/
+static void PM_AirDodge( void ) {
+	int		taps, held, last, time, fresh, i;
+	vec3_t	dir;
+	float	along;
+
+	if ( !( pml.champion->abilities & MOVEABIL_AIRDODGE ) ) {
+		return;
+	}
+
+	taps = pm->ps->stats[STAT_TAPS] & 0xffff;
+	last = ( taps & TAP_DIR_MASK ) >> TAP_DIR_SHIFT;
+	time = taps >> TAP_TIME_SHIFT;
+	time += pml.msec;
+	if ( time > TAP_TIME_MAX ) {
+		time = TAP_TIME_MAX;
+	}
+
+	held = 0;
+	if ( pm->cmd.forwardmove > 0 ) held |= 1;
+	if ( pm->cmd.forwardmove < 0 ) held |= 2;
+	if ( pm->cmd.rightmove < 0 ) held |= 4;
+	if ( pm->cmd.rightmove > 0 ) held |= 8;
+	fresh = held & ~( taps & TAP_HELD_MASK );
+
+	for ( i = 0 ; i < 4 ; i++ ) {
+		if ( !( fresh & ( 1 << i ) ) ) {
+			continue;
+		}
+		if ( last == i + 1 && time <= bg_pmoveSettings.dodgeTapWindow
+			&& pm->ps->groundEntityNum == ENTITYNUM_NONE
+			&& !( pm->ps->pm_flags & PMF_AIRMOVE_USED ) ) {
+			// dash: raise the speed along the tapped direction
+			PM_FlatDirection( i, dir );
+			along = DotProduct( pm->ps->velocity, dir );
+			if ( along < bg_pmoveSettings.dodgeSpeed ) {
+				VectorMA( pm->ps->velocity, bg_pmoveSettings.dodgeSpeed - along, dir, pm->ps->velocity );
+			}
+			if ( bg_pmoveSettings.dodgeUp > 0 ) {
+				pm->ps->velocity[2] = bg_pmoveSettings.dodgeUp;
+			}
+			pm->ps->pm_flags |= PMF_AIRMOVE_USED;
+			PM_AddEvent( EV_JUMP );
+			last = 0;
+		} else {
+			last = i + 1;
+			time = 0;
+		}
+	}
+
+	pm->ps->stats[STAT_TAPS] = held | ( last << TAP_DIR_SHIFT ) | ( time << TAP_TIME_SHIFT );
+}
+
+/*
+================
+PM_Acceleration
+
+Running forward in a straight line slowly raises the run speed;
+turning, strafing or slowing down on the ground loses the bonus
+================
+*/
+static void PM_Acceleration( void ) {
+	int		bonus, maxBonus;
+	vec3_t	flatvel, forward;
+	float	speed;
+
+	if ( !( pml.champion->abilities & MOVEABIL_ACCELERATION ) ) {
+		return;
+	}
+
+	bonus = pm->ps->stats[STAT_MOVE_STATE];
+	if ( pml.walking ) {
+		VectorSet( flatvel, pm->ps->velocity[0], pm->ps->velocity[1], 0 );
+		speed = VectorNormalize( flatvel );
+		PM_FlatDirection( 0, forward );
+		if ( pm->cmd.forwardmove > 0 && pm->cmd.rightmove == 0
+			&& speed >= pm->ps->speed * 0.9f
+			&& DotProduct( flatvel, forward ) >= cos( DEG2RAD( bg_pmoveSettings.accelAngle ) ) ) {
+			bonus += (int)( bg_pmoveSettings.accelRate * 10 * pml.frametime + 0.5f );
+		} else {
+			bonus = 0;
+		}
+	}
+
+	maxBonus = ( bg_pmoveSettings.accelMax - pm->ps->speed ) * 10;
+	if ( bonus > maxBonus ) {
+		bonus = maxBonus;
+	}
+	if ( bonus < 0 ) {
+		bonus = 0;
+	}
+	pm->ps->stats[STAT_MOVE_STATE] = bonus;
+	pml.runSpeed = pm->ps->speed + bonus * 0.1f;
+}
+
+/*
+================
+PM_EndAbility
+================
+*/
+static void PM_EndAbility( void ) {
+	BG_SetAbility( pm->ps, ABILITY_IDLE, BG_AbilityCharges( pm->ps ) );
+	pm->ps->stats[STAT_ABILITY_TIME] = 0;
+	pm->ps->pm_flags &= ~PMF_GRAPPLE_PULL;
+}
+
+/*
+================
+PM_Ability
+
+Active ability on BUTTON_ABILITY. Charges are spent here and given back by
+the game; the hook entity itself is thrown and freed by the game too.
+================
+*/
+static void PM_Ability( void ) {
+	int			state, charges, time;
+	qboolean	pressed;
+	vec3_t		dir;
+
+	pml.abilityHeld = ( pm->cmd.buttons & BUTTON_ABILITY ) != 0;
+	pressed = pml.abilityHeld && !( pm->ps->pm_flags & PMF_ABILITY_HELD );
+	if ( pml.abilityHeld ) {
+		pm->ps->pm_flags |= PMF_ABILITY_HELD;
+	} else {
+		pm->ps->pm_flags &= ~PMF_ABILITY_HELD;
+	}
+
+	if ( pml.champion->active == ACTIVE_NONE || pm->ps->pm_type != PM_NORMAL ) {
+		return;
+	}
+
+	state = BG_AbilityState( pm->ps );
+	charges = BG_AbilityCharges( pm->ps );
+	time = pm->ps->stats[STAT_ABILITY_TIME];
+
+	if ( state == ABILITY_IDLE ) {
+		if ( !pressed || charges <= 0 || ( pm->ps->pm_flags & PMF_RESPAWNED ) ) {
+			return;
+		}
+		charges--;
+		if ( pml.champion->active == ACTIVE_HOOK ) {
+			state = ABILITY_WINDUP;
+			time = bg_pmoveSettings.hookFireDelay;
+			if ( pm->ps->weaponTime < bg_pmoveSettings.abilityWeaponDelay ) {
+				pm->ps->weaponTime = bg_pmoveSettings.abilityWeaponDelay;
+			}
+		} else {
+			state = ABILITY_RUSH;
+			time = bg_pmoveSettings.rushDuration;
+		}
+	} else if ( state == ABILITY_WINDUP ) {
+		time -= pml.msec;
+		if ( time <= 0 ) {
+			time = 0;
+			state = ABILITY_HOOK_FLYING;
+			PM_AddEvent( EV_USE_ABILITY );
+		}
+	} else if ( state == ABILITY_HOOK_FLYING ) {
+		if ( pm->ps->pm_flags & PMF_GRAPPLE_PULL ) {
+			// just attached: initial impulse toward the hook
+			state = ABILITY_HOOK_PULL;
+			time = 0;
+			pm->ps->stats[STAT_MOVE_STATE] = 0;
+			VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
+			VectorNormalize( dir );
+			VectorMA( pm->ps->velocity, bg_pmoveSettings.hookImpulse, dir, pm->ps->velocity );
+		} else if ( pressed ) {
+			state = ABILITY_IDLE;
+		}
+	} else if ( state == ABILITY_HOOK_PULL ) {
+		if ( pressed || !( pm->ps->pm_flags & PMF_GRAPPLE_PULL ) ) {
+			// let go and keep the momentum
+			BG_SetAbility( pm->ps, ABILITY_IDLE, charges );
+			PM_EndAbility();
+			return;
+		}
+		time += pml.msec;
+		if ( time > STAT_TIME_CAP ) {
+			time = STAT_TIME_CAP;
+		}
+	} else if ( state == ABILITY_RUSH ) {
+		time -= pml.msec;
+		if ( time <= 0 ) {
+			BG_SetAbility( pm->ps, ABILITY_IDLE, charges );
+			PM_EndAbility();
+			if ( pm->ps->weaponTime < bg_pmoveSettings.abilityWeaponDelay ) {
+				pm->ps->weaponTime = bg_pmoveSettings.abilityWeaponDelay;
+			}
+			return;
+		}
+	}
+
+	BG_SetAbility( pm->ps, state, charges );
+	pm->ps->stats[STAT_ABILITY_TIME] = time;
+}
+
+/*
+================
+PM_RushTurn
+
+Bull rush turns slowly: limit how far the yaw may move this frame
+================
+*/
+static void PM_RushTurn( void ) {
+	short	temp;
+	float	want, diff, maxTurn;
+
+	temp = pm->cmd.angles[YAW] + pm->ps->delta_angles[YAW];
+	want = SHORT2ANGLE( temp );
+	diff = AngleSubtract( want, pm->ps->viewangles[YAW] );
+	maxTurn = bg_pmoveSettings.rushTurnRate * pml.frametime;
+	if ( diff > maxTurn ) {
+		diff = maxTurn;
+	} else if ( diff < -maxTurn ) {
+		diff = -maxTurn;
+	}
+	pm->ps->delta_angles[YAW] = ANGLE2SHORT( pm->ps->viewangles[YAW] + diff ) - pm->cmd.angles[YAW];
+}
+
+/*
+================
+PM_RushMove
+
+Drives the player forward, from run speed up to the rush speed at the end
+================
+*/
+static void PM_RushMove( void ) {
+	vec3_t	forward;
+	float	frac;
+
+	frac = 1.0f - pm->ps->stats[STAT_ABILITY_TIME] / bg_pmoveSettings.rushDuration;
+	if ( frac < 0 ) {
+		frac = 0;
+	}
+	pml.rushSpeed = pml.runSpeed + ( bg_pmoveSettings.rushSpeed - pml.runSpeed ) * frac;
+
+	PM_FlatDirection( 0, forward );
+	pm->ps->velocity[0] = forward[0] * pml.rushSpeed;
+	pm->ps->velocity[1] = forward[1] * pml.rushSpeed;
+
+	pm->cmd.forwardmove = 127;
+	pm->cmd.rightmove = 0;
+}
+
+/*
+================
+PM_CheckRushBlocked
+
+A wall or object that stops the rush ends it; players are left to the game,
+which ends the rush only if the player survives the hit
+================
+*/
+static void PM_CheckRushBlocked( void ) {
+	vec3_t	forward;
+	int		i;
+
+	if ( pml.rushSpeed <= 0 || BG_AbilityState( pm->ps ) != ABILITY_RUSH ) {
+		return;
+	}
+	for ( i = 0 ; i < pm->numtouch ; i++ ) {
+		if ( pm->touchents[i] < MAX_CLIENTS ) {
+			return;
+		}
+	}
+	PM_FlatDirection( 0, forward );
+	if ( DotProduct( pm->ps->velocity, forward ) < pml.rushSpeed * bg_pmoveSettings.rushStopFraction ) {
+		PM_EndAbility();
+		if ( pm->ps->weaponTime < bg_pmoveSettings.abilityWeaponDelay ) {
+			pm->ps->weaponTime = bg_pmoveSettings.abilityWeaponDelay;
+		}
+	}
+}
+
+/*
+================
+PM_HookMove
+
+Athena's hook. Holding the ability button locks the rope and swings;
+otherwise the hook pulls, speeding up to the top pull speed
+================
+*/
+static void PM_HookMove( void ) {
+	vec3_t	dir;
+	float	dist, rope, radial, pull, speed;
+
+	VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
+	dist = VectorNormalize( dir );
+	radial = DotProduct( pm->ps->velocity, dir );
+
+	if ( pml.abilityHeld ) {
+		rope = pm->ps->stats[STAT_MOVE_STATE];
+		if ( rope <= 0 ) {
+			rope = dist < 1 ? 1 : dist;
+			pm->ps->stats[STAT_MOVE_STATE] = rope;
+		}
+		if ( dist >= rope ) {
+			// taut rope: no moving away, and take up any slack
+			if ( radial < 0 ) {
+				VectorMA( pm->ps->velocity, -radial, dir, pm->ps->velocity );
+			}
+			VectorMA( pm->ps->velocity, ( dist - rope ) * 10, dir, pm->ps->velocity );
+		}
+		speed = VectorLength( pm->ps->velocity );
+		if ( speed > bg_pmoveSettings.hookSwingMax ) {
+			VectorScale( pm->ps->velocity, bg_pmoveSettings.hookSwingMax / speed, pm->ps->velocity );
+		}
+	} else {
+		pm->ps->stats[STAT_MOVE_STATE] = 0;
+		if ( dist > bg_pmoveSettings.hookDeadZone ) {
+			pull = bg_pmoveSettings.hookPullStart
+				+ bg_pmoveSettings.hookPullAccel * pm->ps->stats[STAT_ABILITY_TIME] * 0.001f;
+			if ( pull > bg_pmoveSettings.hookPullMax ) {
+				pull = bg_pmoveSettings.hookPullMax;
+			}
+			if ( radial < pull ) {
+				VectorMA( pm->ps->velocity, pull - radial, dir, pm->ps->velocity );
+			}
+		}
+	}
+
+	pml.groundPlane = qfalse;
+}
+
+/*
+================
+PM_TrackClimb
+
+Ramp jump: remember how fast the player climbed on the ground this frame
+================
+*/
+static void PM_TrackClimb( qboolean wasWalking ) {
+	float	climb;
+
+	if ( !( pml.champion->abilities & MOVEABIL_RAMPJUMP ) ) {
+		return;
+	}
+	if ( BG_AbilityState( pm->ps ) == ABILITY_HOOK_PULL ) {
+		return;		// STAT_MOVE_STATE holds the rope length
+	}
+	climb = 0;
+	if ( wasWalking && pml.walking ) {
+		climb = ( pm->ps->origin[2] - pml.previous_origin[2] ) / pml.frametime;
+		if ( climb < 0 ) {
+			climb = 0;
+		} else if ( climb > STAT_TIME_CAP ) {
+			climb = STAT_TIME_CAP;
+		}
+	}
+	pm->ps->stats[STAT_MOVE_STATE] = climb;
 }
 
 /*
@@ -2211,6 +2673,8 @@ PmoveSingle
 void trap_SnapVector( float *v );
 
 void PmoveSingle (pmove_t *pmove) {
+	qboolean	wasWalking;
+
 	pm = pmove;
 
 	// this counter lets us debug movement problems with a journal
@@ -2241,7 +2705,8 @@ void PmoveSingle (pmove_t *pmove) {
 
 	// set the firing flag for continuous beam weapons
 	if ( !(pm->ps->pm_flags & PMF_RESPAWNED) && pm->ps->pm_type != PM_INTERMISSION && pm->ps->pm_type != PM_NOCLIP
-		&& ( pm->cmd.buttons & BUTTON_ATTACK ) && pm->ps->ammo[ pm->ps->weapon ] ) {
+		&& ( pm->cmd.buttons & BUTTON_ATTACK ) && pm->ps->ammo[ pm->ps->weapon ]
+		&& BG_AbilityState( pm->ps ) != ABILITY_RUSH ) {
 		pm->ps->eFlags |= EF_FIRING;
 	} else {
 		pm->ps->eFlags &= ~EF_FIRING;
@@ -2269,6 +2734,7 @@ void PmoveSingle (pmove_t *pmove) {
 	memset (&pml, 0, sizeof(pml));
 
 	pml.champion = BG_Champion( pm->ps->stats[STAT_CHAMPION] );
+	pml.runSpeed = pm->ps->speed;
 
 	// determine the time
 	pml.msec = pmove->cmd.serverTime - pm->ps->commandTime;
@@ -2288,6 +2754,9 @@ void PmoveSingle (pmove_t *pmove) {
 	pml.frametime = pml.msec * 0.001;
 
 	// update the viewangles
+	if ( BG_AbilityState( pm->ps ) == ABILITY_RUSH && pm->ps->pm_type == PM_NORMAL ) {
+		PM_RushTurn();
+	}
 	PM_UpdateViewAngles( pm->ps, &pm->cmd );
 
 	AngleVectors (pm->ps->viewangles, pml.forward, pml.right, pml.up);
@@ -2347,7 +2816,7 @@ void PmoveSingle (pmove_t *pmove) {
 	pml.wasSliding = pml.champion->moveStyle == MOVE_SLIDE
 		&& pm->ps->groundEntityNum != ENTITYNUM_NONE
 		&& ( pm->ps->pm_flags & PMF_DUCKED )
-		&& pm->ps->stats[STAT_SLIDE_CHARGE] > 0;
+		&& pm->ps->stats[STAT_MOVE_STATE] > 0;
 
 	// set mins, maxs, and viewheight
 	PM_CheckDuck ();
@@ -2361,6 +2830,13 @@ void PmoveSingle (pmove_t *pmove) {
 
 	PM_DropTimers();
 	PM_MoveTimers();
+	PM_Acceleration();
+	PM_Ability();
+	PM_AirDodge();
+	if ( BG_AbilityState( pm->ps ) == ABILITY_RUSH && pm->ps->pm_type == PM_NORMAL ) {
+		PM_RushMove();
+	}
+	wasWalking = pml.walking;
 
 #ifdef MISSIONPACK
 	if ( pm->ps->powerups[PW_INVULNERABILITY] ) {
@@ -2370,6 +2846,9 @@ void PmoveSingle (pmove_t *pmove) {
 	if ( pm->ps->powerups[PW_FLIGHT] ) {
 		// flight powerup doesn't allow jump and has different friction
 		PM_FlyMove();
+	} else if ( BG_AbilityState( pm->ps ) == ABILITY_HOOK_PULL ) {
+		PM_HookMove();
+		PM_AirMove();
 	} else if (pm->ps->pm_flags & PMF_GRAPPLE_PULL) {
 		PM_GrappleMove();
 		// We can wiggle a bit
@@ -2392,6 +2871,9 @@ void PmoveSingle (pmove_t *pmove) {
 	// set groundentity, watertype, and waterlevel
 	PM_GroundTrace();
 	PM_SetWaterLevel();
+
+	PM_CheckRushBlocked();
+	PM_TrackClimb( wasWalking );
 
 	// weapons
 	PM_Weapon();

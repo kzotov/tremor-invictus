@@ -1175,6 +1175,17 @@ void ClientSpawn(gentity_t *ent) {
 	client->ps.clientNum = index;
 
 	client->ps.stats[STAT_CHAMPION] = client->pers.champion;
+	switch ( BG_Champion( client->pers.champion )->active ) {
+	case ACTIVE_HOOK:
+		BG_SetAbility( &client->ps, ABILITY_IDLE, g_hookCharges.integer );
+		break;
+	case ACTIVE_BULLRUSH:
+		BG_SetAbility( &client->ps, ABILITY_IDLE, g_rushCharges.integer );
+		break;
+	default:
+		break;
+	}
+	client->abilityRecharge = 0;
 	client->ps.stats[STAT_JUMP_TIME] = STAT_TIME_CAP;
 	client->ps.stats[STAT_LAND_TIME] = STAT_TIME_CAP;
 

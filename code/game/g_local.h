@@ -304,6 +304,8 @@ struct gclient_s {
 
 	qboolean	fireHeld;			// used for hook
 	gentity_t	*hook;				// grapple hook if out
+	int			abilityRecharge;	// msec toward the next ability charge
+	int			collisionTime[MAX_CLIENTS];	// level.time of the last collision hit per victim
 
 	int			switchTeamTime;		// time the player switched teams
 
@@ -556,6 +558,8 @@ void CalcMuzzlePoint ( gentity_t *ent, vec3_t forward, vec3_t right, vec3_t up, 
 void SnapVectorTowards( vec3_t v, vec3_t to );
 qboolean CheckGauntletAttack( gentity_t *ent );
 void Weapon_HookFree (gentity_t *ent);
+void Ability_HookFire( gentity_t *ent );
+void G_EndRush( gentity_t *ent );
 void Weapon_HookThink (gentity_t *ent);
 
 
@@ -712,6 +716,22 @@ extern	vmCvar_t	g_password;
 extern	vmCvar_t	g_needpass;
 extern	vmCvar_t	g_gravity;
 extern	vmCvar_t	g_speed;
+extern	vmCvar_t	g_hookCharges;
+extern	vmCvar_t	g_hookRecharge;
+extern	vmCvar_t	g_hookSpeed;
+extern	vmCvar_t	g_hookRange;
+extern	vmCvar_t	g_hookDamage;
+extern	vmCvar_t	g_hookSwingDamage;
+extern	vmCvar_t	g_rushCharges;
+extern	vmCvar_t	g_rushRecharge;
+extern	vmCvar_t	g_rushDamageScale;
+extern	vmCvar_t	g_hwSpeed;
+extern	vmCvar_t	g_hwDamage;
+extern	vmCvar_t	g_hwSpeed2;
+extern	vmCvar_t	g_hwDamage2;
+extern	vmCvar_t	g_hwDamagePer100;
+extern	vmCvar_t	g_hwKnockback;
+extern	vmCvar_t	g_collisionRepeat;
 extern	vmCvar_t	g_knockback;
 extern	vmCvar_t	g_quadfactor;
 extern	vmCvar_t	g_forcerespawn;

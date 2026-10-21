@@ -159,7 +159,8 @@ typedef enum {
 #define PMF_FOLLOW			4096	// spectate following another player
 #define PMF_SCOREBOARD		8192	// spectate as a scoreboard
 #define PMF_INVULEXPAND		16384	// invulnerability sphere set to full size
-#define	PMF_WALLJUMPED		128		// wall jump used during this airtime
+#define	PMF_AIRMOVE_USED	128		// wall jump, double jump or air-dodge used this airtime
+#define	PMF_ABILITY_HELD	32768	// ability button was down on the previous frame
 
 #define	PMF_ALL_TIMES	(PMF_TIME_WATERJUMP|PMF_TIME_LAND|PMF_TIME_KNOCKBACK)
 
@@ -224,8 +225,22 @@ typedef enum {
 	MOVE_NUM_STYLES
 } moveStyle_t;
 
-// extra movement abilities on top of the style, champion_t.abilities bits
-#define	MOVEABIL_WALLJUMP	1
+// passive movement abilities on top of the style, champion_t.abilities bits
+#define	MOVEABIL_WALLJUMP		1
+#define	MOVEABIL_DOUBLEJUMP		2
+#define	MOVEABIL_AIRDODGE		4	// double-tap a direction in the air
+#define	MOVEABIL_ACCELERATION	8	// running straight raises run speed
+#define	MOVEABIL_HEAVYWEIGHT	16	// own speed becomes collision damage
+#define	MOVEABIL_RAMPJUMP		32	// jumping off a climb goes higher
+
+// active abilities, on BUTTON_ABILITY
+typedef enum {
+	ACTIVE_NONE,
+	ACTIVE_HOOK,					// grappling hook with charges
+	ACTIVE_BULLRUSH,				// forward charge
+
+	ACTIVE_NUM_ABILITIES
+} activeAbility_t;
 
 typedef struct {
 	char		*name;				// userinfo "champion" value
@@ -234,6 +249,7 @@ typedef struct {
 	int			jumpSpeedCap;		// horizontal cap on jump, 0 = none
 	int			moveStyle;			// moveStyle_t
 	int			abilities;			// MOVEABIL_* bits
+	int			active;				// activeAbility_t
 } champion_t;
 
 extern	const champion_t	bg_championList[];
@@ -273,6 +289,34 @@ typedef struct {
 	float	wallJumpVelocity;
 	float	wallJumpPush;
 	float	wallJumpNormal;
+
+	float	doubleJumpVelocity;
+
+	float	dodgeTapWindow;
+	float	dodgeSpeed;
+	float	dodgeUp;
+
+	float	accelRate;				// u/s gained per second running straight
+	float	accelMax;				// total run speed cap
+	float	accelAngle;				// degrees between aim and velocity still "straight"
+
+	float	rushDuration;
+	float	rushSpeed;				// speed reached at the end of the rush
+	float	rushTurnRate;			// degrees per second
+	float	rushStopFraction;		// rush ends if a hit leaves less of the speed
+
+	float	hookFireDelay;
+	float	hookImpulse;
+	float	hookPullStart;
+	float	hookPullAccel;
+	float	hookPullMax;
+	float	hookDeadZone;
+	float	hookSwingMax;
+
+	float	rampJumpScale;
+	float	rampJumpMax;
+
+	float	abilityWeaponDelay;		// weapon disabled after a hook throw or a rush
 } pmoveSettings_t;
 
 extern	pmoveSettings_t	bg_pmoveSettings;
@@ -297,10 +341,42 @@ typedef enum {
 	STAT_CLIENTS_READY,				// bit mask of clients wishing to exit the intermission (FIXME: configstring?)
 	STAT_MAX_HEALTH,				// health / armor limit, changeable by handicap
 	STAT_CHAMPION,					// index into bg_championList
-	STAT_SLIDE_CHARGE,				// msec of slide left (slide style)
+	STAT_MOVE_STATE,				// per-champion movement state, see below
 	STAT_JUMP_TIME,					// msec since the last jump, capped
-	STAT_LAND_TIME					// msec since the last landing, capped
+	STAT_LAND_TIME,					// msec since the last landing, capped
+	STAT_TAPS,						// air-dodge double-tap tracking, TAP_* fields
+	STAT_ABILITY,					// active ability: charges | state << ABILITY_STATE_SHIFT
+	STAT_ABILITY_TIME				// msec, meaning depends on the ability state
 } statIndex_t;
+
+// STAT_MOVE_STATE holds one champion-specific value:
+//   slide style		msec of slide charge left
+//   acceleration		run speed bonus in tenths of u/s
+//   ramp jump			upward speed climbed on the last ground frame (u/s),
+//						or the locked rope length while swinging on the hook
+
+// STAT_TAPS fields; read through & 0xffff, the network sign-extends bit 15
+#define	TAP_HELD_MASK		0x000f	// movement directions held last frame
+#define	TAP_DIR_SHIFT		4		// last tapped direction + 1, 3 bits
+#define	TAP_DIR_MASK		0x0070
+#define	TAP_TIME_SHIFT		7		// msec since that tap, 9 bits
+#define	TAP_TIME_MAX		511
+
+// STAT_ABILITY
+#define	ABILITY_CHARGES_MASK	0x000f
+#define	ABILITY_STATE_SHIFT		4
+
+typedef enum {
+	ABILITY_IDLE,
+	ABILITY_WINDUP,					// STAT_ABILITY_TIME counts down to the throw
+	ABILITY_HOOK_FLYING,			// hook thrown, not attached yet
+	ABILITY_HOOK_PULL,				// attached; STAT_ABILITY_TIME counts up
+	ABILITY_RUSH					// STAT_ABILITY_TIME counts down to the end
+} abilityState_t;
+
+#define	BG_AbilityCharges( ps )		( (ps)->stats[STAT_ABILITY] & ABILITY_CHARGES_MASK )
+#define	BG_AbilityState( ps )		( ( (ps)->stats[STAT_ABILITY] & 0xffff ) >> ABILITY_STATE_SHIFT )
+void	BG_SetAbility( playerState_t *ps, int state, int charges );
 
 #define	STAT_TIME_CAP		30000	// timer stats stop counting here (16 bit)
 
@@ -538,8 +614,9 @@ typedef enum {
 	EV_TAUNT_FOLLOWME,
 	EV_TAUNT_GETFLAG,
 	EV_TAUNT_GUARDBASE,
-	EV_TAUNT_PATROL
+	EV_TAUNT_PATROL,
 
+	EV_USE_ABILITY					// throw the hook (game side)
 } entity_event_t;
 
 
@@ -691,7 +768,8 @@ typedef enum {
 	MOD_KAMIKAZE,
 	MOD_JUICED,
 #endif
-	MOD_GRAPPLE
+	MOD_GRAPPLE,
+	MOD_HEAVYWEIGHT
 } meansOfDeath_t;
 
 

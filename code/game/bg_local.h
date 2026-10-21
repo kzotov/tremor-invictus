@@ -53,6 +53,9 @@ typedef struct {
 	const champion_t	*champion;
 	qboolean	jumpWasDown;		// jump was held on the previous frame
 	qboolean	wasSliding;			// sliding as the frame began; jump and crouch share upmove
+	float		runSpeed;			// ps->speed plus any acceleration bonus
+	qboolean	abilityHeld;		// ability button down this frame
+	float		rushSpeed;			// bull rush speed set this frame, 0 if not rushing
 	qboolean	jumped;				// left the ground by jumping this frame
 } pml_t;
 

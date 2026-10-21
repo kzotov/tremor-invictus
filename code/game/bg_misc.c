@@ -941,23 +941,23 @@ const float bg_classHalfWidth[CLASS_NUM_CLASSES] = {
 };
 
 const champion_t bg_championList[] = {
-	// name			class			run	 jumpcap	style				abilities
-	{ "ranger",		CLASS_MEDIUM,	310, 1000,	MOVE_STANDARD,		0 },	// default, must stay first
-	{ "anarki",		CLASS_LIGHT,	315, 640,	MOVE_AIRCONTROL,	0 },
-	{ "athena",		CLASS_LIGHT,	320, 1000,	MOVE_STANDARD,		0 },
-	{ "nyx",		CLASS_LIGHT,	320, 1000,	MOVE_STANDARD,		MOVEABIL_WALLJUMP },
-	{ "slash",		CLASS_LIGHT,	320, 750,	MOVE_SLIDE,			0 },
-	{ "bj",			CLASS_MEDIUM,	310, 1000,	MOVE_STANDARD,		0 },
-	{ "deathknight",CLASS_MEDIUM,	310, 1000,	MOVE_STANDARD,		0 },
-	{ "doomslayer",	CLASS_MEDIUM,	310, 1000,	MOVE_STANDARD,		0 },
-	{ "eisen",		CLASS_MEDIUM,	310, 1000,	MOVE_STANDARD,		0 },
-	{ "galena",		CLASS_MEDIUM,	310, 1000,	MOVE_STANDARD,		0 },
-	{ "strogg",		CLASS_MEDIUM,	310, 750,	MOVE_SLIDE,			0 },
-	{ "visor",		CLASS_MEDIUM,	320, 0,		MOVE_STANDARD,		0 },
-	{ "clutch",		CLASS_HEAVY,	300, 1000,	MOVE_STANDARD,		0 },
-	{ "keel",		CLASS_HEAVY,	300, 1000,	MOVE_STANDARD,		0 },
-	{ "scalebearer",CLASS_HEAVY,	300, 1000,	MOVE_STANDARD,		0 },
-	{ "sorlag",		CLASS_HEAVY,	300, 600,	MOVE_AIRCONTROL,	0 }
+	// name, body class, run speed, jump speed cap, style, passive abilities, active ability
+	{ "ranger", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE },	// default, must stay first
+	{ "anarki", CLASS_LIGHT, 315, 640, MOVE_AIRCONTROL, 0, ACTIVE_NONE },
+	{ "athena", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, MOVEABIL_RAMPJUMP, ACTIVE_HOOK },
+	{ "nyx", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, MOVEABIL_WALLJUMP, ACTIVE_NONE },
+	{ "slash", CLASS_LIGHT, 320, 750, MOVE_SLIDE, 0, ACTIVE_NONE },
+	{ "bj", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE },
+	{ "deathknight", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE },
+	{ "doomslayer", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, MOVEABIL_DOUBLEJUMP, ACTIVE_NONE },
+	{ "eisen", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE },
+	{ "galena", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE },
+	{ "strogg", CLASS_MEDIUM, 310, 750, MOVE_SLIDE, 0, ACTIVE_NONE },
+	{ "visor", CLASS_MEDIUM, 320, 0, MOVE_STANDARD, 0, ACTIVE_NONE },
+	{ "clutch", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_AIRDODGE | MOVEABIL_ACCELERATION, ACTIVE_NONE },
+	{ "keel", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, 0, ACTIVE_NONE },
+	{ "scalebearer", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_HEAVYWEIGHT, ACTIVE_BULLRUSH },
+	{ "sorlag", CLASS_HEAVY, 300, 600, MOVE_AIRCONTROL, 0, ACTIVE_NONE }
 };
 
 const int bg_numChampions = ARRAY_LEN( bg_championList );
@@ -990,6 +990,15 @@ const champion_t *BG_Champion( int index ) {
 		index = 0;
 	}
 	return &bg_championList[index];
+}
+
+/*
+==============
+BG_SetAbility
+==============
+*/
+void BG_SetAbility( playerState_t *ps, int state, int charges ) {
+	ps->stats[STAT_ABILITY] = ( charges & ABILITY_CHARGES_MASK ) | ( state << ABILITY_STATE_SHIFT );
 }
 
 
@@ -1449,8 +1458,9 @@ char *eventnames[] = {
 	"EV_TAUNT_FOLLOWME",
 	"EV_TAUNT_GETFLAG",
 	"EV_TAUNT_GUARDBASE",
-	"EV_TAUNT_PATROL"
+	"EV_TAUNT_PATROL",
 
+	"EV_USE_ABILITY"
 };
 
 /*
