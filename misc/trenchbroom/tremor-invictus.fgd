@@ -1,0 +1,120 @@
+// Tremor Invictus entity definitions for TrenchBroom.
+// Quake III names keep working in the game; new maps should use these.
+
+@BaseClass = Angle [ angle(integer) : "Direction (yaw)" ]
+@BaseClass = Target [ target(target_destination) : "Target" ]
+@BaseClass = Targetname [ targetname(target_source) : "Name" ]
+@BaseClass = Modes [
+	notduel(boolean) : "Not in duel or round duel" : 0
+	notteam(boolean) : "Not in team modes" : 0
+	notffa(boolean) : "Not in free for all" : 0
+	gametype(string) : "Only in these modes (duel tdm ctf ca sacrifice roundduel)"
+]
+@BaseClass base(Modes, Target, Targetname) = Item [
+	wait(integer) : "Respawn time override, seconds"
+	random(float) : "Random extra respawn seconds"
+	team(string) : "Team: only one item of a team spawns at a time"
+	spawnflags(flags) = [ 1 : "Suspended (no drop to floor)" : 0 ]
+]
+
+@SolidClass = worldspawn : "World" [
+	message(string) : "Map name shown while loading"
+	music(string) : "Music file"
+	gravity(integer) : "Gravity" : 800
+	_ambient(integer) : "Ambient light (compiler)"
+	_color(color1) : "Ambient colour (compiler)"
+]
+
+// spawn points
+@PointClass base(Angle, Modes) color(0 1 0) size(-16 -16 -24, 16 16 32) model("models/players/sarge/lower.md3") = info_player_deathmatch : "Spawn point" [
+	spawnflags(flags) = [ 1 : "Initial duel spawn" : 0, 2 : "Never used" : 0 ]
+]
+@PointClass base(Angle) color(0 1 0) size(-16 -16 -24, 16 16 32) = info_player_start : "Spawn point (old maps)" []
+@PointClass base(Angle) color(0 0 1) size(-16 -16 -24, 16 16 32) = info_player_intermission : "Intermission camera" [ target(target_destination) : "Look at" ]
+@PointClass base(Angle) color(1 0 0) size(-16 -16 -24, 16 16 32) = team_CTF_redplayer : "Red team start spot (first spawn)" []
+@PointClass base(Angle) color(1 0 0) size(-16 -16 -24, 16 16 32) = team_CTF_redspawn : "Red team spawn spot" []
+@PointClass color(1 0 0) size(-16 -16 -16, 16 16 16) model("models/flags/r_flag.md3") = team_CTF_redflag : "Red flag; in Sacrifice its stand is an obelisk unless the map places team_sacrifice_obelisk" []
+@PointClass base(Angle) color(0 0 1) size(-16 -16 -24, 16 16 32) = team_CTF_blueplayer : "Blue team start spot (first spawn)" []
+@PointClass base(Angle) color(0 0 1) size(-16 -16 -24, 16 16 32) = team_CTF_bluespawn : "Blue team spawn spot" []
+@PointClass color(0 0 1) size(-16 -16 -16, 16 16 16) model("models/flags/b_flag.md3") = team_CTF_blueflag : "Blue flag; in Sacrifice its stand is an obelisk unless the map places team_sacrifice_obelisk" []
+@PointClass color(1 0 1) size(-16 -16 -16, 16 16 32) = team_sacrifice_obelisk : "Sacrifice obelisk; place two, neutral until claimed" [ radius(integer) : "Extraction radius" : 192 ]
+@PointClass color(1 0 1) size(-16 -16 -16, 16 16 16) model("models/gibs/skull.md3") = team_sacrifice_soul : "Where the Sacrifice soul appears" []
+
+// items
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/weapons2/machinegun/machinegun.md3") = weapon_heavymachinegun : "Heavy Machinegun (shares machinegun ammo)" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/weapons2/shotgun/shotgun.md3") = weapon_supershotgun : "Super Shotgun (shares shotgun ammo)" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/weapons2/plasma/plasma.md3") = weapon_supernailgun : "Super Nailgun (shares nailgun ammo)" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/weapons2/grenadel/grenadel.md3") = weapon_tribolt : "Tri-bolt" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/weapons2/rocketl/rocketl.md3") = weapon_rocketlauncher : "Rocket Launcher" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/weapons2/lightning/lightning.md3") = weapon_lightning : "Lightning Gun" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/weapons2/railgun/railgun.md3") = weapon_railgun : "Railgun" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/ammo/machinegunam.md3") = ammo_bullets : "Machinegun ammo" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/ammo/shotgunam.md3") = ammo_shells : "Shotgun ammo" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/ammo/plasmaam.md3") = ammo_cells : "Nailgun ammo" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/ammo/grenadeam.md3") = ammo_grenades : "Tri-bolt ammo" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/ammo/rocketam.md3") = ammo_rockets : "Rocket ammo" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/ammo/lightningam.md3") = ammo_lightning : "Lightning ammo" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/ammo/railgunam.md3") = ammo_slugs : "Railgun ammo" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/ammo/bfgam.md3") = item_ammo_box : "Ammo for every carried weapon; 20 s" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/health/small_cross.md3") = item_health_small : "Small health, +5 over the maximum" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/health/medium_cross.md3") = item_health : "Health +25" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/health/large_cross.md3") = item_health_large : "Health +50" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/health/large_cross.md3") = item_health_special : "Special health: 50, no overstack, 30 s" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/health/mega_cross.md3") = item_health_mega : "Mega health" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/armor/shard.md3") = item_armor_shard : "Armour shard" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/armor/armor_yel.md3") = item_armor_combat : "Light armour" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/armor/armor_red.md3") = item_armor_body : "Heavy armour" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/instant/quad.md3") = item_quad : "Quad Damage" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/instant/enviro.md3") = item_protection : "Protection" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/instant/haste.md3") = item_haste : "Haste" []
+@PointClass base(Item) color(0.3 0.3 1) size(-16 -16 -16, 16 16 16) model("models/powerups/holdable/teleporter.md3") = item_hourglass : "Hourglass: a tenth of the ability's wait off; 30 s" []
+
+// movement and triggers
+@SolidClass base(Target, Modes) = trigger_push : "Jump pad: pushes toward its target_position; empties a slide charge" []
+@PointClass base(Targetname) color(0 0.5 0) size(-8 -8 -8, 8 8 8) = target_position : "Aim point for jump pads and cameras" []
+@SolidClass base(Target, Modes) = trigger_teleport : "Teleporter: keeps the player's speed (at least 400)" [ spawnflags(flags) = [ 1 : "Spectators only" : 0 ] ]
+@PointClass base(Angle, Targetname) color(1 0.5 0) size(-16 -16 -24, 16 16 32) = misc_teleporter_dest : "Teleporter exit" []
+@SolidClass base(Targetname, Modes) = trigger_hurt : "Hurts what touches it" [
+	dmg(integer) : "Damage per touch" : 5
+	spawnflags(flags) = [ 1 : "Start off" : 0, 2 : "Toggle" : 0, 4 : "Silent" : 0, 8 : "No protection" : 0, 16 : "Slow" : 0 ]
+]
+@SolidClass base(Target, Targetname, Modes) = trigger_multiple : "Fires its targets when touched" [ wait(float) : "Seconds between" : "0.5" ]
+@PointClass base(Target, Targetname) color(0.5 0.5 0.5) size(-8 -8 -8, 8 8 8) = target_relay : "Passes a trigger on" []
+@PointClass base(Target, Targetname) color(0.5 0.5 0.5) size(-8 -8 -8, 8 8 8) = target_delay : "Passes a trigger on after a wait" [ wait(float) : "Seconds" : 1 ]
+@PointClass base(Targetname) color(0 0.7 0.7) size(-8 -8 -8, 8 8 8) = target_location : "Location name for team chat and the team overlay" [ message(string) : "Name" ]
+@PointClass base(Targetname) color(0 0.7 0) size(-8 -8 -8, 8 8 8) = target_speaker : "Plays a sound" [
+	noise(string) : "Sound file"
+	wait(float) : "Seconds between plays"
+	random(float) : "Random extra seconds"
+	spawnflags(flags) = [ 1 : "Looped on" : 0, 2 : "Looped off" : 0, 4 : "Global" : 0, 8 : "Activator only" : 0 ]
+]
+
+// movers
+@BaseClass base(Targetname, Modes) = Mover [ speed(integer) : "Speed"
+	dmg(integer) : "Crush damage" : 2
+	noise(string) : "Sound" ]
+@SolidClass base(Mover, Angle) = func_door : "Door" [ lip(integer) : "Lip" : 8
+	wait(float) : "Seconds open" : 2
+	spawnflags(flags) = [ 1 : "Start open" : 0, 4 : "Crusher" : 0 ] ]
+@SolidClass base(Mover) = func_plat : "Lift" [ height(integer) : "Travel height"
+	lip(integer) : "Lip" : 8 ]
+@SolidClass base(Mover, Target, Angle) = func_button : "Button" [ wait(float) : "Seconds back" : 1
+	lip(integer) : "Lip" : 4 ]
+@SolidClass base(Mover) = func_rotating : "Rotating brush" [ spawnflags(flags) = [ 4 : "X axis" : 0, 8 : "Y axis" : 0 ] ]
+@SolidClass base(Mover) = func_bobbing : "Bobbing brush" [ height(integer) : "Height" : 32
+	phase(float) : "Phase" : 0 ]
+@SolidClass base(Targetname, Modes) = func_static : "Static brush" []
+@SolidClass base(Targetname, Modes) = func_timer : "Fires targets on a timer" [ wait(float) : "Seconds" : 1 ]
+
+// light and models (compiler)
+@PointClass base(Target, Targetname) color(1 1 0) size(-8 -8 -8, 8 8 8) = light : "Light" [
+	light(integer) : "Brightness" : 300
+	_color(color1) : "Colour" : "1 1 1"
+	radius(integer) : "Spotlight radius" : 64
+]
+@PointClass base(Angle) color(1 0.5 0) size(-16 -16 -16, 16 16 16) model({ "path": model }) = misc_model : "Model baked into the map" [
+	model(studio) : "Model file"
+	modelscale(float) : "Scale" : 1
+]
+@PointClass base(Targetname) color(0 0.5 1) size(-8 -8 -8, 8 8 8) = misc_portal_surface : "Portal or mirror surface" [ target(target_destination) : "Portal camera" ]
+@PointClass base(Angle, Targetname) color(0 0.5 1) size(-8 -8 -8, 8 8 8) = misc_portal_camera : "Portal camera" [ roll(float) : "Roll" : 0 ]
