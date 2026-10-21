@@ -46,6 +46,7 @@ static qboolean mouseAvailable = qfalse;
 static qboolean mouseActive = qfalse;
 
 static cvar_t *in_mouse             = NULL;
+static cvar_t *in_ignoreInput       = NULL;	// test runs: drop all keyboard and mouse input
 static cvar_t *in_nograb;
 
 static cvar_t *in_joystick          = NULL;
@@ -1038,6 +1039,23 @@ static void IN_ProcessEvents( void )
 
 	while( SDL_PollEvent( &e ) )
 	{
+		if( in_ignoreInput->integer )
+		{
+			switch( e.type )
+			{
+				case SDL_KEYDOWN:
+				case SDL_KEYUP:
+				case SDL_TEXTINPUT:
+				case SDL_MOUSEMOTION:
+				case SDL_MOUSEBUTTONDOWN:
+				case SDL_MOUSEBUTTONUP:
+				case SDL_MOUSEWHEEL:
+					continue;
+				default:
+					break;
+			}
+		}
+
 		switch( e.type )
 		{
 			case SDL_KEYDOWN:
@@ -1248,7 +1266,12 @@ void IN_Frame( void )
 	// update isFullscreen since it might of changed since the last vid_restart
 	cls.glconfig.isFullscreen = Cvar_VariableIntegerValue( "r_fullscreen" ) != 0;
 
-	if( !cls.glconfig.isFullscreen && ( Key_GetCatcher( ) & KEYCATCH_CONSOLE ) )
+	if( in_ignoreInput->integer )
+	{
+		// Never grab the mouse during a test run
+		IN_DeactivateMouse( cls.glconfig.isFullscreen );
+	}
+	else if( !cls.glconfig.isFullscreen && ( Key_GetCatcher( ) & KEYCATCH_CONSOLE ) )
 	{
 		// Console is down in windowed mode
 		IN_DeactivateMouse( cls.glconfig.isFullscreen );
@@ -1302,6 +1325,7 @@ void IN_Init( void *windowData )
 
 	// mouse variables
 	in_mouse = Cvar_Get( "in_mouse", "1", CVAR_ARCHIVE );
+	in_ignoreInput = Cvar_Get( "in_ignoreInput", "0", CVAR_INIT );
 	in_nograb = Cvar_Get( "in_nograb", "0", CVAR_ARCHIVE );
 
 	in_joystick = Cvar_Get( "in_joystick", "0", CVAR_ARCHIVE|CVAR_LATCH );
@@ -1311,9 +1335,10 @@ void IN_Init( void *windowData )
 	SDL_EventState( SDL_DROPFILE, SDL_ENABLE );
 #endif
 
-	SDL_StartTextInput( );
+	if( !in_ignoreInput->integer )
+		SDL_StartTextInput( );
 
-	mouseAvailable = ( in_mouse->value != 0 );
+	mouseAvailable = ( in_mouse->value != 0 ) && !in_ignoreInput->integer;
 	IN_DeactivateMouse( Cvar_VariableIntegerValue( "r_fullscreen" ) != 0 );
 
 	appState = SDL_GetWindowFlags( SDL_window );

@@ -45,6 +45,22 @@ The script loads this build's game code and leaves the Quake III Arena folder
 untouched; configs and logs go to `build-macos/home`. On other platforms, run
 the built binary with `+set fs_basepath "/path/to/Quake 3 Arena"`.
 
+## Test runs
+
+`scripts/test-run.sh` runs the game for automated tests without disturbing
+anyone using the machine: no sound, all keyboard and mouse input ignored,
+the window placed off-screen, a background app with its own bundle ID, and
+its own build, home folder and port. Tests drive it over rcon on localhost
+(macOS):
+
+    scripts/test-run.sh build
+    TREMOR_Q3="/path/to/Quake 3 Arena" scripts/test-run.sh start -n mytest +map q3dm1
+    scripts/test-run.sh rcon -n mytest "screenshotJPEG"
+    scripts/test-run.sh stop -n mytest
+
+The engine settings behind it are `in_ignoreInput 1` and
+`r_offscreenWindow 1`.
+
 ## Playing
 
 | Action | How |

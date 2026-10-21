@@ -51,6 +51,7 @@ static SDL_GLContext SDL_glContext = NULL;
 cvar_t *r_allowSoftwareGL; // Don't abort out if a hardware visual can't be obtained
 cvar_t *r_allowResize; // make window resizable
 cvar_t *r_centerWindow;
+cvar_t *r_offscreenWindow; // test runs: borderless window placed outside every screen
 cvar_t *r_sdlDriver;
 cvar_t *r_preferOpenGLES;
 
@@ -504,6 +505,15 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder, qbool
 		ri.Printf( PRINT_DEVELOPER, "Existing window at %dx%d before being destroyed\n", x, y );
 		SDL_DestroyWindow( SDL_window );
 		SDL_window = NULL;
+	}
+
+	// keep a test window out of sight; it still renders and takes screenshots
+	if( r_offscreenWindow->integer )
+	{
+		fullscreen = qfalse;
+		noborder = qtrue;
+		x = -20000;
+		y = -20000;
 	}
 
 	if( fullscreen )
@@ -1083,6 +1093,7 @@ void GLimp_Init( qboolean fixedFunction )
 	r_sdlDriver = ri.Cvar_Get( "r_sdlDriver", "", CVAR_ROM );
 	r_allowResize = ri.Cvar_Get( "r_allowResize", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_centerWindow = ri.Cvar_Get( "r_centerWindow", "0", CVAR_ARCHIVE | CVAR_LATCH );
+	r_offscreenWindow = ri.Cvar_Get( "r_offscreenWindow", "0", CVAR_INIT );
 	r_preferOpenGLES = ri.Cvar_Get( "r_preferOpenGLES", "-1", CVAR_ARCHIVE | CVAR_LATCH );
 
 	if( ri.Cvar_VariableIntegerValue( "com_abnormalExit" ) )
