@@ -337,7 +337,10 @@ char	*modNames[] = {
 	"MOD_TURRET",
 	"MOD_LASER",
 	"MOD_PLASMATRAIL",
-	"MOD_DRONE"
+	"MOD_DRONE",
+	"MOD_SPINES",
+	"MOD_STORM",
+	"MOD_HOUND"
 };
 
 #ifdef MISSIONPACK
@@ -1090,6 +1093,11 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if ( damage < 1 ) {
 		damage = 1;
 	}
+	// unreleased champions' abilities and passives
+	damage = G_ChampionDamageScale( targ, attacker, damage, dflags, mod );
+	if ( damage <= 0 ) {
+		return;
+	}
 	// barrier shield
 	damage *= G_BarrierScale( targ, mod );
 	if ( damage < 1 ) {
@@ -1177,6 +1185,8 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if (take) {
 		if ( targ->client ) {
 			targ->client->lastDamageTime = level.time;
+			take = G_UndyingSave( targ, take, mod );
+			G_ChampionDamaged( targ, take );
 		}
 		targ->health = targ->health - take;
 		if ( targ->client ) {

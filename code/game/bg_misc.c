@@ -1017,7 +1017,15 @@ const champion_t bg_championList[] = {
 	{ "clutch", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_AIRDODGE | MOVEABIL_ACCELERATION, ACTIVE_BARRIER, 0, "tankjr", STR_CHAMPION_CLUTCH },
 	{ "keel", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, 0, ACTIVE_GRENADES, PASSIVE_AMMOCOOLDOWN | PASSIVE_SPLASHRESIST, "keel", STR_CHAMPION_KEEL },
 	{ "scalebearer", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_HEAVYWEIGHT, ACTIVE_BULLRUSH, 0, "razor", STR_CHAMPION_SCALEBEARER },
-	{ "sorlag", CLASS_HEAVY, 300, 600, MOVE_AIRCONTROL, 0, ACTIVE_ACIDSPIT, PASSIVE_ACIDPROOF, "sorlag", STR_CHAMPION_SORLAG }
+	{ "sorlag", CLASS_HEAVY, 300, 600, MOVE_AIRCONTROL, 0, ACTIVE_ACIDSPIT, PASSIVE_ACIDPROOF, "sorlag", STR_CHAMPION_SORLAG },
+	{ "wrack", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_SHELLSHOCK, PASSIVE_OLDSOLDIER, "ranger/wrack", STR_CHAMPION_WRACK },
+	{ "sarge", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_SUPPLYDROP, PASSIVE_DRILLSERGEANT, "sarge", STR_CHAMPION_SARGE },
+	{ "klesk", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, MOVEABIL_WALLJUMP, ACTIVE_SPINEVOLLEY, PASSIVE_HIVEREGEN, "klesk", STR_CHAMPION_KLESK },
+	{ "hunter", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, 0, ACTIVE_MARKPREY, PASSIVE_LIGHTFEET, "hunter", STR_CHAMPION_HUNTER },
+	{ "xaero", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, 0, ACTIVE_ETERNAL, PASSIVE_UNDYING, "xaero", STR_CHAMPION_XAERO },
+	{ "raine", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, 0, ACTIVE_DOWNPOUR, PASSIVE_SLIPSTREAM, "major", STR_CHAMPION_RAINE },
+	{ "beastmaster", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, 0, ACTIVE_HOUND, PASSIVE_THICKHIDE, "uriel", STR_CHAMPION_BEASTMASTER },
+	{ "unumrey", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_RIFTANCHOR, PASSIVE_ECHO, "orbb", STR_CHAMPION_UNUMREY }
 };
 
 const int bg_numChampions = ARRAY_LEN( bg_championList );
@@ -1179,7 +1187,26 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Round Duel",
 	"PAUSED",
 	"Space play   Up/Down speed   Left/Right 10 s   PgUp/PgDn 1 min   Home restart   H hide HUD   Esc leave",
-	"REC"
+	"REC",
+	"Wrack",
+	"Klesk",
+	"Xaero",
+	"Sarge",
+	"Hunter",
+	"Raine",
+	"Beastmaster",
+	"Unumrey",
+	"SHELL SHOCK",
+	"SPINE VOLLEY",
+	"ETERNAL CHAMPION",
+	"SUPPLY DROP",
+	"MARK PREY",
+	"DOWNPOUR",
+	"RELEASE THE HOUND",
+	"RIFT ANCHOR",
+	"was pierced by the spines of",
+	"was caught in the storm of",
+	"was mauled by the hound of"
 };
 
 /*
@@ -1278,7 +1305,15 @@ const abilityInfo_t bg_abilityInfo[ACTIVE_NUM_ABILITIES] = {
 	{ "plasmatrail",	STR_ABILITY_PLASMATRAIL,	qfalse,	{ "1", "45000", "0", "5000", "0" } },
 	{ "acidspit",		STR_ABILITY_ACIDSPIT,		qfalse,	{ "1", "45000", "0", "750", "1300" } },
 	{ "drone",			STR_ABILITY_DRONE,			qfalse,	{ "1", "45000", "0", "10000", "0" } },
-	{ "piercingsight",	STR_ABILITY_PIERCINGSIGHT,	qfalse,	{ "1", "45000", "0", "5000", "0" } }
+	{ "piercingsight",	STR_ABILITY_PIERCINGSIGHT,	qfalse,	{ "1", "45000", "0", "5000", "0" } },
+	{ "shellshock",		STR_ABILITY_SHELLSHOCK,		qfalse,	{ "1", "45000", "250", "0", "500" } },
+	{ "spinevolley",	STR_ABILITY_SPINEVOLLEY,	qfalse,	{ "1", "40000", "100", "0", "500" } },
+	{ "eternal",		STR_ABILITY_ETERNAL,		qfalse,	{ "1", "50000", "250", "5000", "0" } },
+	{ "supplydrop",		STR_ABILITY_SUPPLYDROP,		qfalse,	{ "1", "45000", "0", "0", "500" } },
+	{ "markprey",		STR_ABILITY_MARKPREY,		qfalse,	{ "1", "35000", "0", "0", "250" } },
+	{ "downpour",		STR_ABILITY_DOWNPOUR,		qfalse,	{ "1", "45000", "0", "0", "500" } },
+	{ "hound",			STR_ABILITY_HOUND,			qfalse,	{ "1", "50000", "250", "0", "500" } },
+	{ "riftanchor",		STR_ABILITY_RIFTANCHOR,		qtrue,	{ "1", "40000", "0", "6000", "500" } }
 };
 
 /*

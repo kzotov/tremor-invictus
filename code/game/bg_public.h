@@ -359,6 +359,25 @@ typedef enum {
 	STR_DEMO_PAUSED,
 	STR_DEMO_HELP,
 	STR_DEMO_REC,
+	STR_CHAMPION_WRACK,
+	STR_CHAMPION_KLESK,
+	STR_CHAMPION_XAERO,
+	STR_CHAMPION_SARGE,
+	STR_CHAMPION_HUNTER,
+	STR_CHAMPION_RAINE,
+	STR_CHAMPION_BEASTMASTER,
+	STR_CHAMPION_UNUMREY,
+	STR_ABILITY_SHELLSHOCK,
+	STR_ABILITY_SPINEVOLLEY,
+	STR_ABILITY_ETERNAL,
+	STR_ABILITY_SUPPLYDROP,
+	STR_ABILITY_MARKPREY,
+	STR_ABILITY_DOWNPOUR,
+	STR_ABILITY_HOUND,
+	STR_ABILITY_RIFTANCHOR,
+	STR_OBIT_SPINES,
+	STR_OBIT_STORM,
+	STR_OBIT_HOUND,
 
 	STR_NUM_STRINGS
 } stringId_t;
@@ -410,6 +429,14 @@ typedef enum {
 	ACTIVE_ACIDSPIT,				// acid blobs and pools
 	ACTIVE_DRONE,					// remote drone
 	ACTIVE_PIERCINGSIGHT,			// see enemies through walls
+	ACTIVE_SHELLSHOCK,				// zone that cancels and blocks enemy abilities
+	ACTIVE_SPINEVOLLEY,				// fan of slowing spines
+	ACTIVE_ETERNAL,					// more damage dealt and taken for a while
+	ACTIVE_SUPPLYDROP,				// crate of armour and ammo for the team
+	ACTIVE_MARKPREY,				// dart that marks an enemy
+	ACTIVE_DOWNPOUR,				// storm column at a point
+	ACTIVE_HOUND,					// a hound that hunts enemies
+	ACTIVE_RIFTANCHOR,				// anchor now, recall on re-press
 
 	ACTIVE_NUM_ABILITIES
 } activeAbility_t;
@@ -482,6 +509,14 @@ void	BG_ShotgunPelletOffset( int weapon, int index, int count, int *seed, float 
 #define	PASSIVE_FULLSPRINT		256		// higher air acceleration
 #define	PASSIVE_CHARRING		512		// melee hits set the target burning
 #define	PASSIVE_STROYENT		1024	// kills drop cells that heal this champion
+#define	PASSIVE_OLDSOLDIER		2048	// a quarter self splash, own blasts push harder
+#define	PASSIVE_HIVEREGEN		4096	// regains health to base after a quiet while
+#define	PASSIVE_UNDYING			8192	// once a life, a killing hit leaves 1 health
+#define	PASSIVE_DRILLSERGEANT	16384	// faster weapon switch
+#define	PASSIVE_LIGHTFEET		32768	// no falling damage, silent steps and landings
+#define	PASSIVE_SLIPSTREAM		65536	// more air acceleration
+#define	PASSIVE_THICKHIDE		131072	// less splash damage from others
+#define	PASSIVE_ECHO			262144	// part of each hit heals back
 
 typedef struct {
 	char		*name;				// userinfo "champion" value
@@ -712,6 +747,10 @@ typedef enum {
 // player-only reuses of missile and mover bits (the playerstate sends 16 bits)
 #define	EF_BARRIER			EF_BOUNCE_HALF	// shield up around the player
 #define	EF_DRONE			EF_MOVER_STOP	// the player is flying the drone
+#define	EF_MARKED			0x00000002		// marked or caught in a storm: shown through walls to enemies (the base game leaves this bit free)
+
+// shell-shocked until this time (a powerup slot the base game doesn't use)
+#define	PW_SHELLSHOCK		PW_SCOUT
 
 // NOTE: may not have more than 16
 typedef enum {
@@ -1077,7 +1116,10 @@ typedef enum {
 	MOD_TURRET,
 	MOD_LASER,
 	MOD_PLASMATRAIL,
-	MOD_DRONE
+	MOD_DRONE,
+	MOD_SPINES,
+	MOD_STORM,
+	MOD_HOUND
 } meansOfDeath_t;
 
 

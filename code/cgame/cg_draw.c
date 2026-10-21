@@ -1548,6 +1548,33 @@ static qboolean CG_WorldToScreen( const vec3_t point, float *x, float *y ) {
 
 /*
 ===================
+CG_DrawShellShock
+
+Shell-shocked: dark, pulsing edges for as long as it lasts
+===================
+*/
+static void CG_DrawShellShock( void ) {
+	vec4_t	edge = { 0, 0, 0, 0.55f };
+	int		left = cg.snap->ps.powerups[PW_SHELLSHOCK] - cg.time;
+	int		i;
+
+	if ( left <= 0 ) {
+		return;
+	}
+	edge[3] = 0.4f + 0.15f * sin( cg.time * 0.01f );
+	for ( i = 0 ; i < 4 ; i++ ) {
+		float	w = 24 + i * 16;
+
+		edge[3] *= 0.75f;
+		CG_FillRect( 0, 0, 640, w, edge );
+		CG_FillRect( 0, 480 - w, 640, w, edge );
+		CG_FillRect( 0, w, w, 480 - 2 * w, edge );
+		CG_FillRect( 640 - w, w, w, 480 - 2 * w, edge );
+	}
+}
+
+/*
+===================
 CG_DrawRevealedPlayers
 
 Piercing sight: outline enemies through walls
@@ -1560,16 +1587,19 @@ static void CG_DrawRevealedPlayers( void ) {
 	float			x1, y1, x2, y2, w;
 	int				i, myTeam;
 	static vec4_t	revealColor = { 1.0f, 0.2f, 0.1f, 0.8f };
+	qboolean		sight;
 
-	if ( BG_Champion( ps->stats[STAT_CHAMPION] )->active != ACTIVE_PIERCINGSIGHT
-		|| BG_AbilityState( ps ) != ABILITY_ACTIVE ) {
-		return;
-	}
+	// piercing sight shows every enemy; marks and storms show the players they caught
+	sight = BG_Champion( ps->stats[STAT_CHAMPION] )->active == ACTIVE_PIERCINGSIGHT
+		&& BG_AbilityState( ps ) == ABILITY_ACTIVE;
 
 	myTeam = ps->persistant[PERS_TEAM];
 	for ( i = 0 ; i < MAX_CLIENTS ; i++ ) {
 		cent = &cg_entities[i];
 		if ( i == ps->clientNum || !cent->currentValid || cent->currentState.eType != ET_PLAYER ) {
+			continue;
+		}
+		if ( !sight && !( cent->currentState.eFlags & EF_MARKED ) ) {
 			continue;
 		}
 		if ( cent->currentState.eFlags & EF_DEAD ) {
@@ -2774,6 +2804,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 			CG_DrawProxWarning();
 #endif      
 			CG_DrawRevealedPlayers();
+			CG_DrawShellShock();
 			if(stereoFrame == STEREO_CENTER)
 				CG_DrawCrosshair();
 			CG_DrawCrosshairNames();

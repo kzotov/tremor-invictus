@@ -280,6 +280,15 @@ static void CG_Obituary( entityState_t *ent ) {
 		case MOD_DRONE:
 			message = (char *)BG_String( STR_OBIT_DRONE );
 			break;
+		case MOD_SPINES:
+			message = (char *)BG_String( STR_OBIT_SPINES );
+			break;
+		case MOD_STORM:
+			message = (char *)BG_String( STR_OBIT_STORM );
+			break;
+		case MOD_HOUND:
+			message = (char *)BG_String( STR_OBIT_HOUND );
+			break;
 		case MOD_GAUNTLET:
 			message = "was pummeled by";
 			break;

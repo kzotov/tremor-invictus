@@ -467,7 +467,7 @@ void G_UpdateRevealedPlayers( void ) {
 		if ( !ent->inuse || !ent->client ) {
 			continue;
 		}
-		if ( reveal ) {
+		if ( reveal || ( ent->client->ps.eFlags & EF_MARKED ) ) {
 			ent->r.svFlags |= SVF_BROADCAST;
 		} else {
 			ent->r.svFlags &= ~SVF_BROADCAST;
@@ -530,8 +530,10 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 		charges = maxCharges = 0;
 	}
 
-	// one charge recharges at a time
-	if ( charges < maxCharges ) {
+	// one charge recharges at a time; shell shock runs it backwards
+	if ( charges < maxCharges && G_ShellShockRecharge( client, msec ) ) {
+		// held back by the shock
+	} else if ( charges < maxCharges ) {
 		client->abilityRecharge += msec;
 		if ( client->abilityRecharge >= recharge ) {
 			client->abilityRecharge = 0;
@@ -1195,6 +1197,10 @@ void ClientThink_real( gentity_t *ent ) {
 
 	// set speed
 	client->ps.speed = BG_Champion( client->ps.stats[STAT_CHAMPION] )->runSpeed;
+	// Klesk's spines slow the run
+	if ( client->slowEndTime > level.time ) {
+		client->ps.speed *= 0.7f;
+	}
 
 #ifdef MISSIONPACK
 	if( bg_itemlist[client->ps.stats[STAT_PERSISTANT_POWERUP]].giTag == PW_SCOUT ) {

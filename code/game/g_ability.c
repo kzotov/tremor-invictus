@@ -46,7 +46,7 @@ G_AbilityEyes
 Origin and direction from the centre of the player's view
 ================
 */
-static void G_AbilityEyes( gentity_t *ent, vec3_t start, vec3_t forward, vec3_t right ) {
+void G_AbilityEyes( gentity_t *ent, vec3_t start, vec3_t forward, vec3_t right ) {
 	VectorCopy( ent->client->ps.origin, start );
 	start[2] += ent->client->ps.viewheight;
 	AngleVectors( ent->client->ps.viewangles, forward, right, NULL );
@@ -61,7 +61,7 @@ G_AbilityDone
 The game ends a running ability (its projectile is gone or it was used up)
 ================
 */
-static void G_AbilityDone( gentity_t *ent ) {
+void G_AbilityDone( gentity_t *ent ) {
 	int		state;
 
 	if ( !ent || !ent->client ) {
@@ -81,7 +81,7 @@ G_AbilityEnemy
 True if other is a live player the owner may hurt
 ================
 */
-static qboolean G_AbilityEnemy( gentity_t *owner, gentity_t *other ) {
+qboolean G_AbilityEnemy( gentity_t *owner, gentity_t *other ) {
 	if ( !other->client || other->health <= 0 || other == owner ) {
 		return qfalse;
 	}
@@ -98,11 +98,11 @@ G_AbilityMarked / G_AbilityMark
 One-time effects per player per entity (contact damage, totem heals)
 ================
 */
-static qboolean G_AbilityMarked( gentity_t *ent, int clientNum ) {
+qboolean G_AbilityMarked( gentity_t *ent, int clientNum ) {
 	return ( ent->abilityMask[clientNum >> 5] & ( 1 << ( clientNum & 31 ) ) ) != 0;
 }
 
-static void G_AbilityMark( gentity_t *ent, int clientNum ) {
+void G_AbilityMark( gentity_t *ent, int clientNum ) {
 	ent->abilityMask[clientNum >> 5] |= 1 << ( clientNum & 31 );
 }
 
@@ -113,7 +113,7 @@ G_AbilityMissile
 A thrown or fired ability entity using the missile code for movement
 ================
 */
-static gentity_t *G_AbilityMissile( gentity_t *owner, const char *classname, vec3_t start, vec3_t dir,
+gentity_t *G_AbilityMissile( gentity_t *owner, const char *classname, vec3_t start, vec3_t dir,
 	float speed, int trType, int weapon ) {
 	gentity_t	*ent;
 
@@ -155,7 +155,7 @@ G_AbilityStop
 Turns a moving ability entity into a stationary one at point
 ================
 */
-static void G_AbilityStop( gentity_t *ent, vec3_t point ) {
+void G_AbilityStop( gentity_t *ent, vec3_t point ) {
 	vec3_t	origin;
 
 	VectorCopy( point, origin );
@@ -1284,6 +1284,13 @@ void G_AbilityFire( gentity_t *ent ) {
 		break;
 	case ACTIVE_BARRIER:		G_StartBarrier( ent ); break;
 	case ACTIVE_DRONE:			G_StartDrone( ent ); break;
+	case ACTIVE_SHELLSHOCK:		G_ShellShock( ent ); break;
+	case ACTIVE_SPINEVOLLEY:	G_SpineVolley( ent ); break;
+	case ACTIVE_SUPPLYDROP:		G_SupplyDrop( ent ); break;
+	case ACTIVE_MARKPREY:		G_MarkPrey( ent ); break;
+	case ACTIVE_DOWNPOUR:		G_Downpour( ent ); break;
+	case ACTIVE_HOUND:			G_ReleaseHound( ent ); break;
+	case ACTIVE_RIFTANCHOR:		G_DropAnchor( ent ); break;
 	default:
 		break;
 	}
@@ -1302,6 +1309,7 @@ void G_AbilityRepress( gentity_t *ent ) {
 	case ACTIVE_FLAMESTRIKE:	G_FlameConverge( ent ); break;
 	case ACTIVE_BARRIER:		G_BarrierToLaser( ent ); break;
 	case ACTIVE_PLASMATRAIL:	G_DetonateTrail( ent ); break;
+	case ACTIVE_RIFTANCHOR:		G_RecallAnchor( ent ); break;
 	case ACTIVE_DRONE:
 		if ( level.time - ent->client->droneStartTime >= g_droneLaunchDelay.integer ) {
 			G_DroneEnd( ent, qtrue );
@@ -1343,6 +1351,8 @@ void G_AbilityClientThink( gentity_t *ent ) {
 		}
 	}
 
+	G_ChampionClientThink( ent );
+
 	G_DamageOverTimeTick( ent, &client->burnEndTime, &client->burnNextTime, client->burnAttacker,
 		g_burnDamage.integer, g_burnTime.integer, MOD_BURN );
 	G_DamageOverTimeTick( ent, &client->poisonEndTime, &client->poisonNextTime, client->poisonAttacker,
@@ -1361,6 +1371,7 @@ void G_AbilityClientDied( gentity_t *ent ) {
 	int			i;
 
 	G_ClearDamageOverTime( ent );
+	G_ChampionClientDied( ent );
 	G_AbilityEnded( ent );
 	if ( client->abilityEnt ) {
 		G_FreeEntity( client->abilityEnt );

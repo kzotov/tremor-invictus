@@ -321,6 +321,20 @@ struct gclient_s {
 	qboolean	fireHeld;			// used for hook
 	gentity_t	*hook;				// grapple hook if out
 	int			abilityRecharge;	// msec toward the next ability charge
+
+	// unreleased champions (g_champions2.c)
+	int			shockBudget;		// msec the cooldown may still run back this shock
+	int			slowEndTime;		// spines: run speed cut until then
+	int			markEndTime;		// marked prey / storm: shown through walls until then
+	int			markTeam;			// team (or client + 1000 in free for all) whose hits are stronger
+	qboolean	undyingUsed;
+	int			invulnEndTime;		// no damage until then
+	int			echoLeft;			// health still to heal back
+	int			echoEndTime;
+	int			echoResidual;
+	int			hiveResidual;
+	vec3_t		anchorOrigin;
+	struct gentity_s	*anchorEnt;
 	int			abilityPrevState;	// ability state after the last think
 	int			lastDamageTime;		// level.time this client last lost health
 	int			regenResidual;		// msec of regeneration not yet turned into health
@@ -688,6 +702,31 @@ void		G_RoundDuelKill( gentity_t *victim );
 void		G_RoundDuelCheckRules( void );
 void		Cmd_Pick_f( gentity_t *ent );
 void		Cmd_Next_f( gentity_t *ent );
+
+// g_champions2.c
+void		G_AbilityEyes( gentity_t *ent, vec3_t start, vec3_t forward, vec3_t right );
+void		G_AbilityDone( gentity_t *ent );
+qboolean	G_AbilityEnemy( gentity_t *owner, gentity_t *other );
+qboolean	G_AbilityMarked( gentity_t *ent, int clientNum );
+void		G_AbilityMark( gentity_t *ent, int clientNum );
+gentity_t	*G_AbilityMissile( gentity_t *owner, const char *classname, vec3_t start, vec3_t dir, float speed, int trType, int weapon );
+void		G_AbilityStop( gentity_t *ent, vec3_t point );
+void		G_RegisterChampionCvars( void );
+void		G_UpdateChampionCvars( void );
+int			G_UndyingSave( gentity_t *targ, int take, int mod );
+void		G_ShellShock( gentity_t *ent );
+void		G_SpineVolley( gentity_t *ent );
+void		G_SupplyDrop( gentity_t *ent );
+void		G_MarkPrey( gentity_t *ent );
+void		G_Downpour( gentity_t *ent );
+void		G_ReleaseHound( gentity_t *ent );
+void		G_DropAnchor( gentity_t *ent );
+void		G_RecallAnchor( gentity_t *ent );
+void		G_ChampionClientThink( gentity_t *ent );
+void		G_ChampionClientDied( gentity_t *ent );
+int			G_ChampionDamageScale( gentity_t *targ, gentity_t *attacker, int damage, int dflags, int mod );
+void		G_ChampionDamaged( gentity_t *targ, int take );
+qboolean	G_ShellShockRecharge( gclient_t *client, int msec );
 
 // g_rewind.c
 //

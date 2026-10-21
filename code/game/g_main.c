@@ -657,6 +657,8 @@ void G_UpdateCvars( void ) {
 	cvarTable_t	*cv;
 	qboolean remapped = qfalse;
 
+	G_UpdateChampionCvars();
+
 	for ( i = 0, cv = gameCvarTable ; i < gameCvarTableSize ; i++, cv++ ) {
 		if ( cv->vmCvar ) {
 			trap_Cvar_Update( cv->vmCvar );
@@ -699,6 +701,7 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	srand( randomSeed );
 
 	G_RegisterCvars();
+	G_RegisterChampionCvars();
 	G_RewindInit();
 
 	G_ProcessIPBans();

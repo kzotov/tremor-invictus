@@ -1401,6 +1401,9 @@ static int PM_FootstepForSurface( void ) {
 	if ( pml.groundTrace.surfaceFlags & SURF_NOSTEPS ) {
 		return 0;
 	}
+	if ( pml.champion->passives & PASSIVE_LIGHTFEET ) {
+		return 0;		// silent steps
+	}
 	if ( pml.groundTrace.surfaceFlags & SURF_METALSTEPS ) {
 		return EV_FOOTSTEP_METAL;
 	}
@@ -1475,7 +1478,7 @@ static void PM_CrashLand( void ) {
 
 	// SURF_NODAMAGE is used for bounce pads where you don't ever
 	// want to take damage or play a crunch sound
-	if ( !(pml.groundTrace.surfaceFlags & SURF_NODAMAGE) )  {
+	if ( !(pml.groundTrace.surfaceFlags & SURF_NODAMAGE) && !( pml.champion->passives & PASSIVE_LIGHTFEET ) )  {
 		if ( delta > 60 ) {
 			PM_AddEvent( EV_FALL_FAR );
 		} else if ( delta > 40 ) {
@@ -2035,6 +2038,17 @@ static void PM_WaterEvents( void ) {		// FIXME?
 
 /*
 ===============
+PM_SwitchTime
+
+Milliseconds to lower or raise a weapon
+===============
+*/
+static int PM_SwitchTime( void ) {
+	return ( pml.champion->passives & PASSIVE_DRILLSERGEANT ) ? 150 : 200;
+}
+
+/*
+===============
 PM_BeginWeaponChange
 ===============
 */
@@ -2053,7 +2067,7 @@ static void PM_BeginWeaponChange( int weapon ) {
 
 	PM_AddEvent( EV_CHANGE_WEAPON );
 	pm->ps->weaponstate = WEAPON_DROPPING;
-	pm->ps->weaponTime += 200 * PM_WeaponTimeScale();
+	pm->ps->weaponTime += PM_SwitchTime() * PM_WeaponTimeScale();
 	PM_StartTorsoAnim( TORSO_DROP );
 }
 
@@ -2077,7 +2091,7 @@ static void PM_FinishWeaponChange( void ) {
 
 	pm->ps->weapon = weapon;
 	pm->ps->weaponstate = WEAPON_RAISING;
-	pm->ps->weaponTime += 200 * PM_WeaponTimeScale();		// raise as long as the lower
+	pm->ps->weaponTime += PM_SwitchTime() * PM_WeaponTimeScale();		// raise as long as the lower
 	PM_StartTorsoAnim( TORSO_RAISE );
 }
 
@@ -2640,6 +2654,10 @@ static void PM_Ability( void ) {
 		if ( !pressed || charges <= 0 || ( pm->ps->pm_flags & PMF_RESPAWNED ) ) {
 			return;
 		}
+		// shell-shocked: no ability can be started
+		if ( pm->ps->powerups[PW_SHELLSHOCK] > pm->cmd.serverTime ) {
+			return;
+		}
 		// a flag carrier must stay visible: no ghost walk, no leaving the body for the drone
 		if ( ( active == ACTIVE_GHOSTWALK || active == ACTIVE_DRONE )
 			&& ( pm->ps->powerups[PW_REDFLAG] || pm->ps->powerups[PW_BLUEFLAG] || pm->ps->powerups[PW_NEUTRALFLAG] ) ) {
@@ -2798,6 +2816,8 @@ static float PM_ClassAirAccelerate( void ) {
 
 	if ( pml.champion->passives & PASSIVE_FULLSPRINT ) {
 		accel = bg_pmoveSettings.airAccelFullSprint;
+	} else if ( pml.champion->passives & PASSIVE_SLIPSTREAM ) {
+		accel = 1.3f;
 	} else if ( pml.champion->bodyClass == CLASS_LIGHT ) {
 		accel = bg_pmoveSettings.airAccelLight;
 	} else if ( pml.champion->bodyClass == CLASS_HEAVY ) {
