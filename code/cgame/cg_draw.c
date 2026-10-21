@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // active (after loading) gameplay
 
 #include "cg_local.h"
+#include "../client/keycodes.h"
 
 #ifdef MISSIONPACK
 #include "../ui/ui_shared.h"
@@ -3039,7 +3040,27 @@ static void CG_DrawSpectator(void) {
 CG_DrawVote
 =================
 */
-static void CG_DrawVote(void) {
+/*
+=================
+CG_BindName
+
+A short name for the key bound to a command: F1-F15, a letter or digit,
+else "?"
+=================
+*/
+static const char *CG_BindName( const char *binding ) {
+	int		key = trap_Key_GetKey( binding );
+
+	if ( key >= K_F1 && key <= K_F15 ) {
+		return va( "F%i", key - K_F1 + 1 );
+	}
+	if ( key > K_SPACE && key < 127 ) {
+		return va( "%c", toupper( key ) );
+	}
+	return "?";
+}
+
+static void CG_DrawVote( float y ) {
 	char	*s;
 	int		sec;
 
@@ -3057,15 +3078,18 @@ static void CG_DrawVote(void) {
 	if ( sec < 0 ) {
 		sec = 0;
 	}
-#ifdef MISSIONPACK
-	s = va("VOTE(%i):%s yes:%i no:%i", sec, cgs.voteString, cgs.voteYes, cgs.voteNo);
-	CG_DrawSmallString( 0, 58, s, 1.0F );
-	s = "or press ESC then click Vote";
-	CG_DrawSmallString( 0, 58 + SMALLCHAR_HEIGHT + 2, s, 1.0F );
-#else
-	s = va("VOTE(%i):%s yes:%i no:%i", sec, cgs.voteString, cgs.voteYes, cgs.voteNo );
-	CG_DrawSmallString( 0, 58, s, 1.0F );
-#endif
+	// one format, no nesting: "VOTE(Ns): what  Yes(F1): N  No(F2): N"
+	{
+		char	yesKey[8], noKey[8];
+
+		Q_strncpyz( yesKey, CG_BindName( "vote yes" ), sizeof( yesKey ) );
+		Q_strncpyz( noKey, CG_BindName( "vote no" ), sizeof( noKey ) );
+		s = va( (char *)BG_String( STR_VOTE_LINE ), sec, cgs.voteString, yesKey, cgs.voteYes, noKey, cgs.voteNo );
+	}
+	cg_hudAnchor = ANCHOR_LEFT;
+	CG_DrawSmallString( 8, y, s, 1.0F );
+	CG_DrawSmallStringColor( 8, y + SMALLCHAR_HEIGHT + 2, (char *)BG_String( STR_VOTE_ESC ), colorLtGrey );
+	cg_hudAnchor = ANCHOR_CENTER;
 }
 
 /*
@@ -3783,6 +3807,8 @@ CG_Draw2D
 */
 static void CG_Draw2D(stereoFrame_t stereoFrame)
 {
+	float	voteY = 0;		// the vote line goes under the team overlay
+
 #ifdef MISSIONPACK
 	if (cgs.orderPending && cg.time > cgs.orderTime) {
 		CG_CheckOrderPending();
@@ -3881,7 +3907,6 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 #endif
 	}
 
-	CG_DrawVote();
 	CG_DrawTeamVote();
 
 	cg_hudAnchor = ANCHOR_RIGHT;
@@ -3910,7 +3935,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 		cg_hudAnchor = ANCHOR_CENTER;
 		if ( cgs.gametype >= GT_TEAM && cg_drawTeamOverlay.integer == 1 ) {
 			cg_hudAnchor = ANCHOR_LEFT;
-			CG_DrawTeamOverlay( 28, qfalse, qtrue );	// top left, under the clock
+			voteY = CG_DrawTeamOverlay( 28, qfalse, qtrue ) + 4;	// top left, under the clock
 			cg_hudAnchor = ANCHOR_CENTER;
 		}
 		cg_hudAnchor = ANCHOR_LEFT;
@@ -3927,6 +3952,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	cg_hudAnchor = ANCHOR_LEFT;
 	CG_DrawChat();
 	cg_hudAnchor = ANCHOR_CENTER;
+	CG_DrawVote( voteY > 58 ? voteY : 58 );
 	cg_hudAnchor = ANCHOR_LEFT;
 	CG_DrawSpecItemTimers();
 	cg_hudAnchor = ANCHOR_CENTER;

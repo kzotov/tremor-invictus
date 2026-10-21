@@ -1234,6 +1234,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Coin toss: heads",
 	"Coin toss: tails",
 	"That vote needs a number from 0 to 999.",
+	"VOTE(%is): %s  Yes(%s): %i  No(%s): %i",
+	"or press Esc and choose Vote",
 	"First Blood",
 	"Midair",
 	"Airborne",
