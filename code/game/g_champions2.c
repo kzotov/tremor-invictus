@@ -73,6 +73,20 @@ WRACK: SHELL SHOCK
 ==============================================================================
 */
 
+static void G_CancelAbility( gentity_t *ent );
+
+/*
+=================
+G_BreakHook
+
+The rope snaps: the hook lets go as if released
+=================
+*/
+void G_BreakHook( gentity_t *ent ) {
+	ent->client->hookDamageTaken = 0;
+	G_CancelAbility( ent );
+}
+
 /*
 =================
 G_CancelAbility

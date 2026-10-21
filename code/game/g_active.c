@@ -506,6 +506,9 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 		if ( client->hook && state != ABILITY_HOOK_FLYING && state != ABILITY_HOOK_PULL ) {
 			Weapon_HookFree( client->hook );
 		}
+		if ( !client->hook ) {
+			client->hookDamageTaken = 0;
+		}
 		if ( !client->hook && ( state == ABILITY_HOOK_FLYING || state == ABILITY_HOOK_PULL ) ) {
 			state = ABILITY_IDLE;
 			client->ps.stats[STAT_ABILITY_TIME] = 0;
@@ -653,7 +656,8 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed ) 
 		G_Damage( other, ent, ent, dir, other->r.currentOrigin, damage,
 			DAMAGE_NO_KNOCKBACK, MOD_HEAVYWEIGHT );
 		if ( other->health > 0 ) {
-			VectorMA( other->client->ps.velocity, g_hwKnockback.value, dir, other->client->ps.velocity );
+			VectorMA( other->client->ps.velocity, ( champ->abilities & MOVEABIL_HEAVYWEIGHT )
+				? g_hwKnockback.value : g_hookKnockback.value, dir, other->client->ps.velocity );
 			// a survivor stops the bull rush; a kill does not
 			G_EndRush( ent );
 		}

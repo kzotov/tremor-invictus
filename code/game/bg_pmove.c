@@ -129,8 +129,10 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_airAccelHeavy",		"0.967",	&bg_pmoveSettings.airAccelHeavy },
 	{ {0}, "pm_airAccelFullSprint",	"1.012",	&bg_pmoveSettings.airAccelFullSprint },
 
-	{ {0}, "pm_injectionSpeed",		"1.2",	&bg_pmoveSettings.injectionSpeed },
+	{ {0}, "pm_injectionSpeed",		"1.1",	&bg_pmoveSettings.injectionSpeed },
 	{ {0}, "pm_dualWieldRate",		"1.3",	&bg_pmoveSettings.dualWieldRate },
+	{ {0}, "pm_dualWieldRateHeavy",	"1.5",	&bg_pmoveSettings.dualWieldRateHeavy },
+	{ {0}, "pm_trailSpeed",			"1.1",	&bg_pmoveSettings.trailSpeed },
 	{ {0}, "pm_berserkSpeed",		"500",	&bg_pmoveSettings.berserkSpeed },
 
 	{ {0}, "pm_hmgZoomRefire",		"150",	&bg_pmoveSettings.hmgZoomRefire },
@@ -2753,8 +2755,12 @@ the game; effects outside movement (projectiles, heals, the hook entity)
 happen in the game on EV_USE_ABILITY and EV_ABILITY_REPRESS.
 ================
 */
+#define HOOK_THROW_GAP		1000	// msec between hook throws
+#define GRENADE_THROW_GAP	500		// msec between Keel's grenades
+#define BERSERK_MIN_TIME	2000	// Berserk can be ended after this long
+
 static void PM_Ability( void ) {
-	int			state, charges, time, active;
+	int			state, charges, time, active, gap;
 	qboolean	pressed;
 	vec3_t		dir;
 
@@ -2776,7 +2782,13 @@ static void PM_Ability( void ) {
 	time = pm->ps->stats[STAT_ABILITY_TIME];
 
 	if ( state == ABILITY_IDLE ) {
-		if ( !pressed || charges <= 0 || ( pm->ps->pm_flags & PMF_RESPAWNED ) ) {
+		// some abilities wait a moment between uses; the idle time counts up
+		gap = active == ACTIVE_HOOK ? HOOK_THROW_GAP : active == ACTIVE_GRENADES ? GRENADE_THROW_GAP : 0;
+		if ( gap && time < gap ) {
+			time += pml.msec;
+			pm->ps->stats[STAT_ABILITY_TIME] = time;
+		}
+		if ( !pressed || charges <= 0 || ( pm->ps->pm_flags & PMF_RESPAWNED ) || time < gap ) {
 			return;
 		}
 		// shell-shocked: no ability can be started
@@ -2843,6 +2855,12 @@ static void PM_Ability( void ) {
 		}
 	} else if ( state == ABILITY_RUSH || state == ABILITY_ACTIVE ) {
 		if ( pressed && state == ABILITY_ACTIVE ) {
+			// Berserk can be ended early once it has run a while
+			if ( active == ACTIVE_BERSERK && BG_AbilityParam( active, AP_DURATION ) - time >= BERSERK_MIN_TIME ) {
+				BG_SetAbility( pm->ps, ABILITY_IDLE, charges );
+				PM_EndAbility();
+				return;
+			}
 			PM_AddEvent( EV_ABILITY_REPRESS );
 		}
 		time -= pml.msec;
@@ -2880,6 +2898,8 @@ static void PM_AbilitySpeed( void ) {
 		pml.runSpeed *= bg_pmoveSettings.injectionSpeed;
 	} else if ( PM_AbilityActive( ACTIVE_BERSERK ) ) {
 		pml.runSpeed = bg_pmoveSettings.berserkSpeed;
+	} else if ( PM_AbilityActive( ACTIVE_PLASMATRAIL ) ) {
+		pml.runSpeed *= bg_pmoveSettings.trailSpeed;
 	} else if ( PM_AbilityActive( ACTIVE_PIERCINGSIGHT ) ) {
 		pml.runSpeed *= 1.1f;		// Visor runs a little faster while looking
 	}
@@ -2964,6 +2984,9 @@ Dual wield fires and switches faster
 */
 static float PM_WeaponTimeScale( void ) {
 	if ( PM_AbilityActive( ACTIVE_DUALWIELD ) && bg_pmoveSettings.dualWieldRate > 0 ) {
+		if ( pm->ps->weapon == WP_TRIBOLT || pm->ps->weapon == WP_ROCKET_LAUNCHER ) {
+			return 1.0f / bg_pmoveSettings.dualWieldRateHeavy;
+		}
 		return 1.0f / bg_pmoveSettings.dualWieldRate;
 	}
 	return 1.0f;

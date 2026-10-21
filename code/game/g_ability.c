@@ -411,6 +411,27 @@ GRENADE SWARM
 ==============================================================================
 */
 
+/*
+================
+G_GrenadeImpact
+
+The first wall or floor bounces it; the second hit, or any player, bursts it
+================
+*/
+static void G_GrenadeImpact( gentity_t *gren, trace_t *trace ) {
+	gentity_t	*other = &g_entities[trace->entityNum];
+
+	if ( !other->takedamage && !gren->count ) {
+		gren->count = 1;
+		G_BounceMissile( gren, trace );
+		G_AddEvent( gren, EV_GRENADE_BOUNCE, 0 );
+		return;
+	}
+	gren->abilityImpact = NULL;
+	gren->s.eFlags &= ~( EF_BOUNCE | EF_BOUNCE_HALF );
+	G_MissileImpact( gren, trace );
+}
+
 static void G_ThrowGrenade( gentity_t *ent ) {
 	vec3_t		start, forward, right;
 	gentity_t	*gren;
@@ -425,7 +446,10 @@ static void G_ThrowGrenade( gentity_t *ent ) {
 	gren->splashRadius = g_swarmRadius.integer;
 	gren->wpTuned = qtrue;
 	gren->splashMin = 10;
-	gren->wpKnock = gren->wpKnockSelf = g_swarmKnock.value;
+	gren->wpKnock = g_swarmKnock.value;
+	gren->wpKnockSelf = g_swarmKnockSelf.value;
+	gren->abilityImpact = G_GrenadeImpact;
+	gren->count = 0;
 }
 
 /*
@@ -671,6 +695,29 @@ static void G_TotemDie( gentity_t *self, gentity_t *inflictor, gentity_t *attack
 	G_FreeEntity( self );
 }
 
+/*
+================
+G_TotemBurst
+
+An enemy came close: every enemy within the blast radius takes the hit
+================
+*/
+static void G_TotemBurst( gentity_t *totem, int damage ) {
+	gentity_t	*other;
+	int			i;
+
+	for ( i = 0 ; i < level.maxclients ; i++ ) {
+		other = &g_entities[i];
+		if ( !other->inuse || !other->client || other->health <= 0 || !G_AbilityEnemy( totem->parent, other ) ) {
+			continue;
+		}
+		if ( Distance( totem->r.currentOrigin, other->r.currentOrigin ) <= g_totemBlastRadius.value ) {
+			G_Damage( other, totem, totem->parent, NULL, NULL, damage, 0, MOD_TOTEM );
+		}
+	}
+	G_FreeEntity( totem );
+}
+
 static void G_TotemThink( gentity_t *totem ) {
 	int			touch[MAX_GENTITIES];
 	vec3_t		mins, maxs;
@@ -697,9 +744,7 @@ static void G_TotemThink( gentity_t *totem ) {
 		dist = Distance( totem->r.currentOrigin, other->r.currentOrigin );
 		if ( G_AbilityEnemy( totem->parent, other ) ) {
 			if ( dist <= g_totemHurtRadius.value ) {
-				G_Damage( other, totem, totem->parent, NULL, NULL,
-					enforced ? g_totemEnforcedDamage.integer : g_totemDamage.integer, 0, MOD_TOTEM );
-				G_FreeEntity( totem );
+				G_TotemBurst( totem, enforced ? g_totemEnforcedDamage.integer : g_totemDamage.integer );
 				return;
 			}
 		} else if ( !G_AbilityMarked( totem, other->s.number ) ) {
@@ -823,7 +868,25 @@ static void G_TurretThink( gentity_t *turret ) {
 	VectorSubtract( target, muzzle, dir );
 	VectorNormalize( dir );
 	vectoangles( dir, angles );
-	G_AbilitySetAngles( turret, angles );
+	{
+		// turn toward the target at the turn rate
+		float	step = g_turretTurnRate.value * ABILITY_FRAME / 1000.0f;
+		float	delta = AngleSubtract( angles[YAW], turret->s.angles[YAW] );
+		float	aimed;
+
+		if ( delta > step ) {
+			delta = step;
+		} else if ( delta < -step ) {
+			delta = -step;
+		}
+		aimed = AngleSubtract( angles[YAW], turret->s.angles[YAW] + delta );
+		angles[YAW] = AngleMod( turret->s.angles[YAW] + delta );
+		G_AbilitySetAngles( turret, angles );
+		if ( fabs( aimed ) > 10 ) {
+			return;
+		}
+		AngleVectors( angles, dir, NULL, NULL );
+	}
 
 	if ( level.time >= turret->abilityTime ) {
 		gentity_t	*bolt;
@@ -898,7 +961,7 @@ static void G_PlaceTurret( gentity_t *ent ) {
 	turret->die = G_TurretDie;
 	turret->think = G_TurretThink;
 	turret->nextthink = level.time + ABILITY_FRAME;
-	turret->abilityTime = level.time + 500;
+	turret->abilityTime = level.time + g_turretDeployTime.integer;	// deploying
 	G_SetOrigin( turret, tr.endpos );
 	G_AbilitySetAngles( turret, ent->client->ps.viewangles );
 	trap_LinkEntity( turret );

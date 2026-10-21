@@ -167,6 +167,13 @@ vmCvar_t	g_hwSpeed2;
 vmCvar_t	g_hwDamage2;
 vmCvar_t	g_hwDamagePer100;
 vmCvar_t	g_hwKnockback;
+vmCvar_t	g_hookKnockback;
+vmCvar_t	g_hookBreakDamage;
+vmCvar_t	g_totemBlastRadius;
+vmCvar_t	g_turretDeployTime;
+vmCvar_t	g_turretTurnRate;
+vmCvar_t	g_swarmKnockSelf;
+vmCvar_t	g_reinforcedSelfScale;
 vmCvar_t	g_collisionRepeat;
 vmCvar_t	g_gravity;
 vmCvar_t	g_cheats;
@@ -303,36 +310,36 @@ static cvarTable_t		gameCvarTable[] = {
 	// champion abilities; numbers are placeholders until measured
 	{ &g_injectionHeal, "g_injectionHeal", "50", 0, 0, qtrue },
 	{ &g_berserkDamage, "g_berserkDamage", "75", 0, 0, qtrue },
-	{ &g_ghostWalkTelefrag, "g_ghostWalkTelefrag", "125", 0, 0, qtrue },
+	{ &g_ghostWalkTelefrag, "g_ghostWalkTelefrag", "100", 0, 0, qtrue },
 	{ &g_regenDelay, "g_regenDelay", "3000", 0, 0, qtrue },
 	{ &g_regenRate, "g_regenRate", "10", 0, 0, qtrue },
 	{ &g_selfDamageScale, "g_selfDamageScale", "0.25", 0, 0, qtrue },
-	{ &g_splashResistScale, "g_splashResistScale", "0.9", 0, 0, qtrue },
+	{ &g_splashResistScale, "g_splashResistScale", "0.8", 0, 0, qtrue },
 	{ &g_cooldownArmorLight, "g_cooldownArmorLight", "0.1", 0, 0, qtrue },
 	{ &g_cooldownArmorHeavy, "g_cooldownArmorHeavy", "0.2", 0, 0, qtrue },
 	{ &g_cooldownHealth, "g_cooldownHealth", "0.05", 0, 0, qtrue },
 	{ &g_cooldownMega, "g_cooldownMega", "0.2", 0, 0, qtrue },
-	{ &g_cooldownAmmo, "g_cooldownAmmo", "0.05", 0, 0, qtrue },
+	{ &g_cooldownAmmo, "g_cooldownAmmo", "0.1", 0, 0, qtrue },
 	{ &g_orbSpeed, "g_orbSpeed", "900", 0, 0, qtrue },
 	{ &g_orbLife, "g_orbLife", "15000", 0, 0, qtrue },
 	{ &g_orbFuse, "g_orbFuse", "1000", 0, 0, qtrue },
 	{ &g_orbContactDamage, "g_orbContactDamage", "15", 0, 0, qtrue },
 	{ &g_orbSplashDamage, "g_orbSplashDamage", "75", 0, 0, qtrue },
 	{ &g_orbSplashRadius, "g_orbSplashRadius", "120", 0, 0, qtrue },
-	{ &g_orbTelefragDamage, "g_orbTelefragDamage", "100", 0, 0, qtrue },
+	{ &g_orbTelefragDamage, "g_orbTelefragDamage", "75", 0, 0, qtrue },
 	{ &g_swarmSpeed, "g_swarmSpeed", "700", 0, 0, qtrue },
 	{ &g_swarmFuse, "g_swarmFuse", "2000", 0, 0, qtrue },
 	{ &g_swarmDamage, "g_swarmDamage", "50", 0, 0, qtrue },
 	{ &g_swarmRadius, "g_swarmRadius", "120", 0, 0, qtrue },
-	{ &g_fireballSpeed, "g_fireballSpeed", "900", 0, 0, qtrue },
+	{ &g_fireballSpeed, "g_fireballSpeed", "666", 0, 0, qtrue },
 	{ &g_fireballSpread, "g_fireballSpread", "15", 0, 0, qtrue },
 	{ &g_fireballDamage, "g_fireballDamage", "25", 0, 0, qtrue },
 	{ &g_fireballSplash, "g_fireballSplash", "25", 0, 0, qtrue },
 	{ &g_fireballRadius, "g_fireballRadius", "120", 0, 0, qtrue },
 	{ &g_flameConvergeDamage, "g_flameConvergeDamage", "75", 0, 0, qtrue },
 	{ &g_flameConvergeRadius, "g_flameConvergeRadius", "180", 0, 0, qtrue },
-	{ &g_burnDamage, "g_burnDamage", "10", 0, 0, qtrue },
-	{ &g_burnTime, "g_burnTime", "10000", 0, 0, qtrue },
+	{ &g_burnDamage, "g_burnDamage", "75", 0, 0, qtrue },
+	{ &g_burnTime, "g_burnTime", "5000", 0, 0, qtrue },
 	{ &g_poisonDamage, "g_poisonDamage", "10", 0, 0, qtrue },
 	{ &g_poisonTime, "g_poisonTime", "10000", 0, 0, qtrue },
 	{ &g_acidBlobs, "g_acidBlobs", "5", 0, 0, qtrue },
@@ -347,7 +354,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_totemHeal, "g_totemHeal", "50", 0, 0, qtrue },
 	{ &g_totemDamage, "g_totemDamage", "40", 0, 0, qtrue },
 	{ &g_totemHealRadius, "g_totemHealRadius", "120", 0, 0, qtrue },
-	{ &g_totemHurtRadius, "g_totemHurtRadius", "75", 0, 0, qtrue },
+	{ &g_totemHurtRadius, "g_totemHurtRadius", "120", 0, 0, qtrue },
 	{ &g_totemEnforcedHeal, "g_totemEnforcedHeal", "75", 0, 0, qtrue },
 	{ &g_totemEnforcedDamage, "g_totemEnforcedDamage", "60", 0, 0, qtrue },
 	{ &g_totemMax, "g_totemMax", "3", 0, 0, qtrue },
@@ -371,7 +378,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_droneLaunchDelay, "g_droneLaunchDelay", "500", 0, 0, qtrue },
 	{ &g_droneRocketDamage, "g_droneRocketDamage", "75", 0, 0, qtrue },
 	{ &g_droneRocketRadius, "g_droneRocketRadius", "120", 0, 0, qtrue },
-	{ &g_stroyentHeal, "g_stroyentHeal", "25", 0, 0, qtrue },
+	{ &g_stroyentHeal, "g_stroyentHeal", "20", 0, 0, qtrue },
 	{ &g_stroyentLife, "g_stroyentLife", "20000", 0, 0, qtrue },
 	{ &g_lagHaxMs, "g_lagHaxMs", "80", CVAR_ARCHIVE | CVAR_LATCH, 0, qtrue },
 	{ &g_cylinderScale, "g_cylinderScale", "1.1", CVAR_ARCHIVE, 0, qtrue },
@@ -410,7 +417,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_hookSpeed, "g_hookSpeed", "3000", 0, 0, qtrue },
 	{ &g_hookRange, "g_hookRange", "4000", 0, 0, qtrue },
 	{ &g_hookDamage, "g_hookDamage", "25", 0, 0, qtrue },
-	{ &g_hookSwingDamage, "g_hookSwingDamage", "25", 0, 0, qtrue },
+	{ &g_hookSwingDamage, "g_hookSwingDamage", "20", 0, 0, qtrue },
 	{ &g_rushDamageScale, "g_rushDamageScale", "0.4", 0, 0, qtrue },
 	{ &g_hwSpeed, "g_hwSpeed", "395", 0, 0, qtrue },
 	{ &g_hwDamage, "g_hwDamage", "25", 0, 0, qtrue },
@@ -419,6 +426,13 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_hwDamage2, "g_hwDamage2", "50", 0, 0, qtrue },
 	{ &g_hwDamagePer100, "g_hwDamagePer100", "25", 0, 0, qtrue },
 	{ &g_hwKnockback, "g_hwKnockback", "100", 0, 0, qtrue },
+	{ &g_hookKnockback, "g_hookKnockback", "50", 0, 0, qtrue },
+	{ &g_hookBreakDamage, "g_hookBreakDamage", "75", 0, 0, qtrue },
+	{ &g_totemBlastRadius, "g_totemBlastRadius", "160", 0, 0, qtrue },
+	{ &g_turretDeployTime, "g_turretDeployTime", "2000", 0, 0, qtrue },
+	{ &g_turretTurnRate, "g_turretTurnRate", "270", 0, 0, qtrue },
+	{ &g_swarmKnockSelf, "g_swarmKnockSelf", "100", 0, 0, qtrue },
+	{ &g_reinforcedSelfScale, "g_reinforcedSelfScale", "0.4", 0, 0, qtrue },
 	{ &g_collisionRepeat, "g_collisionRepeat", "500", 0, 0, qtrue },
 	{ &g_gravity, "g_gravity", "800", 0, 0, qtrue  },
 	{ &g_knockback, "g_knockback", "1000", 0, 0, qtrue  },

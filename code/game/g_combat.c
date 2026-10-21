@@ -1126,8 +1126,12 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		if ( ( passives & PASSIVE_SELFDAMAGE ) && targ == attacker ) {
 			damage *= g_selfDamageScale.value;
 		}
-		if ( ( passives & PASSIVE_SPLASHRESIST ) && ( dflags & DAMAGE_RADIUS ) ) {
-			damage *= g_splashResistScale.value;
+		if ( passives & PASSIVE_SPLASHRESIST ) {
+			if ( targ == attacker ) {
+				damage *= g_reinforcedSelfScale.value;
+			} else if ( dflags & DAMAGE_RADIUS ) {
+				damage *= g_splashResistScale.value;
+			}
 		}
 	}
 
@@ -1192,6 +1196,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		}
 		client->damage_armor += asave;
 		client->damage_blood += take;
+
+		// enough damage while on the hook breaks the rope
+		if ( client->hook && targ != attacker ) {
+			client->hookDamageTaken += take + asave;
+			if ( client->hookDamageTaken >= g_hookBreakDamage.integer ) {
+				G_BreakHook( targ );
+			}
+		}
 		client->damage_knockback += knockback;
 		if ( dir ) {
 			VectorCopy ( dir, client->damage_from );

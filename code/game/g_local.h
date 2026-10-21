@@ -333,6 +333,7 @@ struct gclient_s {
 	int			echoEndTime;
 	int			echoResidual;
 	int			hiveResidual;
+	int			hookDamageTaken;	// while hooked; the rope breaks at g_hookBreakDamage
 	int			armorRegenResidual;
 	qboolean	decaySkipped;		// slow decay: every other second
 	vec3_t		anchorOrigin;
@@ -1040,6 +1041,16 @@ extern	vmCvar_t	g_hwSpeed2;
 extern	vmCvar_t	g_hwDamage2;
 extern	vmCvar_t	g_hwDamagePer100;
 extern	vmCvar_t	g_hwKnockback;
+extern	vmCvar_t	g_hookKnockback;
+void G_BreakHook( gentity_t *ent );
+void G_BounceMissile( gentity_t *ent, trace_t *trace );
+void G_MissileImpact( gentity_t *ent, trace_t *trace );
+extern	vmCvar_t	g_hookBreakDamage;
+extern	vmCvar_t	g_totemBlastRadius;
+extern	vmCvar_t	g_turretDeployTime;
+extern	vmCvar_t	g_turretTurnRate;
+extern	vmCvar_t	g_swarmKnockSelf;
+extern	vmCvar_t	g_reinforcedSelfScale;
 extern	vmCvar_t	g_collisionRepeat;
 extern	vmCvar_t	g_knockback;
 extern	vmCvar_t	g_quadfactor;
