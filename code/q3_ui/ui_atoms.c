@@ -1018,6 +1018,11 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	if ( Q_stricmp (cmd, "ui_champions") == 0 ) {
+		UI_ChampionMenu();
+		return qtrue;
+	}
+
 	if ( Q_stricmp (cmd, "ui_settings") == 0 ) {
 		UI_SettingsMenu();
 		if ( trap_Argc() > 1 ) {
