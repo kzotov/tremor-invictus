@@ -97,9 +97,10 @@ static pmoveCvar_t pmoveCvars[] = {
 
 	{ {0}, "pm_accelRate",			"50",	&bg_pmoveSettings.accelRate },
 	{ {0}, "pm_accelMax",			"800",	&bg_pmoveSettings.accelMax },
+	{ {0}, "pm_accelMaxHeavyweight",	"450",	&bg_pmoveSettings.accelMaxHeavyweight },
 	{ {0}, "pm_accelAngle",			"15",	&bg_pmoveSettings.accelAngle },
 
-	{ {0}, "pm_rushSpeed",			"800",	&bg_pmoveSettings.rushSpeed },
+	{ {0}, "pm_rushSpeed",			"700",	&bg_pmoveSettings.rushSpeed },
 	{ {0}, "pm_rushTurnRate",		"120",	&bg_pmoveSettings.rushTurnRate },
 	{ {0}, "pm_rushStopFraction",	"0.5",	&bg_pmoveSettings.rushStopFraction },
 
@@ -2540,7 +2541,8 @@ static void PM_Acceleration( void ) {
 		}
 	}
 
-	maxBonus = ( bg_pmoveSettings.accelMax - pm->ps->speed ) * 10;
+	maxBonus = ( ( ( pml.champion->abilities & MOVEABIL_HEAVYWEIGHT ) ? bg_pmoveSettings.accelMaxHeavyweight
+		: bg_pmoveSettings.accelMax ) - pm->ps->speed ) * 10;
 	if ( bonus > maxBonus ) {
 		bonus = maxBonus;
 	}

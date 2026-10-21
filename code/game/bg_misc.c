@@ -1016,7 +1016,7 @@ const champion_t bg_championList[] = {
 	{ "visor", CLASS_MEDIUM, 320, 0, MOVE_STANDARD, 0, ACTIVE_PIERCINGSIGHT, PASSIVE_FULLSPRINT, "visor", STR_CHAMPION_VISOR },
 	{ "clutch", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_AIRDODGE | MOVEABIL_ACCELERATION, ACTIVE_BARRIER, 0, "tankjr", STR_CHAMPION_CLUTCH },
 	{ "keel", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, 0, ACTIVE_GRENADES, PASSIVE_AMMOCOOLDOWN | PASSIVE_SPLASHRESIST, "keel", STR_CHAMPION_KEEL },
-	{ "scalebearer", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_HEAVYWEIGHT, ACTIVE_BULLRUSH, 0, "razor", STR_CHAMPION_SCALEBEARER },
+	{ "scalebearer", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_HEAVYWEIGHT | MOVEABIL_ACCELERATION, ACTIVE_BULLRUSH, 0, "razor", STR_CHAMPION_SCALEBEARER },
 	{ "sorlag", CLASS_HEAVY, 300, 600, MOVE_AIRCONTROL, 0, ACTIVE_ACIDSPIT, PASSIVE_ACIDPROOF, "sorlag", STR_CHAMPION_SORLAG },
 	{ "wrack", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_SHELLSHOCK, PASSIVE_OLDSOLDIER, "ranger/wrack", STR_CHAMPION_WRACK },
 	{ "sarge", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_SUPPLYDROP, PASSIVE_DRILLSERGEANT, "sarge", STR_CHAMPION_SARGE },
@@ -1291,7 +1291,7 @@ duration msec, weapon lockout msec. Numbers are placeholders until measured.
 const abilityInfo_t bg_abilityInfo[ACTIVE_NUM_ABILITIES] = {
 	{ "none",			STR_NONE,					qfalse,	{ "0", "0", "0", "0", "0" } },
 	{ "hook",			STR_ABILITY_HOOK,			qfalse,	{ "3", "15000", "100", "0", "500" } },
-	{ "bullrush",		STR_ABILITY_BULLRUSH,		qtrue,	{ "1", "45000", "0", "3000", "500" } },
+	{ "bullrush",		STR_ABILITY_BULLRUSH,		qtrue,	{ "1", "45000", "0", "3000", "400" } },
 	{ "injection",		STR_ABILITY_INJECTION,		qfalse,	{ "1", "45000", "0", "10000", "500" } },
 	{ "dualwield",		STR_ABILITY_DUALWIELD,		qfalse,	{ "1", "45000", "0", "5400", "400" } },
 	{ "barrier",		STR_ABILITY_BARRIER,		qtrue,	{ "1", "45000", "250", "5000", "500" } },

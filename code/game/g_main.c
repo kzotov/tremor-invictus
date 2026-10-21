@@ -162,6 +162,7 @@ vmCvar_t	g_hookSwingDamage;
 vmCvar_t	g_rushDamageScale;
 vmCvar_t	g_hwSpeed;
 vmCvar_t	g_hwDamage;
+vmCvar_t	g_hwDamageCap;
 vmCvar_t	g_hwSpeed2;
 vmCvar_t	g_hwDamage2;
 vmCvar_t	g_hwDamagePer100;
@@ -410,9 +411,10 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_hookRange, "g_hookRange", "4000", 0, 0, qtrue },
 	{ &g_hookDamage, "g_hookDamage", "25", 0, 0, qtrue },
 	{ &g_hookSwingDamage, "g_hookSwingDamage", "25", 0, 0, qtrue },
-	{ &g_rushDamageScale, "g_rushDamageScale", "0.5", 0, 0, qtrue },
-	{ &g_hwSpeed, "g_hwSpeed", "320", 0, 0, qtrue },
+	{ &g_rushDamageScale, "g_rushDamageScale", "0.4", 0, 0, qtrue },
+	{ &g_hwSpeed, "g_hwSpeed", "395", 0, 0, qtrue },
 	{ &g_hwDamage, "g_hwDamage", "25", 0, 0, qtrue },
+	{ &g_hwDamageCap, "g_hwDamageCap", "25", 0, 0, qtrue },
 	{ &g_hwSpeed2, "g_hwSpeed2", "400", 0, 0, qtrue },
 	{ &g_hwDamage2, "g_hwDamage2", "50", 0, 0, qtrue },
 	{ &g_hwDamagePer100, "g_hwDamagePer100", "25", 0, 0, qtrue },

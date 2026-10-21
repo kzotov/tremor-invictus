@@ -1032,6 +1032,7 @@ extern	vmCvar_t	g_hookSwingDamage;
 extern	vmCvar_t	g_rushDamageScale;
 extern	vmCvar_t	g_hwSpeed;
 extern	vmCvar_t	g_hwDamage;
+extern	vmCvar_t	g_hwDamageCap;
 extern	vmCvar_t	g_hwSpeed2;
 extern	vmCvar_t	g_hwDamage2;
 extern	vmCvar_t	g_hwDamagePer100;

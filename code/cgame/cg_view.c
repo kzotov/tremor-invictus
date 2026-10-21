@@ -491,8 +491,8 @@ static int CG_CalcFov( void ) {
 			fov_x = cg_fov.value;
 			if ( fov_x < 1 ) {
 				fov_x = 1;
-			} else if ( fov_x > 160 ) {
-				fov_x = 160;
+			} else if ( fov_x > 130 ) {
+				fov_x = 130;
 			}
 		}
 
@@ -519,9 +519,13 @@ static int CG_CalcFov( void ) {
 		}
 	}
 
-	x = cg.refdef.width / tan( fov_x / 360 * M_PI );
-	fov_y = atan2( cg.refdef.height, x );
+	// cg_fov is the field of view of a 4:3 screen: the vertical view comes
+	// from it, and wider screens see more to the sides ("Hor+")
+	x = 640 / tan( fov_x / 360 * M_PI );
+	fov_y = atan2( 480, x );
 	fov_y = fov_y * 360 / M_PI;
+	x = cg.refdef.height / tan( fov_y / 360 * M_PI );
+	fov_x = atan2( cg.refdef.width, x ) * 360 / M_PI;
 
 	// warp if underwater
 	contents = CG_PointContents( cg.refdef.vieworg, -1 );

@@ -590,6 +590,7 @@ typedef struct {
 
 	float	accelRate;				// u/s gained per second running straight
 	float	accelMax;				// total run speed cap
+	float	accelMaxHeavyweight;	// Scalebearer's run-up cap
 	float	accelAngle;				// degrees between aim and velocity still "straight"
 
 	float	rushSpeed;				// speed reached at the end of the rush

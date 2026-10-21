@@ -577,14 +577,22 @@ Collision damage for a given impact speed, 0 below the threshold
 =================
 */
 static int G_HeavyweightDamage( float speed ) {
+	int		damage;
+
 	if ( speed < g_hwSpeed.value ) {
 		return 0;
 	}
 	if ( speed < g_hwSpeed2.value ) {
-		return g_hwDamage.value + ( g_hwDamage2.value - g_hwDamage.value )
+		damage = g_hwDamage.value + ( g_hwDamage2.value - g_hwDamage.value )
 			* ( speed - g_hwSpeed.value ) / ( g_hwSpeed2.value - g_hwSpeed.value );
+	} else {
+		damage = g_hwDamage2.value + g_hwDamagePer100.value * ( speed - g_hwSpeed2.value ) / 100;
 	}
-	return g_hwDamage2.value + g_hwDamagePer100.value * ( speed - g_hwSpeed2.value ) / 100;
+	// the stomp is capped (g_hwDamageCap, 25)
+	if ( g_hwDamageCap.integer > 0 && damage > g_hwDamageCap.integer ) {
+		damage = g_hwDamageCap.integer;
+	}
+	return damage;
 }
 
 /*
