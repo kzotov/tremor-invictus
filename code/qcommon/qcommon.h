@@ -244,7 +244,7 @@ PROTOCOL
 ==============================================================
 */
 
-#define	PROTOCOL_VERSION	71
+#define	PROTOCOL_VERSION	1001	// our own: snapshots carry champions, abilities and the 16 ms tick
 #define PROTOCOL_LEGACY_VERSION	68
 // 1.31 - 67
 

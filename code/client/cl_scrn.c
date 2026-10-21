@@ -339,6 +339,10 @@ void SCR_DrawDemoRecording( void ) {
 	if ( clc.spDemoRecording ) {
 		return;
 	}
+	// 2 (default): the game draws a small REC mark instead; 0: nothing
+	if ( Cvar_VariableIntegerValue( "cl_demoRecordMessage" ) != 1 ) {
+		return;
+	}
 
 	pos = FS_FTell( clc.demofile );
 	sprintf( string, "RECORDING %s: %ik", clc.demoName, pos / 1024 );

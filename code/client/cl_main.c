@@ -652,7 +652,9 @@ void CL_StopRecord_f( void ) {
 	len = -1;
 	FS_Write (&len, 4, clc.demofile);
 	FS_Write (&len, 4, clc.demofile);
+	CL_DemoWriteIndex();
 	FS_FCloseFile (clc.demofile);
+	Cvar_Set( "cl_demoRecording", "0" );
 	clc.demofile = 0;
 	clc.demorecording = qfalse;
 	clc.spDemoRecording = qfalse;
@@ -708,10 +710,11 @@ void CL_Record_f( void ) {
 	}
 
 	if ( clc.demorecording ) {
-		if (!clc.spDemoRecording) {
-			Com_Printf ("Already recording.\n");
+		if (clc.spDemoRecording) {
+			return;
 		}
-		return;
+		// a new recording replaces the current one
+		CL_StopRecord_f();
 	}
 
 	if ( clc.state != CA_ACTIVE ) {
@@ -771,6 +774,10 @@ void CL_Record_f( void ) {
 	}
 
 	Q_strncpyz( clc.demoName, demoName, sizeof( clc.demoName ) );
+	Cvar_Set( "cl_demoRecording", "1" );
+
+	// what the demo holds, for demo lists
+	CL_DemoWriteHeader();
 
 	// don't start saving messages until a non-delta compressed message is received
 	clc.demowaiting = qtrue;
@@ -951,12 +958,14 @@ void CL_ReadDemoMessage( void ) {
 		return;
 	}
 
-	// get the sequence number
-	r = FS_Read( &s, 4, clc.demofile);
-	if ( r != 4 ) {
-		CL_DemoCompleted ();
-		return;
-	}
+	// get the sequence number, passing over header and keyframe blocks
+	do {
+		r = FS_Read( &s, 4, clc.demofile);
+		if ( r != 4 ) {
+			CL_DemoCompleted ();
+			return;
+		}
+	} while ( CL_DemoSkipBlock( LittleLong( s ) ) );
 	clc.serverMessageSequence = LittleLong( s );
 
 	// init the message
@@ -1141,6 +1150,7 @@ void CL_PlayDemo_f( void ) {
 		return;
 	}
 	Q_strncpyz( clc.demoName, arg, sizeof( clc.demoName ) );
+	CL_DemoLoadIndex();
 
 	Con_Close();
 
@@ -2894,6 +2904,7 @@ void CL_PacketEvent( netadr_t from, msg_t *msg ) {
 	// after we have parsed the frame
 	//
 	if ( clc.demorecording && !clc.demowaiting ) {
+		CL_DemoBeforeWrite();
 		CL_WriteDemoMessage( msg, headerBytes );
 	}
 }
@@ -3583,6 +3594,8 @@ void CL_Init( void ) {
 	cl_showSend = Cvar_Get ("cl_showSend", "0", CVAR_TEMP );
 	cl_showTimeDelta = Cvar_Get ("cl_showTimeDelta", "0", CVAR_TEMP );
 	cl_freezeDemo = Cvar_Get ("cl_freezeDemo", "0", CVAR_TEMP );
+	Cvar_Get( "cl_demoRecording", "0", CVAR_ROM );
+	CL_DemoInit();
 	rcon_client_password = Cvar_Get ("rconPassword", "", CVAR_TEMP );
 	cl_activeAction = Cvar_Get( "activeAction", "", CVAR_TEMP );
 

@@ -884,6 +884,9 @@ void CL_FirstSnapshot( void ) {
 
 	// set the timedelta so we are exactly on this first frame
 	cl.serverTimeDelta = cl.snap.serverTime - cls.realtime;
+	if ( clc.demoplaying ) {
+		CL_DemoFirstSnapshot();
+	}
 	cl.oldServerTime = cl.snap.serverTime;
 
 	clc.timeDemoBaseTime = cl.snap.serverTime;
@@ -981,6 +984,11 @@ void CL_SetCGameTime( void ) {
 
 
 	// get our current view of time
+
+	if ( clc.demoplaying ) {
+		// pause and speed
+		CL_DemoAdvanceTime();
+	}
 
 	if ( clc.demoplaying && cl_freezeDemo->integer ) {
 		// cl_freezeDemo is used to lock a demo in place for single frame advances

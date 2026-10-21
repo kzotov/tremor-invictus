@@ -14,6 +14,7 @@ set(CGAME_SOURCES
     ${SOURCE_DIR}/cgame/cg_consolecmds.c
     ${SOURCE_DIR}/cgame/cg_colors.c
     ${SOURCE_DIR}/cgame/cg_ownmissiles.c
+    ${SOURCE_DIR}/cgame/cg_demo.c
     ${SOURCE_DIR}/cgame/cg_draw.c
     ${SOURCE_DIR}/cgame/cg_drawtools.c
     ${SOURCE_DIR}/cgame/cg_effects.c

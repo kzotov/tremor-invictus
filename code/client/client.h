@@ -645,3 +645,17 @@ qboolean CL_VideoRecording( void );
 //
 void CL_WriteDemoMessage ( msg_t *msg, int headerBytes );
 
+//
+// cl_demo.c
+//
+void CL_DemoInit( void );
+void CL_DemoWriteHeader( void );
+qboolean CL_DemoWantsFullSnapshot( void );
+void CL_DemoBeforeWrite( void );
+void CL_DemoWriteIndex( void );
+void CL_DemoLoadIndex( void );
+qboolean CL_DemoSkipBlock( int sequence );
+void CL_DemoFirstSnapshot( void );
+void CL_DemoAdvanceTime( void );
+qboolean CL_DemoKey( int key );
+

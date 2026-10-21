@@ -208,6 +208,7 @@ vmCvar_t	cg_oldRocket;
 vmCvar_t	cg_oldPlasma;
 vmCvar_t	cg_trueLightning;
 vmCvar_t	cg_predictLocalRailshots;
+vmCvar_t	cg_autoAction;
 
 #ifdef MISSIONPACK
 vmCvar_t 	cg_redTeamName;
@@ -367,7 +368,9 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_oldPlasma, "cg_oldPlasma", "1", CVAR_ARCHIVE},
 	{ &cg_trueLightning, "cg_trueLightning", "1", CVAR_ARCHIVE},
 	// own instant-hit shots drawn at once from the predicted aim
-	{ &cg_predictLocalRailshots, "cg_predictLocalRailshots", "1", CVAR_ARCHIVE}
+	{ &cg_predictLocalRailshots, "cg_predictLocalRailshots", "1", CVAR_ARCHIVE},
+	// 1: record every match, 2: screenshot at its end
+	{ &cg_autoAction, "cg_autoAction", "3", CVAR_ARCHIVE}
 //	{ &cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR_USERINFO | CVAR_ARCHIVE }
 };
 
@@ -1910,6 +1913,17 @@ void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum ) {
 	memset( cg_items, 0, sizeof(cg_items) );
 
 	cg.clientNum = clientNum;
+
+	// a new level: unless a recording is still going (it carries on over a
+	// match's restart), the match records again
+	{
+		char	buf[16];
+
+		trap_Cvar_VariableStringBuffer( "cl_demoRecording", buf, sizeof( buf ) );
+		if ( !atoi( buf ) ) {
+			trap_Cvar_Set( "cg_autoRecording", "0" );
+		}
+	}
 
 	cgs.processedSnapshotNum = serverMessageNum;
 	cgs.serverCommandSequence = serverCommandSequence;

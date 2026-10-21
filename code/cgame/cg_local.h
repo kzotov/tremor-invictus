@@ -1216,6 +1216,7 @@ extern	vmCvar_t		cg_oldRocket;
 extern	vmCvar_t		cg_oldPlasma;
 extern	vmCvar_t		cg_trueLightning;
 extern	vmCvar_t		cg_predictLocalRailshots;
+extern	vmCvar_t		cg_autoAction;
 #ifdef MISSIONPACK
 extern	vmCvar_t		cg_redTeamName;
 extern	vmCvar_t		cg_blueTeamName;
@@ -1747,3 +1748,8 @@ int CG_NewParticleArea ( int num );
 void CG_PredictOwnMissile( int weapon, const vec3_t muzzle, const vec3_t forward );
 void CG_UpdateOwnMissiles( void );
 void CG_AddOwnMissiles( void );
+
+//
+// cg_demo.c
+//
+void CG_DemoFrame( void );

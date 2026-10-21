@@ -1176,7 +1176,10 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Capture the Flag",
 	"Clan Arena",
 	"Sacrifice",
-	"Round Duel"
+	"Round Duel",
+	"PAUSED",
+	"Space play   Up/Down speed   Left/Right 10 s   PgUp/PgDn 1 min   Home restart   H hide HUD   Esc leave",
+	"REC"
 };
 
 /*
