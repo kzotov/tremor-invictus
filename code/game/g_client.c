@@ -1098,6 +1098,13 @@ void ClientBegin( int clientNum ) {
 
 	// count current clients and rank for scoreboard
 	CalculateRanks();
+
+	// duel spectators start by following a player
+	if ( g_gametype.integer == GT_TOURNAMENT && client->sess.sessionTeam == TEAM_SPECTATOR
+		&& client->sess.spectatorState == SPECTATOR_FREE && level.numPlayingClients > 0
+		&& !( ent->r.svFlags & SVF_BOT ) ) {
+		Cmd_FollowCycle_f( ent, 1 );
+	}
 }
 
 /*

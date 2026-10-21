@@ -121,6 +121,12 @@ static void CG_Obituary( entityState_t *ent ) {
 	attacker = ent->otherEntityNum2;
 	mod = ent->eventParm;
 
+	// following the victim: go on with whoever killed them
+	if ( cg_followKiller.integer && !cg.demoPlayback && ( cg.snap->ps.pm_flags & PMF_FOLLOW )
+		&& target == cg.snap->ps.clientNum && attacker >= 0 && attacker < MAX_CLIENTS && attacker != target ) {
+		trap_SendClientCommand( va( "follow %i", attacker ) );
+	}
+
 	if ( target < 0 || target >= MAX_CLIENTS ) {
 		CG_Error( "CG_Obituary: target out of range" );
 	}

@@ -214,6 +214,7 @@ vmCvar_t	cg_drawCooldownArc;
 vmCvar_t	cg_obituaryRowSize;
 vmCvar_t	cg_chatHistoryLength;
 vmCvar_t	cg_specItemTimers;
+vmCvar_t	cg_followKiller;
 
 #ifdef MISSIONPACK
 vmCvar_t 	cg_redTeamName;
@@ -382,7 +383,8 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_drawCooldownArc, "cg_drawCooldownArc", "3", CVAR_ARCHIVE},
 	{ &cg_obituaryRowSize, "cg_obituaryRowSize", "5", CVAR_ARCHIVE},
 	{ &cg_chatHistoryLength, "cg_chatHistoryLength", "6", CVAR_ARCHIVE},
-	{ &cg_specItemTimers, "cg_specItemTimers", "7", CVAR_ARCHIVE}
+	{ &cg_specItemTimers, "cg_specItemTimers", "7", CVAR_ARCHIVE},
+	{ &cg_followKiller, "cg_followKiller", "0", CVAR_ARCHIVE}
 //	{ &cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR_USERINFO | CVAR_ARCHIVE }
 };
 

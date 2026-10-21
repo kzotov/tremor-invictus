@@ -554,6 +554,10 @@ typedef struct {
 	int			accShots[WP_NUM_WEAPONS];
 	int			accHits[WP_NUM_WEAPONS];
 
+	// duel bars for spectators
+	int			duelHudTime;
+	int			duelHud[2][3];		// client, health, armour
+
 	// duel board
 	int			duelStatsTime;		// when they were last asked for
 	int			numDuelStats;
@@ -1238,6 +1242,7 @@ extern	vmCvar_t		cg_drawCooldownArc;
 extern	vmCvar_t		cg_obituaryRowSize;
 extern	vmCvar_t		cg_chatHistoryLength;
 extern	vmCvar_t		cg_specItemTimers;
+extern	vmCvar_t		cg_followKiller;
 #ifdef MISSIONPACK
 extern	vmCvar_t		cg_redTeamName;
 extern	vmCvar_t		cg_blueTeamName;

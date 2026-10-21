@@ -416,6 +416,46 @@ gentity_t *G_SelectDuelSpawnPoint( gentity_t *ent, qboolean initial, vec3_t orig
 }
 
 /*
+=================
+G_SendDuelHud
+
+Twice a second, both duel players' health and armour to spectators, for
+the bars at the top of their screen
+=================
+*/
+void G_SendDuelHud( void ) {
+	static int	lastTime;
+	char		msg[128];
+	gclient_t	*cl;
+	int			i, n = 0;
+
+	if ( g_gametype.integer != GT_TOURNAMENT || level.time - lastTime < 500 ) {
+		if ( level.time < lastTime ) {
+			lastTime = 0;
+		}
+		return;
+	}
+	lastTime = level.time;
+
+	Q_strncpyz( msg, "dh", sizeof( msg ) );
+	for ( i = 0 ; i < level.maxclients && n < 2 ; i++ ) {
+		cl = &level.clients[i];
+		if ( cl->pers.connected != CON_CONNECTED || cl->sess.sessionTeam != TEAM_FREE ) {
+			continue;
+		}
+		Q_strcat( msg, sizeof( msg ), va( " %i %i %i", i, cl->ps.stats[STAT_HEALTH], cl->ps.stats[STAT_ARMOR] ) );
+		n++;
+	}
+	for ( i = 0 ; i < level.maxclients ; i++ ) {
+		cl = &level.clients[i];
+		if ( cl->pers.connected == CON_CONNECTED && cl->sess.sessionTeam == TEAM_SPECTATOR
+			&& !( g_entities[i].r.svFlags & SVF_BOT ) ) {
+			trap_SendServerCommand( i, msg );
+		}
+	}
+}
+
+/*
 ==============================================================================
 
 TIMEOUTS

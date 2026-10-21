@@ -664,6 +664,49 @@ static void CG_DrawChat( void ) {
 
 /*
 =================
+CG_DrawDuelBars
+
+Spectators of a duel: both players' portraits, names, health and armour
+at the top
+=================
+*/
+#define DUELBAR_Y	66		// under the "following" name
+
+static void CG_DrawDuelBars( void ) {
+	static const vec4_t	back = { 0, 0, 0, 0.5f };
+	static const vec4_t	healthColor = { 0.9f, 0.2f, 0.2f, 0.9f };
+	static const vec4_t	armorColor = { 1.0f, 0.8f, 0.1f, 0.9f };
+	int		p, x, client, h, a;
+	clientInfo_t	*ci;
+
+	if ( cgs.gametype != GT_TOURNAMENT || cg.time - cg.duelHudTime > 2000 || cg.duelHudTime > cg.time ) {
+		return;
+	}
+	if ( !cg.demoPlayback && !( cg.snap->ps.pm_flags & PMF_FOLLOW )
+		&& cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
+		return;
+	}
+	for ( p = 0 ; p < 2 ; p++ ) {
+		client = cg.duelHud[p][0];
+		if ( client < 0 || client >= MAX_CLIENTS ) {
+			continue;
+		}
+		ci = &cgs.clientinfo[client];
+		h = cg.duelHud[p][1] < 0 ? 0 : cg.duelHud[p][1] > 200 ? 200 : cg.duelHud[p][1];
+		a = cg.duelHud[p][2] < 0 ? 0 : cg.duelHud[p][2] > 200 ? 200 : cg.duelHud[p][2];
+		x = p ? 352 : 128;
+		CG_FillRect( x, DUELBAR_Y, 160, 26, back );
+		if ( ci->modelIcon ) {
+			CG_DrawPic( p ? x + 136 : x, DUELBAR_Y, 24, 24, ci->modelIcon );
+		}
+		CG_DrawStringExt( p ? x + 4 : x + 28, DUELBAR_Y, ci->name, colorWhite, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 16 );
+		CG_FillRect( p ? x + 132 - h * 128 / 200 : x + 28, DUELBAR_Y + 10, h * 128 / 200, 6, healthColor );
+		CG_FillRect( p ? x + 132 - a * 128 / 200 : x + 28, DUELBAR_Y + 18, a * 128 / 200, 4, armorColor );
+	}
+}
+
+/*
+=================
 CG_DrawTimeout
 
 TIMEOUT and the seconds left, while one runs
@@ -3385,6 +3428,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	}
 	CG_DrawChat();
 	CG_DrawSpecItemTimers();
+	CG_DrawDuelBars();
 	CG_DrawTimeout();
 	CG_DrawAccuracy();
 #endif

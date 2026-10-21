@@ -170,6 +170,7 @@ vmCvar_t	g_hwKnockback;
 vmCvar_t	g_hookKnockback;
 vmCvar_t	g_warmupMax;
 vmCvar_t	g_blindPick;
+vmCvar_t	g_specChatToPlayers;
 vmCvar_t	g_teleportKeepSpeed;
 vmCvar_t	g_injectionMaxGain;
 vmCvar_t	g_injectionMaxGainCap;
@@ -435,6 +436,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_hookKnockback, "g_hookKnockback", "50", 0, 0, qtrue },
 	{ &g_warmupMax, "g_warmupMax", "90", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_blindPick, "g_blindPick", "0", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_specChatToPlayers, "g_specChatToPlayers", "0", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_teleportKeepSpeed, "g_teleportKeepSpeed", "1", 0, 0, qtrue },
 	{ &g_injectionMaxGain, "g_injectionMaxGain", "5", 0, 0, qtrue },
 	{ &g_injectionMaxGainCap, "g_injectionMaxGainCap", "25", 0, 0, qtrue },
@@ -2280,6 +2282,7 @@ void G_RunFrame( int levelTime ) {
 
 	G_UpdateRevealedPlayers();
 	G_RewindRecord();
+	G_SendDuelHud();
 
 	// see if it is time to do a tournement restart
 	CheckTournament();

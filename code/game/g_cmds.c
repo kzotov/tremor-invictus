@@ -908,6 +908,12 @@ static void G_SayTo( gentity_t *ent, gentity_t *other, int mode, int color, cons
 		&& ent->client->sess.sessionTeam != TEAM_FREE ) {
 		return;
 	}
+	// spectators talk among themselves while a match runs
+	if ( !g_specChatToPlayers.integer && !level.warmupTime && !level.intermissiontime
+		&& ent->client->sess.sessionTeam == TEAM_SPECTATOR
+		&& other->client->sess.sessionTeam != TEAM_SPECTATOR ) {
+		return;
+	}
 
 	trap_SendServerCommand( other-g_entities, va("%s \"%s%c%c%s\"", 
 		mode == SAY_TEAM ? "tchat" : "chat",

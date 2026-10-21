@@ -1082,6 +1082,18 @@ static void CG_ServerCommand( void ) {
 		return;
 	}
 
+	if ( !strcmp( cmd, "dh" ) ) {
+		int		p;
+
+		for ( p = 0 ; p < 2 ; p++ ) {
+			cg.duelHud[p][0] = *CG_Argv( 1 + p * 3 ) ? atoi( CG_Argv( 1 + p * 3 ) ) : -1;
+			cg.duelHud[p][1] = atoi( CG_Argv( 2 + p * 3 ) );
+			cg.duelHud[p][2] = atoi( CG_Argv( 3 + p * 3 ) );
+		}
+		cg.duelHudTime = cg.time;
+		return;
+	}
+
 	if ( !strcmp( cmd, "dstats" ) ) {
 		int		p, w, a = 1;
 
