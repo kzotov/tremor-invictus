@@ -52,6 +52,11 @@ The script loads this build's game code and leaves the Quake III Arena folder
 untouched; configs and logs go to `build-macos/home`. On other platforms, run
 the built binary with `+set fs_basepath "/path/to/Quake 3 Arena"`.
 
+On macOS the game draws through Metal by default (`cl_renderer metal`): the
+classic renderer with its OpenGL calls carried out on Metal, which is many
+times faster there than Apple's OpenGL. `+set cl_renderer opengl1` or
+`opengl2` switches back.
+
 ## Local test assets
 
 Community models and other assets may be tried locally but never go into

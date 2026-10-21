@@ -35,6 +35,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../sys/sys_local.h"
 #include "sdl_icon.h"
 
+#ifdef USE_METAL
+#include "../renderermetal/mtl_sdlgl.h"
+#endif
+
 typedef enum
 {
 	RSERR_OK,
@@ -407,7 +411,11 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder, qbool
 	int samples;
 	int i = 0;
 	SDL_Surface *icon = NULL;
+#ifdef USE_METAL
+	Uint32 flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_METAL;
+#else
 	Uint32 flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_OPENGL;
+#endif
 	SDL_DisplayMode desktopMode;
 	int display = 0;
 	int x = SDL_WINDOWPOS_UNDEFINED, y = SDL_WINDOWPOS_UNDEFINED;
