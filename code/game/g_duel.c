@@ -93,6 +93,15 @@ qboolean G_DuelPlayersReady( void ) {
 	if ( !g_duelReadyUp.integer || level.duelForceReady ) {
 		return qtrue;
 	}
+
+	// the warm-up lasts at most g_warmupMax seconds once there are players
+	if ( level.numPlayingClients < 2 ) {
+		level.readyWaitStart = 0;
+	} else if ( !level.readyWaitStart ) {
+		level.readyWaitStart = level.time;
+	} else if ( g_warmupMax.integer > 0 && level.time - level.readyWaitStart >= g_warmupMax.integer * 1000 ) {
+		return qtrue;
+	}
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
 		cl = &level.clients[i];
 		if ( cl->pers.connected != CON_CONNECTED || cl->sess.sessionTeam == TEAM_SPECTATOR ) {

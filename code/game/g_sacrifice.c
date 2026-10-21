@@ -34,7 +34,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define SAC_POINT_MSEC			10000	// a point to each living teammate per 10 s at the obelisk
 #define SAC_THROW_SPEED			400
 #define SAC_THROW_UP			200
-#define SAC_PICKUP_RANGE		48
+#define SAC_PICKUP_RANGE		32
 
 enum {
 	SOUL_NONE,			// not spawned yet this round

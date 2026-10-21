@@ -168,6 +168,8 @@ vmCvar_t	g_hwDamage2;
 vmCvar_t	g_hwDamagePer100;
 vmCvar_t	g_hwKnockback;
 vmCvar_t	g_hookKnockback;
+vmCvar_t	g_warmupMax;
+vmCvar_t	g_teleportKeepSpeed;
 vmCvar_t	g_injectionMaxGain;
 vmCvar_t	g_injectionMaxGainCap;
 vmCvar_t	g_berserkHitCooldown;
@@ -430,6 +432,8 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_hwDamagePer100, "g_hwDamagePer100", "25", 0, 0, qtrue },
 	{ &g_hwKnockback, "g_hwKnockback", "100", 0, 0, qtrue },
 	{ &g_hookKnockback, "g_hookKnockback", "50", 0, 0, qtrue },
+	{ &g_warmupMax, "g_warmupMax", "90", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_teleportKeepSpeed, "g_teleportKeepSpeed", "1", 0, 0, qtrue },
 	{ &g_injectionMaxGain, "g_injectionMaxGain", "5", 0, 0, qtrue },
 	{ &g_injectionMaxGainCap, "g_injectionMaxGainCap", "25", 0, 0, qtrue },
 	{ &g_berserkHitCooldown, "g_berserkHitCooldown", "1000", 0, 0, qtrue },

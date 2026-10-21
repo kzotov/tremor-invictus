@@ -97,9 +97,16 @@ void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles ) {
 	VectorCopy ( origin, player->client->ps.origin );
 	player->client->ps.origin[2] += 1;
 	if (!noAngles) {
-	// spit the player out
-	AngleVectors( angles, player->client->ps.velocity, NULL, NULL );
-	VectorScale( player->client->ps.velocity, 400, player->client->ps.velocity );
+	// spit the player out, keeping their speed (at least 400)
+	{
+		float	speed = VectorLength( player->client->ps.velocity );
+
+		if ( !g_teleportKeepSpeed.integer || speed < 400 ) {
+			speed = 400;
+		}
+		AngleVectors( angles, player->client->ps.velocity, NULL, NULL );
+		VectorScale( player->client->ps.velocity, speed, player->client->ps.velocity );
+	}
 	player->client->ps.pm_time = 160;		// hold time
 	player->client->ps.pm_flags |= PMF_TIME_KNOCKBACK;
 	// set angles

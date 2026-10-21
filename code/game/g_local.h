@@ -464,7 +464,8 @@ typedef struct {
 
 	// duel
 	int			overtimes;				// overtime periods added so far
-	qboolean	duelForceReady;			// allready: start without waiting for readyup
+	qboolean	duelForceReady;
+	int			readyWaitStart;		// level.time the warm-up wait began			// allready: start without waiting for readyup
 	int			duelReadyHintTime;		// next warmup reminder
 
 	// capture the flag
@@ -1047,6 +1048,8 @@ extern	vmCvar_t	g_hwDamage2;
 extern	vmCvar_t	g_hwDamagePer100;
 extern	vmCvar_t	g_hwKnockback;
 extern	vmCvar_t	g_hookKnockback;
+extern	vmCvar_t	g_warmupMax;
+extern	vmCvar_t	g_teleportKeepSpeed;
 extern	vmCvar_t	g_injectionMaxGain;
 extern	vmCvar_t	g_injectionMaxGainCap;
 extern	vmCvar_t	g_berserkHitCooldown;
