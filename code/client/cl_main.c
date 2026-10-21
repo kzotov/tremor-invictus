@@ -3959,6 +3959,9 @@ void CL_ServerInfoPacket( netadr_t from, msg_t *msg ) {
 		{
 			// calc ping time
 			cl_pinglist[i].time = Sys_Milliseconds() - cl_pinglist[i].start;
+			if ( cl_pinglist[i].time < 1 ) {
+				cl_pinglist[i].time = 1;		// 0 means "no answer yet"; a server on this machine answers in 0 ms
+			}
 			Com_DPrintf( "ping time %dms from %s\n", cl_pinglist[i].time, NET_AdrToString( from ) );
 
 			// save of info

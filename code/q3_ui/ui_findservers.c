@@ -152,16 +152,24 @@ Ask for a new list and ping it
 */
 static void FS_Refresh( void ) {
 	int		source = FS_Source();
+	char	buf[64];
+	int		i;
 
 	s_fs.refreshTime = uis.realtime;
 	s_fs.pinging = qtrue;
 	trap_LAN_MarkServerVisible( source, -1, qtrue );
 	trap_LAN_ResetPings( source );
 	if ( source == AS_LOCAL ) {
-		trap_Cmd_ExecuteText( EXEC_APPEND, "localservers\n" );
-	} else if ( source == AS_GLOBAL && FS_HasMaster() ) {
-		trap_Cmd_ExecuteText( EXEC_APPEND, va( "globalservers 0 %i full empty\n",
-			(int)trap_Cvar_VariableValue( "com_protocol" ) ) );
+		trap_Cmd_ExecuteText( EXEC_NOW, "localservers\n" );
+	} else if ( source == AS_GLOBAL ) {
+		// each master by number, so the requests go out now rather than after queued commands
+		for ( i = 1 ; i <= 5 ; i++ ) {
+			trap_Cvar_VariableStringBuffer( va( "sv_master%i", i ), buf, sizeof( buf ) );
+			if ( buf[0] ) {
+				trap_Cmd_ExecuteText( EXEC_NOW, va( "globalservers %i %i full empty\n", i,
+					(int)trap_Cvar_VariableValue( "com_protocol" ) ) );
+			}
+		}
 	}
 }
 
@@ -177,7 +185,7 @@ static qboolean FS_Matches( const char *info, int ping ) {
 	int			clients = atoi( Info_ValueForKey( info, "clients" ) );
 	int			maxClients = atoi( Info_ValueForKey( info, "sv_maxclients" ) );
 
-	if ( ping <= 0 ) {
+	if ( ping <= 0 || !Info_ValueForKey( info, "mapname" )[0] ) {
 		return qfalse;		// not answered (yet)
 	}
 	if ( s_fs.mode.curvalue > 0 && Q_stricmp( Info_ValueForKey( info, "mode" ), fsModeKeys[s_fs.mode.curvalue] ) ) {
