@@ -20,6 +20,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 #include "client.h"
+#ifdef USE_RMLUI
+#include "cl_rmlui.h"
+#endif
 
 /*
 
@@ -1385,6 +1388,14 @@ Called by the system for both key up and key down events
 ===================
 */
 void CL_KeyEvent (int key, qboolean down, unsigned time) {
+#ifdef USE_RMLUI
+	// an RmlUi menu takes the keys, except the console's
+	if ( !( Key_GetCatcher() & KEYCATCH_CONSOLE ) && key != K_CONSOLE && !( key == K_ESCAPE && keys[K_SHIFT].down )
+		&& RML_KeyEvent( key, down ) ) {
+		keys[key].down = down;
+		return;
+	}
+#endif
 	if( down )
 		CL_KeyDownEvent( key, time );
 	else
@@ -1410,6 +1421,11 @@ void CL_CharEvent( int key ) {
 	{
 		Field_CharEvent( &g_consoleField, key );
 	}
+#ifdef USE_RMLUI
+	else if ( RML_CharEvent( key ) )
+	{
+	}
+#endif
 	else if ( Key_GetCatcher( ) & KEYCATCH_UI )
 	{
 		VM_Call( uivm, UI_KEY_EVENT, key | K_CHAR_FLAG, qtrue );

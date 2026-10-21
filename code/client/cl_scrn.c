@@ -22,6 +22,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // cl_scrn.c -- master for refresh, status bar, console, chat, notify, etc
 
 #include "client.h"
+#ifdef USE_RMLUI
+#include "cl_rmlui.h"
+#endif
 
 qboolean	scr_initialized;		// ready to draw
 
@@ -542,6 +545,10 @@ void SCR_DrawScreenField( stereoFrame_t stereoFrame ) {
 	if ( Key_GetCatcher( ) & KEYCATCH_UI && uivm ) {
 		VM_Call( uivm, UI_REFRESH, cls.realtime );
 	}
+#ifdef USE_RMLUI
+	// the RmlUi menus over everything but the console
+	RML_Frame();
+#endif
 
 	// console draws next
 	Con_DrawConsole ();

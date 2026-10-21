@@ -22,6 +22,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // cl_main.c  -- client main loop
 
 #include "client.h"
+#ifdef USE_RMLUI
+#include "cl_rmlui.h"
+#endif
 #include <limits.h>
 
 #include "../sys/sys_local.h"
@@ -3161,6 +3164,107 @@ static Q_PRINTF_FUNC(2, 3) void QDECL CL_RefPrintf( int print_level, const char 
 
 
 
+#ifdef USE_RMLUI
+/*
+============
+RmlUi glue: the engine side of rmlImport_t, and the console commands
+============
+*/
+static int CL_RmlRegisterShaderRGBA( const char *name, int width, int height, const unsigned char *rgba ) {
+	return re.RegisterShaderRGBA ? re.RegisterShaderRGBA( name, width, height, rgba ) : 0;
+}
+static int CL_RmlRegisterShaderNoMip( const char *name ) {
+	return re.RegisterShaderNoMip( name );
+}
+static void CL_RmlDrawTriangles2D( int numVerts, const void *verts, int numIndexes, const int *indexes, int shader ) {
+	if ( re.DrawTriangles2D ) {
+		re.DrawTriangles2D( numVerts, (const polyVert_t *)verts, numIndexes, indexes, shader );
+	}
+}
+static void CL_RmlSetScissor2D( int x, int y, int w, int h ) {
+	if ( re.SetScissor2D ) {
+		re.SetScissor2D( x, y, w, h );
+	}
+}
+static void CL_RmlDrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, int shader ) {
+	re.DrawStretchPic( x, y, w, h, s1, t1, s2, t2, shader );
+}
+static void CL_RmlSetColor( const float *rgba ) {
+	re.SetColor( rgba );
+}
+static void CL_RmlPrint( const char *text ) {
+	Com_Printf( "%s", text );
+}
+static void CL_RmlExecuteText( const char *text ) {
+	Cbuf_AddText( text );
+}
+static int CL_RmlReadFile( const char *path, void **buffer ) {
+	return FS_ReadFile( path, buffer );
+}
+static void CL_RmlFreeFile( void *buffer ) {
+	FS_FreeFile( buffer );
+}
+static void CL_RmlSetCvar( const char *name, const char *value ) {
+	Cvar_Set( name, value );
+}
+
+static void CL_RmlShow_f( void ) {
+	if ( Cmd_Argc() < 2 ) {
+		Com_Printf( "usage: rml_show <ui/document.rml>\n" );
+		return;
+	}
+	RML_Show( Cmd_Argv( 1 ) );
+}
+static void CL_RmlHide_f( void ) {
+	RML_Hide();
+}
+static void CL_RmlReload_f( void ) {
+	RML_Reload();
+}
+static void CL_RmlToggle_f( void ) {
+	RML_Toggle( Cmd_Argv( 1 ), Cmd_Argc() > 2 ? Cmd_Argv( 2 ) : "open" );
+}
+
+/*
+============
+CL_RmlStart
+
+RmlUi starts with the first renderer and follows it through restarts
+============
+*/
+static void CL_RmlStart( void ) {
+	static qboolean	started;
+	rmlImport_t		imp;
+
+	if ( !re.DrawTriangles2D ) {
+		return;		// a renderer without the calls the interface needs
+	}
+	if ( started ) {
+		RML_RendererRestart( cls.glconfig.vidWidth, cls.glconfig.vidHeight );
+		return;
+	}
+	started = qtrue;
+	imp.RegisterShaderRGBA = CL_RmlRegisterShaderRGBA;
+	imp.RegisterShaderNoMip = CL_RmlRegisterShaderNoMip;
+	imp.DrawTriangles2D = CL_RmlDrawTriangles2D;
+	imp.SetScissor2D = CL_RmlSetScissor2D;
+	imp.DrawStretchPic = CL_RmlDrawStretchPic;
+	imp.SetColor = CL_RmlSetColor;
+	imp.Print = CL_RmlPrint;
+	imp.ExecuteText = CL_RmlExecuteText;
+	imp.Milliseconds = Sys_Milliseconds;
+	imp.ReadFile = CL_RmlReadFile;
+	imp.FreeFile = CL_RmlFreeFile;
+	imp.SetCvar = CL_RmlSetCvar;
+	Cvar_Get( "rml_active", "0", CVAR_ROM );
+	Cmd_AddCommand( "rml_show", CL_RmlShow_f );
+	Cmd_AddCommand( "rml_hide", CL_RmlHide_f );
+	Cmd_AddCommand( "rml_reload", CL_RmlReload_f );
+	Cmd_AddCommand( "rml_toggle", CL_RmlToggle_f );
+	RML_Init( &imp, cls.glconfig.vidWidth, cls.glconfig.vidHeight );
+}
+#endif
+
 /*
 ============
 CL_ShutdownRef
@@ -3196,6 +3300,9 @@ void CL_InitRenderer( void ) {
 	cls.consoleShader = re.RegisterShader( "console" );
 	g_console_field_width = cls.glconfig.vidWidth / g_smallchar_width - 2;
 	g_consoleField.widthInChars = g_console_field_width;
+#ifdef USE_RMLUI
+	CL_RmlStart();
+#endif
 }
 
 /*

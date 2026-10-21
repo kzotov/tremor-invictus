@@ -85,6 +85,13 @@ target_compile_options(         ${CLIENT_BINARY} PRIVATE ${CLIENT_COMPILE_OPTION
 target_link_libraries(          ${CLIENT_BINARY} PRIVATE ${COMMON_LIBRARIES} ${CLIENT_LIBRARIES})
 target_link_options(            ${CLIENT_BINARY} PRIVATE ${CLIENT_LINK_OPTIONS})
 
+if(USE_RMLUI)
+    target_sources(             ${CLIENT_BINARY} PRIVATE ${SOURCE_DIR}/client/cl_rmlui.cpp)
+    set_source_files_properties(${SOURCE_DIR}/client/cl_rmlui.cpp PROPERTIES COMPILE_OPTIONS "-std=c++17")
+    target_compile_definitions( ${CLIENT_BINARY} PRIVATE USE_RMLUI)
+    target_link_libraries(      ${CLIENT_BINARY} PRIVATE rmlui_core)
+endif()
+
 set_output_dirs(${CLIENT_BINARY})
 
 if(NOT USE_RENDERER_DLOPEN)

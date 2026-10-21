@@ -912,10 +912,26 @@ const void *RB_Triangles2D( const void *data ) {
 		RB_BeginSurface( shader, 0, 0 );
 	}
 	for ( i = 0 ; i + 2 < cmd->numIndexes ; i += 3 ) {
+		const polyVert_t	*tri[3];
+		float	cross;
+
+		// the same winding as RB_StretchPic, so one-sided 2D shaders keep it
+		tri[0] = &verts[indexes[i]];
+		tri[1] = &verts[indexes[i + 1]];
+		tri[2] = &verts[indexes[i + 2]];
+		cross = ( tri[1]->xyz[0] - tri[0]->xyz[0] ) * ( tri[2]->xyz[1] - tri[0]->xyz[1] )
+			- ( tri[1]->xyz[1] - tri[0]->xyz[1] ) * ( tri[2]->xyz[0] - tri[0]->xyz[0] );
+		if ( cross < 0 ) {
+			const polyVert_t	*swap = tri[1];
+
+			tri[1] = tri[2];
+			tri[2] = swap;
+		}
+
 		RB_CHECKOVERFLOW( 3, 3 );
 		n = tess.numVertexes;
 		for ( k = 0 ; k < 3 ; k++ ) {
-			const polyVert_t	*v = &verts[indexes[i + k]];
+			const polyVert_t	*v = tri[k];
 
 			tess.xyz[n + k][0] = v->xyz[0];
 			tess.xyz[n + k][1] = v->xyz[1];

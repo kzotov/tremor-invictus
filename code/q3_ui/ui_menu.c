@@ -154,6 +154,14 @@ static void Main_MenuDraw( void ) {
 	{
 		UI_DrawProportionalString_AutoWrapped( 320, 192, 600, 20, s_errorMessage.errorMessage, UI_CENTER|UI_SMALLFONT|UI_DROPSHADOW, menu_text_color );
 	}
+	else if ( trap_Cvar_VariableValue( "ui_rmlMenu" ) && trap_Cvar_VariableValue( "rml_ok" ) ) {
+		// the RmlUi main menu draws over our background; show it again
+		// whenever this menu comes back to the top
+		if ( !trap_Cvar_VariableValue( "rml_active" ) ) {
+			trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/main.rml\n" );
+		}
+		return;
+	}
 	else
 	{
 		// standard menu drawing
@@ -223,7 +231,9 @@ void UI_MainMenu( void ) {
 	s_main.menu.draw = Main_MenuDraw;
 	s_main.menu.fullscreen = qtrue;
 	s_main.menu.wrapAround = qtrue;
-	s_main.menu.showlogo = qtrue;
+	// the RmlUi main menu (ui_rmlMenu) has the logo in its document
+	trap_Cvar_Register( NULL, "ui_rmlMenu", "1", CVAR_ARCHIVE );
+	s_main.menu.showlogo = !trap_Cvar_VariableValue( "ui_rmlMenu" );
 
 	y = MAIN_MENU_TOP;
 	UI_MainItem( &s_main.play, ID_PLAY, STR_MENU_PLAY, y );

@@ -1,0 +1,13 @@
+// Text for the RmlUi documents: [key] in a document becomes this text.
+// One entry per line: key "text"
+menu_play "PLAY"
+menu_practice "PRACTICE"
+menu_find_servers "FIND SERVERS"
+menu_create_server "CREATE SERVER"
+menu_champions "CHAMPIONS"
+menu_player_colors "PLAYER COLORS"
+menu_settings "SETTINGS"
+menu_demos "DEMOS"
+menu_quit "QUIT"
+menu_back "BACK"
+menu_footer "Free software under the GPL. Game data loads from your Quake III install."

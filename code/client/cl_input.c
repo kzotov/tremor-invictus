@@ -22,6 +22,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // cl.input.c  -- builds an intended movement command to send to the server
 
 #include "client.h"
+#ifdef USE_RMLUI
+#include "cl_rmlui.h"
+#endif
 
 unsigned	frame_msec;
 int			old_com_frameTime;
@@ -360,6 +363,12 @@ CL_MouseEvent
 =================
 */
 void CL_MouseEvent( int dx, int dy, int time ) {
+#ifdef USE_RMLUI
+	if ( RML_Active() ) {
+		RML_MouseMove( dx, dy );
+		return;
+	}
+#endif
 	if ( Key_GetCatcher( ) & KEYCATCH_UI ) {
 		VM_Call( uivm, UI_MOUSE_EVENT, dx, dy );
 	} else if (Key_GetCatcher( ) & KEYCATCH_CGAME) {

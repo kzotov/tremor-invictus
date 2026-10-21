@@ -1046,6 +1046,21 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	if ( Q_stricmp (cmd, "ui_play") == 0 ) {
+		UI_PlayMenu();
+		return qtrue;
+	}
+
+	if ( Q_stricmp (cmd, "ui_colors") == 0 ) {
+		UI_ColorsMenu();
+		return qtrue;
+	}
+
+	if ( Q_stricmp (cmd, "ui_createServer") == 0 ) {
+		UI_StartServerMenu( qtrue );
+		return qtrue;
+	}
+
 	if ( Q_stricmp (cmd, "ui_champions") == 0 ) {
 		UI_ChampionMenu();
 		return qtrue;
@@ -1301,9 +1316,11 @@ void UI_Refresh( int realtime )
 		}
 	}
 
-	// draw cursor
+	// draw cursor (an RmlUi menu draws its own)
 	UI_SetColor( NULL );
-	UI_DrawHandlePic( uis.cursorx-16, uis.cursory-16, 32, 32, uis.cursor);
+	if ( !trap_Cvar_VariableValue( "rml_active" ) ) {
+		UI_DrawHandlePic( uis.cursorx-16, uis.cursory-16, 32, 32, uis.cursor);
+	}
 
 #ifndef NDEBUG
 	if (uis.debug)

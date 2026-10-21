@@ -1,0 +1,69 @@
+/* tremor-invictus interface: the logo palette (dark slate, logo red, bone
+   white), flat panels, text buttons with a red bar on hover */
+
+body {
+	font-family: "Arial Narrow";
+	font-weight: bold;
+	color: #e8e4dc;
+	width: 100%;
+	height: 100%;
+}
+
+.logo {
+	position: absolute;
+	left: 80dp;
+	top: 70dp;
+	width: 512dp;
+	height: 135dp;
+	decorator: image( /gfx/tremor/logo.png );
+}
+
+.menu {
+	position: absolute;
+	left: 80dp;
+	top: 300dp;
+	width: 640dp;
+}
+
+button {
+	display: block;
+	font-family: "Arial Black";
+	font-size: 46dp;
+	color: #d3191f;
+	padding: 6dp 0dp 6dp 22dp;
+	margin-bottom: 8dp;
+	border-left: 6dp transparent;
+	transition: padding-left color border-left-color 0.15s cubic-out;
+	cursor: pointer;
+}
+
+button:hover, button:focus-visible {
+	color: #f2efe9;
+	border-left-color: #d3191f;
+	padding-left: 34dp;
+	background-color: #d3191f22;
+}
+
+button.small {
+	font-size: 34dp;
+}
+
+.submenu {
+	display: none;
+	margin: 0dp 0dp 18dp 40dp;
+}
+
+.submenu.open {
+	display: block;
+}
+
+.footer {
+	position: absolute;
+	bottom: 30dp;
+	width: 100%;
+	text-align: center;
+	font-family: "Arial Narrow";
+	font-weight: normal;
+	font-size: 24dp;
+	color: #8a8780;
+}
