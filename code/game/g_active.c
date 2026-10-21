@@ -541,7 +541,7 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 	// one charge recharges at a time; shell shock runs it backwards
 	if ( charges < maxCharges && G_ShellShockRecharge( client, msec ) ) {
 		// held back by the shock
-	} else if ( charges < maxCharges ) {
+	} else if ( charges < maxCharges && !level.timeoutEnd ) {
 		client->abilityRecharge += msec;
 		if ( client->abilityRecharge >= recharge ) {
 			client->abilityRecharge = 0;
@@ -767,6 +767,9 @@ void ClientTimerActions( gentity_t *ent, int msec ) {
 #endif
 
 	client = ent->client;
+	if ( level.timeoutEnd ) {
+		return;		// nothing regenerates or wears off during a timeout
+	}
 	client->timeResidual += msec;
 
 	while ( client->timeResidual >= 1000 ) {
@@ -1208,6 +1211,8 @@ void ClientThink_real( gentity_t *ent ) {
 		client->ps.pm_type = PM_NOCLIP;
 	} else if ( client->ps.stats[STAT_HEALTH] <= 0 ) {
 		client->ps.pm_type = PM_DEAD;
+	} else if ( level.timeoutEnd ) {
+		client->ps.pm_type = PM_FREEZE;		// timeout: everyone holds still
 	} else if ( G_MatchMode() && ( level.warmupTime > 0 || level.halfTimeEnd
 		|| ( G_ClanArena() && level.caState == CA_COUNTDOWN ) || G_RoundDuelHolds() ) ) {
 		// countdown or half time: held in place, no firing

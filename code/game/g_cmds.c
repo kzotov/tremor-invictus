@@ -1812,6 +1812,14 @@ void ClientCommand( int clientNum ) {
 		Cmd_Acc_f (ent);
 		return;
 	}
+	if (Q_stricmp (cmd, "timeout") == 0) {
+		Cmd_Timeout_f (ent);
+		return;
+	}
+	if (Q_stricmp (cmd, "timein") == 0) {
+		Cmd_Timein_f (ent);
+		return;
+	}
 
 	// ignore all other commands when at intermission
 	if (level.intermissiontime) {

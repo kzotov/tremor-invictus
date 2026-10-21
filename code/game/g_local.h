@@ -339,6 +339,7 @@ struct gclient_s {
 	int			hiveResidual;
 	int			hookDamageTaken;	// while hooked; the rope breaks at g_hookBreakDamage
 	int			armorRegenResidual;
+	qboolean	timeoutUsed;		// this match
 	qboolean	decaySkipped;		// slow decay: every other second
 	vec3_t		anchorOrigin;
 	struct gentity_s	*anchorEnt;
@@ -471,6 +472,9 @@ typedef struct {
 	// capture the flag
 	int			ctfHalf;				// 0 or 1 the first half, 2 the second
 	int			halfTimeEnd;			// level.time the half-time break ends, while in it
+	int			timeoutEnd;				// level.time a timeout ends, 0 when none
+	int			timeoutClockTime;		// level.time the clock was last sent during a timeout
+	qboolean	teamTimeoutUsed[TEAM_NUM_TEAMS];
 
 	// clan arena
 	int			caState;				// CA_*
@@ -1057,6 +1061,9 @@ extern	vmCvar_t	g_injectionMaxGainCap;
 extern	vmCvar_t	g_berserkHitCooldown;
 void G_BreakHook( gentity_t *ent );
 void G_UpdateItemTimers( void );
+void G_TimeoutFrame( int msec );
+void Cmd_Timeout_f( gentity_t *ent );
+void Cmd_Timein_f( gentity_t *ent );
 void G_LogAccuracyHit( gclient_t *client, int weapon );
 void G_BounceMissile( gentity_t *ent, trace_t *trace );
 void G_MissileImpact( gentity_t *ent, trace_t *trace );

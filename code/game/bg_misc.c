@@ -1495,7 +1495,13 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"DAMAGE",
 	"PING",
 	"NAME",
-	"ACCURACY"
+	"ACCURACY",
+	"%s called a timeout",
+	"Timeout over",
+	"No timeout now",
+	"Your timeout is used",
+	"Timeouts are for duel and team deathmatch",
+	"TIMEOUT %i"
 };
 
 /*

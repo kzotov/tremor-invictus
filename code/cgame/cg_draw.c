@@ -664,6 +664,26 @@ static void CG_DrawChat( void ) {
 
 /*
 =================
+CG_DrawTimeout
+
+TIMEOUT and the seconds left, while one runs
+=================
+*/
+static void CG_DrawTimeout( void ) {
+	int		end = atoi( CG_ConfigString( CS_TIMEOUT ) ), left, w;
+	char	*s;
+
+	if ( end <= cg.time ) {
+		return;
+	}
+	left = ( end - cg.time + 999 ) / 1000;
+	s = va( (char *)BG_String( STR_TO_LEFT ), left );
+	w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
+	CG_DrawBigStringColor( 320 - w / 2, 120, s, colorYellow );
+}
+
+/*
+=================
 CG_DrawSpecItemTimers
 
 For spectators and demos: each major item's icon and the seconds until it
@@ -3355,6 +3375,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	}
 	CG_DrawChat();
 	CG_DrawSpecItemTimers();
+	CG_DrawTimeout();
 	CG_DrawAccuracy();
 #endif
 

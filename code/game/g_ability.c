@@ -1414,6 +1414,9 @@ void G_AbilityClientThink( gentity_t *ent ) {
 		}
 	}
 
+	if ( level.timeoutEnd ) {
+		return;
+	}
 	G_ChampionClientThink( ent );
 
 	G_DamageOverTimeTick( ent, &client->burnEndTime, &client->burnNextTime, client->burnAttacker,

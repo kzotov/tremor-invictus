@@ -89,6 +89,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define	CS_ITEMS				27		// string of 0's and 1's that tell which items are present
 #define	CS_ITEM_TIMERS			28		// "item respawnTime ..." for major items, time 0 = up
+#define	CS_TIMEOUT				29		// level.time a timeout ends, 0 when none
 
 #define	CS_MODELS				32
 #define	CS_SOUNDS				(CS_MODELS+MAX_MODELS)
@@ -634,6 +635,12 @@ typedef enum {
 	STR_SB_PING,
 	STR_SB_NAME,
 	STR_ACC_TITLE,
+	STR_TO_CALLED,
+	STR_TO_OVER,
+	STR_TO_NOTNOW,
+	STR_TO_USED,
+	STR_TO_ONLYMODES,
+	STR_TO_LEFT,
 
 	STR_NUM_STRINGS
 } stringId_t;

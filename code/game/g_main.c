@@ -2174,6 +2174,11 @@ void G_RunFrame( int levelTime ) {
 	// get any cvar changes
 	G_UpdateCvars();
 
+	// a timeout holds every clock still
+	if ( level.timeoutEnd ) {
+		G_TimeoutFrame( level.time - level.previousTime );
+	}
+
 	//
 	// go through all allocated objects
 	//

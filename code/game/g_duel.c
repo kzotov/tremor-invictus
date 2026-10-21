@@ -414,3 +414,150 @@ gentity_t *G_SelectDuelSpawnPoint( gentity_t *ent, qboolean initial, vec3_t orig
 	VectorCopy( list[i]->s.angles, angles );
 	return list[i];
 }
+
+/*
+==============================================================================
+
+TIMEOUTS
+
+One 60 s timeout per player in duel and per team in team deathmatch.
+Everything holds still: players are frozen, and every clock (the match
+clock, item and power-up respawns, projectiles, movers, ability recharge,
+held power-ups, respawn delays) is pushed forward frame by frame.
+
+==============================================================================
+*/
+
+#define TIMEOUT_MSEC	60000
+
+/*
+=================
+G_TimeoutAllowed
+=================
+*/
+static qboolean G_TimeoutAllowed( void ) {
+	const char	*mode = G_ModeName();
+
+	return !strcmp( mode, "duel" ) || !strcmp( mode, "tdm" );
+}
+
+/*
+=================
+G_EndTimeout
+=================
+*/
+static void G_EndTimeout( void ) {
+	level.timeoutEnd = 0;
+	trap_SetConfigstring( CS_TIMEOUT, "0" );
+	trap_SetConfigstring( CS_LEVEL_START_TIME, va( "%i", level.startTime ) );
+	G_UpdateItemTimers();
+	trap_SendServerCommand( -1, va( "cp \"%s\n\"", BG_String( STR_TO_OVER ) ) );
+}
+
+/*
+=================
+G_TimeoutShift
+=================
+*/
+static void G_TimeoutShift( int *time, int msec ) {
+	if ( *time > 0 && *time < 0x7f000000 ) {
+		*time += msec;
+	}
+}
+
+/*
+=================
+G_TimeoutFrame
+
+Called each frame of a timeout with the frame's length
+=================
+*/
+void G_TimeoutFrame( int msec ) {
+	gentity_t	*ent;
+	gclient_t	*cl;
+	int			i, p;
+
+	if ( level.time >= level.timeoutEnd ) {
+		G_EndTimeout();
+		return;
+	}
+
+	for ( i = 0, ent = g_entities ; i < level.num_entities ; i++, ent++ ) {
+		if ( !ent->inuse ) {
+			continue;
+		}
+		G_TimeoutShift( &ent->nextthink, msec );
+		if ( ent->s.pos.trType != TR_STATIONARY && ent->s.pos.trType != TR_INTERPOLATE ) {
+			ent->s.pos.trTime += msec;
+		}
+		if ( ent->s.apos.trType != TR_STATIONARY && ent->s.apos.trType != TR_INTERPOLATE ) {
+			ent->s.apos.trTime += msec;
+		}
+		cl = ent->client;
+		if ( !cl ) {
+			continue;
+		}
+		for ( p = PW_NONE + 1 ; p < PW_NUM_POWERUPS ; p++ ) {
+			G_TimeoutShift( &cl->ps.powerups[p], msec );
+		}
+		G_TimeoutShift( &cl->respawnTime, msec );
+		G_TimeoutShift( &cl->lastDamageTime, msec );
+		G_TimeoutShift( &cl->burnEndTime, msec );
+		G_TimeoutShift( &cl->burnNextTime, msec );
+		G_TimeoutShift( &cl->poisonEndTime, msec );
+		G_TimeoutShift( &cl->poisonNextTime, msec );
+	}
+
+	level.startTime += msec;
+	if ( level.time - level.timeoutClockTime >= 1000 ) {
+		level.timeoutClockTime = level.time;
+		trap_SetConfigstring( CS_LEVEL_START_TIME, va( "%i", level.startTime ) );
+	}
+}
+
+/*
+=================
+Cmd_Timeout_f
+=================
+*/
+void Cmd_Timeout_f( gentity_t *ent ) {
+	gclient_t	*cl = ent->client;
+	int			team = cl->sess.sessionTeam;
+
+	if ( !G_TimeoutAllowed() ) {
+		trap_SendServerCommand( ent - g_entities, va( "print \"%s\n\"", BG_String( STR_TO_ONLYMODES ) ) );
+		return;
+	}
+	if ( team == TEAM_SPECTATOR || level.timeoutEnd || level.warmupTime || level.intermissiontime ) {
+		trap_SendServerCommand( ent - g_entities, va( "print \"%s\n\"", BG_String( STR_TO_NOTNOW ) ) );
+		return;
+	}
+	if ( g_gametype.integer >= GT_TEAM ? level.teamTimeoutUsed[team] : cl->timeoutUsed ) {
+		trap_SendServerCommand( ent - g_entities, va( "print \"%s\n\"", BG_String( STR_TO_USED ) ) );
+		return;
+	}
+	if ( g_gametype.integer >= GT_TEAM ) {
+		level.teamTimeoutUsed[team] = qtrue;
+	} else {
+		cl->timeoutUsed = qtrue;
+	}
+	level.timeoutEnd = level.time + TIMEOUT_MSEC;
+	level.timeoutClockTime = level.time;
+	trap_SetConfigstring( CS_TIMEOUT, va( "%i", level.timeoutEnd ) );
+	trap_SendServerCommand( -1, va( "cp \"%s\n\"", va( (char *)BG_String( STR_TO_CALLED ), cl->pers.netname ) ) );
+}
+
+/*
+=================
+Cmd_Timein_f
+
+Any player in the match may end the timeout early
+=================
+*/
+void Cmd_Timein_f( gentity_t *ent ) {
+	if ( !level.timeoutEnd || ent->client->sess.sessionTeam == TEAM_SPECTATOR ) {
+		return;
+	}
+	level.timeoutEnd = level.time;
+	G_EndTimeout();
+}
