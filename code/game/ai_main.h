@@ -271,6 +271,7 @@ typedef struct bot_state_s
 	bot_waypoint_t *patrolpoints;					//patrol points
 	bot_waypoint_t *curpatrolpoint;					//current patrol point the bot is going for
 	int patrolflags;								//patrol flags
+	float abilitycheck_time;						//next time to think about the champion ability
 } bot_state_t;
 
 //resets the whole bot state

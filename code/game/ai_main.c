@@ -907,6 +907,69 @@ void BotInputToUserCommand(bot_input_t *bi, usercmd_t *ucmd, int delta_angles[3]
 
 /*
 ==============
+BotWantsAbility
+
+Every 250 ms: does the ability's rule hold for this champion, and does a
+roll scaled by skill pass? The press lasts one command.
+==============
+*/
+static qboolean BotWantsAbility(bot_state_t *bs) {
+	playerState_t *ps = &g_entities[bs->client].client->ps;
+	int active = BG_Champion(ps->stats[STAT_CHAMPION])->active;
+	int health = ps->stats[STAT_HEALTH], armor = ps->stats[STAT_ARMOR];
+	int state = BG_AbilityState(ps);
+	qboolean seen = qfalse, want = qfalse;
+	float dist = 99999;
+	vec3_t dir;
+
+	if (!trap_Cvar_VariableIntegerValue("bot_abilities")) return qfalse;
+	if (FloatTime() < bs->abilitycheck_time) return qfalse;
+	bs->abilitycheck_time = FloatTime() + 0.25;
+	if (active == ACTIVE_NONE || health <= 0) return qfalse;
+
+	if (bs->enemy >= 0 && bs->enemy < MAX_CLIENTS && g_entities[bs->enemy].inuse) {
+		VectorSubtract(g_entities[bs->enemy].r.currentOrigin, bs->origin, dir);
+		dist = VectorLength(dir);
+		seen = BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360, bs->enemy) > 0;
+	}
+
+	// a second press: recall to the rift anchor when hurt
+	if (state == ABILITY_ACTIVE) {
+		return active == ACTIVE_RIFTANCHOR && health < 40;
+	}
+	if (state != ABILITY_IDLE || BG_AbilityCharges(ps) <= 0) return qfalse;
+
+	switch (active) {
+	case ACTIVE_INJECTION:		want = health < 50 || (seen && health < 100); break;
+	case ACTIVE_GHOSTWALK:		want = seen && health < 40; break;
+	case ACTIVE_PLASMATRAIL:	want = seen && dist < 600; break;
+	case ACTIVE_ORB:			want = seen && dist < 900; break;
+	case ACTIVE_PIERCINGSIGHT:	want = bs->enemy < 0 && random() < 0.05; break;
+	case ACTIVE_TOTEM:			want = bs->enemy < 0 && random() < 0.03; break;
+	case ACTIVE_DUALWIELD:		want = seen && dist < 1000; break;
+	case ACTIVE_BERSERK:		want = seen && dist < 300 && health > 60; break;
+	case ACTIVE_FLAMESTRIKE:	want = seen && dist < 600; break;
+	case ACTIVE_TURRET:			want = bs->enemy < 0 && random() < 0.02; break;
+	case ACTIVE_SHELLSHOCK:		want = seen && dist < 260; break;
+	case ACTIVE_BULLRUSH:		want = seen && dist < 700; break;
+	case ACTIVE_BARRIER:		want = seen && health < 80; break;
+	case ACTIVE_ACIDSPIT:		want = seen && dist < 500; break;
+	case ACTIVE_GRENADES:		want = bs->enemy >= 0 && dist < 800; break;
+	case ACTIVE_SUPPLYDROP:		want = bs->enemy < 0 && armor < 50; break;
+	case ACTIVE_SPINEVOLLEY:	want = seen && dist > 300 && dist < 800; break;
+	case ACTIVE_MARKPREY:		want = seen; break;
+	case ACTIVE_ETERNAL:		want = seen && dist < 500; break;
+	case ACTIVE_DOWNPOUR:		want = seen && dist < 1000; break;
+	case ACTIVE_HOUND:			want = bs->enemy >= 0 && dist < 1500; break;
+	case ACTIVE_RIFTANCHOR:		want = seen && health > 70; break;
+	default:					want = qfalse; break;	// hook and drone need route planning
+	}
+	if (!want) return qfalse;
+	return random() < 0.3 + 0.1 * bs->settings.skill;
+}
+
+/*
+==============
 BotUpdateInput
 ==============
 */
@@ -928,6 +991,8 @@ void BotUpdateInput(bot_state_t *bs, int time, int elapsed_time) {
 	}
 	//convert the bot input to a usercmd
 	BotInputToUserCommand(&bi, &bs->lastucmd, bs->cur_ps.delta_angles, time);
+	//the champion's ability
+	if (BotWantsAbility(bs)) bs->lastucmd.buttons |= BUTTON_ABILITY;
 	//subtract the delta angles
 	for (j = 0; j < 3; j++) {
 		bs->viewangles[j] = AngleMod(bs->viewangles[j] - SHORT2ANGLE(bs->cur_ps.delta_angles[j]));
