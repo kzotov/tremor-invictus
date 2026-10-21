@@ -45,16 +45,16 @@ vec4_t color_white	    = {1.00f, 1.00f, 1.00f, 1.00f};
 vec4_t color_yellow	    = {1.00f, 1.00f, 0.00f, 1.00f};
 vec4_t color_blue	    = {0.00f, 0.00f, 1.00f, 1.00f};
 vec4_t color_lightOrange    = {1.00f, 0.68f, 0.00f, 1.00f };
-vec4_t color_orange	    = {1.00f, 0.43f, 0.00f, 1.00f};
-vec4_t color_red	    = {1.00f, 0.00f, 0.00f, 1.00f};
+vec4_t color_orange	    = {0.70f, 0.70f, 0.68f, 1.00f};	// labels: the logo's metal
+vec4_t color_red	    = {0.82f, 0.10f, 0.10f, 1.00f};	// the logo's red; navigation by default
 vec4_t color_dim	    = {0.00f, 0.00f, 0.00f, 0.25f};
 
 // current color scheme
 vec4_t pulse_color          = {1.00f, 1.00f, 1.00f, 1.00f};
-vec4_t text_color_disabled  = {0.50f, 0.50f, 0.50f, 1.00f};	// light gray
-vec4_t text_color_normal    = {1.00f, 0.43f, 0.00f, 1.00f};	// light orange
-vec4_t text_color_highlight = {1.00f, 1.00f, 0.00f, 1.00f};	// bright yellow
-vec4_t listbar_color        = {1.00f, 0.43f, 0.00f, 0.30f};	// transluscent orange
+vec4_t text_color_disabled  = {0.60f, 0.60f, 0.58f, 1.00f};	// secondary text
+vec4_t text_color_normal    = {0.91f, 0.90f, 0.88f, 1.00f};	// text
+vec4_t text_color_highlight = {1.00f, 1.00f, 1.00f, 1.00f};	// white
+vec4_t listbar_color        = {0.82f, 0.10f, 0.10f, 0.30f};	// translucent red
 vec4_t text_color_status    = {1.00f, 1.00f, 1.00f, 1.00f};	// bright white	
 
 // action widget
@@ -222,11 +222,41 @@ static void PText_Draw( menutext_s *t )
 
 	style = t->style;
 	if( t->generic.flags & QMF_PULSEIFFOCUS ) {
-		if( Menu_ItemAtCursor( t->generic.parent ) == t ) {
-			style |= UI_PULSE;
+		qboolean	focus = Menu_ItemAtCursor( t->generic.parent ) == t && !( t->generic.flags & QMF_GRAYED );
+
+		// text buttons: plain text; the one under the cursor slides right
+		// and grows a red bar from the left
+		if ( color == color_red ) {
+			color = text_color_normal;
 		}
-		else {
-			style |= UI_INVERSE;
+		if ( focus ) {
+			float	f, h, scale;
+			int		w, left;
+
+			if ( !t->generic.hoverTime ) {
+				t->generic.hoverTime = uis.realtime;
+			}
+			f = ( uis.realtime - t->generic.hoverTime ) / 120.0f;
+			if ( f > 1 ) {
+				f = 1;
+			}
+			scale = ( style & UI_SMALLFONT ) ? PROP_SMALL_SIZE_SCALE : 1.0f;
+			h = PROP_HEIGHT * scale;
+			w = UI_ProportionalStringWidth( t->string ) * scale;
+			switch ( style & UI_FORMATMASK ) {
+			case UI_CENTER:	left = x - w / 2; break;
+			case UI_RIGHT:	left = x - w; break;
+			default:		left = x; break;
+			}
+			UI_FillRect( left - 8, y + h * ( 1 - f ) / 2, 3, h * f, color_red );
+			if ( ( style & UI_FORMATMASK ) == UI_LEFT ) {
+				x += 6 * f;
+			}
+			if ( color != color_white ) {
+				color = text_color_highlight;
+			}
+		} else {
+			t->generic.hoverTime = 0;
 		}
 	}
 

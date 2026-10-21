@@ -1212,6 +1212,53 @@ void UI_UpdateScreen( void ) {
 
 /*
 =================
+UI_DrawMenuBackground
+
+Near-black with a lighter middle, and the emblem's pulse line sweeping
+across every 8 s
+=================
+*/
+static void UI_DrawMenuBackground( void ) {
+	static const vec4_t	back = { 0.051f, 0.051f, 0.063f, 1.0f };
+	vec4_t		c;
+	float		w = uis.glconfig.vidWidth, h = uis.glconfig.vidHeight;
+	float		sweep, x, y, d, a;
+	int			i;
+
+	trap_R_SetColor( back );
+	trap_R_DrawStretchPic( 0, 0, w, h, 0, 0, 1, 1, uis.whiteShader );
+
+	// a soft lighter middle from stacked translucent boxes
+	for ( i = 1 ; i <= 6 ; i++ ) {
+		c[0] = 0.10f; c[1] = 0.10f; c[2] = 0.12f; c[3] = 0.06f;
+		trap_R_SetColor( c );
+		trap_R_DrawStretchPic( w * i / 14.0f, h * i / 14.0f, w * ( 1 - i / 7.0f ), h * ( 1 - i / 7.0f ), 0, 0, 1, 1, uis.whiteShader );
+	}
+
+	// the pulse line: flat, one heartbeat spike in the middle, lit near the sweep
+	sweep = ( uis.realtime % 8000 ) / 8000.0f * w * 1.4f - w * 0.2f;
+	for ( i = 0 ; i < 320 ; i++ ) {
+		x = w * i / 320.0f;
+		d = ( x - w * 0.62f ) / ( w * 0.02f );
+		y = h * 0.78f;
+		if ( d > -1 && d < 0 ) {
+			y -= h * 0.08f * ( d + 1 );
+		} else if ( d >= 0 && d < 2 ) {
+			y += h * 0.05f * ( 1 - fabs( d - 1 ) ) - h * 0.08f * ( d < 0.5f ? 1 - d * 2 : 0 );
+		}
+		a = 0.08f + 0.5f * ( 1 - fabs( x - sweep ) / ( w * 0.15f ) );
+		if ( a < 0.08f ) {
+			a = 0.08f;
+		}
+		c[0] = 0.82f; c[1] = 0.10f; c[2] = 0.10f; c[3] = a;
+		trap_R_SetColor( c );
+		trap_R_DrawStretchPic( x, y, w / 320.0f + 1, 2, 0, 0, 1, 1, uis.whiteShader );
+	}
+	trap_R_SetColor( NULL );
+}
+
+/*
+=================
 UI_Refresh
 =================
 */
@@ -1230,14 +1277,8 @@ void UI_Refresh( int realtime )
 	{
 		if (uis.activemenu->fullscreen)
 		{
-			// our own plain background over the whole screen, not just the 4:3 area
-			{
-				static const vec4_t	back = { 0.06f, 0.06f, 0.07f, 1.0f };
-
-				trap_R_SetColor( back );
-				trap_R_DrawStretchPic( 0, 0, uis.glconfig.vidWidth, uis.glconfig.vidHeight, 0, 0, 1, 1, uis.whiteShader );
-				trap_R_SetColor( NULL );
-			}
+			// our own background over the whole screen, not just the 4:3 area
+			UI_DrawMenuBackground();
 			if( uis.activemenu->showlogo && uis.logoShader ) {
 				// the logo top left, keeping its 760 x 200 shape
 				UI_DrawHandlePic( 24, 20, 266, 70, uis.logoShader );

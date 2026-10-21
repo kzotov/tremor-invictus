@@ -180,6 +180,7 @@ typedef struct
 	void (*callback)( void *self, int event );
 	void (*statusbar)( void *self );
 	void (*ownerdraw)( void *self );
+	int hoverTime;		// uis.realtime the cursor arrived, for the hover animation
 } menucommon_s;
 
 typedef struct {

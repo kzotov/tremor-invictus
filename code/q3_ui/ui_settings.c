@@ -758,7 +758,7 @@ static void Settings_SetTab( int tab ) {
 	// tabs along the top
 	for ( i = 0; i < NUM_TABS; i++ ) {
 		Settings_InitText( &s_settings.tabs[i], ID_TAB + i, settingTabs[i].name, 64 + i * 128, 48, UI_CENTER );
-		s_settings.tabs[i].color = ( i == tab ) ? color_white : color_red;
+		s_settings.tabs[i].color = ( i == tab ) ? color_white : color_orange;
 	}
 
 	// rows: one column, or two for long lists
