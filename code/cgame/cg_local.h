@@ -756,6 +756,9 @@ typedef struct {
 
 	qhandle_t	selectShader;
 	qhandle_t	demoPointer;		// mouse pointer over the demo timeline
+	qhandle_t	vfxLineShader;		// placeholder ability looks: coloured lines
+	qhandle_t	vfxCrateModel;
+	qhandle_t	vfxHoundModel;
 	qhandle_t	viewBloodShader;
 	qhandle_t	tracerShader;
 	qhandle_t	crosshairShader[NUM_CROSSHAIRS];

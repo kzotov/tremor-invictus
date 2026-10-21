@@ -411,6 +411,145 @@ static void CG_Item( centity_t *cent ) {
 CG_Missile
 ===============
 */
+/*
+==================
+CG_VfxLine
+==================
+*/
+static void CG_VfxLine( const vec3_t start, const vec3_t end, byte r, byte g, byte b, byte a ) {
+	refEntity_t	re;
+
+	memset( &re, 0, sizeof( re ) );
+	re.reType = RT_RAIL_CORE;
+	re.customShader = cgs.media.vfxLineShader;
+	VectorCopy( start, re.origin );
+	VectorCopy( end, re.oldorigin );
+	re.shaderRGBA[0] = r;
+	re.shaderRGBA[1] = g;
+	re.shaderRGBA[2] = b;
+	re.shaderRGBA[3] = a;
+	trap_R_AddRefEntityToScene( &re );
+}
+
+/*
+==================
+CG_VfxCircle
+
+A flat ring of lines, turned by `phase` degrees
+==================
+*/
+static void CG_VfxCircle( const vec3_t center, float radius, int segments, float phase, byte r, byte g, byte b ) {
+	vec3_t	p0, p1;
+	float	a0, a1;
+	int		i;
+
+	for ( i = 0 ; i < segments ; i++ ) {
+		a0 = DEG2RAD( phase + i * 360.0f / segments );
+		a1 = DEG2RAD( phase + ( i + 1 ) * 360.0f / segments );
+		VectorSet( p0, center[0] + cos( a0 ) * radius, center[1] + sin( a0 ) * radius, center[2] );
+		VectorSet( p1, center[0] + cos( a1 ) * radius, center[1] + sin( a1 ) * radius, center[2] );
+		CG_VfxLine( p0, p1, r, g, b, 255 );
+	}
+}
+
+/*
+==================
+CG_AbilityVisual
+
+Placeholder looks for the newer champions' abilities, made of lines and
+models every install has
+==================
+*/
+static void CG_AbilityVisual( centity_t *cent ) {
+	entityState_t	*s1 = &cent->currentState;
+	refEntity_t		ent;
+	vec3_t			a, b, dir;
+	int				i, t;
+
+	switch ( s1->generic1 ) {
+	case AV_SHOCKZONE:
+		// the zone's edge and a ripple moving out
+		VectorCopy( cent->lerpOrigin, a );
+		a[2] -= 20;
+		CG_VfxCircle( a, 260, 40, cg.time * 0.01f, 140, 120, 200 );
+		CG_VfxCircle( a, 260 * ( ( cg.time % 1500 ) / 1500.0f ), 32, 0, 90, 80, 140 );
+		break;
+
+	case AV_SPINE:
+		BG_EvaluateTrajectoryDelta( &s1->pos, cg.time, dir );
+		VectorNormalize( dir );
+		VectorMA( cent->lerpOrigin, -40, dir, b );
+		CG_VfxLine( cent->lerpOrigin, b, 255, 230, 60, 255 );
+		break;
+
+	case AV_SUPPLYDROP:
+		memset( &ent, 0, sizeof( ent ) );
+		VectorCopy( cent->lerpOrigin, ent.origin );
+		VectorCopy( cent->lerpOrigin, ent.oldorigin );
+		ent.hModel = cgs.media.vfxCrateModel;
+		AxisClear( ent.axis );
+		for ( i = 0 ; i < 3 ; i++ ) {
+			VectorScale( ent.axis[i], 2.0f, ent.axis[i] );
+		}
+		ent.nonNormalizedAxes = qtrue;
+		trap_R_AddRefEntityToScene( &ent );
+		if ( ( cg.time / 400 ) & 1 ) {
+			trap_R_AddLightToScene( cent->lerpOrigin, 120, 0.2f, 1.0f, 0.2f );
+		}
+		break;
+
+	case AV_STORM:
+		// a dark disc high up and blue streaks falling inside 160 units
+		VectorCopy( cent->lerpOrigin, a );
+		a[2] += 256;
+		CG_VfxCircle( a, 160, 32, 0, 60, 60, 80 );
+		CG_VfxCircle( a, 100, 24, 0, 60, 60, 80 );
+		for ( i = 0 ; i < 24 ; i++ ) {
+			float	ang = i * 2.39996f;
+			float	rad = 150 * ( ( i * 37 ) % 100 ) / 100.0f;
+
+			t = ( cg.time + i * 137 ) % 600;
+			VectorSet( a, cent->lerpOrigin[0] + cos( ang ) * rad, cent->lerpOrigin[1] + sin( ang ) * rad,
+				cent->lerpOrigin[2] + 256 - t * 256 / 600 );
+			VectorCopy( a, b );
+			b[2] -= 40;
+			CG_VfxLine( a, b, 80, 140, 255, 255 );
+		}
+		break;
+
+	case AV_HOUND:
+		memset( &ent, 0, sizeof( ent ) );
+		VectorCopy( cent->lerpOrigin, ent.origin );
+		ent.origin[2] += 8;
+		VectorCopy( ent.origin, ent.oldorigin );
+		ent.hModel = cgs.media.vfxHoundModel;
+		BG_EvaluateTrajectoryDelta( &s1->pos, cg.time, dir );
+		dir[2] = 0;
+		if ( VectorNormalize( dir ) == 0 ) {
+			VectorCopy( s1->angles, a );
+			AnglesToAxis( a, ent.axis );
+		} else {
+			VectorCopy( dir, ent.axis[0] );
+			VectorSet( ent.axis[2], 0, 0, 1 );
+			CrossProduct( ent.axis[2], ent.axis[0], ent.axis[1] );
+		}
+		for ( i = 0 ; i < 3 ; i++ ) {
+			VectorScale( ent.axis[i], 1.4f, ent.axis[i] );
+		}
+		ent.nonNormalizedAxes = qtrue;
+		trap_R_AddRefEntityToScene( &ent );
+		break;
+
+	case AV_ANCHOR:
+		// two purple rings turning opposite ways on the floor
+		VectorCopy( cent->lerpOrigin, a );
+		a[2] -= 22;
+		CG_VfxCircle( a, 28, 12, cg.time * 0.12f, 170, 60, 220 );
+		CG_VfxCircle( a, 20, 8, -cg.time * 0.2f, 200, 120, 255 );
+		break;
+	}
+}
+
 static void CG_Missile( centity_t *cent ) {
 	refEntity_t			ent;
 	entityState_t		*s1;
@@ -418,6 +557,10 @@ static void CG_Missile( centity_t *cent ) {
 //	int	col;
 
 	s1 = &cent->currentState;
+	if ( s1->generic1 > AV_NONE && s1->generic1 <= AV_ANCHOR ) {
+		CG_AbilityVisual( cent );
+		return;
+	}
 	if ( s1->weapon >= WP_NUM_WEAPONS ) {
 		s1->weapon = 0;
 	}

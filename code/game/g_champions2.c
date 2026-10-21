@@ -150,6 +150,7 @@ void G_ShellShock( gentity_t *ent ) {
 	vec3_t		dir = { 0, 0, 1 };
 
 	zone = G_AbilityMissile( ent, "shellshock", ent->client->ps.origin, dir, 0, TR_STATIONARY, WP_BFG );
+	zone->s.generic1 = AV_SHOCKZONE;
 	G_AbilityStop( zone, ent->client->ps.origin );
 	zone->clipmask = 0;
 	zone->abilityTime = level.time + g_shockZoneTime.integer;
@@ -217,6 +218,7 @@ void G_SpineVolley( gentity_t *ent ) {
 		VectorScale( forward, cos( angle ), dir );
 		VectorMA( dir, sin( angle ), right, dir );
 		spine = G_AbilityMissile( ent, "spine", start, dir, 1500, TR_LINEAR, WP_PLASMAGUN );
+		spine->s.generic1 = AV_SPINE;
 		spine->abilityImpact = G_SpineImpact;
 		spine->think = G_FreeEntity;
 		spine->nextthink = level.time + 4000;
@@ -307,6 +309,7 @@ void G_SupplyDrop( gentity_t *ent ) {
 	forward[2] += 0.3f;
 	VectorNormalize( forward );
 	crate = G_AbilityMissile( ent, "supplydrop", start, forward, 600, TR_GRAVITY, WP_GRENADE_LAUNCHER );
+	crate->s.generic1 = AV_SUPPLYDROP;
 	crate->abilityImpact = G_CrateImpact;
 	crate->abilityTime = level.time + 15000;
 	crate->think = G_CrateThink;
@@ -406,6 +409,7 @@ void G_Downpour( gentity_t *ent ) {
 	end[2] += 8;
 
 	storm = G_AbilityMissile( ent, "downpour", end, up, 0, TR_STATIONARY, WP_LIGHTNING );
+	storm->s.generic1 = AV_STORM;
 	G_AbilityStop( storm, end );
 	storm->clipmask = 0;
 	storm->wait = level.time + 500;
@@ -510,6 +514,7 @@ void G_ReleaseHound( gentity_t *ent ) {
 	trap_Trace( &tr, ent->client->ps.origin, mins, maxs, start, ent->s.number, MASK_PLAYERSOLID );
 
 	hound = G_AbilityMissile( ent, "hound", tr.endpos, forward, 0, TR_STATIONARY, WP_ROCKET_LAUNCHER );
+	hound->s.generic1 = AV_HOUND;
 	G_AbilityStop( hound, tr.endpos );
 	hound->clipmask = MASK_PLAYERSOLID;
 	VectorCopy( mins, hound->r.mins );
@@ -541,6 +546,7 @@ void G_DropAnchor( gentity_t *ent ) {
 		G_FreeEntity( ent->client->anchorEnt );
 	}
 	anchor = G_AbilityMissile( ent, "riftanchor", ent->client->ps.origin, up, 0, TR_STATIONARY, WP_PLASMAGUN );
+	anchor->s.generic1 = AV_ANCHOR;
 	G_AbilityStop( anchor, ent->client->ps.origin );
 	anchor->clipmask = 0;
 	anchor->think = G_FreeEntity;

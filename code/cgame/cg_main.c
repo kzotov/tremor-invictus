@@ -934,6 +934,9 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.tracerShader = trap_R_RegisterShader( "gfx/misc/tracer" );
 	cgs.media.selectShader = trap_R_RegisterShader( "gfx/2d/select" );
 	cgs.media.demoPointer = trap_R_RegisterShaderNoMip( "menu/art/3_cursor2" );
+	cgs.media.vfxLineShader = trap_R_RegisterShader( "railCore" );
+	cgs.media.vfxCrateModel = trap_R_RegisterModel( "models/powerups/ammo/bfgam.md3" );
+	cgs.media.vfxHoundModel = trap_R_RegisterModel( "models/players/sorlag/head.md3" );
 
 	for ( i = 0 ; i < NUM_CROSSHAIRS ; i++ ) {
 		cgs.media.crosshairShader[i] = trap_R_RegisterShader( va("gfx/2d/crosshair%c", 'a'+i) );

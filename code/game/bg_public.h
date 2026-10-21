@@ -91,6 +91,17 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define	CS_ITEM_TIMERS			28		// "item respawnTime ..." for major items, time 0 = up
 #define	CS_TIMEOUT				29		// level.time a timeout ends, 0 when none
 
+// entityState generic1 of ability entities: which placeholder look to draw
+typedef enum {
+	AV_NONE,
+	AV_SHOCKZONE,		// Wrack's Shell Shock zone
+	AV_SPINE,			// Klesk's spines
+	AV_SUPPLYDROP,		// Sarge's crate
+	AV_STORM,			// Raine's Downpour
+	AV_HOUND,			// the Beastmaster's hound
+	AV_ANCHOR			// Unumrey's Rift Anchor
+} abilityVisual_t;
+
 #define	CS_MODELS				32
 #define	CS_SOUNDS				(CS_MODELS+MAX_MODELS)
 #define	CS_PLAYERS				(CS_SOUNDS+MAX_SOUNDS)
