@@ -602,7 +602,11 @@ void SetTeam( gentity_t *ent, const char *s ) {
 			team = PickTeam( clientNum );
 		}
 
-		if ( g_teamSize.integer > 0 && ( team == TEAM_RED || team == TEAM_BLUE )
+		if ( level.teamLocked[team] && !level.forcingTeam ) {
+			trap_SendServerCommand( clientNum, va( "cp \"%s\"", BG_String( STR_ADMIN_LOCKED ) ) );
+			return;
+		}
+		if ( g_teamSize.integer > 0 && !level.forcingTeam && ( team == TEAM_RED || team == TEAM_BLUE )
 			&& TeamCount( clientNum, team ) >= g_teamSize.integer ) {
 			trap_SendServerCommand( clientNum, va( "cp \"%s\"", BG_String( STR_VOTE_TEAMFULL ) ) );
 			return;
@@ -935,6 +939,11 @@ void G_Say( gentity_t *ent, gentity_t *target, int mode, const char *chatText ) 
 	// don't let text be too long for malicious reasons
 	char		text[MAX_SAY_TEXT];
 	char		location[64];
+
+	if ( ent->client && ent->client->sess.muted ) {
+		trap_SendServerCommand( ent - g_entities, va( "print \"%s\n\"", BG_String( STR_ADMIN_MUTED ) ) );
+		return;
+	}
 
 	if ( g_gametype.integer < GT_TEAM && mode == SAY_TEAM ) {
 		mode = SAY_ALL;
@@ -1912,6 +1921,11 @@ void ClientCommand( int clientNum ) {
 	}
 	if (Q_stricmp (cmd, "timein") == 0) {
 		Cmd_Timein_f (ent);
+		return;
+	}
+
+	if ( Q_stricmp( cmd, "admin" ) == 0 ) {
+		Cmd_Admin_f( ent );
 		return;
 	}
 

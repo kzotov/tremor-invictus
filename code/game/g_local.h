@@ -237,6 +237,7 @@ typedef struct {
 	int			spectatorClient;	// for chasecam and follow mode
 	int			wins, losses;		// tournament stats
 	qboolean	teamLeader;			// true when this client is a team leader
+	qboolean	muted;				// an admin muted their chat
 } clientSession_t;
 
 //
@@ -524,6 +525,8 @@ typedef struct {
 	int			portalSequence;
 #endif
 	qboolean	caLastStanding[TEAM_NUM_TEAMS];	// clan arena: the lone survivor has been told
+	qboolean	teamLocked[TEAM_NUM_TEAMS];	// admin lock: nobody joins
+	qboolean	forcingTeam;		// an admin is moving a player: locks and limits do not apply
 	qboolean	firstBlood;			// medals: the match's first kill has happened
 	int			powerupClient;		// the last client to take a power-up
 	int			powerupStreak;		// how many in a row they took
@@ -716,6 +719,14 @@ void		G_MedalsPickup( gentity_t *ent, gentity_t *item );
 void		G_MedalsRail( gentity_t *ent, int hits );
 void		G_MedalsSpawn( gentity_t *ent );
 void		G_Announce( int clientNum, const char *key );
+
+//
+// g_admin.c
+//
+void		G_LoadAccess( void );
+qboolean	G_TempBanned( const char *ipPort );
+qboolean	G_AdminConsoleCommand( void );
+void		Cmd_Admin_f( gentity_t *ent );
 
 //
 // g_mapvote.c

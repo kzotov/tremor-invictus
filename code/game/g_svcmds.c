@@ -504,6 +504,10 @@ qboolean	ConsoleCommand( void ) {
 		return qtrue;
 	}
 
+	if ( G_AdminConsoleCommand() ) {
+		return qtrue;
+	}
+
 	if ( Q_stricmp (cmd, "forceshuffle") == 0 ) {
 		Svcmd_ForceShuffle_f();
 		return qtrue;

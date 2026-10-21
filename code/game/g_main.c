@@ -284,6 +284,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_mapVoteTime, "g_mapVoteTime", "20", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_mapVoteDelay, "g_mapVoteDelay", "6000", 0, 0, qtrue },		// msec of podium before the vote
 	{ NULL, "g_mapPool", "", CVAR_ARCHIVE, 0, qfalse },
+	{ NULL, "g_tempBans", "", CVAR_ARCHIVE, 0, qfalse },		// "ip untilSeconds ...", from admin ban
 	{ &g_ffaFraglimit, "g_ffaFraglimit", "50", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_ffaMaxPlayers, "g_ffaMaxPlayers", "8", CVAR_ARCHIVE, 0, qtrue },
 	// capture the flag: two halves of this many minutes, and no capture limit by default
@@ -873,6 +874,7 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 
 	trap_SetConfigstring( CS_INTERMISSION, "" );
 	trap_SetConfigstring( CS_MAPVOTE, "" );
+	G_LoadAccess();
 }
 
 
