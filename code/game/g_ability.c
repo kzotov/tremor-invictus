@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "g_local.h"
 
 #define	ABILITY_FRAME		50		// think interval for live ability entities
-#define	ABILITY_PRESTEP		50		// move a bit on the very first frame, as missiles do
+#define	ABILITY_PRESTEP		25		// start 25 ms along the path, as missiles do
 
 void G_DroneEnd( gentity_t *ent, qboolean launch );
 
@@ -935,7 +935,9 @@ static void G_FireLaser( gentity_t *ent ) {
 
 	G_AbilityEyes( ent, start, forward, right );
 	VectorMA( start, g_laserRange.value, forward, end );
-	trap_Trace( &tr, start, NULL, NULL, end, ent->s.number, MASK_SHOT );
+	G_RewindPlayers( ent );
+	G_ShotTrace( &tr, start, NULL, NULL, end, ent->s.number, MASK_SHOT );
+	G_RestorePlayers();
 
 	tent = G_TempEntity( tr.endpos, EV_RAILTRAIL );
 	VectorCopy( start, tent->s.origin2 );

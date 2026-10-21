@@ -1164,6 +1164,8 @@ extern	vmCvar_t		pmove_fixed;
 extern	vmCvar_t		pmove_msec;
 extern	vmCvar_t		cg_autoHop;
 extern	vmCvar_t		cg_playerScale;
+extern	vmCvar_t		cg_projectileNudge;
+extern	vmCvar_t		cg_autoProjectileNudge;
 //extern	vmCvar_t		cg_pmove_fixed;
 extern	vmCvar_t		cg_cameraOrbit;
 extern	vmCvar_t		cg_cameraOrbitDelay;

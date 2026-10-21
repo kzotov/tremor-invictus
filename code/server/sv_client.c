@@ -1420,13 +1420,13 @@ void SV_UserinfoChanged( client_t *cl ) {
 		if (strlen(val)) {
 			i = atoi(val);
 			cl->rate = i;
-			if (cl->rate < 1000) {
-				cl->rate = 1000;
-			} else if (cl->rate > 90000) {
-				cl->rate = 90000;
+			if (cl->rate < SV_MIN_RATE) {
+				cl->rate = SV_MIN_RATE;
+			} else if (cl->rate > SV_MAX_RATE) {
+				cl->rate = SV_MAX_RATE;
 			}
 		} else {
-			cl->rate = 3000;
+			cl->rate = SV_MIN_RATE;
 		}
 	}
 	val = Info_ValueForKey (cl->userinfo, "handicap");
@@ -1437,22 +1437,8 @@ void SV_UserinfoChanged( client_t *cl ) {
 		}
 	}
 
-	// snaps command
-	val = Info_ValueForKey (cl->userinfo, "snaps");
-	
-	if(strlen(val))
-	{
-		i = atoi(val);
-		
-		if(i < 1)
-			i = 1;
-		else if(i > sv_fps->integer)
-			i = sv_fps->integer;
-
-		i = 1000 / i;
-	}
-	else
-		i = 50;
+	// a snapshot every tick for everyone; the "snaps" userinfo is ignored
+	i = SV_TICK_MSEC;
 
 	if(i != cl->snapshotMsec)
 	{

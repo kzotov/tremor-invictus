@@ -1033,7 +1033,7 @@ int SV_FrameMsec(void)
 	{
 		int frameMsec;
 		
-		frameMsec = 1000.0f / sv_fps->value;
+		frameMsec = SV_TICK_MSEC;
 		
 		if(frameMsec < sv.timeResidual)
 			return 0;
@@ -1080,15 +1080,11 @@ void SV_Frame( int msec ) {
 	}
 
 	// if it isn't time for the next frame, do nothing
-	if ( sv_fps->integer < 1 ) {
-		Cvar_Set( "sv_fps", "10" );
-	}
-
-	frameMsec = 1000 / sv_fps->integer * com_timescale->value;
+	frameMsec = SV_TICK_MSEC * com_timescale->value;
 	// don't let it scale below 1ms
 	if(frameMsec < 1)
 	{
-		Cvar_Set("timescale", va("%f", sv_fps->integer / 1000.0f));
+		Cvar_Set("timescale", va("%f", 1.0f / SV_TICK_MSEC));
 		frameMsec = 1;
 	}
 
@@ -1185,8 +1181,11 @@ int SV_RateMsec(client_t *client)
 
 	if(sv_maxRate->integer)
 	{
-		if(sv_maxRate->integer < 1000)
-			Cvar_Set( "sv_MaxRate", "1000" );
+		// operators may lower the ceiling to 25000 at most
+		if(sv_maxRate->integer < 25000)
+			Cvar_Set( "sv_maxRate", "25000" );
+		else if(sv_maxRate->integer > SV_MAX_RATE)
+			Cvar_Set( "sv_maxRate", va( "%i", SV_MAX_RATE ) );
 		if(sv_maxRate->integer < rate)
 			rate = sv_maxRate->integer;
 	}

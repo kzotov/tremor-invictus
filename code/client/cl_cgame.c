@@ -991,11 +991,20 @@ void CL_SetCGameTime( void ) {
 		// smoothness or better responsiveness.
 		int tn;
 		
-		tn = cl_timeNudge->integer;
-		if (tn<-30) {
-			tn = -30;
-		} else if (tn>30) {
-			tn = 30;
+		// within one server tick, never ahead; automatic: minus half the ping;
+		// off on a LAN server
+		if ( cl_autoTimeNudge->integer ) {
+			tn = -cl.snap.ping / 2;
+		} else {
+			tn = cl_timeNudge->integer;
+		}
+		if (tn < -16) {
+			tn = -16;
+		} else if (tn > 0) {
+			tn = 0;
+		}
+		if ( Sys_IsLANAddress( clc.serverAddress ) ) {
+			tn = 0;
 		}
 
 		cl.serverTime = cls.realtime + cl.serverTimeDelta - tn;

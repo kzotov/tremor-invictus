@@ -789,6 +789,67 @@ static void CG_InterpolateEntityPosition( centity_t *cent ) {
 
 /*
 ===============
+CG_ExtrapolatePlayer
+
+Moves a player on along its last velocity, for at most two server ticks
+===============
+*/
+#define	EXTRAPOLATE_MSEC	32
+
+static void CG_ExtrapolatePlayer( centity_t *cent ) {
+	float	dt;
+
+	dt = cg.time - cg.snap->serverTime;
+	if ( dt > EXTRAPOLATE_MSEC ) {
+		dt = EXTRAPOLATE_MSEC;
+	} else if ( dt < 0 ) {
+		dt = 0;
+	}
+	VectorMA( cent->currentState.pos.trBase, dt * 0.001f, cent->currentState.pos.trDelta, cent->lerpOrigin );
+	BG_EvaluateTrajectory( &cent->currentState.apos, cg.time, cent->lerpAngles );
+}
+
+/*
+===============
+CG_NudgedMissilePosition
+
+Other players' straight-flying projectiles are drawn ahead by the nudge
+(your ping when automatic, at most 80 ms) so they show where the server
+has them; never through a wall. Bouncing, falling and hook projectiles
+are not nudged.
+===============
+*/
+static void CG_NudgedMissilePosition( centity_t *cent ) {
+	trace_t	tr;
+	vec3_t	nudged;
+	int		nudge;
+
+	BG_EvaluateTrajectory( &cent->currentState.pos, cg.time, cent->lerpOrigin );
+	BG_EvaluateTrajectory( &cent->currentState.apos, cg.time, cent->lerpAngles );
+
+	if ( cent->currentState.pos.trType != TR_LINEAR || cent->currentState.weapon == WP_GRAPPLING_HOOK
+		|| cent->currentState.otherEntityNum2 == cg.snap->ps.clientNum ) {
+		return;
+	}
+	if ( cg_autoProjectileNudge.integer ) {
+		nudge = cg.snap->ping;
+		if ( nudge > 80 ) {
+			nudge = 80;
+		}
+	} else {
+		nudge = cg_projectileNudge.integer;
+	}
+	if ( nudge <= 0 ) {
+		return;
+	}
+
+	BG_EvaluateTrajectory( &cent->currentState.pos, cg.time + nudge, nudged );
+	CG_Trace( &tr, cent->lerpOrigin, vec3_origin, vec3_origin, nudged, cent->currentState.number, MASK_SOLID );
+	VectorCopy( tr.endpos, cent->lerpOrigin );
+}
+
+/*
+===============
 CG_CalcEntityLerpPositions
 
 ===============
@@ -806,6 +867,19 @@ static void CG_CalcEntityLerpPositions( centity_t *cent ) {
 
 	if ( cent->interpolate && cent->currentState.pos.trType == TR_INTERPOLATE ) {
 		CG_InterpolateEntityPosition( cent );
+		return;
+	}
+
+	// no newer snapshot: carry other players on for at most two ticks, then hold
+	if ( !cent->interpolate && cent->currentState.pos.trType == TR_INTERPOLATE
+		&& cent->currentState.number < MAX_CLIENTS && cent != &cg.predictedPlayerEntity ) {
+		CG_ExtrapolatePlayer( cent );
+		return;
+	}
+
+	// other players' straight projectiles are drawn where the server has them
+	if ( cent->currentState.eType == ET_MISSILE ) {
+		CG_NudgedMissilePosition( cent );
 		return;
 	}
 

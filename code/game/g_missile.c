@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 #include "g_local.h"
 
-#define	MISSILE_PRESTEP_TIME	50
+#define	MISSILE_PRESTEP_TIME	25		// projectiles start 25 ms along their path
 
 /*
 ================
@@ -458,6 +458,9 @@ void G_RunMissile( gentity_t *ent ) {
 
 	// get current position
 	BG_EvaluateTrajectory( &ent->s.pos, level.time, origin );
+
+	// clients tell their own projectiles from others' by this
+	ent->s.otherEntityNum2 = ent->r.ownerNum;
 
 	// if this missile bounced off an invulnerability sphere
 	if ( ent->target_ent ) {

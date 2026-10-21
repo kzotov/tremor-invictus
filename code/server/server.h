@@ -265,6 +265,10 @@ extern	server_t		sv;					// cleared each map
 extern	vm_t			*gvm;				// game virtual machine
 
 extern	cvar_t	*sv_fps;
+
+#define	SV_TICK_MSEC	16			// fixed server tick, one snapshot per tick to every client
+#define	SV_MIN_RATE		8000		// client rate limits; the low end is used when none is sent
+#define	SV_MAX_RATE		100000
 extern	cvar_t	*sv_timeout;
 extern	cvar_t	*sv_zombietime;
 extern	cvar_t	*sv_rconPassword;

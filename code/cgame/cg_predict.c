@@ -279,6 +279,12 @@ static void CG_TouchItem( centity_t *cent ) {
 
 	item = &bg_itemlist[ cent->currentState.modelindex ];
 
+	// major items wait for the server: armor, mega health, holdables, powerups
+	if ( item->giType == IT_ARMOR || item->giType == IT_HOLDABLE || item->giType == IT_POWERUP
+		|| ( item->giType == IT_HEALTH && item->quantity == 100 ) ) {
+		return;
+	}
+
 	// Special case for flags.  
 	// We don't predict touching our own flag
 #ifdef MISSIONPACK

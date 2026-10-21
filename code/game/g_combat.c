@@ -466,6 +466,10 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 		Weapon_HookFree(self->client->hook);
 	}
 	G_EndRush( self );
+	// an ability still inside its press delay is cancelled and its charge kept
+	if ( BG_AbilityState( &self->client->ps ) == ABILITY_WINDUP ) {
+		BG_SetAbility( &self->client->ps, ABILITY_WINDUP, BG_AbilityCharges( &self->client->ps ) + 1 );
+	}
 	BG_SetAbility( &self->client->ps, ABILITY_IDLE, BG_AbilityCharges( &self->client->ps ) );
 	self->client->ps.stats[STAT_ABILITY_TIME] = 0;
 	self->client->abilityPrevState = ABILITY_IDLE;

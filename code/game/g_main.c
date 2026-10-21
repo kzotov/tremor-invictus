@@ -122,6 +122,9 @@ vmCvar_t	g_droneRocketDamage;
 vmCvar_t	g_droneRocketRadius;
 vmCvar_t	g_stroyentHeal;
 vmCvar_t	g_stroyentLife;
+vmCvar_t	g_lagHaxMs;
+vmCvar_t	g_cylinderScale;
+vmCvar_t	g_rewindDebug;
 vmCvar_t	g_hookSpeed;
 vmCvar_t	g_hookRange;
 vmCvar_t	g_hookDamage;
@@ -297,6 +300,9 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_droneRocketRadius, "g_droneRocketRadius", "120", 0, 0, qtrue },
 	{ &g_stroyentHeal, "g_stroyentHeal", "25", 0, 0, qtrue },
 	{ &g_stroyentLife, "g_stroyentLife", "20000", 0, 0, qtrue },
+	{ &g_lagHaxMs, "g_lagHaxMs", "80", CVAR_ARCHIVE | CVAR_LATCH, 0, qtrue },
+	{ &g_cylinderScale, "g_cylinderScale", "1.1", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_rewindDebug, "g_rewindDebug", "0", 0, 0, qtrue },
 	{ &g_hookSpeed, "g_hookSpeed", "3000", 0, 0, qtrue },
 	{ &g_hookRange, "g_hookRange", "4000", 0, 0, qtrue },
 	{ &g_hookDamage, "g_hookDamage", "25", 0, 0, qtrue },
@@ -344,8 +350,9 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_proxMineTimeout, "g_proxMineTimeout", "20000", 0, 0, qfalse },
 #endif
 	{ &g_smoothClients, "g_smoothClients", "1", 0, 0, qfalse},
-	{ &pmove_fixed, "pmove_fixed", "0", CVAR_SYSTEMINFO, 0, qfalse},
-	{ &pmove_msec, "pmove_msec", "8", CVAR_SYSTEMINFO, 0, qfalse},
+	// movement always runs in fixed 8 ms steps on server and clients
+	{ &pmove_fixed, "pmove_fixed", "1", CVAR_SYSTEMINFO | CVAR_ROM, 0, qfalse},
+	{ &pmove_msec, "pmove_msec", "8", CVAR_SYSTEMINFO | CVAR_ROM, 0, qfalse},
 
 	{ &g_rankings, "g_rankings", "0", 0, 0, qfalse},
 	{ &g_localTeamPref, "g_localTeamPref", "", 0, 0, qfalse }
@@ -589,6 +596,7 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	srand( randomSeed );
 
 	G_RegisterCvars();
+	G_RewindInit();
 
 	G_ProcessIPBans();
 
@@ -2044,6 +2052,7 @@ void G_RunFrame( int levelTime ) {
 	}
 
 	G_UpdateRevealedPlayers();
+	G_RewindRecord();
 
 	// see if it is time to do a tournement restart
 	CheckTournament();

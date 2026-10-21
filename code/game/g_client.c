@@ -1186,6 +1186,7 @@ void ClientSpawn(gentity_t *ent) {
 	client->ps.clientNum = index;
 
 	client->ps.stats[STAT_CHAMPION] = client->pers.champion;
+	G_RewindReset( ent );
 	ClientUserinfoChanged( index );		// show this champion's model
 	BG_SetAbility( &client->ps, ABILITY_IDLE,
 		BG_AbilityParam( BG_Champion( client->pers.champion )->active, AP_CHARGES ) );
