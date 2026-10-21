@@ -1092,6 +1092,7 @@ FireWeapon
 ===============
 */
 void FireWeapon( gentity_t *ent ) {
+	ent->client->spawnProtectEnd = 0;		// firing ends spawn protection
 	if (ent->client->ps.powerups[PW_QUAD] ) {
 		s_quadFactor = g_quadfactor.value;
 	} else {

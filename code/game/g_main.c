@@ -209,6 +209,8 @@ vmCvar_t	g_overtime;
 vmCvar_t	g_duelReadyUp;
 vmCvar_t	g_duelFraglimit;
 vmCvar_t	g_tdmFraglimit;
+vmCvar_t	g_spawnProtection;
+vmCvar_t	g_spawnProtectionScale;
 vmCvar_t	g_teamSize;
 vmCvar_t	g_voteTypes;
 vmCvar_t	g_mapVote;
@@ -274,6 +276,8 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_duelReadyUp, "g_duelReadyUp", "1", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_duelFraglimit, "g_duelFraglimit", "0", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_tdmFraglimit, "g_tdmFraglimit", "75", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_spawnProtection, "g_spawnProtection", "1000", 0, 0, qtrue },		// msec after spawning
+	{ &g_spawnProtectionScale, "g_spawnProtectionScale", "0.5", 0, 0, qtrue },
 	{ &g_teamSize, "g_teamSize", "0", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue },		// players per team, 0 = no limit
 	{ &g_voteTypes, "g_voteTypes", "map nextmap map_restart kick shuffle teamsize timelimit fraglimit capturelimit roundlimit mode cointoss", CVAR_ARCHIVE, 0, qfalse },
 	{ &g_mapVote, "g_mapVote", "1", CVAR_ARCHIVE, 0, qtrue },			// end-of-match map vote; 0 = the rotation decides

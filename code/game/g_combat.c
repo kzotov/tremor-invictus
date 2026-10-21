@@ -1149,6 +1149,12 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if ( damage <= 0 ) {
 		return;
 	}
+	// just spawned: less damage until the protection runs out or the player fires
+	if ( client && level.time < client->spawnProtectEnd && attacker && attacker->client && attacker != targ && mod != MOD_TELEFRAG ) {
+		take = damage * g_spawnProtectionScale.value;
+		damage = take < 1 ? 1 : take;
+	}
+
 	// barrier shield
 	{
 		float	shield = G_BarrierScale( targ, mod );

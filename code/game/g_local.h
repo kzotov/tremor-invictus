@@ -347,6 +347,7 @@ struct gclient_s {
 	int			deathInflictor;
 	int			pointBlankTime;		// one Point Blank per shot
 	qboolean	tankDone;			// one Tank per life
+	int			spawnProtectEnd;	// level.time spawn protection ends
 
 	qboolean	fireHeld;			// used for hook
 	gentity_t	*hook;				// grapple hook if out
@@ -967,6 +968,8 @@ extern	vmCvar_t	g_overtime;
 extern	vmCvar_t	g_duelReadyUp;
 extern	vmCvar_t	g_duelFraglimit;
 extern	vmCvar_t	g_tdmFraglimit;
+extern	vmCvar_t	g_spawnProtection;
+extern	vmCvar_t	g_spawnProtectionScale;
 extern	vmCvar_t	g_teamSize;
 extern	vmCvar_t	g_voteTypes;
 extern	vmCvar_t	g_mapVote;
