@@ -77,6 +77,9 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_hopMaxSpeed",		"500",	&bg_pmoveSettings.hopMaxSpeed },
 	{ {0}, "pm_easyStrafeAccel",	"0.1",	&bg_pmoveSettings.easyStrafeAccel },
 	{ {0}, "pm_easyStrafeMaxSpeed",	"400",	&bg_pmoveSettings.easyStrafeMaxSpeed },
+	{ {0}, "pm_isoAirAccel",		"2.5",	&bg_pmoveSettings.isoAirAccel },
+	{ {0}, "pm_isoAirControl",		"1",	&bg_pmoveSettings.isoAirControl },
+	{ {0}, "pm_isoAirClamp",		"10",	&bg_pmoveSettings.isoAirClamp },
 
 	{ {0}, "pm_chainTime",			"500",	&bg_pmoveSettings.chainTime },
 	{ {0}, "pm_chainVelocity",		"110",	&bg_pmoveSettings.chainVelocity },
@@ -1100,11 +1103,11 @@ Air-control style: with only forward or back held, turn the velocity
 toward the wish direction without changing speed
 ===================
 */
-static void PM_AirControl( const vec3_t wishdir, float wishspeed ) {
+static void PM_AirControl( const vec3_t wishdir, float wishspeed, float strength ) {
 	vec3_t		dir;
 	float		zspeed, speed, dot, k;
 
-	if ( wishspeed == 0 || bg_pmoveSettings.acAirControl <= 0 ) {
+	if ( wishspeed == 0 || strength <= 0 ) {
 		return;
 	}
 
@@ -1121,7 +1124,7 @@ static void PM_AirControl( const vec3_t wishdir, float wishspeed ) {
 	}
 
 	// turn rate grows with the square of how well aim and velocity agree
-	k = bg_pmoveSettings.acAirControl * 32 * dot * dot * pml.frametime;
+	k = strength * 32 * dot * dot * pml.frametime;
 	VectorScale( dir, speed, dir );
 	VectorMA( dir, k, wishdir, dir );
 	VectorNormalize( dir );
@@ -1200,7 +1203,24 @@ static void PM_AirMove( void ) {
 	}
 
 	if ( pml.champion->moveStyle == MOVE_AIRCONTROL && fmove != 0 && smove == 0 ) {
-		PM_AirControl( wishdir, wishspeed );
+		PM_AirControl( wishdir, wishspeed, bg_pmoveSettings.acAirControl );
+	}
+
+	// isotropic: steering works with any keys, and speed over the cap bleeds off fast
+	if ( pml.champion->abilities & MOVEABIL_ISOAIR ) {
+		float	h, cap = pml.champion->jumpSpeedCap;
+
+		PM_AirControl( wishdir, wishspeed, bg_pmoveSettings.isoAirControl );
+		h = sqrt( pm->ps->velocity[0] * pm->ps->velocity[0] + pm->ps->velocity[1] * pm->ps->velocity[1] );
+		if ( cap > 0 && h > cap ) {
+			float	nh = h - ( h - cap ) * bg_pmoveSettings.isoAirClamp * pml.frametime;
+
+			if ( nh < cap ) {
+				nh = cap;
+			}
+			pm->ps->velocity[0] *= nh / h;
+			pm->ps->velocity[1] *= nh / h;
+		}
 	}
 
 	// we may have a ground plane that is very steep, even
@@ -2971,6 +2991,9 @@ static float PM_ClassAirAccelerate( void ) {
 		accel = bg_pmoveSettings.airAccelHeavy;
 	} else {
 		accel = bg_pmoveSettings.airAccelMedium;
+	}
+	if ( pml.champion->abilities & MOVEABIL_ISOAIR ) {
+		accel *= bg_pmoveSettings.isoAirAccel;
 	}
 	return accel * bg_pmoveSettings.airAccelerate;
 }

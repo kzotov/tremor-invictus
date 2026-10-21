@@ -390,8 +390,13 @@ static void G_UseAbility( gentity_t *ent ) {
 		break;
 
 	case ACTIVE_INJECTION:
+		// a lasting rise in maximum health for this life, and no more debuffs
+		if ( client->ps.stats[STAT_MAX_HEALTH] < client->pers.maxHealth + g_injectionMaxGainCap.integer ) {
+			client->ps.stats[STAT_MAX_HEALTH] += g_injectionMaxGain.integer;
+		}
 		max = client->ps.stats[STAT_MAX_HEALTH] + G_ClassInfo( client )->maxHealthBonus;
 		G_ClearDamageOverTime( ent );
+		client->ps.powerups[PW_SHELLSHOCK] = 0;
 		if ( ent->health < max ) {
 			ent->health += g_injectionHeal.integer;
 			if ( ent->health > max ) {

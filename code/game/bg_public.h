@@ -577,6 +577,7 @@ typedef enum {
 	STR_CH_MOVE_RAMP,
 	STR_CH_MOVE_BUNNY,
 	STR_CH_MOVE_EASYSTRAFE,
+	STR_CH_MOVE_ISOAIR,
 	STR_CH_WEAPON_MG,
 	STR_CH_WEAPON_SG,
 	STR_CH_WEAPON_NG,
@@ -658,6 +659,7 @@ typedef enum {
 #define	MOVEABIL_RAMPJUMP		32	// jumping off a climb goes higher
 #define	MOVEABIL_BUNNYHOP		64	// each jump adds a share of the speed, up to a cap
 #define	MOVEABIL_EASYSTRAFE		128	// extra air acceleration up to a speed
+#define	MOVEABIL_ISOAIR			256	// steers in the air in every direction; hard speed clamp in air
 
 // active abilities, on BUTTON_ABILITY
 typedef enum {
@@ -822,6 +824,9 @@ typedef struct {
 	float	hopMaxSpeed;
 	float	easyStrafeAccel;
 	float	easyStrafeMaxSpeed;
+	float	isoAirAccel;			// air acceleration scale
+	float	isoAirControl;			// turn strength, any direction
+	float	isoAirClamp;			// how fast speed over the cap bleeds off in air (per second)
 
 	float	chainTime;				// msec after a jump that a new jump goes higher
 	float	chainVelocity;			// air-control style: added upward speed

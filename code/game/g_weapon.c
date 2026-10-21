@@ -167,6 +167,15 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 
 	damage = BG_WeaponParam( WP_GAUNTLET, WPP_DAMAGE ) * s_quadFactor;
 	if ( G_AbilityActive( ent, ACTIVE_BERSERK ) ) {
+		// one punch per victim per second
+		if ( traceEnt->client ) {
+			int		*last = &ent->client->berserkHitTime[traceEnt->s.number];
+
+			if ( *last && level.time - *last < g_berserkHitCooldown.integer ) {
+				return qfalse;
+			}
+			*last = level.time;
+		}
 		damage = g_berserkDamage.value * s_quadFactor;
 	}
 	G_WeaponKnock( WP_GAUNTLET, traceEnt, ent );

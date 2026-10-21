@@ -168,6 +168,9 @@ vmCvar_t	g_hwDamage2;
 vmCvar_t	g_hwDamagePer100;
 vmCvar_t	g_hwKnockback;
 vmCvar_t	g_hookKnockback;
+vmCvar_t	g_injectionMaxGain;
+vmCvar_t	g_injectionMaxGainCap;
+vmCvar_t	g_berserkHitCooldown;
 vmCvar_t	g_hookBreakDamage;
 vmCvar_t	g_totemBlastRadius;
 vmCvar_t	g_turretDeployTime;
@@ -427,6 +430,9 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_hwDamagePer100, "g_hwDamagePer100", "25", 0, 0, qtrue },
 	{ &g_hwKnockback, "g_hwKnockback", "100", 0, 0, qtrue },
 	{ &g_hookKnockback, "g_hookKnockback", "50", 0, 0, qtrue },
+	{ &g_injectionMaxGain, "g_injectionMaxGain", "5", 0, 0, qtrue },
+	{ &g_injectionMaxGainCap, "g_injectionMaxGainCap", "25", 0, 0, qtrue },
+	{ &g_berserkHitCooldown, "g_berserkHitCooldown", "1000", 0, 0, qtrue },
 	{ &g_hookBreakDamage, "g_hookBreakDamage", "75", 0, 0, qtrue },
 	{ &g_totemBlastRadius, "g_totemBlastRadius", "160", 0, 0, qtrue },
 	{ &g_turretDeployTime, "g_turretDeployTime", "2000", 0, 0, qtrue },

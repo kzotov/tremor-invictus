@@ -362,6 +362,7 @@ struct gclient_s {
 	int			burnEndTime, burnNextTime, burnAttacker;
 	int			poisonEndTime, poisonNextTime, poisonAttacker;
 	int			collisionTime[MAX_CLIENTS];	// level.time of the last collision hit per victim
+	int			berserkHitTime[MAX_CLIENTS];	// level.time of the last Berserk punch per victim
 
 	int			switchTeamTime;		// time the player switched teams
 
@@ -1042,6 +1043,9 @@ extern	vmCvar_t	g_hwDamage2;
 extern	vmCvar_t	g_hwDamagePer100;
 extern	vmCvar_t	g_hwKnockback;
 extern	vmCvar_t	g_hookKnockback;
+extern	vmCvar_t	g_injectionMaxGain;
+extern	vmCvar_t	g_injectionMaxGainCap;
+extern	vmCvar_t	g_berserkHitCooldown;
 void G_BreakHook( gentity_t *ent );
 void G_BounceMissile( gentity_t *ent, trace_t *trace );
 void G_MissileImpact( gentity_t *ent, trace_t *trace );
