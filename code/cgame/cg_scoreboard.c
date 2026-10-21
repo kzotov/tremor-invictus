@@ -23,6 +23,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // cg_scoreboard -- draw the scoreboard on top of the game screen
 #include "cg_local.h"
 
+static qboolean CG_FlagBoard( void );
+
 
 #define	SCOREBOARD_X		(0)
 
@@ -175,6 +177,11 @@ static void CG_DrawClientScore( int y, score_t *score, float *color, float fade,
 	} else if ( ci->team == TEAM_SPECTATOR ) {
 		Com_sprintf(string, sizeof(string),
 			" SPECT %3i %4i %s", score->ping, score->time, ci->name);
+	} else if ( CG_FlagBoard() ) {
+		// capture the flag: captures, assists and defends instead of damage
+		Com_sprintf(string, sizeof(string),
+			"%4i %3i %2i %2i %2i %3i %s", score->score, score->deaths, score->captures, score->assistCount,
+			score->defendCount, score->ping, ci->name);
 	} else {
 		Com_sprintf(string, sizeof(string),
 			"%4i %3i %5i %3i %s", score->score, score->deaths, score->damage, score->ping, ci->name);
@@ -431,10 +438,18 @@ qboolean CG_DrawOldScoreboard( void ) {
 	{
 		static const int	titles[] = { STR_SB_SCORE, STR_SB_DEATHS, STR_SB_DAMAGE, STR_SB_PING, STR_SB_NAME };
 		static const int	columns[] = { 0, 5, 9, 15, 19 };		// in big characters
+		static const int	flagTitles[] = { STR_SB_SCORE, STR_SB_DEATHS, STR_SB_CAPS, STR_SB_ASSISTS, STR_SB_DEFENDS, STR_SB_PING, STR_SB_NAME };
+		static const int	flagColumns[] = { 0, 5, 9, 12, 15, 18, 22 };
 		int					i, x0 = SB_SCORELINE_X + ( SB_RATING_WIDTH / 2 );
 
-		for ( i = 0 ; i < ARRAY_LEN( titles ) ; i++ ) {
-			CG_DrawSmallString( x0 + columns[i] * BIGCHAR_WIDTH, y + 12, BG_String( titles[i] ), fade );
+		if ( CG_FlagBoard() ) {
+			for ( i = 0 ; i < ARRAY_LEN( flagTitles ) ; i++ ) {
+				CG_DrawSmallString( x0 + flagColumns[i] * BIGCHAR_WIDTH, y + 12, BG_String( flagTitles[i] ), fade );
+			}
+		} else {
+			for ( i = 0 ; i < ARRAY_LEN( titles ) ; i++ ) {
+				CG_DrawSmallString( x0 + columns[i] * BIGCHAR_WIDTH, y + 12, BG_String( titles[i] ), fade );
+			}
 		}
 	}
 
@@ -621,4 +636,15 @@ void CG_DrawTourneyScoreboard( void ) {
 
 
 }
+/*
+=================
+CG_FlagBoard
+
+Capture the flag (not sacrifice) shows captures, assists and defends
+=================
+*/
+static qboolean CG_FlagBoard( void ) {
+	return cgs.gametype == GT_CTF && !atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_sacrifice" ) );
+}
+
 
