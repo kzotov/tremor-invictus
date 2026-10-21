@@ -3207,6 +3207,9 @@ static void CL_RmlFreeFile( void *buffer ) {
 static void CL_RmlSetCvar( const char *name, const char *value ) {
 	Cvar_Set( name, value );
 }
+static void CL_RmlGetCvar( const char *name, char *buffer, int size ) {
+	Cvar_VariableStringBuffer( name, buffer, size );
+}
 
 static void CL_RmlShow_f( void ) {
 	if ( Cmd_Argc() < 2 ) {
@@ -3256,6 +3259,7 @@ static void CL_RmlStart( void ) {
 	imp.ReadFile = CL_RmlReadFile;
 	imp.FreeFile = CL_RmlFreeFile;
 	imp.SetCvar = CL_RmlSetCvar;
+	imp.GetCvar = CL_RmlGetCvar;
 	Cvar_Get( "rml_active", "0", CVAR_ROM );
 	Cmd_AddCommand( "rml_show", CL_RmlShow_f );
 	Cmd_AddCommand( "rml_hide", CL_RmlHide_f );

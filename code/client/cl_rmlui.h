@@ -45,6 +45,7 @@ typedef struct {
 	int		(*ReadFile)( const char *path, void **buffer );	// game file system; -1 when missing
 	void	(*FreeFile)( void *buffer );
 	void	(*SetCvar)( const char *name, const char *value );
+	void	(*GetCvar)( const char *name, char *buffer, int size );
 } rmlImport_t;
 
 void	RML_Init( const rmlImport_t *import, int width, int height );

@@ -210,6 +210,14 @@ static void InGame_Draw( void ) {
 
 	// the whole screen, not just the 4:3 area
 	UI_FillRect( left, 0, 2000, 480, dim );		// past any right edge
+
+	// the RmlUi menu (ui_rmlMenu) draws itself over the dimmed game
+	if ( trap_Cvar_VariableValue( "ui_rmlMenu" ) && trap_Cvar_VariableValue( "rml_ok" ) ) {
+		if ( !trap_Cvar_VariableValue( "rml_active" ) ) {
+			trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/ingame.rml\n" );
+		}
+		return;
+	}
 	UI_FillRect( left, 0, 220 - left, 480, panel );
 	UI_FillRect( 220, 0, 1, 480, hairline );
 

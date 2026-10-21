@@ -31,7 +31,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <RmlUi/Core.h>
 
+#include <cctype>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <map>
 #include <vector>
@@ -481,11 +483,71 @@ extern "C" int RML_Active( void ) {
 	return initialised && document && document->IsVisible();
 }
 
+/*
+=================
+Condition
+
+data-when="cvar=value&cvar!=value&cvar>=n": an element shows only when all
+of them hold (numbers compare as numbers)
+=================
+*/
+bool Condition( const Rml::String &when ) {
+	size_t	start = 0;
+
+	while ( start < when.size() ) {
+		size_t			end = when.find( '&', start ), op;
+		Rml::String		part, name, value, op2;
+		char			buffer[256];
+
+		if ( end == Rml::String::npos ) {
+			end = when.size();
+		}
+		part = when.substr( start, end - start );
+		start = end + 1;
+		op = part.find_first_of( "=!<>" );
+		if ( op == Rml::String::npos ) {
+			continue;
+		}
+		name = part.substr( 0, op );
+		op2 = part.substr( op, part[op + 1] == '=' ? 2 : 1 );
+		value = part.substr( op + op2.size() );
+		imp.GetCvar( name.c_str(), buffer, sizeof( buffer ) );
+		{
+			float	a = (float)atof( buffer ), b = (float)atof( value.c_str() );
+			bool	equal = value == buffer || ( buffer[0] && a == b && ( value[0] == '-' || isdigit( (unsigned char)value[0] ) ) );
+			bool	ok = op2 == "=" ? equal : op2 == "!=" ? !equal : op2 == ">=" ? a >= b
+				: op2 == "<=" ? a <= b : op2 == ">" ? a > b : op2 == "<" ? a < b : true;
+
+			if ( !ok ) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+void ApplyConditions( Rml::Element *element ) {
+	for ( int i = 0 ; i < element->GetNumChildren() ; i++ ) {
+		Rml::Element	*child = element->GetChild( i );
+		Rml::Variant	*when = child->GetAttribute( "data-when" );
+
+		if ( when ) {
+			if ( Condition( when->Get<Rml::String>() ) ) {
+				child->RemoveProperty( "display" );
+			} else {
+				child->SetProperty( "display", "none" );
+			}
+		}
+		ApplyConditions( child );
+	}
+}
+
 extern "C" void RML_Show( const char *path ) {
 	if ( !initialised ) {
 		return;
 	}
 	if ( document && documentPath == path ) {
+		ApplyConditions( document );
 		document->Show();
 		imp.SetCvar( "rml_active", "1" );
 		return;
@@ -502,6 +564,7 @@ extern "C" void RML_Show( const char *path ) {
 		return;
 	}
 	documentPath = path;
+	ApplyConditions( document );
 	document->Show();
 	imp.SetCvar( "rml_active", "1" );
 }
@@ -579,6 +642,11 @@ extern "C" int RML_KeyEvent( int key, int down ) {
 		if ( down ) {
 			context->ProcessMouseWheel( Rml::Vector2f( 0, key == K_MWHEELUP ? -1.0f : 1.0f ), 0 );
 		}
+		return 1;
+	}
+	// Escape runs the document's data-escape command, if it has one
+	if ( key == K_ESCAPE && down && document->GetAttribute( "data-escape" ) ) {
+		imp.ExecuteText( ( document->GetAttribute<Rml::String>( "data-escape", "" ) + "\n" ).c_str() );
 		return 1;
 	}
 	if ( down ) {

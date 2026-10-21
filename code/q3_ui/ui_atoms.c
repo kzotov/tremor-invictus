@@ -1046,6 +1046,26 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	if ( Q_stricmp (cmd, "ui_close") == 0 ) {
+		UI_ForceMenuOff();
+		return qtrue;
+	}
+
+	if ( Q_stricmp (cmd, "ui_team") == 0 ) {
+		UI_TeamMainMenu();
+		return qtrue;
+	}
+
+	if ( Q_stricmp (cmd, "ui_addbots") == 0 ) {
+		UI_AddBotsMenu();
+		return qtrue;
+	}
+
+	if ( Q_stricmp (cmd, "ui_removebots") == 0 ) {
+		UI_RemoveBotsMenu();
+		return qtrue;
+	}
+
 	if ( Q_stricmp (cmd, "ui_play") == 0 ) {
 		UI_PlayMenu();
 		return qtrue;

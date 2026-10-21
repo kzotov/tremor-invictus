@@ -67,3 +67,38 @@ button.small {
 	font-size: 24dp;
 	color: #8a8780;
 }
+
+/* the in-game menu: a panel down the left over the dimmed game */
+.panel {
+	position: absolute;
+	left: 0dp;
+	top: 0dp;
+	width: 460dp;
+	height: 100%;
+	background-color: #16171be8;
+	border-right: 2dp #2a2b30;
+}
+
+.panel .logo {
+	left: 40dp;
+	top: 36dp;
+	width: 380dp;
+	height: 100dp;
+}
+
+.panel .menu {
+	left: 40dp;
+	top: 200dp;
+	width: 400dp;
+}
+
+.panel button {
+	font-size: 34dp;
+	margin-bottom: 4dp;
+}
+
+.panel .gap {
+	display: block;
+	height: 30dp;
+	margin-bottom: 0dp;
+}
