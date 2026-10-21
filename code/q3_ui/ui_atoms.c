@@ -1272,3 +1272,18 @@ qboolean UI_CursorInRect (int x, int y, int width, int height)
 
 	return qtrue;
 }
+
+/*
+=================
+BG_WeaponTuned / BG_WeaponParam
+
+The menus share item code with the game but have no weapon numbers
+=================
+*/
+qboolean BG_WeaponTuned( int weapon ) {
+	return qfalse;
+}
+
+float BG_WeaponParam( int weapon, int param ) {
+	return 0;
+}

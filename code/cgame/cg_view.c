@@ -446,6 +446,7 @@ void CG_ZoomDown_f( void ) {
 	}
 	cg.zoomed = qtrue;
 	cg.zoomTime = cg.time;
+	trap_SendConsoleCommand( "+button13\n" );	// weapons that change when zoomed
 }
 
 void CG_ZoomUp_f( void ) { 
@@ -454,6 +455,7 @@ void CG_ZoomUp_f( void ) {
 	}
 	cg.zoomed = qfalse;
 	cg.zoomTime = cg.time;
+	trap_SendConsoleCommand( "-button13\n" );
 }
 
 

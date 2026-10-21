@@ -217,6 +217,10 @@ void Add_Ammo (gentity_t *ent, int weapon, int count)
 	if ( ent->client->ps.ammo[weapon] > max ) {
 		ent->client->ps.ammo[weapon] = max;
 	}
+	// paired weapons share one pool
+	if ( BG_AmmoPartner( weapon ) != WP_NONE ) {
+		ent->client->ps.ammo[ BG_AmmoPartner( weapon ) ] = ent->client->ps.ammo[weapon];
+	}
 }
 
 int Pickup_Ammo (gentity_t *ent, gentity_t *other)

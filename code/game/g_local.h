@@ -251,6 +251,7 @@ typedef struct {
 	qboolean	predictItemPickup;	// based on cg_predictItems userinfo
 	qboolean	pmoveFixed;			//
 	int			champion;			// bg_championList index, applied on spawn
+	int			startWeapon;		// weapon_t chosen to spawn with
 	qboolean	autoHop;			// userinfo cg_autoHop
 	char		netname[MAX_NETNAME];
 	int			maxHealth;			// for handicapping
@@ -333,6 +334,9 @@ struct gclient_s {
 	int			droneStartTime;
 	vec3_t		droneBodyAngles;
 	int			droneArmor;
+
+	int			triboltShots;		// bolts still to come from this trigger pull
+	int			triboltTime;		// level.time of the next bolt
 
 	int			burnEndTime, burnNextTime, burnAttacker;
 	int			poisonEndTime, poisonNextTime, poisonAttacker;
@@ -607,6 +611,7 @@ void G_ClearDamageOverTime( gentity_t *ent );
 void G_ExplodeMissile( gentity_t *ent );
 void G_NextKnockback( float knock );
 void G_WeaponTuneMissile( gentity_t *m, int weapon );
+void G_WeaponThink( gentity_t *ent );
 void G_SplashParams( float minDamage, float knock, float knockSelf );
 
 //
@@ -870,6 +875,14 @@ extern	vmCvar_t	g_rushDamage;
 extern	vmCvar_t	g_rushSlowDamage;
 extern	vmCvar_t	g_rushFastSpeed;
 extern	vmCvar_t	g_swarmKnock;
+extern	vmCvar_t	g_hmgZoomDamage;
+extern	vmCvar_t	g_hmgZoomSpread;
+extern	vmCvar_t	g_ssgCloseBonus;
+extern	vmCvar_t	g_ssgCloseRange;
+extern	vmCvar_t	g_ssgCloseFade;
+extern	vmCvar_t	g_triboltShots;
+extern	vmCvar_t	g_triboltInterval;
+extern	vmCvar_t	g_triboltFuse;
 extern	vmCvar_t	g_hookSpeed;
 extern	vmCvar_t	g_hookRange;
 extern	vmCvar_t	g_hookDamage;

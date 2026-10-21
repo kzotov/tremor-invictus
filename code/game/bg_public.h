@@ -401,7 +401,7 @@ extern	const int			bg_numWeaponInfo;
 
 float	BG_WeaponParam( int weapon, int param );
 qboolean BG_WeaponTuned( int weapon );
-void	BG_ShotgunPelletOffset( int index, int count, int *seed, float *right, float *up );
+void	BG_ShotgunPelletOffset( int weapon, int index, int count, int *seed, float *right, float *up );
 
 // passive champion traits, champion_t.passives bits
 #define	PASSIVE_REGENERATION	1		// refill to the top of the 25 HP block
@@ -510,6 +510,7 @@ typedef struct {
 	float	dualWieldRate;			// fire rate multiplier
 	float	berserkSpeed;			// run speed while berserk
 
+	float	hmgZoomRefire;			// heavy machinegun refire while zoomed
 	float	droneSpeed;				// drone flying speed
 	float	droneSize;				// drone half-size
 	float	droneFireInterval;		// msec between drone shots
@@ -689,8 +690,23 @@ typedef enum {
 	WP_CHAINGUN,
 #endif
 
+	WP_HEAVY_MACHINEGUN,			// shares the machinegun's slot and ammo
+	WP_SUPER_SHOTGUN,				// shares the shotgun's slot and ammo
+#ifndef MISSIONPACK
+	WP_NAILGUN,						// a starting weapon
+#endif
+
 	WP_NUM_WEAPONS
 } weapon_t;
+
+// classic weapon slots given new jobs
+#define	WP_TRIBOLT			WP_GRENADE_LAUNCHER	// three sticky bolts per trigger pull
+#define	WP_SUPER_NAILGUN	WP_PLASMAGUN		// shares the nailgun's slot and ammo
+
+int		BG_AmmoPartner( int weapon );
+int		BG_WeaponVisual( int weapon );
+int		BG_WeaponSlot( int weapon );
+qboolean BG_StartingWeapon( int weapon );
 
 
 // reward sounds (stored in ps->persistant[PERS_PLAYEREVENTS])

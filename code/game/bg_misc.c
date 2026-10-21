@@ -243,7 +243,7 @@ gitem_t	bg_itemlist[] =
         { "models/weapons2/grenadel/grenadel.md3", 
 		NULL, NULL, NULL},
 /* icon */		"icons/iconw_grenade",
-/* pickup */	"Grenade Launcher",
+/* pickup */	"Tri-bolt",
 		10,
 		IT_WEAPON,
 		WP_GRENADE_LAUNCHER,
@@ -307,7 +307,7 @@ gitem_t	bg_itemlist[] =
         { "models/weapons2/plasma/plasma.md3", 
 		NULL, NULL, NULL},
 /* icon */		"icons/iconw_plasma",
-/* pickup */	"Plasma Gun",
+/* pickup */	"Super Nailgun",
 		50,
 		IT_WEAPON,
 		WP_PLASMAGUN,
@@ -916,6 +916,57 @@ Only in One Flag CTF games
 	},
 #endif
 
+/*QUAKED weapon_hmg (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+*/
+	{
+		"weapon_hmg",
+		"sound/misc/w_pkup.wav",
+        { "models/weapons2/machinegun/machinegun.md3",
+		NULL, NULL, NULL},
+/* icon */		"icons/iconw_machinegun",
+/* pickup */	"Heavy Machinegun",
+		100,
+		IT_WEAPON,
+		WP_HEAVY_MACHINEGUN,
+/* precache */ "",
+/* sounds */ ""
+	},
+
+/*QUAKED weapon_ssg (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+*/
+	{
+		"weapon_ssg",
+		"sound/misc/w_pkup.wav",
+        { "models/weapons2/shotgun/shotgun.md3",
+		NULL, NULL, NULL},
+/* icon */		"icons/iconw_shotgun",
+/* pickup */	"Super Shotgun",
+		10,
+		IT_WEAPON,
+		WP_SUPER_SHOTGUN,
+/* precache */ "",
+/* sounds */ ""
+	},
+
+#ifndef MISSIONPACK
+/*QUAKED weapon_nailgun (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+a starting weapon; not placed on maps
+*/
+	{
+		"weapon_nailgun",
+		"sound/misc/w_pkup.wav",
+        { "models/weapons2/plasma/plasma.md3",
+		NULL, NULL, NULL},
+/* icon */		"icons/iconw_plasma",
+/* pickup */	"Nailgun",
+		100,
+		IT_WEAPON,
+		WP_NAILGUN,
+/* precache */ "",
+/* sounds */ ""
+	},
+#endif
+
 	// end of list marker
 	{NULL}
 };
@@ -1183,8 +1234,83 @@ const weaponNumbers_t bg_weaponInfo[] = {
 	{ WP_SHOTGUN,			"sg",		{ "10", "850", "2000", "0.085", "8", "2.5", "2.5", "0", "0", "0", "0", "0", "10", "25" } },
 	{ WP_ROCKET_LAUNCHER,	"rl",		{ "100", "800", "0", "0", "0", "90", "90", "120", "100", "10", "120", "1000", "10", "25" } },
 	{ WP_LIGHTNING,			"lg",		{ "6", "44", "768", "0", "0", "7", "7.1", "0", "0", "0", "0", "0", "100", "200" } },
-	{ WP_RAILGUN,			"rg",		{ "80", "1500", "6000", "0", "0", "50", "50", "0", "0", "0", "0", "0", "5", "10" } }
+	{ WP_RAILGUN,			"rg",		{ "80", "1500", "6000", "0", "0", "50", "50", "0", "0", "0", "0", "0", "5", "10" } },
+	{ WP_HEAVY_MACHINEGUN,	"hmg",		{ "9", "100", "6000", "0.01", "0", "7", "7", "0", "0", "0", "0", "0", "100", "150" } },
+	{ WP_SUPER_SHOTGUN,		"ssg",		{ "10", "1000", "2000", "0.085", "12", "2.5", "2.5", "0", "0", "0", "0", "0", "10", "25" } },
+	{ WP_NAILGUN,			"ng",		{ "15", "100", "0", "0", "0", "6", "6", "28", "6", "0", "5", "1800", "100", "150" } },
+	{ WP_SUPER_NAILGUN,		"sng",		{ "20", "100", "0", "0", "0", "6", "6", "28", "15", "0", "5", "2000", "100", "150" } },
+	{ WP_TRIBOLT,			"tribolt",	{ "35", "1300", "0", "0", "0", "50", "50", "50", "35", "10", "120", "1600", "10", "15" } }
 };
+
+/*
+==============
+BG_AmmoPartner
+
+The other weapon sharing this weapon's ammo pool, or WP_NONE
+==============
+*/
+int BG_AmmoPartner( int weapon ) {
+	switch ( weapon ) {
+	case WP_MACHINEGUN:			return WP_HEAVY_MACHINEGUN;
+	case WP_HEAVY_MACHINEGUN:	return WP_MACHINEGUN;
+	case WP_SHOTGUN:			return WP_SUPER_SHOTGUN;
+	case WP_SUPER_SHOTGUN:		return WP_SHOTGUN;
+	case WP_NAILGUN:			return WP_SUPER_NAILGUN;
+	case WP_SUPER_NAILGUN:		return WP_NAILGUN;
+	default:					return WP_NONE;
+	}
+}
+
+/*
+==============
+BG_WeaponVisual
+
+The weapon whose effects a new weapon borrows on the client
+==============
+*/
+int BG_WeaponVisual( int weapon ) {
+	switch ( weapon ) {
+	case WP_HEAVY_MACHINEGUN:	return WP_MACHINEGUN;
+	case WP_SUPER_SHOTGUN:		return WP_SHOTGUN;
+#ifndef MISSIONPACK
+	case WP_NAILGUN:			return WP_PLASMAGUN;
+#endif
+	default:					return weapon;
+	}
+}
+
+/*
+==============
+BG_WeaponSlot
+
+Weapon key: 1 gauntlet, 2 machineguns, 3 shotguns, 4 nailguns, 5 tri-bolt,
+6 rocket launcher, 7 lightning gun, 8 railgun
+==============
+*/
+int BG_WeaponSlot( int weapon ) {
+	switch ( weapon ) {
+	case WP_GAUNTLET:									return 1;
+	case WP_MACHINEGUN: case WP_HEAVY_MACHINEGUN:		return 2;
+	case WP_SHOTGUN: case WP_SUPER_SHOTGUN:				return 3;
+	case WP_NAILGUN: case WP_SUPER_NAILGUN:				return 4;
+	case WP_TRIBOLT:									return 5;
+	case WP_ROCKET_LAUNCHER:							return 6;
+	case WP_LIGHTNING:									return 7;
+	case WP_RAILGUN:									return 8;
+	default:											return 0;
+	}
+}
+
+/*
+==============
+BG_StartingWeapon
+
+Starting weapons are chosen before spawning, never placed or dropped
+==============
+*/
+qboolean BG_StartingWeapon( int weapon ) {
+	return weapon == WP_MACHINEGUN || weapon == WP_SHOTGUN || weapon == WP_NAILGUN;
+}
 
 const int bg_numWeaponInfo = ARRAY_LEN( bg_weaponInfo );
 
@@ -1328,7 +1454,8 @@ qboolean BG_CanItemBeGrabbed( int gametype, const entityState_t *ent, const play
 		return qtrue;	// weapons are always picked up
 
 	case IT_AMMO:
-		if ( ps->ammo[ item->giTag ] >= 200 ) {
+		if ( ps->ammo[ item->giTag ] >= ( BG_WeaponTuned( item->giTag ) && BG_WeaponParam( item->giTag, WPP_AMMOMAX ) > 0
+			? BG_WeaponParam( item->giTag, WPP_AMMOMAX ) : 200 ) ) {
 			return qfalse;		// can't hold any more
 		}
 		return qtrue;

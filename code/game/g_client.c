@@ -872,6 +872,16 @@ void ClientUserinfoChanged( int clientNum ) {
 	}
 #endif
 
+	// starting weapon: machinegun, shotgun or nailgun
+	s = Info_ValueForKey( userinfo, "cg_startWeapon" );
+	if ( !Q_stricmp( s, "sg" ) || !Q_stricmp( s, "shotgun" ) ) {
+		client->pers.startWeapon = WP_SHOTGUN;
+	} else if ( !Q_stricmp( s, "ng" ) || !Q_stricmp( s, "nailgun" ) ) {
+		client->pers.startWeapon = WP_NAILGUN;
+	} else {
+		client->pers.startWeapon = WP_MACHINEGUN;
+	}
+
 	// auto-hop defaults to on
 	s = Info_ValueForKey( userinfo, "cg_autoHop" );
 	client->pers.autoHop = ( !*s || atoi( s ) != 0 );
@@ -1230,11 +1240,11 @@ void ClientSpawn(gentity_t *ent) {
 	client->ps.stats[STAT_JUMP_TIME] = STAT_TIME_CAP;
 	client->ps.stats[STAT_LAND_TIME] = STAT_TIME_CAP;
 
-	client->ps.stats[STAT_WEAPONS] = ( 1 << WP_MACHINEGUN );
-	if ( g_gametype.integer == GT_TEAM ) {
-		client->ps.ammo[WP_MACHINEGUN] = 50;
-	} else {
-		client->ps.ammo[WP_MACHINEGUN] = 100;
+	// the gauntlet plus the starting weapon the player chose
+	client->ps.stats[STAT_WEAPONS] = ( 1 << client->pers.startWeapon );
+	client->ps.ammo[client->pers.startWeapon] = BG_WeaponParam( client->pers.startWeapon, WPP_AMMOSTART );
+	if ( BG_AmmoPartner( client->pers.startWeapon ) != WP_NONE ) {
+		client->ps.ammo[BG_AmmoPartner( client->pers.startWeapon )] = client->ps.ammo[client->pers.startWeapon];
 	}
 
 	client->ps.stats[STAT_WEAPONS] |= ( 1 << WP_GAUNTLET );

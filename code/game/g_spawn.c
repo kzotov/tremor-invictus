@@ -274,6 +274,18 @@ qboolean G_CallSpawn( gentity_t *ent ) {
 		return qfalse;
 	}
 
+	// classic map items stand in for this game's set: starting weapons are never
+	// placed, so their spots hold the upgraded weapons
+	if ( !strcmp( ent->classname, "weapon_machinegun" ) ) {
+		ent->classname = "weapon_hmg";
+	} else if ( !strcmp( ent->classname, "weapon_shotgun" ) ) {
+		ent->classname = "weapon_ssg";
+	} else if ( !strcmp( ent->classname, "weapon_bfg" ) ) {
+		ent->classname = "weapon_railgun";
+	} else if ( !strcmp( ent->classname, "ammo_bfg" ) ) {
+		ent->classname = "ammo_slugs";
+	}
+
 	// check item spawn functions
 	for ( item=bg_itemlist+1 ; item->classname ; item++ ) {
 		if ( !strcmp(item->classname, ent->classname) ) {

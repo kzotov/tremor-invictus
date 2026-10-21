@@ -27,6 +27,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 static	float	s_quadFactor;
 
+void CalcMuzzlePointOrigin( gentity_t *ent, vec3_t origin, vec3_t localForward, vec3_t localRight, vec3_t localUp, vec3_t muzzlePoint );
+
 /*
 ================
 G_WeaponKnock
@@ -326,7 +328,7 @@ SHOTGUN
 // client predicts same spreads
 #define	DEFAULT_SHOTGUN_DAMAGE	10
 
-qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent ) {
+qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent, int weapon ) {
 	trace_t		tr;
 	int			damage, i, passent;
 	gentity_t	*traceEnt;
@@ -351,20 +353,32 @@ qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent ) {
 		if ( traceEnt->takedamage) {
 			float	dist = Distance( start, tr.endpos );
 			float	scale = 1.0f;
-			int		pellets = BG_WeaponParam( WP_SHOTGUN, WPP_PELLETS );
+			int		pellets = BG_WeaponParam( weapon, WPP_PELLETS );
+			float	range = BG_WeaponParam( weapon, WPP_RANGE );
+			float	bonus = 0;
 
 			// falls off past the start distance, down to a minimum at full range;
 			// a close-range bonus is shared between the pellets
-			if ( dist > g_shotgunFalloffStart.value && BG_WeaponParam( WP_SHOTGUN, WPP_RANGE ) > g_shotgunFalloffStart.value ) {
+			if ( dist > g_shotgunFalloffStart.value && range > g_shotgunFalloffStart.value ) {
 				scale = 1.0f - ( 1.0f - g_shotgunFalloffMin.value ) * ( dist - g_shotgunFalloffStart.value )
-					/ ( BG_WeaponParam( WP_SHOTGUN, WPP_RANGE ) - g_shotgunFalloffStart.value );
+					/ ( range - g_shotgunFalloffStart.value );
 				if ( scale < g_shotgunFalloffMin.value ) {
 					scale = g_shotgunFalloffMin.value;
 				}
 			}
-			damage = BG_WeaponParam( WP_SHOTGUN, WPP_DAMAGE ) * scale;
-			if ( dist <= g_shotgunCloseRange.value && pellets > 0 ) {
-				damage += g_shotgunCloseBonus.value / pellets;
+			if ( weapon == WP_SUPER_SHOTGUN ) {
+				// full bonus up close, fading out further away
+				if ( dist <= g_ssgCloseRange.value ) {
+					bonus = g_ssgCloseBonus.value;
+				} else if ( dist < g_ssgCloseFade.value ) {
+					bonus = g_ssgCloseBonus.value * ( g_ssgCloseFade.value - dist ) / ( g_ssgCloseFade.value - g_ssgCloseRange.value );
+				}
+			} else if ( dist <= g_shotgunCloseRange.value ) {
+				bonus = g_shotgunCloseBonus.value;
+			}
+			damage = BG_WeaponParam( weapon, WPP_DAMAGE ) * scale;
+			if ( pellets > 0 ) {
+				damage += bonus / pellets;
 			}
 			damage *= s_quadFactor;
 #ifdef MISSIONPACK
@@ -385,7 +399,7 @@ qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent ) {
 			if( LogAccuracyHit( traceEnt, ent ) ) {
 				hitClient = qtrue;
 			}
-			G_WeaponKnock( WP_SHOTGUN, traceEnt, ent );
+			G_WeaponKnock( weapon, traceEnt, ent );
 			G_Damage( traceEnt, ent, ent, forward, tr.endpos, damage, 0, MOD_SHOTGUN);
 			return hitClient;
 		}
@@ -395,7 +409,7 @@ qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent ) {
 }
 
 // this should match CG_ShotgunPattern
-void ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, gentity_t *ent ) {
+void ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, gentity_t *ent, int weapon ) {
 	int			i, count;
 	float		range;
 	float		r, u;
@@ -410,14 +424,14 @@ void ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, gentity_t *ent ) {
 	CrossProduct( localForward, localRight, localUp );
 
 	// the pellet ring, the same on the clients
-	count = BG_WeaponParam( WP_SHOTGUN, WPP_PELLETS );
-	range = BG_WeaponParam( WP_SHOTGUN, WPP_RANGE );
+	count = BG_WeaponParam( weapon, WPP_PELLETS );
+	range = BG_WeaponParam( weapon, WPP_RANGE );
 	for ( i = 0 ; i < count ; i++ ) {
-		BG_ShotgunPelletOffset( i, count, &seed, &r, &u );
+		BG_ShotgunPelletOffset( weapon, i, count, &seed, &r, &u );
 		VectorMA( origin, range, localForward, end);
 		VectorMA (end, r * range, localRight, end);
 		VectorMA (end, u * range, localUp, end);
-		if( ShotgunPellet( origin, end, ent ) && !hitClient ) {
+		if( ShotgunPellet( origin, end, ent, weapon ) && !hitClient ) {
 			hitClient = qtrue;
 			ent->client->accuracy_hits++;
 		}
@@ -434,8 +448,98 @@ void weapon_supershotgun_fire (gentity_t *ent) {
 	SnapVector( tent->s.origin2 );
 	tent->s.eventParm = rand() & 255;		// seed for spread pattern
 	tent->s.otherEntityNum = ent->s.number;
+	tent->s.weapon = ent->s.weapon;			// which shotgun's pattern
 
-	ShotgunPattern( tent->s.pos.trBase, tent->s.origin2, tent->s.eventParm, ent );
+	ShotgunPattern( tent->s.pos.trBase, tent->s.origin2, tent->s.eventParm, ent, ent->s.weapon );
+}
+
+/*
+======================================================================
+
+NAILGUNS AND TRI-BOLT
+
+======================================================================
+*/
+
+static void Weapon_Nails_Fire( gentity_t *ent ) {
+	gentity_t	*m;
+
+	m = fire_plasma( ent, muzzle, forward );
+	G_WeaponTuneMissile( m, ent->s.weapon );
+	m->damage *= s_quadFactor;
+	m->splashDamage *= s_quadFactor;
+}
+
+/*
+================
+G_TriboltImpact
+
+A bolt that hits a player explodes at once; one that hits a wall sticks
+there until its fuse runs out
+================
+*/
+static void G_TriboltImpact( gentity_t *bolt, trace_t *trace ) {
+	gentity_t	*other = &g_entities[trace->entityNum];
+	vec3_t		point;
+
+	if ( other->takedamage ) {
+		G_NextKnockback( bolt->wpKnock );
+		G_Damage( other, bolt, bolt->parent, NULL, trace->endpos, bolt->damage, 0, MOD_GRENADE );
+		VectorCopy( trace->endpos, point );
+		G_SetOrigin( bolt, point );
+		G_ExplodeMissile( bolt );
+		return;
+	}
+	VectorMA( trace->endpos, 1, trace->plane.normal, point );
+	SnapVector( point );
+	G_SetOrigin( bolt, point );
+	bolt->abilityImpact = NULL;
+	bolt->clipmask = 0;
+	trap_LinkEntity( bolt );
+}
+
+static void G_FireTribolt( gentity_t *ent ) {
+	gentity_t	*bolt;
+
+	AngleVectors( ent->client->ps.viewangles, forward, right, up );
+	CalcMuzzlePointOrigin( ent, ent->client->oldOrigin, forward, right, up, muzzle );
+
+	bolt = fire_grenade( ent, muzzle, forward );
+	bolt->classname = "tribolt";
+	bolt->s.eFlags = 0;							// no bouncing
+	bolt->s.pos.trType = TR_LINEAR;
+	G_WeaponTuneMissile( bolt, WP_TRIBOLT );
+	bolt->damage *= s_quadFactor;
+	bolt->splashDamage *= s_quadFactor;
+	bolt->methodOfDeath = MOD_GRENADE;
+	bolt->splashMethodOfDeath = MOD_GRENADE_SPLASH;
+	bolt->abilityImpact = G_TriboltImpact;
+	bolt->nextthink = level.time + g_triboltFuse.integer;
+}
+
+/*
+================
+G_WeaponThink
+
+Per-frame weapon work: the rest of a tri-bolt burst
+================
+*/
+void G_WeaponThink( gentity_t *ent ) {
+	gclient_t	*client = ent->client;
+
+	if ( client->triboltShots <= 0 ) {
+		return;
+	}
+	if ( ent->health <= 0 ) {
+		client->triboltShots = 0;
+		return;
+	}
+	if ( level.time >= client->triboltTime ) {
+		s_quadFactor = client->ps.powerups[PW_QUAD] ? g_quadfactor.value : 1;
+		G_FireTribolt( ent );
+		client->triboltShots--;
+		client->triboltTime += g_triboltInterval.integer;
+	}
 }
 
 
@@ -944,6 +1048,8 @@ void FireWeapon( gentity_t *ent ) {
 	case WP_SHOTGUN:
 	case WP_LIGHTNING:
 	case WP_RAILGUN:
+	case WP_HEAVY_MACHINEGUN:
+	case WP_SUPER_SHOTGUN:
 #ifdef MISSIONPACK
 	case WP_CHAINGUN:
 #endif
@@ -962,8 +1068,21 @@ void FireWeapon( gentity_t *ent ) {
 		Weapon_LightningFire( ent );
 		break;
 	case WP_SHOTGUN:
+	case WP_SUPER_SHOTGUN:
 		weapon_supershotgun_fire( ent );
 		break;
+	case WP_HEAVY_MACHINEGUN:
+		if ( ent->client->pers.cmd.buttons & BUTTON_ZOOM ) {
+			Bullet_Fire( ent, g_hmgZoomSpread.value, g_hmgZoomDamage.value, MOD_MACHINEGUN );
+		} else {
+			Bullet_Fire( ent, BG_WeaponParam( WP_HEAVY_MACHINEGUN, WPP_SPREAD ), BG_WeaponParam( WP_HEAVY_MACHINEGUN, WPP_DAMAGE ), MOD_MACHINEGUN );
+		}
+		break;
+#ifndef MISSIONPACK
+	case WP_NAILGUN:
+		Weapon_Nails_Fire( ent );
+		break;
+#endif
 	case WP_MACHINEGUN:
 		if ( ent->client->ps.eFlags & EF_DRONE ) {
 			Bullet_Fire( ent, BG_WeaponParam( WP_MACHINEGUN, WPP_SPREAD ), g_droneDamage.integer, MOD_DRONE );
@@ -975,14 +1094,17 @@ void FireWeapon( gentity_t *ent ) {
 			Bullet_Fire( ent, MACHINEGUN_SPREAD, MACHINEGUN_TEAM_DAMAGE, MOD_MACHINEGUN );
 		}
 		break;
-	case WP_GRENADE_LAUNCHER:
-		weapon_grenadelauncher_fire( ent );
+	case WP_TRIBOLT:
+		// a burst of bolts, the first one now
+		G_FireTribolt( ent );
+		ent->client->triboltShots = g_triboltShots.integer - 1;
+		ent->client->triboltTime = level.time + g_triboltInterval.integer;
 		break;
 	case WP_ROCKET_LAUNCHER:
 		Weapon_RocketLauncher_Fire( ent );
 		break;
-	case WP_PLASMAGUN:
-		Weapon_Plasmagun_Fire( ent );
+	case WP_SUPER_NAILGUN:
+		Weapon_Nails_Fire( ent );
 		break;
 	case WP_RAILGUN:
 		weapon_railgun_fire( ent );

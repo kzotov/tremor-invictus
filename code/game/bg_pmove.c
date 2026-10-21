@@ -119,6 +119,7 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_dualWieldRate",		"1.3",	&bg_pmoveSettings.dualWieldRate },
 	{ {0}, "pm_berserkSpeed",		"500",	&bg_pmoveSettings.berserkSpeed },
 
+	{ {0}, "pm_hmgZoomRefire",		"150",	&bg_pmoveSettings.hmgZoomRefire },
 	{ {0}, "pm_droneSpeed",			"400",	&bg_pmoveSettings.droneSpeed },
 	{ {0}, "pm_droneSize",			"10",	&bg_pmoveSettings.droneSize },
 	{ {0}, "pm_droneFireInterval",	"125",	&bg_pmoveSettings.droneFireInterval }
@@ -138,10 +139,10 @@ right and up directions: evenly spaced around a ring at the full spread,
 with a little seeded jitter so the server and clients agree
 ===============
 */
-void BG_ShotgunPelletOffset( int index, int count, int *seed, float *right, float *up ) {
+void BG_ShotgunPelletOffset( int weapon, int index, int count, int *seed, float *right, float *up ) {
 	float	spread, angle, radius;
 
-	spread = BG_WeaponParam( WP_SHOTGUN, WPP_SPREAD );
+	spread = BG_WeaponParam( weapon, WPP_SPREAD );
 	if ( count < 1 ) {
 		count = 1;
 	}
@@ -2196,9 +2197,12 @@ static void PM_Weapon( void ) {
 		return;
 	}
 
-	// take an ammo away if not infinite
+	// take an ammo away if not infinite; paired weapons share the pool
 	if ( pm->ps->ammo[ pm->ps->weapon ] != -1 && !PM_DroneActive() ) {
 		pm->ps->ammo[ pm->ps->weapon ]--;
+		if ( BG_AmmoPartner( pm->ps->weapon ) != WP_NONE ) {
+			pm->ps->ammo[ BG_AmmoPartner( pm->ps->weapon ) ] = pm->ps->ammo[ pm->ps->weapon ];
+		}
 	}
 
 	// fire weapon
@@ -2252,6 +2256,9 @@ static void PM_Weapon( void ) {
 	// tuned weapons take their refire from the weapon table
 	if ( BG_WeaponTuned( pm->ps->weapon ) && !PM_DroneActive() ) {
 		addTime = BG_WeaponParam( pm->ps->weapon, WPP_REFIRE );
+		if ( pm->ps->weapon == WP_HEAVY_MACHINEGUN && ( pm->cmd.buttons & BUTTON_ZOOM ) ) {
+			addTime = bg_pmoveSettings.hmgZoomRefire;
+		}
 	}
 
 #ifdef MISSIONPACK

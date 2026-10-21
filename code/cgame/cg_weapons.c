@@ -671,7 +671,7 @@ void CG_RegisterWeapon( int weaponNum ) {
 		weaponInfo->handsModel = trap_R_RegisterModel( "models/weapons2/shotgun/shotgun_hand.md3" );
 	}
 
-	switch ( weaponNum ) {
+	switch ( BG_WeaponVisual( weaponNum ) ) {
 	case WP_GAUNTLET:
 		MAKERGB( weaponInfo->flashDlightColor, 0.6f, 0.6f, 1.0f );
 		weaponInfo->firingSound = trap_S_RegisterSound( "sound/weapons/melee/fstrun.wav", qfalse );
@@ -1631,18 +1631,37 @@ void CG_Weapon_f( void ) {
 	}
 
 	num = atoi( CG_Argv( 1 ) );
-
-	if ( num < 1 || num > MAX_WEAPONS-1 ) {
+	if ( num < 1 || num > 8 ) {
 		return;
 	}
 
 	cg.weaponSelectTime = cg.time;
 
-	if ( ! ( cg.snap->ps.stats[STAT_WEAPONS] & ( 1 << num ) ) ) {
-		return;		// don't have the weapon
-	}
+	// keys are slots: pick the slot's weapon, the upgrade first; pressing
+	// again while holding one switches to the other in the same slot
+	{
+		int		i, first = WP_NONE, upgrade = WP_NONE;
 
-	cg.weaponSelect = num;
+		for ( i = 1 ; i < WP_NUM_WEAPONS ; i++ ) {
+			if ( BG_WeaponSlot( i ) != num || !( cg.snap->ps.stats[STAT_WEAPONS] & ( 1 << i ) ) ) {
+				continue;
+			}
+			if ( BG_StartingWeapon( i ) || first == WP_NONE ) {
+				first = i;
+			}
+			if ( !BG_StartingWeapon( i ) ) {
+				upgrade = i;
+			}
+		}
+		if ( first == WP_NONE && upgrade == WP_NONE ) {
+			return;		// don't have a weapon in that slot
+		}
+		if ( upgrade != WP_NONE && cg.weaponSelect != upgrade ) {
+			cg.weaponSelect = upgrade;
+		} else if ( first != WP_NONE ) {
+			cg.weaponSelect = first;
+		}
+	}
 }
 
 /*
@@ -1772,7 +1791,7 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, im
 	isSprite = qfalse;
 	duration = 600;
 
-	switch ( weapon ) {
+	switch ( BG_WeaponVisual( weapon ) ) {
 	default:
 #ifdef MISSIONPACK
 	case WP_NAILGUN:
@@ -2037,7 +2056,7 @@ Perform the same traces the server did to locate the
 hit splashes
 ================
 */
-static void CG_ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, int otherEntNum ) {
+static void CG_ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, int otherEntNum, int weapon ) {
 	int			i, count;
 	float		range;
 	float		r, u;
@@ -2051,10 +2070,10 @@ static void CG_ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, int othe
 	CrossProduct( forward, right, up );
 
 	// the pellet ring, the same as the server's
-	count = BG_WeaponParam( WP_SHOTGUN, WPP_PELLETS );
-	range = BG_WeaponParam( WP_SHOTGUN, WPP_RANGE );
+	count = BG_WeaponParam( weapon, WPP_PELLETS );
+	range = BG_WeaponParam( weapon, WPP_RANGE );
 	for ( i = 0 ; i < count ; i++ ) {
-		BG_ShotgunPelletOffset( i, count, &seed, &r, &u );
+		BG_ShotgunPelletOffset( weapon, i, count, &seed, &r, &u );
 		VectorMA( origin, range, forward, end);
 		VectorMA (end, r * range, right, end);
 		VectorMA (end, u * range, up, end);
@@ -2086,7 +2105,8 @@ void CG_ShotgunFire( entityState_t *es ) {
 			CG_SmokePuff( v, up, 32, 1, 1, 1, 0.33f, 900, cg.time, 0, LEF_PUFF_DONT_SCALE, cgs.media.shotgunSmokePuffShader );
 		}
 	}
-	CG_ShotgunPattern( es->pos.trBase, es->origin2, es->eventParm, es->otherEntityNum );
+	CG_ShotgunPattern( es->pos.trBase, es->origin2, es->eventParm, es->otherEntityNum,
+		es->weapon == WP_SUPER_SHOTGUN ? WP_SUPER_SHOTGUN : WP_SHOTGUN );
 }
 
 /*

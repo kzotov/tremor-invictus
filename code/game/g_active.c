@@ -490,6 +490,7 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 
 	G_Regeneration( ent, msec );
 	G_AbilityClientThink( ent );
+	G_WeaponThink( ent );
 
 	if ( champ->active == ACTIVE_NONE ) {
 		return;

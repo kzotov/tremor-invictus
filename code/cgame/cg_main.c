@@ -169,6 +169,7 @@ vmCvar_t	pmove_fixed;
 //vmCvar_t	cg_pmove_fixed;
 vmCvar_t	pmove_msec;
 vmCvar_t	cg_autoHop;
+vmCvar_t	cg_startWeapon;
 vmCvar_t	cg_playerScale;
 vmCvar_t	cg_projectileNudge;
 vmCvar_t	cg_forceEnemySkin;
@@ -333,6 +334,7 @@ static cvarTable_t cvarTable[] = {
 	{ &pmove_fixed, "pmove_fixed", "1", CVAR_SYSTEMINFO},
 	{ &pmove_msec, "pmove_msec", "8", CVAR_SYSTEMINFO},
 	{ &cg_autoHop, "cg_autoHop", "1", CVAR_USERINFO | CVAR_ARCHIVE},
+	{ &cg_startWeapon, "cg_startWeapon", "mg", CVAR_USERINFO | CVAR_ARCHIVE},
 	{ &cg_playerScale, "cg_playerScale", "1", CVAR_ARCHIVE},
 	{ &cg_projectileNudge, "cg_projectileNudge", "0", CVAR_CHEAT},
 	{ &cg_forceEnemySkin, "cg_forceEnemySkin", "", CVAR_ARCHIVE},
