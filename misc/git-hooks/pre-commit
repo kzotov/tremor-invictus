@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# Refuses commits that add game data or binaries. tremor-invictus ships code
+# only; original-game files and reference binaries must never enter the repo.
+# Enable once per clone with: git config core.hooksPath misc/git-hooks
+
+blocked_ext='pk3|pk4|pak|exe|dll|so|dylib|lib|a|bin|bsp|aas|md3|md5mesh|mdr|iqm|tga|jpg|jpeg|png|dds|wav|ogg|opus|mp3|roq|ttf|otf|dm_[0-9]+'
+# Binaries that upstream ioquake3 already tracks (SDL libraries, icons) may be
+# updated; no new ones may be added.
+upstream_base=87a99d18
+max_bytes=1048576
+
+status=0
+git diff --cached --name-only --diff-filter=ACMR -z | while IFS= read -r -d '' f; do
+	case "$f" in
+	*qc-reference*|*bloodrun*|*quakelive*|*quakechampions*|*QuakeChampions*)
+		echo "pre-commit: refusing reference material: $f" >&2
+		exit 1
+		;;
+	esac
+	if printf '%s\n' "$f" | grep -qiE "\\.($blocked_ext)\$" &&
+		! git cat-file -e "$upstream_base:$f" 2>/dev/null; then
+		echo "pre-commit: refusing binary or game data file: $f" >&2
+		exit 1
+	fi
+	size=$(git cat-file -s ":$f" 2>/dev/null || echo 0)
+	if [ "$size" -gt "$max_bytes" ]; then
+		echo "pre-commit: refusing file over 1 MB: $f" >&2
+		exit 1
+	fi
+done || status=1
+
+if [ $status -ne 0 ]; then
+	echo "pre-commit: commit blocked. Game data and binaries stay outside the repo." >&2
+fi
+exit $status

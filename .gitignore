@@ -41,3 +41,10 @@ profile
 *.opensdf
 *.suo
 /.vs
+
+# tremor-invictus: never commit game data, reference binaries or demos
+####################
+*.pk3
+*.pak
+*.dm_*
+/qc-reference/
