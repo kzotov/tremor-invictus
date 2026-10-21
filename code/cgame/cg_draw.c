@@ -3442,6 +3442,11 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 		return;
 	}
 
+	// a menu over the game hides the HUD and centre prints under it
+	if ( trap_Key_GetCatcher() & KEYCATCH_UI ) {
+		return;
+	}
+
 	if ( cg.snap->ps.pm_type == PM_INTERMISSION ) {
 		CG_DrawIntermission();
 		return;

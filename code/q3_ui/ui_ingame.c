@@ -169,14 +169,46 @@ InGame_MenuInit
 */
 static void InGame_Item( menutext_s *item, int id, const char *text, int y ) {
 	item->generic.type		= MTYPE_PTEXT;
-	item->generic.flags		= QMF_CENTER_JUSTIFY|QMF_PULSEIFFOCUS;
-	item->generic.x			= 320;
+	item->generic.flags		= QMF_LEFT_JUSTIFY|QMF_PULSEIFFOCUS;
+	item->generic.x			= 28;
 	item->generic.y			= y;
 	item->generic.id		= id;
 	item->generic.callback	= InGame_Event;
 	item->string			= (char *)text;
 	item->color				= color_red;
-	item->style				= UI_CENTER|UI_SMALLFONT;
+	item->style				= UI_LEFT|UI_SMALLFONT;
+}
+
+/*
+=================
+InGame_Draw
+
+The game darkened behind a panel on the left: the logo, the map and mode,
+then the menu
+=================
+*/
+static void InGame_Draw( void ) {
+	static const vec4_t	dim = { 0, 0, 0, 0.6f };
+	static const vec4_t	panel = { 0.086f, 0.09f, 0.106f, 0.92f };
+	static const vec4_t	hairline = { 0.165f, 0.17f, 0.19f, 1 };
+	char	info[MAX_INFO_STRING];
+	char	map[MAX_QPATH];
+	float	left = -uis.bias / uis.xscale;		// the screen's left edge in 640x480 units
+
+	// the whole screen, not just the 4:3 area
+	UI_FillRect( left, 0, 640 - 2 * left, 480, dim );
+	UI_FillRect( left, 0, 220 - left, 480, panel );
+	UI_FillRect( 220, 0, 1, 480, hairline );
+
+	if ( uis.logoShader ) {
+		UI_DrawHandlePic( 20, 16, 180, 47, uis.logoShader );
+	}
+	trap_GetConfigString( CS_SERVERINFO, info, sizeof( info ) );
+	Q_strncpyz( map, Info_ValueForKey( info, "mapname" ), sizeof( map ) );
+	Q_strupr( map );
+	UI_DrawString( 28, 70, map, UI_LEFT | UI_SMALLFONT, text_color_disabled );
+
+	Menu_Draw( &s_ingame.menu );
 }
 
 void InGame_MenuInit( void ) {
@@ -191,6 +223,7 @@ void InGame_MenuInit( void ) {
 
 	s_ingame.menu.wrapAround = qtrue;
 	s_ingame.menu.fullscreen = qfalse;
+	s_ingame.menu.draw = InGame_Draw;
 
 	s_ingame.frame.generic.type			= MTYPE_BITMAP;
 	s_ingame.frame.generic.flags		= QMF_INACTIVE;
@@ -201,7 +234,7 @@ void InGame_MenuInit( void ) {
 	s_ingame.frame.height				= 332;//256;
 
 	// resume, champion, colours and settings first; then match actions
-	y = 96;
+	y = 104;
 	InGame_Item( &s_ingame.resume, ID_RESUME, BG_String( STR_MENU_RESUME ), y );
 	y += INGAME_MENU_VERTICAL_SPACING;
 	InGame_Item( &s_ingame.champion, ID_CHAMPION, BG_String( STR_MENU_CHAMPION ), y );
@@ -240,7 +273,6 @@ void InGame_MenuInit( void ) {
 	y += INGAME_MENU_VERTICAL_SPACING;
 	InGame_Item( &s_ingame.quit, ID_QUIT, BG_String( STR_MENU_QUIT ), y );
 
-	Menu_AddItem( &s_ingame.menu, &s_ingame.frame );
 	Menu_AddItem( &s_ingame.menu, &s_ingame.resume );
 	Menu_AddItem( &s_ingame.menu, &s_ingame.champion );
 	Menu_AddItem( &s_ingame.menu, &s_ingame.colors );
