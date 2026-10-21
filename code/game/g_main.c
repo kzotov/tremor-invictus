@@ -442,7 +442,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_shardDrops, "g_shardDrops", "2", 0, 0, qtrue },
 	{ &g_shardLife, "g_shardLife", "15000", 0, 0, qtrue },
 	{ &g_powerupFirstSpawn, "g_powerupFirstSpawn", "90", 0, 0, qtrue },
-	{ &g_powerupWarning, "g_powerupWarning", "15", 0, 0, qtrue },
+	{ &g_powerupWarning, "g_powerupWarning", "10", 0, 0, qtrue },
 	{ &g_powerupAlternate, "g_powerupAlternate", "1", 0, 0, qtrue },
 	{ &g_hookSpeed, "g_hookSpeed", "3000", 0, 0, qtrue },
 	{ &g_hookRange, "g_hookRange", "3000", 0, 0, qtrue },

@@ -205,6 +205,7 @@ void G_CTFCheckRules( void ) {
 		level.halfTimeEnd = level.time + CTF_HALF_TIME_MSEC;
 		Com_sprintf( msg, sizeof( msg ), BG_String( STR_CTF_HALF_TIME ), level.teamScores[TEAM_RED], level.teamScores[TEAM_BLUE] );
 		trap_SendServerCommand( -1, va( "cp \"%s\"", msg ) );
+		G_Announce( -1, "halftime" );
 		trap_SendServerCommand( -1, va( "print \"%s\n\"", msg ) );
 		return;
 	}

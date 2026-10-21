@@ -809,6 +809,9 @@ static void S_AL_SrcSetup(srcHandle_t src, sfxHandle_t sfx, alSrcPriority_t prio
 	curSource->isTracking = qfalse;
 	curSource->isStream = qfalse;
 	curSource->curGain = s_alGain->value * s_volume->value;
+	if ( channel == CHAN_ANNOUNCER ) {
+		curSource->curGain *= Com_Clamp( 0, 1, s_announcerVolume->value );
+	}
 	curSource->scaleGain = curSource->curGain;
 	curSource->local = local;
 
@@ -1459,8 +1462,12 @@ void S_AL_SrcUpdate( void )
 			continue;
 
 		// Update source parameters
-		if((s_alGain->modified) || (s_volume->modified))
+		if((s_alGain->modified) || (s_volume->modified) || (s_announcerVolume->modified))
+		{
 			curSource->curGain = s_alGain->value * s_volume->value;
+			if ( curSource->channel == CHAN_ANNOUNCER )
+				curSource->curGain *= Com_Clamp( 0, 1, s_announcerVolume->value );
+		}
 		if((s_alRolloff->modified) && (!curSource->local))
 			qalSourcef(curSource->alSource, AL_ROLLOFF_FACTOR, s_alRolloff->value);
 		if(s_alMinDistance->modified)
@@ -2319,6 +2326,7 @@ void S_AL_Update( void )
 	// Clear the modified flags on the other cvars
 	s_alGain->modified = qfalse;
 	s_volume->modified = qfalse;
+	s_announcerVolume->modified = qfalse;
 	s_musicVolume->modified = qfalse;
 	s_alMinDistance->modified = qfalse;
 	s_alRolloff->modified = qfalse;

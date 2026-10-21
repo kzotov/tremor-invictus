@@ -136,6 +136,8 @@ static void G_CAStartRound( void ) {
 
 	Com_sprintf( msg, sizeof( msg ), BG_String( STR_CA_ROUND ), level.caRound );
 	trap_SendServerCommand( -1, va( "cp \"%s\"", msg ) );
+	G_Announce( -1, "roundbegins" );
+	level.caLastStanding[TEAM_RED] = level.caLastStanding[TEAM_BLUE] = qfalse;
 }
 
 /*
@@ -187,6 +189,31 @@ static void G_CAEndRound( int winner ) {
 	}
 	trap_SendServerCommand( -1, va( "cp \"%s\"", BG_String( id ) ) );
 	trap_SendServerCommand( -1, va( "print \"%s\n\"", BG_String( id ) ) );
+	G_Announce( -1, winner == TEAM_RED ? "redwinsround" : winner == TEAM_BLUE ? "bluewinsround" : "rounddraw" );
+}
+
+/*
+=================
+G_CALastStanding
+
+Tells a team's only survivor, once a round
+=================
+*/
+static void G_CALastStanding( const int alive[TEAM_NUM_TEAMS] ) {
+	int		team, i;
+
+	for ( team = TEAM_RED ; team <= TEAM_BLUE ; team++ ) {
+		if ( alive[team] != 1 || level.caLastStanding[team] ) {
+			continue;
+		}
+		level.caLastStanding[team] = qtrue;
+		for ( i = 0 ; i < level.maxclients ; i++ ) {
+			if ( level.clients[i].pers.connected == CON_CONNECTED && level.clients[i].sess.sessionTeam == team
+				&& g_entities[i].health > 0 ) {
+				G_Announce( i, "laststanding" );
+			}
+		}
+	}
 }
 
 /*
@@ -222,6 +249,7 @@ void G_CACheckRules( void ) {
 
 	case CA_FIGHTING:
 		G_CATeamStatus( alive, stack );
+		G_CALastStanding( alive );
 		if ( !alive[TEAM_RED] || !alive[TEAM_BLUE] ) {
 			G_CAEndRound( alive[TEAM_RED] ? TEAM_RED : alive[TEAM_BLUE] ? TEAM_BLUE : TEAM_FREE );
 		} else if ( g_caRoundTime.integer > 0 && level.time - level.caRoundStart >= g_caRoundTime.integer * 1000 ) {

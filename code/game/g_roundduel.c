@@ -280,6 +280,7 @@ static void G_RDStartRound( void ) {
 	}
 	Com_sprintf( msg, sizeof( msg ), BG_String( STR_RD_ROUND ), rd.round );
 	G_RDAnnounce( msg );
+	G_Announce( -1, "roundbegins" );
 	G_RDUpdateHud();
 }
 
@@ -292,6 +293,8 @@ static void G_RDEndRound( int winner ) {
 	cl->ps.persistant[PERS_SCORE]++;
 	Com_sprintf( msg, sizeof( msg ), BG_String( STR_RD_WINS_ROUND ), cl->pers.netname );
 	G_RDAnnounce( msg );
+	G_Announce( rd.player[winner], "youwintheround" );
+	G_Announce( rd.player[!winner], "youlosetheround" );
 	CalculateRanks();
 }
 

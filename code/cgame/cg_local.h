@@ -452,7 +452,7 @@ typedef struct {
 
 
 #define MAX_REWARDSTACK		10
-#define MAX_SOUNDBUFFER		20
+#define MAX_SOUNDBUFFER		32		// announcer queue
 
 //======================================================================
 

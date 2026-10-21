@@ -988,6 +988,39 @@ static void CG_RemoveChatEscapeChar( char *text ) {
 
 /*
 =================
+CG_AnnounceKey
+
+A line from the server for the announcer queue, by name; lines the install
+lacks stay silent
+=================
+*/
+#define MAX_ANNOUNCE_KEYS	32
+static void CG_AnnounceKey( const char *key ) {
+	static char			keys[MAX_ANNOUNCE_KEYS][32];
+	static sfxHandle_t	sounds[MAX_ANNOUNCE_KEYS];
+	static int			numKeys;
+	int					i;
+
+	for ( i = 0 ; i < numKeys ; i++ ) {
+		if ( !Q_stricmp( keys[i], key ) ) {
+			break;
+		}
+	}
+	if ( i == numKeys ) {
+		if ( numKeys == MAX_ANNOUNCE_KEYS ) {
+			return;
+		}
+		Q_strncpyz( keys[i], key, sizeof( keys[i] ) );
+		sounds[i] = trap_S_RegisterSound( va( "sound/feedback/%s.wav", key ), qtrue );
+		numKeys++;
+	}
+	if ( sounds[i] ) {
+		CG_AddBufferedSound( sounds[i] );
+	}
+}
+
+/*
+=================
 CG_Medal
 
 A medal earned: its icon and announcer line from the install when it has
@@ -1115,6 +1148,11 @@ static void CG_ServerCommand( void ) {
 			cg.duelHud[p][2] = atoi( CG_Argv( 3 + p * 3 ) );
 		}
 		cg.duelHudTime = cg.time;
+		return;
+	}
+
+	if ( !strcmp( cmd, "announce" ) ) {
+		CG_AnnounceKey( CG_Argv( 1 ) );
 		return;
 	}
 

@@ -69,6 +69,18 @@ static void G_Medal( gentity_t *ent, int medal ) {
 
 /*
 =================
+G_Announce
+
+An announcer line for one client, or everyone with -1: the clients play
+sound/feedback/<key>.wav from the install when it has it
+=================
+*/
+void G_Announce( int clientNum, const char *key ) {
+	trap_SendServerCommand( clientNum, va( "announce %s", key ) );
+}
+
+/*
+=================
 G_MedalWeapon
 
 The weapon behind a kill: the missile's, or the attacker's in hand

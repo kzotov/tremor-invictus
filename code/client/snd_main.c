@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "snd_public.h"
 
 cvar_t *s_volume;
+cvar_t *s_announcerVolume;
 cvar_t *s_muted;
 cvar_t *s_musicVolume;
 cvar_t *s_doppler;
@@ -477,6 +478,8 @@ void S_Init( void )
 	Com_Printf( "------ Initializing Sound ------\n" );
 
 	s_volume = Cvar_Get( "s_volume", "0.8", CVAR_ARCHIVE );
+	s_announcerVolume = Cvar_Get( "s_announcerVolume", "1", CVAR_ARCHIVE );
+	Cvar_SetDescription( s_announcerVolume, "Announcer voice volume, a share of the effects volume (0 to 1)." );
 	s_musicVolume = Cvar_Get( "s_musicvolume", "0.25", CVAR_ARCHIVE );
 	s_muted = Cvar_Get("s_muted", "0", CVAR_ROM);
 	s_doppler = Cvar_Get( "s_doppler", "1", CVAR_ARCHIVE );

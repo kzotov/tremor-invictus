@@ -538,6 +538,7 @@ static void G_SacrificeStartRound( void ) {
 
 	sac.round++;
 	sac.state = SAC_PLAYING;
+	G_Announce( -1, "roundbegins" );
 	sac.roundStart = level.time;
 	sac.warned = qfalse;
 	sac.suddenDeath = qfalse;
@@ -579,6 +580,7 @@ static void G_SacrificeEndRound( int winner ) {
 	sac.state = SAC_RESULT;
 	sac.stateTime = level.time + SAC_RESULT_MSEC;
 	G_SacrificeAnnounce( winner == TEAM_RED ? STR_SAC_RED_WINS : STR_SAC_BLUE_WINS, NULL );
+	G_Announce( -1, winner == TEAM_RED ? "redwinsround" : "bluewinsround" );
 	level.teamScores[winner]++;
 	CalculateRanks();
 }

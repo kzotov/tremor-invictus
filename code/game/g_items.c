@@ -422,6 +422,7 @@ static void G_PowerupWarning( gentity_t *ent ) {
 
 	trap_SendServerCommand( -1, va( "cp \"%s\"", msg ) );
 	trap_SendServerCommand( -1, va( "print \"%s\n\"", msg ) );
+	G_Announce( -1, item->giTag == PW_QUAD ? "quaddamagesoon" : "protectionsoon" );
 	ent->think = RespawnItem;
 	ent->nextthink = level.time + g_powerupWarning.integer * 1000;
 }
@@ -544,6 +545,7 @@ void RespawnItem( gentity_t *ent ) {
 			te = G_TempEntity( ent->s.pos.trBase, EV_GLOBAL_SOUND );
 		}
 		te->s.eventParm = G_SoundIndex( "sound/items/poweruprespawn.wav" );
+		G_Announce( -1, ent->item->giTag == PW_QUAD ? "quaddamageavailable" : "protectionavailable" );
 		te->r.svFlags |= SVF_BROADCAST;
 	}
 
