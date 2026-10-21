@@ -2371,6 +2371,7 @@ static void CG_DrawReward( void ) {
 				cg.rewardSound[i] = cg.rewardSound[i+1];
 				cg.rewardShader[i] = cg.rewardShader[i+1];
 				cg.rewardCount[i] = cg.rewardCount[i+1];
+				cg.rewardName[i] = cg.rewardName[i+1];
 			}
 			cg.rewardTime = cg.time;
 			cg.rewardStack--;
@@ -2379,6 +2380,33 @@ static void CG_DrawReward( void ) {
 		} else {
 			return;
 		}
+	}
+
+	// a medal: its icon (or a plate when the install has none), name and count
+	if ( cg.rewardName[0] ) {
+		static vec4_t	plate = { 0.5f, 0.08f, 0.06f, 0.85f };
+		vec4_t			c;
+		const char		*name = BG_String( cg.rewardName[0] );
+
+		Vector4Copy( plate, c );
+		c[3] *= color[3];
+		if ( cg.rewardShader[0] ) {
+			trap_R_SetColor( color );
+			CG_DrawPic( 320 - ICON_SIZE / 2, 56, ICON_SIZE - 4, ICON_SIZE - 4, cg.rewardShader[0] );
+			trap_R_SetColor( NULL );
+		} else {
+			CG_FillRect( 320 - ICON_SIZE / 2, 56, ICON_SIZE - 4, ICON_SIZE - 4, c );
+			CG_DrawStringExt( 320 - SMALLCHAR_WIDTH / 2 - 2, 56 + ( ICON_SIZE - 4 - SMALLCHAR_HEIGHT ) / 2,
+				va( "%c", name[0] ), color, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+		}
+		CG_DrawStringExt( 320 - CG_DrawStrlen( name ) * SMALLCHAR_WIDTH / 2, 56 + ICON_SIZE, name, color,
+			qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+		if ( cg.rewardCount[0] > 1 ) {
+			name = va( "x%i", cg.rewardCount[0] );
+			CG_DrawStringExt( 320 - CG_DrawStrlen( name ) * SMALLCHAR_WIDTH / 2, 56 + ICON_SIZE + SMALLCHAR_HEIGHT + 2,
+				name, color, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+		}
+		return;
 	}
 
 	trap_R_SetColor( color );

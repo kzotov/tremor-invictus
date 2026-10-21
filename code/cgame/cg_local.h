@@ -613,6 +613,7 @@ typedef struct {
 	int			rewardCount[MAX_REWARDSTACK];
 	qhandle_t	rewardShader[MAX_REWARDSTACK];
 	qhandle_t	rewardSound[MAX_REWARDSTACK];
+	int			rewardName[MAX_REWARDSTACK];		// string id of a medal's name, 0 for the Quake III awards
 
 	// sound buffer mainly for announcer sounds
 	int			soundBufferIn;
@@ -1564,6 +1565,7 @@ void CG_PlayBufferedVoiceChats( void );
 //
 void CG_Respawn( void );
 void CG_TransitionPlayerState( playerState_t *ps, playerState_t *ops );
+void CG_PushReward( sfxHandle_t sfx, qhandle_t shader, int rewardCount, int name );
 void CG_CheckChangedPredictableEvents( playerState_t *ps );
 
 

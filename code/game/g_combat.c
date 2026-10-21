@@ -487,6 +487,12 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 		Weapon_HookFree(self->client->hook);
 	}
 	G_EndRush( self );
+	{
+		int		state = BG_AbilityState( &self->client->ps );
+
+		G_MedalsDeath( self, inflictor, attacker, meansOfDeath,
+			state != ABILITY_IDLE && state != ABILITY_WINDUP );
+	}
 	// an ability still inside its press delay is cancelled and its charge kept
 	if ( BG_AbilityState( &self->client->ps ) == ABILITY_WINDUP ) {
 		BG_SetAbility( &self->client->ps, ABILITY_WINDUP, BG_AbilityCharges( &self->client->ps ) + 1 );
@@ -1241,6 +1247,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		targ->client->lasthurt_client = attacker->s.number;
 		targ->client->lasthurt_mod = mod;
 	}
+	G_MedalsDamage( targ, inflictor, attacker, take, mod );
 
 	// a drone brought down ends the flight instead of killing the player
 	if ( take && G_DroneAbsorbDamage( targ, take ) ) {

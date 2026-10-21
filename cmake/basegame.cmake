@@ -55,6 +55,7 @@ set(GAME_SOURCES
     ${SOURCE_DIR}/game/g_rewind.c
     ${SOURCE_DIR}/game/g_duel.c
     ${SOURCE_DIR}/game/g_mapvote.c
+    ${SOURCE_DIR}/game/g_medals.c
     ${SOURCE_DIR}/game/g_ctf.c
     ${SOURCE_DIR}/game/g_ca.c
     ${SOURCE_DIR}/game/g_sacrifice.c

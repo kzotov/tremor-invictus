@@ -283,13 +283,18 @@ void CG_CheckChangedPredictableEvents( playerState_t *ps ) {
 pushReward
 ==================
 */
-static void pushReward(sfxHandle_t sfx, qhandle_t shader, int rewardCount) {
+void CG_PushReward( sfxHandle_t sfx, qhandle_t shader, int rewardCount, int name ) {
 	if (cg.rewardStack < (MAX_REWARDSTACK-1)) {
 		cg.rewardStack++;
 		cg.rewardSound[cg.rewardStack] = sfx;
 		cg.rewardShader[cg.rewardStack] = shader;
 		cg.rewardCount[cg.rewardStack] = rewardCount;
+		cg.rewardName[cg.rewardStack] = name;
 	}
+}
+
+static void pushReward(sfxHandle_t sfx, qhandle_t shader, int rewardCount) {
+	CG_PushReward( sfx, shader, rewardCount, 0 );
 }
 
 /*

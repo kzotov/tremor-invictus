@@ -179,6 +179,8 @@ struct gentity_s {
 	void		(*abilityImpact)( gentity_t *self, trace_t *trace );	// replaces the missile impact
 	int			abilityMask[MAX_CLIENTS / 32];	// players already affected once
 	int			abilityTime;	// meaning depends on the entity
+	int			medalKills;		// kills by this missile, for Collateral Damage
+	int			medalSpawnTime;	// level.time this item last respawned, for Stopwatch
 
 	// weapon numbers carried by a projectile (wpTuned set)
 	qboolean	wpTuned;
@@ -322,6 +324,28 @@ struct gclient_s {
 	int			airOutTime;
 
 	int			lastKillTime;		// for multiple kill rewards
+
+	// medals (g_medals.c)
+	int			medals[MEDAL_NUM];	// this match
+	int			medalKillTime;		// level.time of the last kill, for multi-kills
+	int			multiKills;			// kills each within 3 s of the one before
+	int			streak;				// kills this life
+	int			lifeDamage;			// damage to enemies this life
+	int			matchDamage;		// damage to enemies this match
+	int			powerupKills;		// kills while holding this power-up
+	int			killedBy;			// the client that killed this one last
+	int			killedByStreak;		// how many times in a row they did
+	int			weaponKills[WP_NUM_WEAPONS];
+	int			assists;
+	int			groundTime;			// level.time last on the ground
+	int			hurtTime[MAX_CLIENTS];		// when each client last hurt this one
+	int			comboTime[MAX_CLIENTS];		// ... with anything but the railgun
+	int			lastEnemyHurt;		// the last enemy to hurt this one, for Ring Out
+	int			lastEnemyHurtTime;
+	int			deathTime;			// level.time and inflictor of this client's death
+	int			deathInflictor;
+	int			pointBlankTime;		// one Point Blank per shot
+	qboolean	tankDone;			// one Tank per life
 
 	qboolean	fireHeld;			// used for hook
 	gentity_t	*hook;				// grapple hook if out
@@ -497,6 +521,9 @@ typedef struct {
 #ifdef MISSIONPACK
 	int			portalSequence;
 #endif
+	qboolean	firstBlood;			// medals: the match's first kill has happened
+	int			powerupClient;		// the last client to take a power-up
+	int			powerupStreak;		// how many in a row they took
 } level_locals_t;
 
 
@@ -676,6 +703,15 @@ qboolean	G_MatchMode( void );
 int			G_MatchTimeLimit( void );
 int			G_MatchFragLimit( void );
 int			G_MaxPlayers( void );
+
+//
+// g_medals.c
+//
+void		G_MedalsDamage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, int take, int mod );
+void		G_MedalsDeath( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int mod, qboolean abilityOn );
+void		G_MedalsPickup( gentity_t *ent, gentity_t *item );
+void		G_MedalsRail( gentity_t *ent, int hits );
+void		G_MedalsSpawn( gentity_t *ent );
 
 //
 // g_mapvote.c

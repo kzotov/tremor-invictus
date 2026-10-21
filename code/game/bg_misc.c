@@ -1225,6 +1225,45 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Press 1, 2 or 3 to vote; you can change your vote",
 	"Voting ends in %i seconds",
 	"Votes: %i",
+	"First Blood",
+	"Midair",
+	"Airborne",
+	"Combo Kill",
+	"Collateral Damage",
+	"Double Whammy",
+	"Denied",
+	"Revenge",
+	"Party Breaker",
+	"Perforated",
+	"Point Blank",
+	"Precise",
+	"Ring Out",
+	"Stopwatch",
+	"Tank",
+	"Die Hard",
+	"From the Grave",
+	"Kamikaze",
+	"Showstopper",
+	"Triple Kill",
+	"Fighter",
+	"Avatar of Death",
+	"Killing Spree",
+	"Rage",
+	"Frenzy",
+	"Rampage",
+	"Dominating",
+	"Powerup Massacre",
+	"Gauntlet God",
+	"Machinegun God",
+	"Shotgun God",
+	"Nailgun God",
+	"Tri-bolt God",
+	"Rocket God",
+	"Lightning God",
+	"Rail God",
+	"Damage Dealer",
+	"Net Master",
+	"Assistant",
 	"PAUSED",
 	"Space play   Up/Down speed   Left/Right 10 s   PgUp/PgDn 1 min   Home restart   H hide HUD   Esc leave",
 	"REC",
@@ -1626,6 +1665,56 @@ const champion_t *BG_Champion( int index ) {
 	}
 	return &bg_championList[index];
 }
+
+/*
+==============================================================================
+
+MEDALS
+
+==============================================================================
+*/
+
+const medalInfo_t bg_medalInfo[MEDAL_NUM] = {
+	{ STR_MEDAL_FIRSTBLOOD,	"firstblood" },
+	{ STR_MEDAL_MIDAIR,		"midair" },
+	{ STR_MEDAL_AIRBORNE,		"airborne" },
+	{ STR_MEDAL_COMBOKILL,		"combokill" },
+	{ STR_MEDAL_COLLATERAL,	"collateral" },
+	{ STR_MEDAL_DOUBLEWHAMMY,	"doublewhammy" },
+	{ STR_MEDAL_DENIED,		"denied" },
+	{ STR_MEDAL_REVENGE,		"revenge" },
+	{ STR_MEDAL_PARTYBREAKER,	"partybreaker" },
+	{ STR_MEDAL_PERFORATED,	"perforated" },
+	{ STR_MEDAL_POINTBLANK,	"pointblank" },
+	{ STR_MEDAL_PRECISE,		"precise" },
+	{ STR_MEDAL_RINGOUT,		"ringout" },
+	{ STR_MEDAL_STOPWATCH,		"stopwatch" },
+	{ STR_MEDAL_TANK,		"tank" },
+	{ STR_MEDAL_DIEHARD,		"diehard" },
+	{ STR_MEDAL_FROMTHEGRAVE,	"fromthegrave" },
+	{ STR_MEDAL_KAMIKAZE,		"kamikaze" },
+	{ STR_MEDAL_SHOWSTOPPER,	"showstopper" },
+	{ STR_MEDAL_TRIPLEKILL,	"triplekill" },
+	{ STR_MEDAL_FIGHTER,		"fighter" },
+	{ STR_MEDAL_AVATAR,		"avatarofdeath" },
+	{ STR_MEDAL_SPREE,		"killingspree" },
+	{ STR_MEDAL_RAGE,		"rage" },
+	{ STR_MEDAL_FRENZY,		"frenzy" },
+	{ STR_MEDAL_RAMPAGE,		"rampage" },
+	{ STR_MEDAL_DOMINATING,	"dominating" },
+	{ STR_MEDAL_PUMASSACRE,	"powerupmassacre" },
+	{ STR_MEDAL_GOD_GAUNTLET,	"gauntletgod" },
+	{ STR_MEDAL_GOD_MG,		"machinegungod" },
+	{ STR_MEDAL_GOD_SG,		"shotgungod" },
+	{ STR_MEDAL_GOD_NG,		"nailgungod" },
+	{ STR_MEDAL_GOD_TB,		"triboltgod" },
+	{ STR_MEDAL_GOD_RL,		"rocketgod" },
+	{ STR_MEDAL_GOD_LG,		"lightninggod" },
+	{ STR_MEDAL_GOD_RG,		"railgod" },
+	{ STR_MEDAL_DAMAGEDEALER,	"damagedealer" },
+	{ STR_MEDAL_NETMASTER,		"netmaster" },
+	{ STR_MEDAL_ASSISTANT,		"assistant" }
+};
 
 /*
 ==============================================================================

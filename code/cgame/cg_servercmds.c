@@ -988,6 +988,30 @@ static void CG_RemoveChatEscapeChar( char *text ) {
 
 /*
 =================
+CG_Medal
+
+A medal earned: its icon and announcer line from the install when it has
+them (loaded the first time each is earned)
+=================
+*/
+static void CG_Medal( int medal, int count ) {
+	static qboolean		loaded[MEDAL_NUM];
+	static sfxHandle_t	sounds[MEDAL_NUM];
+	static qhandle_t	icons[MEDAL_NUM];
+
+	if ( medal < 0 || medal >= MEDAL_NUM ) {
+		return;
+	}
+	if ( !loaded[medal] ) {
+		loaded[medal] = qtrue;
+		sounds[medal] = trap_S_RegisterSound( va( "sound/feedback/%s.wav", bg_medalInfo[medal].key ), qtrue );
+		icons[medal] = trap_R_RegisterShaderNoMip( va( "medal_%s", bg_medalInfo[medal].key ) );
+	}
+	CG_PushReward( sounds[medal], icons[medal], count, bg_medalInfo[medal].name );
+}
+
+/*
+=================
 CG_ServerCommand
 
 The string has been tokenized and can be retrieved with
@@ -1091,6 +1115,11 @@ static void CG_ServerCommand( void ) {
 			cg.duelHud[p][2] = atoi( CG_Argv( 3 + p * 3 ) );
 		}
 		cg.duelHudTime = cg.time;
+		return;
+	}
+
+	if ( !strcmp( cmd, "medal" ) ) {
+		CG_Medal( atoi( CG_Argv( 1 ) ), atoi( CG_Argv( 2 ) ) );
 		return;
 	}
 

@@ -1336,6 +1336,9 @@ void ClientThink_real( gentity_t *ent ) {
 #else
 		Pmove (&pm);
 #endif
+	if ( client->ps.groundEntityNum != ENTITYNUM_NONE ) {
+		client->groundTime = level.time;		// for the airborne medals
+	}
 
 	// save results of pmove
 	if ( ent->client->ps.eventSequence != oldEventSequence ) {

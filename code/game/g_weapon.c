@@ -798,6 +798,8 @@ void weapon_railgun_fire (gentity_t *ent) {
 	}
 	tent->s.clientNum = ent->s.clientNum;
 
+	G_MedalsRail( ent, hits );
+
 	// give the shooter a reward sound if they have made two railgun hits in a row
 	if ( hits == 0 ) {
 		// complete miss

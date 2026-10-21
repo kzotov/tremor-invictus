@@ -528,6 +528,7 @@ void RespawnItem( gentity_t *ent ) {
 	ent->r.contents = CONTENTS_TRIGGER;
 	ent->s.eFlags &= ~EF_NODRAW;
 	ent->r.svFlags &= ~SVF_NOCLIENT;
+	ent->medalSpawnTime = level.time;
 	trap_LinkEntity (ent);
 	G_UpdateItemTimers();
 
@@ -642,6 +643,7 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
 	if ( !respawn ) {
 		return;
 	}
+	G_MedalsPickup( other, ent );
 
 	// play the normal pickup sound
 	if (predict) {
