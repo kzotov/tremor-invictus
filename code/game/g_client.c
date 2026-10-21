@@ -1417,6 +1417,12 @@ void ClientDisconnect( int clientNum ) {
 		ClientUserinfoChanged( level.sortedClients[0] );
 	}
 
+	// a duel player leaving a running match forfeits: the other one wins
+	if ( g_gametype.integer == GT_TOURNAMENT && ent->client->sess.sessionTeam == TEAM_FREE
+		&& !level.intermissiontime && !level.intermissionQueued && !level.warmupTime ) {
+		level.forfeitPending = qtrue;
+	}
+
 	if( g_gametype.integer == GT_TOURNAMENT &&
 		ent->client->sess.sessionTeam == TEAM_FREE &&
 		level.intermissiontime ) {

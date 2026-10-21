@@ -1682,6 +1682,16 @@ void CheckExitRules( void ) {
 		return;
 	}
 
+	// duel forfeit: the one left in the match wins
+	if ( level.forfeitPending ) {
+		level.forfeitPending = qfalse;
+		if ( g_gametype.integer == GT_TOURNAMENT && level.numPlayingClients == 1 ) {
+			trap_SendServerCommand( -1, "print \"Forfeit.\n\"" );
+			LogExit( "Forfeit." );
+			return;
+		}
+	}
+
 	if ( G_Sacrifice() ) {
 		G_SacrificeCheckRules();
 		return;
@@ -1835,6 +1845,11 @@ void CheckTournament( void ) {
 	}
 
 	if ( g_gametype.integer == GT_TOURNAMENT ) {
+
+		// a forfeit ends the match first (CheckExitRules)
+		if ( level.forfeitPending ) {
+			return;
+		}
 
 		// pull in a spectator if needed
 		if ( level.numPlayingClients < 2 ) {

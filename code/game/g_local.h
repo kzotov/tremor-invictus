@@ -473,6 +473,7 @@ typedef struct {
 	int			ctfHalf;				// 0 or 1 the first half, 2 the second
 	int			halfTimeEnd;			// level.time the half-time break ends, while in it
 	int			timeoutEnd;				// level.time a timeout ends, 0 when none
+	qboolean	forfeitPending;			// a duel player left the running match
 	int			timeoutClockTime;		// level.time the clock was last sent during a timeout
 	qboolean	teamTimeoutUsed[TEAM_NUM_TEAMS];
 
