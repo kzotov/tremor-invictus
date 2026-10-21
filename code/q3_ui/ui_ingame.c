@@ -181,6 +181,19 @@ static void InGame_Item( menutext_s *item, int id, const char *text, int y ) {
 
 /*
 =================
+InGame_Add
+
+An entry at y, added to the menu; y moves to the next line
+=================
+*/
+static void InGame_Add( menutext_s *item, int id, const char *text, int *y ) {
+	InGame_Item( item, id, text, *y );
+	Menu_AddItem( &s_ingame.menu, item );
+	*y += INGAME_MENU_VERTICAL_SPACING;
+}
+
+/*
+=================
 InGame_Draw
 
 The game darkened behind a panel on the left: the logo, the map and mode,
@@ -233,61 +246,32 @@ void InGame_MenuInit( void ) {
 	s_ingame.frame.width				= 466;//359;
 	s_ingame.frame.height				= 332;//256;
 
-	// resume, champion, colours and settings first; then match actions
+	// resume, champion, colours and settings first; then match actions.
+	// Only entries that can be used here are shown.
+	trap_GetClientState( &cs );
+	trap_GetConfigString( CS_PLAYERS + cs.clientNum, info, MAX_INFO_STRING );
+	team = atoi( Info_ValueForKey( info, "t" ) );
 	y = 104;
-	InGame_Item( &s_ingame.resume, ID_RESUME, BG_String( STR_MENU_RESUME ), y );
-	y += INGAME_MENU_VERTICAL_SPACING;
+	InGame_Add( &s_ingame.resume, ID_RESUME, BG_String( STR_MENU_RESUME ), &y );
 	// in duel the champion is set for the match, so no Champion entry
 	if ( trap_Cvar_VariableValue( "g_gametype" ) != GT_TOURNAMENT ) {
-		InGame_Item( &s_ingame.champion, ID_CHAMPION, BG_String( STR_MENU_CHAMPION ), y );
-		y += INGAME_MENU_VERTICAL_SPACING;
+		InGame_Add( &s_ingame.champion, ID_CHAMPION, BG_String( STR_MENU_CHAMPION ), &y );
 	}
-	InGame_Item( &s_ingame.colors, ID_COLORS, BG_String( STR_MENU_PLAYER_COLORS ), y );
-	y += INGAME_MENU_VERTICAL_SPACING;
-	InGame_Item( &s_ingame.setup, ID_SETUP, BG_String( STR_MENU_SETTINGS ), y );
-	y += INGAME_MENU_VERTICAL_SPACING;
-	InGame_Item( &s_ingame.team, ID_TEAM, BG_String( STR_MENU_JOIN_TEAM ), y );
-
-	y += INGAME_MENU_VERTICAL_SPACING;
-	InGame_Item( &s_ingame.addbots, ID_ADDBOTS, BG_String( STR_MENU_ADD_BOTS ), y );
-	y += INGAME_MENU_VERTICAL_SPACING;
-	InGame_Item( &s_ingame.removebots, ID_REMOVEBOTS, BG_String( STR_MENU_REMOVE_BOTS ), y );
-	if( !trap_Cvar_VariableValue( "sv_running" ) || !trap_Cvar_VariableValue( "bot_enable" ) ) {
-		s_ingame.addbots.generic.flags |= QMF_GRAYED;
-		s_ingame.removebots.generic.flags |= QMF_GRAYED;
-	}
-
-	y += INGAME_MENU_VERTICAL_SPACING;
-	InGame_Item( &s_ingame.teamorders, ID_TEAMORDERS, "TEAM ORDERS", y );
-	if( !(trap_Cvar_VariableValue( "g_gametype" ) >= GT_TEAM) ) {
-		s_ingame.teamorders.generic.flags |= QMF_GRAYED;
-	}
-	else {
-		trap_GetClientState( &cs );
-		trap_GetConfigString( CS_PLAYERS + cs.clientNum, info, MAX_INFO_STRING );
-		team = atoi( Info_ValueForKey( info, "t" ) );
-		if( team == TEAM_SPECTATOR ) {
-			s_ingame.teamorders.generic.flags |= QMF_GRAYED;
+	InGame_Add( &s_ingame.colors, ID_COLORS, BG_String( STR_MENU_PLAYER_COLORS ), &y );
+	InGame_Add( &s_ingame.setup, ID_SETUP, BG_String( STR_MENU_SETTINGS ), &y );
+	InGame_Add( &s_ingame.team, ID_TEAM, BG_String( STR_MENU_JOIN_TEAM ), &y );
+	// bots: the host of a game with bots on
+	if ( trap_Cvar_VariableValue( "sv_running" ) && trap_Cvar_VariableValue( "bot_enable" ) ) {
+		InGame_Add( &s_ingame.addbots, ID_ADDBOTS, BG_String( STR_MENU_ADD_BOTS ), &y );
+		InGame_Add( &s_ingame.removebots, ID_REMOVEBOTS, BG_String( STR_MENU_REMOVE_BOTS ), &y );
+		// orders for the bots on your team
+		if ( trap_Cvar_VariableValue( "g_gametype" ) >= GT_TEAM && team != TEAM_SPECTATOR ) {
+			InGame_Add( &s_ingame.teamorders, ID_TEAMORDERS, BG_String( STR_MENU_TEAM_ORDERS ), &y );
 		}
 	}
-
-	y += INGAME_MENU_VERTICAL_SPACING * 2;
-	InGame_Item( &s_ingame.leave, ID_LEAVEARENA, BG_String( STR_MENU_LEAVE ), y );
 	y += INGAME_MENU_VERTICAL_SPACING;
-	InGame_Item( &s_ingame.quit, ID_QUIT, BG_String( STR_MENU_QUIT ), y );
-
-	Menu_AddItem( &s_ingame.menu, &s_ingame.resume );
-	if ( trap_Cvar_VariableValue( "g_gametype" ) != GT_TOURNAMENT ) {
-		Menu_AddItem( &s_ingame.menu, &s_ingame.champion );
-	}
-	Menu_AddItem( &s_ingame.menu, &s_ingame.colors );
-	Menu_AddItem( &s_ingame.menu, &s_ingame.setup );
-	Menu_AddItem( &s_ingame.menu, &s_ingame.team );
-	Menu_AddItem( &s_ingame.menu, &s_ingame.addbots );
-	Menu_AddItem( &s_ingame.menu, &s_ingame.removebots );
-	Menu_AddItem( &s_ingame.menu, &s_ingame.teamorders );
-	Menu_AddItem( &s_ingame.menu, &s_ingame.leave );
-	Menu_AddItem( &s_ingame.menu, &s_ingame.quit );
+	InGame_Add( &s_ingame.leave, ID_LEAVEARENA, BG_String( STR_MENU_LEAVE ), &y );
+	InGame_Add( &s_ingame.quit, ID_QUIT, BG_String( STR_MENU_QUIT ), &y );
 }
 
 

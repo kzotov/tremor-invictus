@@ -1241,6 +1241,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Banned by an admin",
 	"You have no admin rights on this server.",
 	"That team is locked.",
+	"TEAM ORDERS",
 	"First Blood",
 	"Midair",
 	"Airborne",
