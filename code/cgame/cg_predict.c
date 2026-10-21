@@ -281,6 +281,7 @@ static void CG_TouchItem( centity_t *cent ) {
 
 	// major items wait for the server: armor, mega health, holdables, powerups
 	if ( item->giType == IT_ARMOR || item->giType == IT_HOLDABLE || item->giType == IT_POWERUP
+		|| item->giType == IT_HOURGLASS
 		|| ( item->giType == IT_HEALTH && item->quantity == 100 ) ) {
 		return;
 	}

@@ -967,6 +967,40 @@ a starting weapon; not placed on maps
 	},
 #endif
 
+/*QUAKED item_hourglass (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+takes a tenth of the full wait off the ability's recharge
+*/
+	{
+		"item_hourglass",
+		"sound/items/holdable.wav",
+		{ "models/powerups/holdable/teleporter.md3",
+		NULL, NULL, NULL},
+/* icon */		"icons/teleporter",
+/* pickup */	"Hourglass",
+		10,
+		IT_HOURGLASS,
+		0,
+/* precache */ "",
+/* sounds */ ""
+	},
+
+/*QUAKED item_ammo_box (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
+ammo for every carried weapon
+*/
+	{
+		"item_ammo_box",
+		"sound/misc/am_pkup.wav",
+		{ "models/powerups/ammo/bfgam.md3",
+		NULL, NULL, NULL},
+/* icon */		"icons/icona_bfg",
+/* pickup */	"Ammo Box",
+		0,
+		IT_AMMO,
+		WP_NONE,
+/* precache */ "",
+/* sounds */ ""
+	},
+
 	// end of list marker
 	{NULL}
 };
@@ -1785,6 +1819,50 @@ Returns false if the item should not be picked up.
 This needs to be the same for client side prediction and server use.
 ================
 */
+/*
+================
+BG_AmmoBoxAmount
+
+What an ammo box gives a weapon: a lot for the fast-firing ones, a few
+shots for the rest
+================
+*/
+int BG_AmmoBoxAmount( int weapon ) {
+	switch ( weapon ) {
+	case WP_MACHINEGUN: case WP_HEAVY_MACHINEGUN:
+	case WP_NAILGUN: case WP_SUPER_NAILGUN:
+	case WP_LIGHTNING:
+		return 50;
+	case WP_SHOTGUN: case WP_SUPER_SHOTGUN:
+	case WP_ROCKET_LAUNCHER: case WP_TRIBOLT: case WP_RAILGUN:
+		return 5;
+	default:
+		return 0;
+	}
+}
+
+/*
+================
+BG_AmmoBoxUseful
+
+True when some carried weapon is below its ammo maximum
+================
+*/
+qboolean BG_AmmoBoxUseful( const playerState_t *ps ) {
+	int		w, max;
+
+	for ( w = WP_GAUNTLET + 1; w < WP_NUM_WEAPONS; w++ ) {
+		if ( !( ps->stats[STAT_WEAPONS] & ( 1 << w ) ) || !BG_AmmoBoxAmount( w ) ) {
+			continue;
+		}
+		max = BG_WeaponTuned( w ) && BG_WeaponParam( w, WPP_AMMOMAX ) > 0 ? BG_WeaponParam( w, WPP_AMMOMAX ) : 200;
+		if ( ps->ammo[w] < max ) {
+			return qtrue;
+		}
+	}
+	return qfalse;
+}
+
 qboolean BG_CanItemBeGrabbed( int gametype, const entityState_t *ent, const playerState_t *ps ) {
 	gitem_t	*item;
 #ifdef MISSIONPACK
@@ -1802,6 +1880,9 @@ qboolean BG_CanItemBeGrabbed( int gametype, const entityState_t *ent, const play
 		return qtrue;	// weapons are always picked up
 
 	case IT_AMMO:
+		if ( item->giTag == WP_NONE ) {
+			return BG_AmmoBoxUseful( ps );
+		}
 		if ( ps->ammo[ item->giTag ] >= ( BG_WeaponTuned( item->giTag ) && BG_WeaponParam( item->giTag, WPP_AMMOMAX ) > 0
 			? BG_WeaponParam( item->giTag, WPP_AMMOMAX ) : 200 ) ) {
 			return qfalse;		// can't hold any more
@@ -1854,6 +1935,14 @@ qboolean BG_CanItemBeGrabbed( int gametype, const entityState_t *ent, const play
 
 	case IT_POWERUP:
 		return qtrue;	// powerups are always picked up
+
+	case IT_HOURGLASS:
+		{
+			// only while the ability is recharging
+			int		active = BG_Champion( ps->stats[STAT_CHAMPION] )->active;
+
+			return active > ACTIVE_NONE && BG_AbilityCharges( ps ) < BG_AbilityParam( active, AP_CHARGES );
+		}
 
 #ifdef MISSIONPACK
 	case IT_PERSISTANT_POWERUP:

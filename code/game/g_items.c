@@ -233,7 +233,18 @@ int Pickup_Ammo (gentity_t *ent, gentity_t *other)
 		quantity = ent->item->quantity;
 	}
 
-	Add_Ammo (other, ent->item->giTag, quantity);
+	if ( ent->item->giTag == WP_NONE ) {
+		// ammo box: some for every carried weapon
+		int		w;
+
+		for ( w = WP_GAUNTLET + 1; w < WP_NUM_WEAPONS; w++ ) {
+			if ( ( other->client->ps.stats[STAT_WEAPONS] & ( 1 << w ) ) && BG_AmmoBoxAmount( w ) ) {
+				Add_Ammo( other, w, BG_AmmoBoxAmount( w ) );
+			}
+		}
+	} else {
+		Add_Ammo (other, ent->item->giTag, quantity);
+	}
 
 	if ( BG_Champion( other->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_AMMOCOOLDOWN ) {
 		G_CutAbilityCooldown( other, g_cooldownAmmo.value );
@@ -579,6 +590,11 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
 		break;
 	case IT_HOLDABLE:
 		respawn = Pickup_Holdable(ent, other);
+		break;
+	case IT_HOURGLASS:
+		G_CutAbilityCooldown( other, 0.1f );
+		respawn = 30;
+		predict = qfalse;
 		break;
 	default:
 		return;

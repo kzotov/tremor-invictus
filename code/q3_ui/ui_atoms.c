@@ -1308,3 +1308,7 @@ qboolean BG_WeaponTuned( int weapon ) {
 float BG_WeaponParam( int weapon, int param ) {
 	return 0;
 }
+
+float BG_AbilityParam( int active, int param ) {
+	return 0;
+}
