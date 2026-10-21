@@ -1508,7 +1508,22 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Heavy armour",
 	"Light armour",
 	"Accuracy",
-	"SLIDE %.1f"
+	"SLIDE %.1f",
+	"Zoom sensitivity",
+	"Sensitivity while zoomed; Auto scales with the zoom.",
+	"Auto",
+	"Crosshair colour",
+	"Crosshair colour.",
+	"White",
+	"Red",
+	"Green",
+	"Yellow",
+	"Blue",
+	"Cyan",
+	"Pink",
+	"Orange",
+	"Speedometer",
+	"Your speed under the crosshair."
 };
 
 /*

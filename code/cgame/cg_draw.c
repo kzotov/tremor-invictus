@@ -1036,6 +1036,27 @@ static void CG_DrawPassiveState( void ) {
 	}
 }
 
+/*
+=================
+CG_DrawSpeedometer
+
+cg_drawSpeed 1: horizontal speed under the crosshair
+=================
+*/
+static void CG_DrawSpeedometer( void ) {
+	char	*s;
+	float	speed;
+
+	if ( !cg_drawSpeed.integer ) {
+		return;
+	}
+	speed = sqrt( cg.predictedPlayerState.velocity[0] * cg.predictedPlayerState.velocity[0]
+		+ cg.predictedPlayerState.velocity[1] * cg.predictedPlayerState.velocity[1] );
+	s = va( "%i", (int)speed );
+	CG_DrawStringExt( 320 - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH / 2, 290, s, colorWhite,
+		qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+}
+
 static void CG_DrawHud( void ) {
 	playerState_t	*ps = &cg.snap->ps;
 	centity_t		*cent = &cg_entities[ps->clientNum];
@@ -1103,6 +1124,7 @@ static void CG_DrawHud( void ) {
 	CG_DrawHudPowerups();
 	CG_DrawHudPickup();
 	CG_DrawPassiveState();
+	CG_DrawSpeedometer();
 }
 #endif
 
@@ -2759,8 +2781,15 @@ static void CG_DrawCrosshair(void)
 		return;
 	}
 
-	// set color based on health
-	if ( cg_crosshairHealth.integer ) {
+	// the chosen colour, else colour by health
+	if ( cg_crosshairColor.integer > 0 ) {
+		static const vec4_t	palette[] = {
+			{ 1, 1, 1, 1 }, { 1, 0.2f, 0.2f, 1 }, { 0.2f, 1, 0.2f, 1 }, { 1, 1, 0.2f, 1 },
+			{ 0.2f, 0.4f, 1, 1 }, { 0.2f, 1, 1, 1 }, { 1, 0.3f, 1, 1 }, { 1, 0.6f, 0.1f, 1 }
+		};
+
+		trap_R_SetColor( palette[cg_crosshairColor.integer % ARRAY_LEN( palette )] );
+	} else if ( cg_crosshairHealth.integer ) {
 		vec4_t		hcolor;
 
 		CG_ColorForHealth( hcolor );

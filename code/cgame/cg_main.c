@@ -215,6 +215,9 @@ vmCvar_t	cg_obituaryRowSize;
 vmCvar_t	cg_chatHistoryLength;
 vmCvar_t	cg_specItemTimers;
 vmCvar_t	cg_followKiller;
+vmCvar_t	cg_zoomSensitivity;
+vmCvar_t	cg_crosshairColor;
+vmCvar_t	cg_drawSpeed;
 
 #ifdef MISSIONPACK
 vmCvar_t 	cg_redTeamName;
@@ -384,7 +387,10 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_obituaryRowSize, "cg_obituaryRowSize", "5", CVAR_ARCHIVE},
 	{ &cg_chatHistoryLength, "cg_chatHistoryLength", "6", CVAR_ARCHIVE},
 	{ &cg_specItemTimers, "cg_specItemTimers", "7", CVAR_ARCHIVE},
-	{ &cg_followKiller, "cg_followKiller", "0", CVAR_ARCHIVE}
+	{ &cg_followKiller, "cg_followKiller", "0", CVAR_ARCHIVE},
+	{ &cg_zoomSensitivity, "cg_zoomSensitivity", "0", CVAR_ARCHIVE},
+	{ &cg_crosshairColor, "cg_crosshairColor", "0", CVAR_ARCHIVE},
+	{ &cg_drawSpeed, "cg_drawSpeed", "0", CVAR_ARCHIVE}
 //	{ &cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR_USERINFO | CVAR_ARCHIVE }
 };
 

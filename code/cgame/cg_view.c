@@ -547,6 +547,8 @@ static int CG_CalcFov( void ) {
 
 	if ( !cg.zoomed ) {
 		cg.zoomSensitivity = 1;
+	} else if ( cg_zoomSensitivity.value > 0 ) {
+		cg.zoomSensitivity = cg_zoomSensitivity.value;		// the player's own scale
 	} else {
 		cg.zoomSensitivity = cg.refdef.fov_y / 75.0;
 	}

@@ -97,7 +97,9 @@ static const settingRow_t mouseRows[] = {
 	{ ROW_FIELD, STR_SET_ACCELPOWER, STR_SET_ACCELPOWER_HELP, "cl_mouseAccelPower" },
 	{ ROW_FIELD, STR_SET_ACCELCAP, STR_SET_ACCELCAP_HELP, "cl_mouseSensCap" },
 	{ ROW_INVERT, STR_SET_INVERT, STR_SET_INVERT_HELP, "m_pitch", 2, { NULL }, { STR_SET_OFF, STR_SET_ON } },
-	{ ROW_SPIN, STR_SET_SMOOTH, STR_SET_SMOOTH_HELP, "m_filter", OFF_ON }
+	{ ROW_SPIN, STR_SET_SMOOTH, STR_SET_SMOOTH_HELP, "m_filter", OFF_ON },
+	{ ROW_SPIN, STR_SET_ZOOMSENS, STR_SET_ZOOMSENS_HELP, "cg_zoomSensitivity", 10,
+		{ "0", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "1" }, { STR_SET_AUTO } }
 };
 
 #define BIND( label, cmd )	{ ROW_BIND, label, STR_SET_BIND_HELP, cmd }
@@ -135,12 +137,15 @@ static const settingRow_t gameRows[] = {
 	{ ROW_SPIN, STR_SET_CROSSHAIR, STR_SET_CROSSHAIR_HELP, "cg_drawCrosshair", 10, { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" },
 		{ STR_SET_OFF } },
 	{ ROW_SLIDER, STR_SET_CROSSHAIRSIZE, STR_SET_CROSSHAIRSIZE_HELP, "cg_crosshairSize", 0, { NULL }, { 0 }, 12, 48 },
+	{ ROW_SPIN, STR_SET_XHCOLOR, STR_SET_XHCOLOR_HELP, "cg_crosshairColor", 8, { "0", "1", "2", "3", "4", "5", "6", "7" },
+		{ STR_SET_WHITE, STR_SET_RED, STR_SET_GREEN, STR_SET_YELLOW, STR_SET_BLUE, STR_SET_CYAN, STR_SET_PINK, STR_SET_ORANGE } },
 	{ ROW_SPIN, STR_SET_ARC, STR_SET_ARC_HELP, "cg_drawCooldownArc", 5, { "0", "2", "3", "4", "5" },
 		{ STR_SET_OFF, STR_SET_TOP, STR_SET_BOTTOM, STR_SET_LEFTSIDE, STR_SET_RIGHTSIDE } },
 	{ ROW_SPIN, STR_SET_KILLFEED, STR_SET_KILLFEED_HELP, "cg_obituaryRowSize", 6, { "0", "1", "2", "3", "4", "5" }, { STR_SET_OFF } },
 	{ ROW_SPIN, STR_SET_TEAMOVERLAY, STR_SET_TEAMOVERLAY_HELP, "cg_drawTeamOverlay", OFF_ON },
 	{ ROW_SPIN, STR_SET_FPS, STR_SET_FPS_HELP, "cg_drawFPS", OFF_ON },
 	{ ROW_SPIN, STR_SET_LAGOMETER, STR_SET_LAGOMETER_HELP, "cg_lagometer", OFF_ON },
+	{ ROW_SPIN, STR_SET_SPEEDO, STR_SET_SPEEDO_HELP, "cg_drawSpeed", OFF_ON },
 	{ ROW_SPIN, STR_SET_TIMENUDGE, STR_SET_TIMENUDGE_HELP, "cl_timeNudge", 5, { "-16", "-12", "-8", "-4", "0" } },
 	{ ROW_SPIN, STR_SET_PROJNUDGE, STR_SET_PROJNUDGE_HELP, "cg_autoProjectileNudge", OFF_ON },
 	{ ROW_SPIN, STR_SET_AUTOREC, STR_SET_AUTOREC_HELP, "cg_autoAction", 3, { "0", "1", "3" },
