@@ -442,6 +442,12 @@ static void CG_OffsetFirstPersonView( void ) {
 
 void CG_ZoomDown_f( void ) { 
 	if ( cg.zoomed ) {
+		// toggle zoom: a second press zooms out
+		if ( cg_zoomToggle.integer ) {
+			cg.zoomed = qfalse;
+			cg.zoomTime = cg.time;
+			trap_SendConsoleCommand( "-button13\n" );
+		}
 		return;
 	}
 	cg.zoomed = qtrue;
@@ -450,7 +456,7 @@ void CG_ZoomDown_f( void ) {
 }
 
 void CG_ZoomUp_f( void ) { 
-	if ( !cg.zoomed ) {
+	if ( !cg.zoomed || cg_zoomToggle.integer ) {
 		return;
 	}
 	cg.zoomed = qfalse;

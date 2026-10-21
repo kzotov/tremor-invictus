@@ -221,6 +221,7 @@ vmCvar_t	cg_drawSpeed;
 vmCvar_t	cg_layoutDebug;
 vmCvar_t	cg_showLoading;
 vmCvar_t	cg_damageArc;
+vmCvar_t	cg_zoomToggle;
 vmCvar_t	cg_lowHealthWarning;
 vmCvar_t	cg_drawLineup;
 vmCvar_t	cg_layoutDump;
@@ -400,6 +401,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_layoutDebug, "cg_layoutDebug", "0", CVAR_CHEAT},
 	{ &cg_showLoading, "cg_showLoading", "0", CVAR_CHEAT},		// show the loading screen, to check its layout
 	{ &cg_damageArc, "cg_damageArc", "1", CVAR_ARCHIVE},		// arc toward where damage came from
+	{ &cg_zoomToggle, "cg_zoomToggle", "0", CVAR_ARCHIVE},		// 1: +zoom toggles instead of holding
 	{ &cg_lowHealthWarning, "cg_lowHealthWarning", "1", CVAR_ARCHIVE},	// red edge and heartbeat below 25 health
 	{ &cg_drawLineup, "cg_drawLineup", "1", CVAR_ARCHIVE},
 	{ &cg_layoutDump, "cg_layoutDump", "0", 0}
