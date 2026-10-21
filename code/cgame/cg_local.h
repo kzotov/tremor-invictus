@@ -193,7 +193,17 @@ typedef struct centity_s {
 	vec3_t			lerpOrigin;
 	vec3_t			lerpAngles;
 	int				deadTime;		// cg.time the corpse was first seen, for darkening
+
+	// a projectile of our own that took over from its predicted copy
+	int				ownMissile;		// OWNMISSILE_*
+	vec3_t			ownBlendOffset;	// predicted minus server position at hand-over
+	int				ownBlendTime;	// cg.time of the hand-over
 } centity_t;
+
+#define OWNMISSILE_UNCHECKED	0
+#define OWNMISSILE_MATCHED		1
+#define OWNMISSILE_OTHER		2	// someone else's, or ours with no prediction waiting
+#define OWNMISSILE_BLEND_MSEC	100
 
 
 //======================================================================
@@ -1205,6 +1215,7 @@ extern	vmCvar_t		cg_oldRail;
 extern	vmCvar_t		cg_oldRocket;
 extern	vmCvar_t		cg_oldPlasma;
 extern	vmCvar_t		cg_trueLightning;
+extern	vmCvar_t		cg_predictLocalRailshots;
 #ifdef MISSIONPACK
 extern	vmCvar_t		cg_redTeamName;
 extern	vmCvar_t		cg_blueTeamName;
@@ -1403,9 +1414,13 @@ void CG_FireWeapon( centity_t *cent );
 void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, impactSound_t soundType );
 void CG_MissileHitPlayer( int weapon, vec3_t origin, vec3_t dir, int entityNum );
 void CG_ShotgunFire( entityState_t *es );
+qboolean CG_PredictingOwnShots( void );
+qboolean CG_OwnHitscanPredicted( void );
+void CG_PredictOwnShot( centity_t *cent );
 void CG_Bullet( vec3_t origin, int sourceEntityNum, vec3_t normal, qboolean flesh, int fleshEntityNum );
 
 void CG_RailTrail( clientInfo_t *ci, vec3_t start, vec3_t end );
+void CG_DrawMissile( centity_t *cent );
 void CG_GrappleTrail( centity_t *ent, const weaponInfo_t *wi );
 void CG_AddViewWeapon (playerState_t *ps);
 void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent, int team );
@@ -1726,4 +1741,9 @@ void	CG_ParticleExplosion (char *animStr, vec3_t origin, vec3_t vel, int duratio
 extern qboolean		initparticles;
 int CG_NewParticleArea ( int num );
 
-
+//
+// cg_ownmissiles.c
+//
+void CG_PredictOwnMissile( int weapon, const vec3_t muzzle, const vec3_t forward );
+void CG_UpdateOwnMissiles( void );
+void CG_AddOwnMissiles( void );

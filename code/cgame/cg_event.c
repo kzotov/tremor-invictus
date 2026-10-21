@@ -1019,6 +1019,11 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	case EV_RAILTRAIL:
 		DEBUGNAME("EV_RAILTRAIL");
 		cent->currentState.weapon = WP_RAILGUN;
+
+		// our own trail was drawn when we fired
+		if ( es->clientNum == cg.snap->ps.clientNum && CG_OwnHitscanPredicted() ) {
+			break;
+		}
 		
 		if(es->clientNum == cg.snap->ps.clientNum && !cg.renderingThirdPerson)
 		{
@@ -1039,6 +1044,10 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 
 	case EV_BULLET_HIT_WALL:
 		DEBUGNAME("EV_BULLET_HIT_WALL");
+		// our own wall hits were drawn when we fired
+		if ( es->otherEntityNum == cg.snap->ps.clientNum && CG_OwnHitscanPredicted() ) {
+			break;
+		}
 		ByteToDir( es->eventParm, dir );
 		CG_Bullet( es->pos.trBase, es->otherEntityNum, dir, qfalse, ENTITYNUM_WORLD );
 		break;

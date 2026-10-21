@@ -1754,6 +1754,11 @@ void CG_FireWeapon( centity_t *cent ) {
 	if ( weap->ejectBrassFunc && cg_brassTime.integer > 0 ) {
 		weap->ejectBrassFunc( cent );
 	}
+
+	// our own shots are drawn now, not when the server's copy arrives
+	if ( cent == &cg.predictedPlayerEntity && CG_PredictingOwnShots() ) {
+		CG_PredictOwnShot( cent );
+	}
 }
 
 
@@ -2003,7 +2008,11 @@ SHOTGUN TRACING
 CG_ShotgunPellet
 ================
 */
-static void CG_ShotgunPellet( vec3_t start, vec3_t end, int skipNum ) {
+#define PELLETS_ALL			0
+#define PELLETS_WALLS		1	// our own shot, drawn at once
+#define PELLETS_PLAYERS		2	// our own shot, confirmed by the server
+
+static void CG_ShotgunPellet( vec3_t start, vec3_t end, int skipNum, int which ) {
 	trace_t		tr;
 	int sourceContentType, destContentType;
 
@@ -2034,8 +2043,10 @@ static void CG_ShotgunPellet( vec3_t start, vec3_t end, int skipNum ) {
 	}
 
 	if ( cg_entities[tr.entityNum].currentState.eType == ET_PLAYER ) {
-		CG_MissileHitPlayer( WP_SHOTGUN, tr.endpos, tr.plane.normal, tr.entityNum );
-	} else {
+		if ( which != PELLETS_WALLS ) {
+			CG_MissileHitPlayer( WP_SHOTGUN, tr.endpos, tr.plane.normal, tr.entityNum );
+		}
+	} else if ( which != PELLETS_PLAYERS ) {
 		if ( tr.surfaceFlags & SURF_NOIMPACT ) {
 			// SURF_NOIMPACT will not make a flame puff or a mark
 			return;
@@ -2056,7 +2067,7 @@ Perform the same traces the server did to locate the
 hit splashes
 ================
 */
-static void CG_ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, int otherEntNum, int weapon ) {
+static void CG_ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, int otherEntNum, int weapon, int which ) {
 	int			i, count;
 	float		range;
 	float		r, u;
@@ -2078,7 +2089,7 @@ static void CG_ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, int othe
 		VectorMA (end, r * range, right, end);
 		VectorMA (end, u * range, up, end);
 
-		CG_ShotgunPellet( origin, end, otherEntNum );
+		CG_ShotgunPellet( origin, end, otherEntNum, which );
 	}
 }
 
@@ -2090,6 +2101,13 @@ CG_ShotgunFire
 void CG_ShotgunFire( entityState_t *es ) {
 	vec3_t	v;
 	int		contents;
+
+	// our own blast was drawn when we fired; only its hits on players remain
+	if ( es->otherEntityNum == cg.snap->ps.clientNum && CG_OwnHitscanPredicted() ) {
+		CG_ShotgunPattern( es->pos.trBase, es->origin2, es->eventParm, es->otherEntityNum,
+			es->weapon == WP_SUPER_SHOTGUN ? WP_SUPER_SHOTGUN : WP_SHOTGUN, PELLETS_PLAYERS );
+		return;
+	}
 
 	VectorSubtract( es->origin2, es->pos.trBase, v );
 	VectorNormalize( v );
@@ -2106,7 +2124,7 @@ void CG_ShotgunFire( entityState_t *es ) {
 		}
 	}
 	CG_ShotgunPattern( es->pos.trBase, es->origin2, es->eventParm, es->otherEntityNum,
-		es->weapon == WP_SUPER_SHOTGUN ? WP_SUPER_SHOTGUN : WP_SHOTGUN );
+		es->weapon == WP_SUPER_SHOTGUN ? WP_SUPER_SHOTGUN : WP_SHOTGUN, PELLETS_ALL );
 }
 
 /*
@@ -2285,4 +2303,171 @@ void CG_Bullet( vec3_t end, int sourceEntityNum, vec3_t normal, qboolean flesh, 
 		CG_MissileHitWall( WP_MACHINEGUN, 0, end, normal, IMPACTSOUND_DEFAULT );
 	}
 
+}
+
+/*
+============================================================================
+
+OWN SHOTS
+
+============================================================================
+*/
+
+/*
+=================
+CG_PredictingOwnShots
+
+True while our own movement is predicted, so our shots can be too
+=================
+*/
+qboolean CG_PredictingOwnShots( void ) {
+	return !cg.demoPlayback && !( cg.snap->ps.pm_flags & PMF_FOLLOW )
+		&& !cg_nopredict.integer && !cg_synchronousClients.integer;
+}
+
+/*
+=================
+CG_OwnHitscanPredicted
+
+True if our own instant-hit shots are drawn when fired, so the server's
+copies of their trails and wall impacts are skipped
+=================
+*/
+qboolean CG_OwnHitscanPredicted( void ) {
+	return cg_predictLocalRailshots.integer && CG_PredictingOwnShots()
+		&& !( cg.snap->ps.eFlags & EF_DRONE );
+}
+
+/*
+=================
+CG_PredictRail
+
+The rail trail from the predicted aim; it goes through players and stops
+at the first solid
+=================
+*/
+static void CG_PredictRail( const vec3_t muzzle, const vec3_t forward, const vec3_t right, const vec3_t up ) {
+	static int		lastRailTime;
+	trace_t			tr;
+	vec3_t			end, start;
+	int				clientNum = cg.predictedPlayerState.clientNum;
+
+	// at most one predicted trail per 100 ms
+	if ( lastRailTime <= cg.time && cg.time - lastRailTime < 100 ) {
+		return;
+	}
+	lastRailTime = cg.time;
+
+	VectorMA( muzzle, BG_WeaponParam( WP_RAILGUN, WPP_RANGE ), forward, end );
+	CG_Trace( &tr, muzzle, NULL, NULL, end, clientNum, MASK_SOLID );
+
+	// start a little right of and below the eye, near the drawn gun
+	VectorMA( muzzle, 4, right, start );
+	VectorMA( start, -1, up, start );
+	if ( !cg.renderingThirdPerson ) {
+		if ( cg_drawGun.integer == 2 ) {
+			VectorMA( start, 8, cg.refdef.viewaxis[1], start );
+		} else if ( cg_drawGun.integer == 3 ) {
+			VectorMA( start, 4, cg.refdef.viewaxis[1], start );
+		}
+	}
+	CG_RailTrail( &cgs.clientinfo[clientNum], start, tr.endpos );
+
+	if ( !( tr.surfaceFlags & SURF_NOIMPACT ) && tr.fraction < 1.0f ) {
+		CG_MissileHitWall( WP_RAILGUN, clientNum, tr.endpos, tr.plane.normal, IMPACTSOUND_DEFAULT );
+	}
+}
+
+/*
+=================
+CG_PredictBullet
+
+One bullet with the weapon's spread; a puff where it meets a wall, nothing
+on a player until the server confirms the hit
+=================
+*/
+static void CG_PredictBullet( int weapon, const vec3_t muzzle, const vec3_t forward, const vec3_t right, const vec3_t up ) {
+	trace_t		tr;
+	vec3_t		end;
+	float		r, u, spread, range;
+	int			clientNum = cg.predictedPlayerState.clientNum;
+
+	if ( !BG_WeaponTuned( weapon ) ) {
+		return;
+	}
+	spread = BG_WeaponParam( weapon, WPP_SPREAD );
+	range = BG_WeaponParam( weapon, WPP_RANGE );
+	r = random() * M_PI * 2.0f;
+	u = sin( r ) * crandom() * spread * range;
+	r = cos( r ) * crandom() * spread * range;
+	VectorMA( muzzle, range, forward, end );
+	VectorMA( end, r, right, end );
+	VectorMA( end, u, up, end );
+
+	CG_Trace( &tr, muzzle, NULL, NULL, end, clientNum, MASK_SHOT );
+	if ( tr.fraction == 1.0f || ( tr.surfaceFlags & SURF_NOIMPACT ) ) {
+		return;
+	}
+	if ( cg_entities[tr.entityNum].currentState.eType == ET_PLAYER ) {
+		return;
+	}
+	CG_Bullet( tr.endpos, clientNum, tr.plane.normal, qfalse, ENTITYNUM_WORLD );
+}
+
+/*
+=================
+CG_PredictOwnShot
+
+Draws what our own shot does to the world the moment we fire, from the
+predicted position and aim: instant-hit trails and wall impacts, and
+projectiles until the server's copies take over
+=================
+*/
+void CG_PredictOwnShot( centity_t *cent ) {
+	playerState_t	*ps = &cg.predictedPlayerState;
+	vec3_t			muzzle, forward, right, up;
+	int				weapon = cent->currentState.weapon;
+	int				seed;
+	vec3_t			origin2;
+
+	// the same muzzle the server uses
+	AngleVectors( ps->viewangles, forward, right, up );
+	VectorCopy( ps->origin, muzzle );
+	muzzle[2] += ps->viewheight;
+	VectorMA( muzzle, 14, forward, muzzle );
+	SnapVector( muzzle );
+
+	switch ( weapon ) {
+	case WP_RAILGUN:
+		if ( CG_OwnHitscanPredicted() ) {
+			CG_PredictRail( muzzle, forward, right, up );
+		}
+		break;
+	case WP_MACHINEGUN:
+	case WP_HEAVY_MACHINEGUN:
+		if ( CG_OwnHitscanPredicted() ) {
+			CG_PredictBullet( weapon, muzzle, forward, right, up );
+		}
+		break;
+	case WP_SHOTGUN:
+	case WP_SUPER_SHOTGUN:
+		if ( CG_OwnHitscanPredicted() ) {
+			VectorScale( forward, 4096, origin2 );
+			SnapVector( origin2 );
+			seed = rand() & 255;
+			CG_ShotgunPattern( muzzle, origin2, seed, ps->clientNum, weapon, PELLETS_WALLS );
+		}
+		break;
+	case WP_ROCKET_LAUNCHER:
+	case WP_TRIBOLT:
+	case WP_SUPER_NAILGUN:
+	case WP_BFG:
+#ifndef MISSIONPACK
+	case WP_NAILGUN:
+#endif
+		CG_PredictOwnMissile( weapon, muzzle, forward );
+		break;
+	default:
+		break;
+	}
 }

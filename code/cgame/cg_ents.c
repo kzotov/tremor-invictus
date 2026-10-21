@@ -520,6 +520,17 @@ static void CG_Missile( centity_t *cent ) {
 
 /*
 ===============
+CG_DrawMissile
+
+Draws a projectile that is not a snapshot entity: our own, predicted
+===============
+*/
+void CG_DrawMissile( centity_t *cent ) {
+	CG_Missile( cent );
+}
+
+/*
+===============
 CG_Grapple
 
 This is called when the grapple is sitting up against the wall
@@ -830,6 +841,17 @@ static void CG_NudgedMissilePosition( centity_t *cent ) {
 
 	BG_EvaluateTrajectory( &cent->currentState.pos, cg.time, cent->lerpOrigin );
 	BG_EvaluateTrajectory( &cent->currentState.apos, cg.time, cent->lerpAngles );
+
+	// our own projectile, just taken over from its predicted copy
+	if ( cent->ownMissile == OWNMISSILE_MATCHED && cent->ownBlendTime ) {
+		float	f = 1.0f - (float)( cg.time - cent->ownBlendTime ) / OWNMISSILE_BLEND_MSEC;
+
+		if ( f > 0 && f <= 1 ) {
+			VectorMA( cent->lerpOrigin, f, cent->ownBlendOffset, cent->lerpOrigin );
+		} else {
+			cent->ownBlendTime = 0;
+		}
+	}
 
 	if ( cent->currentState.pos.trType != TR_LINEAR || cent->currentState.weapon == WP_GRAPPLING_HOOK
 		|| cent->currentState.otherEntityNum2 == cg.snap->ps.clientNum ) {
@@ -1165,10 +1187,16 @@ void CG_AddPacketEntities( void ) {
 	// lerp the non-predicted value for lightning gun origins
 	CG_CalcEntityLerpPositions( &cg_entities[ cg.snap->ps.clientNum ] );
 
+	// hand our own predicted projectiles over to the server's copies
+	CG_UpdateOwnMissiles();
+
 	// add each entity sent over by the server
 	for ( num = 0 ; num < cg.snap->numEntities ; num++ ) {
 		cent = &cg_entities[ cg.snap->entities[ num ].number ];
 		CG_AddCEntity( cent );
 	}
+
+	// and the predicted ones still waiting for them
+	CG_AddOwnMissiles();
 }
 
