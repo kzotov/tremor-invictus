@@ -420,6 +420,9 @@ static void G_ThrowGrenade( gentity_t *ent ) {
 	gren->damage = g_swarmDamage.integer;
 	gren->splashDamage = g_swarmDamage.integer;
 	gren->splashRadius = g_swarmRadius.integer;
+	gren->wpTuned = qtrue;
+	gren->splashMin = 10;
+	gren->wpKnock = gren->wpKnockSelf = g_swarmKnock.value;
 }
 
 /*

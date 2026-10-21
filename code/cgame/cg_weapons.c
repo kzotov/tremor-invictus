@@ -2038,7 +2038,8 @@ hit splashes
 ================
 */
 static void CG_ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, int otherEntNum ) {
-	int			i;
+	int			i, count;
+	float		range;
 	float		r, u;
 	vec3_t		end;
 	vec3_t		forward, right, up;
@@ -2049,13 +2050,14 @@ static void CG_ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, int othe
 	PerpendicularVector( right, forward );
 	CrossProduct( forward, right, up );
 
-	// generate the "random" spread pattern
-	for ( i = 0 ; i < DEFAULT_SHOTGUN_COUNT ; i++ ) {
-		r = Q_crandom( &seed ) * DEFAULT_SHOTGUN_SPREAD * 16;
-		u = Q_crandom( &seed ) * DEFAULT_SHOTGUN_SPREAD * 16;
-		VectorMA( origin, 8192 * 16, forward, end);
-		VectorMA (end, r, right, end);
-		VectorMA (end, u, up, end);
+	// the pellet ring, the same as the server's
+	count = BG_WeaponParam( WP_SHOTGUN, WPP_PELLETS );
+	range = BG_WeaponParam( WP_SHOTGUN, WPP_RANGE );
+	for ( i = 0 ; i < count ; i++ ) {
+		BG_ShotgunPelletOffset( i, count, &seed, &r, &u );
+		VectorMA( origin, range, forward, end);
+		VectorMA (end, r * range, right, end);
+		VectorMA (end, u * range, up, end);
 
 		CG_ShotgunPellet( origin, end, otherEntNum );
 	}

@@ -179,6 +179,12 @@ struct gentity_s {
 	void		(*abilityImpact)( gentity_t *self, trace_t *trace );	// replaces the missile impact
 	int			abilityMask[MAX_CLIENTS / 32];	// players already affected once
 	int			abilityTime;	// meaning depends on the entity
+
+	// weapon numbers carried by a projectile (wpTuned set)
+	qboolean	wpTuned;
+	float		splashMin;		// splash damage at the edge
+	float		wpKnock;		// knockback on others
+	float		wpKnockSelf;	// knockback on the owner
 };
 
 
@@ -599,6 +605,9 @@ void G_Ignite( gentity_t *target, gentity_t *attacker );
 void G_Poison( gentity_t *target, gentity_t *attacker );
 void G_ClearDamageOverTime( gentity_t *ent );
 void G_ExplodeMissile( gentity_t *ent );
+void G_NextKnockback( float knock );
+void G_WeaponTuneMissile( gentity_t *m, int weapon );
+void G_SplashParams( float minDamage, float knock, float knockSelf );
 
 //
 // g_rewind.c
@@ -851,6 +860,16 @@ extern	vmCvar_t	g_lagHaxMs;
 extern	vmCvar_t	g_cylinderScale;
 extern	vmCvar_t	g_rewindDebug;
 extern	vmCvar_t	g_championModels;
+extern	vmCvar_t	g_knockbackScale;
+extern	vmCvar_t	g_protectionScale;
+extern	vmCvar_t	g_shotgunFalloffStart;
+extern	vmCvar_t	g_shotgunFalloffMin;
+extern	vmCvar_t	g_shotgunCloseBonus;
+extern	vmCvar_t	g_shotgunCloseRange;
+extern	vmCvar_t	g_rushDamage;
+extern	vmCvar_t	g_rushSlowDamage;
+extern	vmCvar_t	g_rushFastSpeed;
+extern	vmCvar_t	g_swarmKnock;
 extern	vmCvar_t	g_hookSpeed;
 extern	vmCvar_t	g_hookRange;
 extern	vmCvar_t	g_hookDamage;

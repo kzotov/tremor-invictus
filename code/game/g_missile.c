@@ -83,6 +83,9 @@ void G_ExplodeMissile( gentity_t *ent ) {
 
 	// splash damage
 	if ( ent->splashDamage ) {
+		if ( ent->wpTuned ) {
+			G_SplashParams( ent->splashMin, ent->wpKnock, ent->wpKnockSelf );
+		}
 		if( G_RadiusDamage( ent->r.currentOrigin, ent->parent, ent->splashDamage, ent->splashRadius, ent
 			, ent->splashMethodOfDeath ) ) {
 			g_entities[ent->r.ownerNum].client->accuracy_hits++;
@@ -324,6 +327,9 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace ) {
 			if ( VectorLength( velocity ) == 0 ) {
 				velocity[2] = 1;	// stepped on a grenade
 			}
+			if ( ent->wpTuned ) {
+				G_NextKnockback( other == &g_entities[ent->r.ownerNum] ? ent->wpKnockSelf : ent->wpKnock );
+			}
 			G_Damage (other, ent, &g_entities[ent->r.ownerNum], velocity,
 				ent->s.origin, ent->damage, 
 				0, ent->methodOfDeath);
@@ -435,6 +441,9 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace ) {
 
 	// splash damage (doesn't apply to person directly hit)
 	if ( ent->splashDamage ) {
+		if ( ent->wpTuned ) {
+			G_SplashParams( ent->splashMin, ent->wpKnock, ent->wpKnockSelf );
+		}
 		if( G_RadiusDamage( trace->endpos, ent->parent, ent->splashDamage, ent->splashRadius, 
 			other, ent->splashMethodOfDeath ) ) {
 			if( !hitClient ) {

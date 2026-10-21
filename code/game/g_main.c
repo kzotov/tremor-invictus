@@ -126,6 +126,16 @@ vmCvar_t	g_lagHaxMs;
 vmCvar_t	g_cylinderScale;
 vmCvar_t	g_rewindDebug;
 vmCvar_t	g_championModels;
+vmCvar_t	g_knockbackScale;
+vmCvar_t	g_protectionScale;
+vmCvar_t	g_shotgunFalloffStart;
+vmCvar_t	g_shotgunFalloffMin;
+vmCvar_t	g_shotgunCloseBonus;
+vmCvar_t	g_shotgunCloseRange;
+vmCvar_t	g_rushDamage;
+vmCvar_t	g_rushSlowDamage;
+vmCvar_t	g_rushFastSpeed;
+vmCvar_t	g_swarmKnock;
 vmCvar_t	g_hookSpeed;
 vmCvar_t	g_hookRange;
 vmCvar_t	g_hookDamage;
@@ -244,7 +254,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_orbSpeed, "g_orbSpeed", "900", 0, 0, qtrue },
 	{ &g_orbLife, "g_orbLife", "15000", 0, 0, qtrue },
 	{ &g_orbFuse, "g_orbFuse", "1000", 0, 0, qtrue },
-	{ &g_orbContactDamage, "g_orbContactDamage", "25", 0, 0, qtrue },
+	{ &g_orbContactDamage, "g_orbContactDamage", "15", 0, 0, qtrue },
 	{ &g_orbSplashDamage, "g_orbSplashDamage", "75", 0, 0, qtrue },
 	{ &g_orbSplashRadius, "g_orbSplashRadius", "120", 0, 0, qtrue },
 	{ &g_orbTelefragDamage, "g_orbTelefragDamage", "100", 0, 0, qtrue },
@@ -306,6 +316,16 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_rewindDebug, "g_rewindDebug", "0", 0, 0, qtrue },
 	// local test models: "champion=model champion=model/skin ..."; set outside the repo
 	{ &g_championModels, "g_championModels", "", 0, 0, qtrue },
+	{ &g_knockbackScale, "g_knockbackScale", "0.833", 0, 0, qtrue },
+	{ &g_protectionScale, "g_protectionScale", "0.3333", 0, 0, qtrue },
+	{ &g_shotgunFalloffStart, "g_shotgunFalloffStart", "512", 0, 0, qtrue },
+	{ &g_shotgunFalloffMin, "g_shotgunFalloffMin", "0.5", 0, 0, qtrue },
+	{ &g_shotgunCloseBonus, "g_shotgunCloseBonus", "10", 0, 0, qtrue },
+	{ &g_shotgunCloseRange, "g_shotgunCloseRange", "128", 0, 0, qtrue },
+	{ &g_rushDamage, "g_rushDamage", "75", 0, 0, qtrue },
+	{ &g_rushSlowDamage, "g_rushSlowDamage", "50", 0, 0, qtrue },
+	{ &g_rushFastSpeed, "g_rushFastSpeed", "400", 0, 0, qtrue },
+	{ &g_swarmKnock, "g_swarmKnock", "50", 0, 0, qtrue },
 	{ &g_hookSpeed, "g_hookSpeed", "3000", 0, 0, qtrue },
 	{ &g_hookRange, "g_hookRange", "4000", 0, 0, qtrue },
 	{ &g_hookDamage, "g_hookDamage", "25", 0, 0, qtrue },
@@ -320,7 +340,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_collisionRepeat, "g_collisionRepeat", "500", 0, 0, qtrue },
 	{ &g_gravity, "g_gravity", "800", 0, 0, qtrue  },
 	{ &g_knockback, "g_knockback", "1000", 0, 0, qtrue  },
-	{ &g_quadfactor, "g_quadfactor", "3", 0, 0, qtrue  },
+	{ &g_quadfactor, "g_quadfactor", "4", 0, 0, qtrue  },
 	{ &g_weaponRespawn, "g_weaponrespawn", "5", 0, 0, qtrue  },
 	{ &g_weaponTeamRespawn, "g_weaponTeamRespawn", "30", 0, 0, qtrue },
 	{ &g_forcerespawn, "g_forcerespawn", "20", 0, 0, qtrue },

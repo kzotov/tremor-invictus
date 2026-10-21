@@ -4,7 +4,8 @@
 #
 # TREMOR_LOCAL (default ~/projects/quake/local) is a folder outside the repo
 # for assets that may be tried locally but never committed or shipped:
-#   *.pk3 / *.zip   player models and other test data, loaded as pk3 files
+#   *.pk3 / *.zip   player models, maps and other test data, loaded as pk3 files
+#                   (also baseq3/*.pk3)
 #   local.cfg       run on start, for example:
 #                   set g_championModels "deathknight=dark_knight galena=galena"
 # Prints the extra command-line arguments to pass to the game.
@@ -15,7 +16,7 @@ link_local_assets() {
 	gamedir="$1"
 	rm -f "$gamedir"/zz-local-*.pk3 "$gamedir/tremor-local.cfg"
 	[ -d "$TREMOR_LOCAL" ] || return 0
-	for f in "$TREMOR_LOCAL"/*.pk3 "$TREMOR_LOCAL"/*.zip; do
+	for f in "$TREMOR_LOCAL"/*.pk3 "$TREMOR_LOCAL"/*.zip "$TREMOR_LOCAL"/baseq3/*.pk3; do
 		[ -f "$f" ] || continue
 		name=$(basename "$f")
 		ln -sf "$f" "$gamedir/zz-local-$name.pk3"

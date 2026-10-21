@@ -369,6 +369,40 @@ extern	const abilityInfo_t	bg_abilityInfo[ACTIVE_NUM_ABILITIES];
 
 float	BG_AbilityParam( int active, int param );
 
+// weapon numbers, all cvars named wp_<name>_<param>; the ones prediction
+// needs (refire, pellets, spread) are sent to clients
+typedef enum {
+	WPP_DAMAGE,						// per hit, bullet, pellet or tick
+	WPP_REFIRE,						// msec between shots
+	WPP_RANGE,						// instant-hit reach
+	WPP_SPREAD,						// sine of the largest angle off the aim line
+	WPP_PELLETS,					// shotgun pellets per shot
+	WPP_KNOCK,						// knockback on others standing
+	WPP_KNOCKAIR,					// knockback on others in the air
+	WPP_KNOCKSELF,					// knockback on yourself
+	WPP_SPLASH,						// splash damage at the centre
+	WPP_SPLASHMIN,					// splash damage at the edge
+	WPP_RADIUS,						// splash radius
+	WPP_SPEED,						// projectile speed
+	WPP_AMMOSTART,					// ammo with the weapon
+	WPP_AMMOMAX,					// ammo cap
+
+	WPP_NUM_PARAMS
+} weaponParam_t;
+
+typedef struct {
+	int			weapon;				// weapon_t
+	char		*cvarName;			// wp_<cvarName>_<param>
+	char		*defaults[WPP_NUM_PARAMS];
+} weaponNumbers_t;
+
+extern	const weaponNumbers_t	bg_weaponInfo[];
+extern	const int			bg_numWeaponInfo;
+
+float	BG_WeaponParam( int weapon, int param );
+qboolean BG_WeaponTuned( int weapon );
+void	BG_ShotgunPelletOffset( int index, int count, int *seed, float *right, float *up );
+
 // passive champion traits, champion_t.passives bits
 #define	PASSIVE_REGENERATION	1		// refill to the top of the 25 HP block
 #define	PASSIVE_SELFDAMAGE		2		// less self-damage

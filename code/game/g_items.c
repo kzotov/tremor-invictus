@@ -208,9 +208,14 @@ int Pickup_Holdable( gentity_t *ent, gentity_t *other ) {
 
 void Add_Ammo (gentity_t *ent, int weapon, int count)
 {
+	int		max = 200;
+
+	if ( BG_WeaponTuned( weapon ) && BG_WeaponParam( weapon, WPP_AMMOMAX ) > 0 ) {
+		max = BG_WeaponParam( weapon, WPP_AMMOMAX );
+	}
 	ent->client->ps.ammo[weapon] += count;
-	if ( ent->client->ps.ammo[weapon] > 200 ) {
-		ent->client->ps.ammo[weapon] = 200;
+	if ( ent->client->ps.ammo[weapon] > max ) {
+		ent->client->ps.ammo[weapon] = max;
 	}
 }
 
@@ -257,6 +262,14 @@ int Pickup_Weapon (gentity_t *ent, gentity_t *other) {
 			} else {
 				quantity = 1;		// only add a single shot
 			}
+		}
+	}
+
+	// tuned weapons: ammo up to the weapon's starting amount, never less
+	if ( BG_WeaponTuned( ent->item->giTag ) && ent->count >= 0 ) {
+		quantity = BG_WeaponParam( ent->item->giTag, WPP_AMMOSTART ) - other->client->ps.ammo[ ent->item->giTag ];
+		if ( quantity < 0 ) {
+			quantity = 0;
 		}
 	}
 

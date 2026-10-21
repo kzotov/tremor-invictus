@@ -26,6 +26,54 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "g_local.h"
 
 static	float	s_quadFactor;
+
+/*
+================
+G_WeaponKnock
+
+Knockback a weapon gives this target: its own number in the air, standing
+or on its owner; G_NextKnockback scales it
+================
+*/
+static void G_WeaponKnock( int weapon, gentity_t *target, gentity_t *attacker ) {
+	if ( !BG_WeaponTuned( weapon ) ) {
+		return;
+	}
+	if ( target == attacker && BG_WeaponParam( weapon, WPP_KNOCKSELF ) > 0 ) {
+		G_NextKnockback( BG_WeaponParam( weapon, WPP_KNOCKSELF ) );
+	} else if ( target->client && target->client->ps.groundEntityNum == ENTITYNUM_NONE ) {
+		G_NextKnockback( BG_WeaponParam( weapon, WPP_KNOCKAIR ) );
+	} else {
+		G_NextKnockback( BG_WeaponParam( weapon, WPP_KNOCK ) );
+	}
+}
+
+/*
+================
+G_WeaponTuneMissile
+
+Copies a tuned weapon's projectile numbers onto a missile
+================
+*/
+void G_WeaponTuneMissile( gentity_t *m, int weapon ) {
+	vec3_t	dir;
+
+	if ( !BG_WeaponTuned( weapon ) ) {
+		return;
+	}
+	m->wpTuned = qtrue;
+	m->damage = BG_WeaponParam( weapon, WPP_DAMAGE );
+	m->splashDamage = BG_WeaponParam( weapon, WPP_SPLASH );
+	m->splashMin = BG_WeaponParam( weapon, WPP_SPLASHMIN );
+	m->splashRadius = BG_WeaponParam( weapon, WPP_RADIUS );
+	m->wpKnock = BG_WeaponParam( weapon, WPP_KNOCK );
+	m->wpKnockSelf = BG_WeaponParam( weapon, WPP_KNOCKSELF );
+	if ( BG_WeaponParam( weapon, WPP_SPEED ) > 0 ) {
+		VectorNormalize2( m->s.pos.trDelta, dir );
+		VectorScale( dir, BG_WeaponParam( weapon, WPP_SPEED ), m->s.pos.trDelta );
+		SnapVector( m->s.pos.trDelta );
+	}
+}
 static	vec3_t	forward, right, up;
 static	vec3_t	muzzle;
 
@@ -78,7 +126,7 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 
 	CalcMuzzlePoint ( ent, forward, right, up, muzzle );
 
-	VectorMA (muzzle, 32, forward, end);
+	VectorMA (muzzle, BG_WeaponParam( WP_GAUNTLET, WPP_RANGE ) > 0 ? BG_WeaponParam( WP_GAUNTLET, WPP_RANGE ) : 32, forward, end);
 
 	trap_Trace (&tr, muzzle, NULL, NULL, end, ent->s.number, MASK_SHOT);
 	if ( tr.surfaceFlags & SURF_NOIMPACT ) {
@@ -115,10 +163,11 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 	}
 #endif
 
-	damage = 50 * s_quadFactor;
+	damage = BG_WeaponParam( WP_GAUNTLET, WPP_DAMAGE ) * s_quadFactor;
 	if ( G_AbilityActive( ent, ACTIVE_BERSERK ) ) {
 		damage = g_berserkDamage.value * s_quadFactor;
 	}
+	G_WeaponKnock( WP_GAUNTLET, traceEnt, ent );
 	G_Damage( traceEnt, ent, ent, forward, tr.endpos,
 		damage, 0, MOD_GAUNTLET );
 	if ( traceEnt->client && ( BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_CHARRING ) ) {
@@ -178,13 +227,16 @@ void Bullet_Fire (gentity_t *ent, float spread, int damage, int mod ) {
 	gentity_t	*tent;
 	gentity_t	*traceEnt;
 	int			i, passent;
+	float		range;
 
 	damage *= s_quadFactor;
 
+	// spread is the sine of the largest angle off the aim line
+	range = BG_WeaponTuned( ent->s.weapon ) ? BG_WeaponParam( ent->s.weapon, WPP_RANGE ) : 8192*16;
 	r = random() * M_PI * 2.0f;
-	u = sin(r) * crandom() * spread * 16;
-	r = cos(r) * crandom() * spread * 16;
-	VectorMA (muzzle, 8192*16, forward, end);
+	u = sin(r) * crandom() * spread * range;
+	r = cos(r) * crandom() * spread * range;
+	VectorMA (muzzle, range, forward, end);
 	VectorMA (end, r, right, end);
 	VectorMA (end, u, up, end);
 
@@ -231,6 +283,7 @@ void Bullet_Fire (gentity_t *ent, float spread, int damage, int mod ) {
 			}
 			else {
 #endif
+				G_WeaponKnock( ent->s.weapon, traceEnt, ent );
 				G_Damage( traceEnt, ent, ent, forward, tr.endpos,
 					damage, 0, mod);
 #ifdef MISSIONPACK
@@ -296,7 +349,24 @@ qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent ) {
 		}
 
 		if ( traceEnt->takedamage) {
-			damage = DEFAULT_SHOTGUN_DAMAGE * s_quadFactor;
+			float	dist = Distance( start, tr.endpos );
+			float	scale = 1.0f;
+			int		pellets = BG_WeaponParam( WP_SHOTGUN, WPP_PELLETS );
+
+			// falls off past the start distance, down to a minimum at full range;
+			// a close-range bonus is shared between the pellets
+			if ( dist > g_shotgunFalloffStart.value && BG_WeaponParam( WP_SHOTGUN, WPP_RANGE ) > g_shotgunFalloffStart.value ) {
+				scale = 1.0f - ( 1.0f - g_shotgunFalloffMin.value ) * ( dist - g_shotgunFalloffStart.value )
+					/ ( BG_WeaponParam( WP_SHOTGUN, WPP_RANGE ) - g_shotgunFalloffStart.value );
+				if ( scale < g_shotgunFalloffMin.value ) {
+					scale = g_shotgunFalloffMin.value;
+				}
+			}
+			damage = BG_WeaponParam( WP_SHOTGUN, WPP_DAMAGE ) * scale;
+			if ( dist <= g_shotgunCloseRange.value && pellets > 0 ) {
+				damage += g_shotgunCloseBonus.value / pellets;
+			}
+			damage *= s_quadFactor;
 #ifdef MISSIONPACK
 			if ( traceEnt->client && traceEnt->client->invulnerabilityTime > level.time ) {
 				if (G_InvulnerabilityEffect( traceEnt, forward, tr.endpos, impactpoint, bouncedir )) {
@@ -315,6 +385,7 @@ qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent ) {
 			if( LogAccuracyHit( traceEnt, ent ) ) {
 				hitClient = qtrue;
 			}
+			G_WeaponKnock( WP_SHOTGUN, traceEnt, ent );
 			G_Damage( traceEnt, ent, ent, forward, tr.endpos, damage, 0, MOD_SHOTGUN);
 			return hitClient;
 		}
@@ -325,7 +396,8 @@ qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent ) {
 
 // this should match CG_ShotgunPattern
 void ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, gentity_t *ent ) {
-	int			i;
+	int			i, count;
+	float		range;
 	float		r, u;
 	vec3_t		end;
 	vec3_t		localForward, localRight, localUp;
@@ -337,13 +409,14 @@ void ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, gentity_t *ent ) {
 	PerpendicularVector( localRight, localForward );
 	CrossProduct( localForward, localRight, localUp );
 
-	// generate the "random" spread pattern
-	for ( i = 0 ; i < DEFAULT_SHOTGUN_COUNT ; i++ ) {
-		r = Q_crandom( &seed ) * DEFAULT_SHOTGUN_SPREAD * 16;
-		u = Q_crandom( &seed ) * DEFAULT_SHOTGUN_SPREAD * 16;
-		VectorMA( origin, 8192 * 16, localForward, end);
-		VectorMA (end, r, localRight, end);
-		VectorMA (end, u, localUp, end);
+	// the pellet ring, the same on the clients
+	count = BG_WeaponParam( WP_SHOTGUN, WPP_PELLETS );
+	range = BG_WeaponParam( WP_SHOTGUN, WPP_RANGE );
+	for ( i = 0 ; i < count ; i++ ) {
+		BG_ShotgunPelletOffset( i, count, &seed, &r, &u );
+		VectorMA( origin, range, localForward, end);
+		VectorMA (end, r * range, localRight, end);
+		VectorMA (end, u * range, localUp, end);
 		if( ShotgunPellet( origin, end, ent ) && !hitClient ) {
 			hitClient = qtrue;
 			ent->client->accuracy_hits++;
@@ -400,6 +473,7 @@ void Weapon_RocketLauncher_Fire (gentity_t *ent) {
 	gentity_t	*m;
 
 	m = fire_rocket (ent, muzzle, forward);
+	G_WeaponTuneMissile( m, WP_ROCKET_LAUNCHER );
 	m->damage *= s_quadFactor;
 	m->splashDamage *= s_quadFactor;
 
@@ -455,9 +529,9 @@ void weapon_railgun_fire (gentity_t *ent) {
 	int			passent;
 	gentity_t	*unlinkedEntities[MAX_RAIL_HITS];
 
-	damage = 100 * s_quadFactor;
+	damage = BG_WeaponParam( WP_RAILGUN, WPP_DAMAGE ) * s_quadFactor;
 
-	VectorMA (muzzle, 8192, forward, end);
+	VectorMA (muzzle, BG_WeaponParam( WP_RAILGUN, WPP_RANGE ), forward, end);
 
 	// trace only against the solids, so the railgun will go through people
 	unlinked = 0;
@@ -495,6 +569,7 @@ void weapon_railgun_fire (gentity_t *ent) {
 				if( LogAccuracyHit( traceEnt, ent ) ) {
 					hits++;
 				}
+				G_WeaponKnock( WP_RAILGUN, traceEnt, ent );
 				G_Damage (traceEnt, ent, ent, forward, trace.endpos, damage, 0, MOD_RAILGUN);
 			}
 #else
@@ -620,11 +695,11 @@ void Weapon_LightningFire( gentity_t *ent ) {
 	gentity_t	*traceEnt, *tent;
 	int			damage, i, passent;
 
-	damage = 8 * s_quadFactor;
+	damage = BG_WeaponParam( WP_LIGHTNING, WPP_DAMAGE ) * s_quadFactor;
 
 	passent = ent->s.number;
 	for (i = 0; i < 10; i++) {
-		VectorMA( muzzle, LIGHTNING_RANGE, forward, end );
+		VectorMA( muzzle, BG_WeaponParam( WP_LIGHTNING, WPP_RANGE ), forward, end );
 
 		G_ShotTrace( &tr, muzzle, NULL, NULL, end, passent, MASK_SHOT );
 
@@ -667,6 +742,7 @@ void Weapon_LightningFire( gentity_t *ent ) {
 			if( LogAccuracyHit( traceEnt, ent ) ) {
 				ent->client->accuracy_hits++;
 			}
+			G_WeaponKnock( WP_LIGHTNING, traceEnt, ent );
 			G_Damage( traceEnt, ent, ent, forward, tr.endpos, damage, 0, MOD_LIGHTNING);
 		}
 
@@ -890,7 +966,9 @@ void FireWeapon( gentity_t *ent ) {
 		break;
 	case WP_MACHINEGUN:
 		if ( ent->client->ps.eFlags & EF_DRONE ) {
-			Bullet_Fire( ent, MACHINEGUN_SPREAD, g_droneDamage.integer, MOD_DRONE );
+			Bullet_Fire( ent, BG_WeaponParam( WP_MACHINEGUN, WPP_SPREAD ), g_droneDamage.integer, MOD_DRONE );
+		} else if ( BG_WeaponTuned( WP_MACHINEGUN ) ) {
+			Bullet_Fire( ent, BG_WeaponParam( WP_MACHINEGUN, WPP_SPREAD ), BG_WeaponParam( WP_MACHINEGUN, WPP_DAMAGE ), MOD_MACHINEGUN );
 		} else if ( g_gametype.integer != GT_TEAM ) {
 			Bullet_Fire( ent, MACHINEGUN_SPREAD, MACHINEGUN_DAMAGE, MOD_MACHINEGUN );
 		} else {

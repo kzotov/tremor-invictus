@@ -1165,6 +1165,30 @@ const abilityInfo_t bg_abilityInfo[ACTIVE_NUM_ABILITIES] = {
 };
 
 /*
+==============================================================================
+
+WEAPON NUMBERS
+
+Defaults for the wp_<name>_<param> cvars, in weaponParam_t order:
+damage, refire, range, spread, pellets, knock, knock in air, knock on self,
+splash, splash at the edge, radius, speed, ammo start, ammo max.
+Weapons not listed keep their classic behaviour.
+
+==============================================================================
+*/
+
+const weaponNumbers_t bg_weaponInfo[] = {
+	{ WP_GAUNTLET,			"gauntlet",	{ "75", "500", "30", "0", "0", "45", "50", "0", "0", "0", "0", "0", "-1", "-1" } },
+	{ WP_MACHINEGUN,		"mg",		{ "6", "100", "6000", "0.02", "0", "7", "7", "0", "0", "0", "0", "0", "100", "150" } },
+	{ WP_SHOTGUN,			"sg",		{ "10", "850", "2000", "0.085", "8", "2.5", "2.5", "0", "0", "0", "0", "0", "10", "25" } },
+	{ WP_ROCKET_LAUNCHER,	"rl",		{ "100", "800", "0", "0", "0", "90", "90", "120", "100", "10", "120", "1000", "10", "25" } },
+	{ WP_LIGHTNING,			"lg",		{ "6", "44", "768", "0", "0", "7", "7.1", "0", "0", "0", "0", "0", "100", "200" } },
+	{ WP_RAILGUN,			"rg",		{ "80", "1500", "6000", "0", "0", "50", "50", "0", "0", "0", "0", "0", "5", "10" } }
+};
+
+const int bg_numWeaponInfo = ARRAY_LEN( bg_weaponInfo );
+
+/*
 ==============
 BG_SetAbility
 ==============

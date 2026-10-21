@@ -820,6 +820,35 @@ dflags		these flags are used to control how T_Damage works
 ============
 */
 
+static float	nextKnockback = -1;		// set by G_NextKnockback for the next G_Damage
+static float	splashMin;				// set by G_SplashParams for the next G_RadiusDamage
+static float	splashKnock = -1, splashKnockSelf = -1;
+
+/*
+============
+G_NextKnockback
+
+Weapons give knockback in their own numbers; g_knockbackScale turns them
+into pushes. Applies to the next G_Damage call only.
+============
+*/
+void G_NextKnockback( float knock ) {
+	nextKnockback = knock * g_knockbackScale.value;
+}
+
+/*
+============
+G_SplashParams
+
+Minimum splash damage at the edge and knockback for the next radius damage
+============
+*/
+void G_SplashParams( float minDamage, float knock, float knockSelf ) {
+	splashMin = minDamage;
+	splashKnock = knock;
+	splashKnockSelf = knockSelf;
+}
+
 void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			   vec3_t dir, vec3_t point, int damage, int dflags, int mod ) {
 	gclient_t	*client;
@@ -896,6 +925,10 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	}
 
 	knockback = damage;
+	if ( nextKnockback >= 0 ) {
+		knockback = nextKnockback;
+		nextKnockback = -1;
+	}
 	if ( knockback > 200 ) {
 		knockback = 200;
 	}
@@ -981,12 +1014,10 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
 	// battlesuit protects from all radius damage (but takes knockback)
 	// and protects 50% against all damage
-	if ( client && client->ps.powerups[PW_BATTLESUIT] ) {
+	// protection: a third of the damage from every source but telefrags
+	if ( client && client->ps.powerups[PW_BATTLESUIT] && mod != MOD_TELEFRAG ) {
 		G_AddEvent( targ, EV_POWERUP_BATTLESUIT, 0 );
-		if ( ( dflags & DAMAGE_RADIUS ) || ( mod == MOD_FALLING ) ) {
-			return;
-		}
-		damage *= 0.5;
+		damage *= g_protectionScale.value;
 	}
 
 	// add to the attacker's hit counter (if the target isn't a general entity like a prox mine)
@@ -1235,6 +1266,14 @@ qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, floa
 	vec3_t		dir;
 	int			i, e;
 	qboolean	hitClient = qfalse;
+	float		minDamage = splashMin, knock = splashKnock, knockSelf = splashKnockSelf;
+
+	// the splash parameters apply to this call only
+	splashMin = 0;
+	splashKnock = splashKnockSelf = -1;
+	if ( minDamage > damage ) {
+		minDamage = damage;
+	}
 
 	if ( radius < 1 ) {
 		radius = 1;
@@ -1271,7 +1310,8 @@ qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, floa
 			continue;
 		}
 
-		points = damage * ( 1.0 - dist / radius );
+		// linear from the full value at the centre to the minimum at the edge
+		points = minDamage + ( damage - minDamage ) * ( 1.0 - dist / radius );
 
 		if( CanDamage (ent, origin) ) {
 			if( LogAccuracyHit( ent, attacker ) ) {
@@ -1281,6 +1321,9 @@ qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, floa
 			// push the center of mass higher than the origin so players
 			// get knocked into the air more
 			dir[2] += 24;
+			if ( knock >= 0 && damage > 0 ) {
+				G_NextKnockback( ( ent == attacker && knockSelf >= 0 ? knockSelf : knock ) * points / damage );
+			}
 			G_Damage (ent, NULL, attacker, dir, origin, (int)points, DAMAGE_RADIUS, mod);
 		}
 	}

@@ -125,6 +125,68 @@ static pmoveCvar_t pmoveCvars[] = {
 };
 
 static vmCvar_t	abilityCvars[ACTIVE_NUM_ABILITIES][AP_NUM_PARAMS];
+static vmCvar_t	weaponCvars[16][WPP_NUM_PARAMS];
+static char		*weaponParamNames[WPP_NUM_PARAMS] = { "damage", "refire", "range", "spread", "pellets",
+	"knock", "knockair", "knockself", "splash", "splashmin", "radius", "speed", "ammostart", "ammomax" };
+
+/*
+===============
+BG_ShotgunPelletOffset
+
+Where a shotgun pellet goes, as offsets per unit of distance along the
+right and up directions: evenly spaced around a ring at the full spread,
+with a little seeded jitter so the server and clients agree
+===============
+*/
+void BG_ShotgunPelletOffset( int index, int count, int *seed, float *right, float *up ) {
+	float	spread, angle, radius;
+
+	spread = BG_WeaponParam( WP_SHOTGUN, WPP_SPREAD );
+	if ( count < 1 ) {
+		count = 1;
+	}
+	angle = ( index + 0.25f * Q_crandom( seed ) ) * 2 * M_PI / count;
+	radius = spread * ( 0.75f + 0.25f * Q_random( seed ) );
+	*right = cos( angle ) * radius;
+	*up = sin( angle ) * radius;
+}
+
+/*
+===============
+BG_WeaponTuned
+
+True if the weapon has numbers in the weapon table
+===============
+*/
+qboolean BG_WeaponTuned( int weapon ) {
+	int		i;
+
+	for ( i = 0 ; i < bg_numWeaponInfo ; i++ ) {
+		if ( bg_weaponInfo[i].weapon == weapon ) {
+			return qtrue;
+		}
+	}
+	return qfalse;
+}
+
+/*
+===============
+BG_WeaponParam
+===============
+*/
+float BG_WeaponParam( int weapon, int param ) {
+	int		i;
+
+	if ( param < 0 || param >= WPP_NUM_PARAMS ) {
+		return 0;
+	}
+	for ( i = 0 ; i < bg_numWeaponInfo ; i++ ) {
+		if ( bg_weaponInfo[i].weapon == weapon ) {
+			return weaponCvars[i][param].value;
+		}
+	}
+	return 0;
+}
 static char		*abilityParamNames[AP_NUM_PARAMS] = { "charges", "recharge", "delay", "duration", "lockout" };
 
 /*
@@ -168,6 +230,15 @@ void BG_RegisterPmoveCvars( int flags ) {
 			trap_Cvar_Register( &abilityCvars[i][j], name, bg_abilityInfo[i].defaults[j], flags );
 		}
 	}
+
+	// only what prediction needs goes to clients
+	for ( i = 0 ; i < bg_numWeaponInfo ; i++ ) {
+		for ( j = 0 ; j < WPP_NUM_PARAMS ; j++ ) {
+			Com_sprintf( name, sizeof( name ), "wp_%s_%s", bg_weaponInfo[i].cvarName, weaponParamNames[j] );
+			trap_Cvar_Register( &weaponCvars[i][j], name, bg_weaponInfo[i].defaults[j],
+				( j == WPP_REFIRE || j == WPP_PELLETS || j == WPP_SPREAD || j == WPP_RANGE ) ? flags : ( flags & ~CVAR_SYSTEMINFO ) );
+		}
+	}
 }
 
 /*
@@ -186,6 +257,11 @@ void BG_UpdatePmoveCvars( void ) {
 	for ( i = ACTIVE_NONE + 1 ; i < ACTIVE_NUM_ABILITIES ; i++ ) {
 		for ( j = 0 ; j < AP_NUM_PARAMS ; j++ ) {
 			trap_Cvar_Update( &abilityCvars[i][j] );
+		}
+	}
+	for ( i = 0 ; i < bg_numWeaponInfo ; i++ ) {
+		for ( j = 0 ; j < WPP_NUM_PARAMS ; j++ ) {
+			trap_Cvar_Update( &weaponCvars[i][j] );
 		}
 	}
 }
@@ -2171,6 +2247,11 @@ static void PM_Weapon( void ) {
 		addTime = 30;
 		break;
 #endif
+	}
+
+	// tuned weapons take their refire from the weapon table
+	if ( BG_WeaponTuned( pm->ps->weapon ) && !PM_DroneActive() ) {
+		addTime = BG_WeaponParam( pm->ps->weapon, WPP_REFIRE );
 	}
 
 #ifdef MISSIONPACK
