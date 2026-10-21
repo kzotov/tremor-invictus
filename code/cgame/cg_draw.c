@@ -1385,7 +1385,7 @@ static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 	if (lwidth > TEAM_OVERLAY_MAXLOCATION_WIDTH)
 		lwidth = TEAM_OVERLAY_MAXLOCATION_WIDTH;
 
-	w = (pwidth + lwidth + 4 + 7) * TINYCHAR_WIDTH;
+	w = (pwidth + lwidth + 4 + 7 + 2) * TINYCHAR_WIDTH;	// + the champion icon
 
 	if ( right )
 		x = 640 - w;
@@ -1421,6 +1421,12 @@ static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 		if ( ci->infoValid && ci->team == cg.snap->ps.persistant[PERS_TEAM]) {
 
 			hcolor[0] = hcolor[1] = hcolor[2] = hcolor[3] = 1.0;
+
+			// the teammate's champion
+			if ( ci->modelIcon ) {
+				CG_DrawPic( x + TINYCHAR_WIDTH, y, TINYCHAR_HEIGHT, TINYCHAR_HEIGHT, ci->modelIcon );
+			}
+			x += TINYCHAR_WIDTH * 2;
 
 			xx = x + TINYCHAR_WIDTH;
 
@@ -1467,6 +1473,7 @@ static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 			}
 
 			// Draw powerup icons
+			x -= TINYCHAR_WIDTH * 2;
 			if (right) {
 				xx = x;
 			} else {
@@ -1595,7 +1602,7 @@ static void CG_DrawUpperRight(stereoFrame_t stereoFrame)
 
 	y = CG_DrawSacrifice( y );
 
-	if ( cgs.gametype >= GT_TEAM && cg_drawTeamOverlay.integer == 1 ) {
+	if ( cgs.gametype >= GT_TEAM && cg_drawTeamOverlay.integer == 1 && !cg_hudStyle.integer ) {
 		y = CG_DrawTeamOverlay( y, qtrue, qtrue );
 	} 
 	if ( cg_drawSnapshot.integer ) {
@@ -3368,6 +3375,9 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 			CG_DrawHudClock();
 		}
 		CG_DrawKillFeed();
+		if ( cgs.gametype >= GT_TEAM && cg_drawTeamOverlay.integer == 1 ) {
+			CG_DrawTeamOverlay( 28, qfalse, qtrue );	// top left, under the clock
+		}
 		CG_DrawLowerLeft();
 	} else {
 		CG_DrawLowerRight();
