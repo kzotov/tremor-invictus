@@ -47,6 +47,9 @@ static struct {
 	qboolean	mapReady;
 	vec3_t		obelisk[2];			// [0] where the red flag stood, [1] the blue
 	int			numObelisks;
+	int			numPlaced;		// team_sacrifice_obelisk entities seen
+	vec3_t		soulSpot;		// from team_sacrifice_soul
+	qboolean	hasSoulSpot;
 	vec3_t		soulSpawn;
 	gentity_t	*obeliskEnt[2];
 
@@ -96,8 +99,34 @@ obelisks
 void G_SacrificeObeliskSpot( gentity_t *ent, gitem_t *item ) {
 	int		i = item->giTag == PW_BLUEFLAG ? 1 : 0;
 
+	if ( sac.numPlaced ) {
+		return;		// the map places its own obelisks
+	}
 	VectorCopy( ent->s.origin, sac.obelisk[i] );
 	sac.numObelisks |= 1 << i;
+}
+
+/*QUAKED team_sacrifice_obelisk (1 0 1) (-16 -16 -16) (16 16 32)
+A Sacrifice obelisk; maps place two. They are neutral until claimed.
+*/
+void SP_team_sacrifice_obelisk( gentity_t *ent ) {
+	if ( sac.numPlaced < 2 ) {
+		VectorCopy( ent->s.origin, sac.obelisk[sac.numPlaced] );
+		sac.numPlaced++;
+		if ( sac.numPlaced == 2 ) {
+			sac.numObelisks = 3;
+		}
+	}
+	G_FreeEntity( ent );
+}
+
+/*QUAKED team_sacrifice_soul (1 0 1) (-16 -16 -16) (16 16 16)
+Where the Sacrifice soul appears
+*/
+void SP_team_sacrifice_soul( gentity_t *ent ) {
+	VectorCopy( ent->s.origin, sac.soulSpot );
+	sac.hasSoulSpot = qtrue;
+	G_FreeEntity( ent );
 }
 
 static int G_MeterTime( void ) {
@@ -402,11 +431,14 @@ void G_SacrificeInit( void ) {
 			bestDist = d;
 		}
 	}
-	if ( !best ) {
+	if ( sac.hasSoulSpot ) {
+		VectorCopy( sac.soulSpot, sac.soulSpawn );
+	} else if ( !best ) {
 		return;
+	} else {
+		VectorCopy( best->s.origin, sac.soulSpawn );
+		sac.soulSpawn[2] += 16;
 	}
-	VectorCopy( best->s.origin, sac.soulSpawn );
-	sac.soulSpawn[2] += 16;
 
 	for ( i = 0 ; i < 2 ; i++ ) {
 		ent = G_Spawn();

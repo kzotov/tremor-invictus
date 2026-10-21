@@ -176,6 +176,8 @@ void SP_team_CTF_bluespawn( gentity_t *ent );
 
 #ifdef MISSIONPACK
 void SP_team_blueobelisk( gentity_t *ent );
+void SP_team_sacrifice_obelisk( gentity_t *ent );
+void SP_team_sacrifice_soul( gentity_t *ent );
 void SP_team_redobelisk( gentity_t *ent );
 void SP_team_neutralobelisk( gentity_t *ent );
 #endif
@@ -248,6 +250,8 @@ spawn_t	spawns[] = {
 	{"team_CTF_bluespawn", SP_team_CTF_bluespawn},
 
 #ifdef MISSIONPACK
+	{"team_sacrifice_obelisk", SP_team_sacrifice_obelisk},
+	{"team_sacrifice_soul", SP_team_sacrifice_soul},
 	{"team_redobelisk", SP_team_redobelisk},
 	{"team_blueobelisk", SP_team_blueobelisk},
 	{"team_neutralobelisk", SP_team_neutralobelisk},
@@ -284,6 +288,21 @@ qboolean G_CallSpawn( gentity_t *ent ) {
 		ent->classname = "weapon_railgun";
 	} else if ( !strcmp( ent->classname, "ammo_bfg" ) ) {
 		ent->classname = "ammo_slugs";
+	}
+
+	// this game's own names for map editors
+	if ( !strcmp( ent->classname, "weapon_heavymachinegun" ) ) {
+		ent->classname = "weapon_hmg";
+	} else if ( !strcmp( ent->classname, "weapon_supershotgun" ) ) {
+		ent->classname = "weapon_ssg";
+	} else if ( !strcmp( ent->classname, "weapon_supernailgun" ) ) {
+		ent->classname = "weapon_plasmagun";
+	} else if ( !strcmp( ent->classname, "weapon_tribolt" ) ) {
+		ent->classname = "weapon_grenadelauncher";
+	} else if ( !strcmp( ent->classname, "item_protection" ) ) {
+		ent->classname = "item_enviro";
+	} else if ( !strcmp( ent->classname, "item_health_special" ) ) {
+		ent->classname = "item_health_large";
 	}
 
 	// check item spawn functions
@@ -400,6 +419,42 @@ void G_ParseField( const char *key, const char *value, gentity_t *ent ) {
 
 /*
 ===================
+G_ModeName
+
+This game's name for the running mode, as map keys use it
+===================
+*/
+const char *G_ModeName( void ) {
+	switch ( g_gametype.integer ) {
+	case GT_TOURNAMENT:	return G_RoundDuel() ? "roundduel" : "duel";
+	case GT_TEAM:		return G_ClanArena() ? "ca" : "tdm";
+	case GT_CTF:		return G_Sacrifice() ? "sacrifice" : "ctf";
+	default:			return "ffa";
+	}
+}
+
+/*
+===================
+G_ListHasWord
+
+True when a space- or comma-separated list holds the word
+===================
+*/
+qboolean G_ListHasWord( const char *list, const char *word ) {
+	int		len = strlen( word );
+	const char	*p = list;
+
+	while ( ( p = Q_stristr( p, word ) ) != NULL ) {
+		if ( ( p == list || p[-1] == ' ' || p[-1] == ',' ) && ( !p[len] || p[len] == ' ' || p[len] == ',' ) ) {
+			return qtrue;
+		}
+		p += len;
+	}
+	return qfalse;
+}
+
+/*
+===================
 G_SpawnGEntityFromSpawnVars
 
 Spawn an entity and fill in all of the level fields from
@@ -461,12 +516,25 @@ void G_SpawnGEntityFromSpawnVars( void ) {
 	}
 #endif
 
+	// this game's mode keys: notduel (duel and round duel), notffa
+	i = 0;
+	if ( g_gametype.integer == GT_TOURNAMENT ) {
+		G_SpawnInt( "notduel", "0", &i );
+	} else if ( g_gametype.integer == GT_FFA ) {
+		G_SpawnInt( "notffa", "0", &i );
+	}
+	if ( i ) {
+		ADJUST_AREAPORTAL();
+		G_FreeEntity( ent );
+		return;
+	}
+
+	// "gametype": a list of Quake III game types or of this game's modes
 	if( G_SpawnString( "gametype", NULL, &value ) ) {
 		if( g_gametype.integer >= GT_FFA && g_gametype.integer < GT_MAX_GAME_TYPE ) {
 			gametypeName = gametypeNames[g_gametype.integer];
 
-			s = strstr( value, gametypeName );
-			if( !s ) {
+			if( !G_ListHasWord( value, gametypeName ) && !G_ListHasWord( value, G_ModeName() ) ) {
 				ADJUST_AREAPORTAL();
 				G_FreeEntity( ent );
 				return;

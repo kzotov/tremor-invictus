@@ -687,6 +687,8 @@ void		G_CTFCheckRules( void );
 #define CA_FIGHTING		2
 #define CA_RESULT		3		// round over, showing who won
 qboolean	G_ClanArena( void );
+const char	*G_ModeName( void );
+qboolean	G_ListHasWord( const char *list, const char *word );
 void		G_CACheckRules( void );
 void		G_CALoadout( gentity_t *ent );
 void		G_CADamageDealt( gentity_t *attacker, gentity_t *targ, int damage );
