@@ -2247,6 +2247,7 @@ void CG_Player( centity_t *cent ) {
 	int				renderfx;
 	qboolean		shadow;
 	float			shadowPlane;
+	float			scale;
 #ifdef MISSIONPACK
 	refEntity_t		skull;
 	refEntity_t		powerup;
@@ -2320,6 +2321,19 @@ void CG_Player( centity_t *cent ) {
 	legs.customSkin = ci->legsSkin;
 
 	VectorCopy( cent->lerpOrigin, legs.origin );
+
+	// player models are built for a shorter body: scale them to the hull,
+	// keeping the feet on the floor. The torso and head follow through their tags.
+	scale = ( DEFAULT_HEIGHT - MINS_Z ) / (float)MODEL_HEIGHT * cg_playerScale.value;
+	if ( scale > 0 && scale != 1.0f ) {
+		VectorScale( legs.axis[0], scale, legs.axis[0] );
+		VectorScale( legs.axis[1], scale, legs.axis[1] );
+		VectorScale( legs.axis[2], scale, legs.axis[2] );
+		legs.nonNormalizedAxes = qtrue;
+		torso.nonNormalizedAxes = qtrue;
+		head.nonNormalizedAxes = qtrue;
+		legs.origin[2] += -MINS_Z * ( scale - 1.0f );
+	}
 
 	VectorCopy( cent->lerpOrigin, legs.lightingOrigin );
 	legs.shadowPlane = shadowPlane;

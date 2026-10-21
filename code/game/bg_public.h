@@ -49,7 +49,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define PLAYER_WIDTH		15		// medium body; see bg_classInfo
 #define	MINS_Z				-24
 #define DEFAULT_HEIGHT		45		// 69 units standing
-#define	DEFAULT_VIEWHEIGHT	39
+#define	MODEL_HEIGHT		56		// standing height the player models are built for
+#define	DEFAULT_VIEWHEIGHT	38		// eye height of a player model scaled to the hull
 #define CROUCH_HEIGHT		10.5f	// half the standing height
 #define CROUCH_VIEWHEIGHT	6
 #define DEAD_HEIGHT			-8
