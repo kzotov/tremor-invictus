@@ -1123,6 +1123,37 @@ void ClientBegin( int clientNum ) {
 
 /*
 ===========
+G_ChampionRules
+
+The server's champion rules at spawn: g_randomChampion 1 deals everyone a
+random champion; g_championDuplicates 0 keeps one of each champion per team
+===========
+*/
+static void G_ChampionRules( gclient_t *client ) {
+	int		i, tries, used[64], team = client->sess.sessionTeam;
+
+	if ( g_randomChampion.integer ) {
+		client->pers.champion = rand() % bg_numChampions;
+	}
+	if ( g_championDuplicates.integer || g_gametype.integer < GT_TEAM || team == TEAM_SPECTATOR ) {
+		return;
+	}
+	memset( used, 0, sizeof( used ) );
+	for ( i = 0 ; i < level.maxclients ; i++ ) {
+		gclient_t	*mate = &level.clients[i];
+
+		if ( mate != client && mate->pers.connected == CON_CONNECTED && mate->sess.sessionTeam == team
+			&& mate->ps.stats[STAT_CHAMPION] >= 0 && mate->ps.stats[STAT_CHAMPION] < 64 ) {
+			used[mate->ps.stats[STAT_CHAMPION]] = 1;
+		}
+	}
+	for ( tries = 0 ; tries < bg_numChampions && client->pers.champion < 64 && used[client->pers.champion] ; tries++ ) {
+		client->pers.champion = ( client->pers.champion + 1 ) % bg_numChampions;
+	}
+}
+
+/*
+===========
 ClientSpawn
 
 Called every time a client is placed fresh in the world:
@@ -1262,6 +1293,8 @@ void ClientSpawn(gentity_t *ent) {
 	// in a running duel the champion stays the one the match started with
 	if ( g_gametype.integer == GT_TOURNAMENT ) {
 		client->pers.champion = G_DuelSpawnChampion( client );
+	} else {
+		G_ChampionRules( client );
 	}
 	ent->r.mins[0] = ent->r.mins[1] = -bg_classInfo[BG_Champion( client->pers.champion )->bodyClass].halfWidth;
 	ent->r.maxs[0] = ent->r.maxs[1] = bg_classInfo[BG_Champion( client->pers.champion )->bodyClass].halfWidth;

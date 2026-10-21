@@ -992,6 +992,8 @@ extern	vmCvar_t	g_overtime;
 extern	vmCvar_t	g_duelReadyUp;
 extern	vmCvar_t	g_duelFraglimit;
 extern	vmCvar_t	g_tdmFraglimit;
+extern	vmCvar_t	g_randomChampion;
+extern	vmCvar_t	g_championDuplicates;
 extern	vmCvar_t	g_instagib;
 extern	vmCvar_t	g_unholyTrinity;
 extern	vmCvar_t	g_spawnProtection;
