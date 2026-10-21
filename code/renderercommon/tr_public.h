@@ -99,6 +99,13 @@ typedef struct {
 	qboolean (*inPVS)( const vec3_t p1, const vec3_t p2 );
 
 	void (*TakeVideoFrame)( int h, int w, byte* captureBuffer, byte *encodeBuffer, qboolean motionJpeg );
+
+	// for the client's own interface (RmlUi): a 2D shader from RGBA pixels
+	// (straight alpha), textured 2D triangles in screen pixels, and a 2D
+	// scissor rectangle (w <= 0 turns it off)
+	qhandle_t (*RegisterShaderRGBA)( const char *name, int width, int height, const byte *rgba );
+	void	(*DrawTriangles2D)( int numVerts, const polyVert_t *verts, int numIndexes, const int *indexes, qhandle_t hShader );
+	void	(*SetScissor2D)( int x, int y, int w, int h );
 } refexport_t;
 
 //

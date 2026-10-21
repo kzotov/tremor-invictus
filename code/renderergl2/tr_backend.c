@@ -886,6 +886,75 @@ const void *RB_StretchPic ( const void *data ) {
 	return (const void *)(cmd + 1);
 }
 
+/*
+=============
+RB_Triangles2D
+
+The client interface's triangles, a triangle at a time so a large batch
+splits across tess buffers
+=============
+*/
+const void *RB_Triangles2D( const void *data ) {
+	const triangles2DCommand_t	*cmd = (const triangles2DCommand_t *)data;
+	const polyVert_t	*verts = (const polyVert_t *)( cmd + 1 );
+	const int			*indexes = (const int *)( verts + cmd->numVerts );
+	shader_t			*shader = cmd->shader;
+	int					i, k, n;
+
+	if ( !backEnd.projection2D ) {
+		RB_SetGL2D();
+	}
+	if ( shader != tess.shader ) {
+		if ( tess.numIndexes ) {
+			RB_EndSurface();
+		}
+		backEnd.currentEntity = &backEnd.entity2D;
+		RB_BeginSurface( shader, 0, 0 );
+	}
+	for ( i = 0 ; i + 2 < cmd->numIndexes ; i += 3 ) {
+		RB_CHECKOVERFLOW( 3, 3 );
+		n = tess.numVertexes;
+		for ( k = 0 ; k < 3 ; k++ ) {
+			const polyVert_t	*v = &verts[indexes[i + k]];
+
+			tess.xyz[n + k][0] = v->xyz[0];
+			tess.xyz[n + k][1] = v->xyz[1];
+			tess.xyz[n + k][2] = 0;
+			tess.texCoords[n + k][0] = v->st[0];
+			tess.texCoords[n + k][1] = v->st[1];
+			tess.color[n + k][0] = v->modulate[0] * 257;
+			tess.color[n + k][1] = v->modulate[1] * 257;
+			tess.color[n + k][2] = v->modulate[2] * 257;
+			tess.color[n + k][3] = v->modulate[3] * 257;
+			tess.indexes[tess.numIndexes + k] = n + k;
+		}
+		tess.numVertexes += 3;
+		tess.numIndexes += 3;
+	}
+	return (const void *)( (const byte *)data + PAD( sizeof( *cmd ) + cmd->numVerts * sizeof( polyVert_t )
+		+ cmd->numIndexes * sizeof( int ), sizeof( void * ) ) );
+}
+
+/*
+=============
+RB_Scissor2D
+=============
+*/
+const void *RB_Scissor2D( const void *data ) {
+	const scissor2DCommand_t	*cmd = (const scissor2DCommand_t *)data;
+
+	if ( tess.numIndexes ) {
+		RB_EndSurface();
+	}
+	if ( cmd->w > 0 && cmd->h > 0 ) {
+		qglScissor( cmd->x, glConfig.vidHeight - cmd->y - cmd->h, cmd->w, cmd->h );
+	} else {
+		qglScissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+	}
+	return (const void *)( cmd + 1 );
+}
+
+
 
 /*
 =============
@@ -1837,6 +1906,12 @@ void RB_ExecuteRenderCommands( const void *data ) {
 			break;
 		case RC_STRETCH_PIC:
 			data = RB_StretchPic( data );
+			break;
+		case RC_TRIANGLES_2D:
+			data = RB_Triangles2D( data );
+			break;
+		case RC_SCISSOR_2D:
+			data = RB_Scissor2D( data );
 			break;
 		case RC_DRAW_SURFS:
 			data = RB_DrawSurfs( data );

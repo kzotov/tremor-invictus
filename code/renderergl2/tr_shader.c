@@ -3515,6 +3515,29 @@ shader_t *R_FindShaderEx( const char *name, int lightmapIndex, qboolean mipRawIm
 }
 
 
+/*
+====================
+RE_RegisterShaderRGBA
+
+A 2D shader (vertex colour and alpha, blended) from RGBA pixels the caller
+made, such as the interface's glyph atlases
+====================
+*/
+qhandle_t RE_RegisterShaderRGBA( const char *name, int width, int height, const byte *rgba ) {
+	image_t	*image;
+	byte	*copy;
+	int		size = width * height * 4;
+
+	if ( !name || !name[0] || width <= 0 || height <= 0 || !rgba ) {
+		return 0;
+	}
+	copy = ri.Hunk_AllocateTempMemory( size );
+	Com_Memcpy( copy, rgba, size );		// the upload may resample in place
+	image = R_CreateImage( name, copy, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, 0 );
+	ri.Hunk_FreeTempMemory( copy );
+	return RE_RegisterShaderFromImage( name, LIGHTMAP_2D, image, qfalse );
+}
+
 qhandle_t RE_RegisterShaderFromImage(const char *name, int lightmapIndex, image_t *image, qboolean mipRawImage) {
 	int			hash;
 	shader_t	*sh;

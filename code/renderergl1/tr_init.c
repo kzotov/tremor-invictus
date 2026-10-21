@@ -1374,6 +1374,9 @@ refexport_t *GetRefAPI ( int apiVersion, refimport_t *rimp ) {
 
 	re.SetColor = RE_SetColor;
 	re.DrawStretchPic = RE_StretchPic;
+	re.RegisterShaderRGBA = RE_RegisterShaderRGBA;
+	re.DrawTriangles2D = RE_DrawTriangles2D;
+	re.SetScissor2D = RE_SetScissor2D;
 	re.DrawStretchRaw = RE_StretchRaw;
 	re.UploadCinematic = RE_UploadCinematic;
 

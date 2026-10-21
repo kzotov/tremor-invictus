@@ -2409,6 +2409,18 @@ typedef struct {
 
 typedef struct {
 	int		commandId;
+	shader_t	*shader;
+	int		numVerts;		// followed by the polyVert_t verts, then the int indexes
+	int		numIndexes;
+} triangles2DCommand_t;
+
+typedef struct {
+	int		commandId;
+	int		x, y, w, h;		// w <= 0: the whole screen
+} scissor2DCommand_t;
+
+typedef struct {
+	int		commandId;
 	trRefdef_t	refdef;
 	viewParms_t	viewParms;
 	drawSurf_t *drawSurfs;
@@ -2466,6 +2478,8 @@ typedef enum {
 	RC_END_OF_LIST,
 	RC_SET_COLOR,
 	RC_STRETCH_PIC,
+	RC_TRIANGLES_2D,
+	RC_SCISSOR_2D,
 	RC_DRAW_SURFS,
 	RC_DRAW_BUFFER,
 	RC_SWAP_BUFFERS,
@@ -2513,6 +2527,9 @@ void R_AddCapShadowmapCmd( int dlight, int cubeSide );
 void R_AddPostProcessCmd (void);
 
 void RE_SetColor( const float *rgba );
+void RE_DrawTriangles2D( int numVerts, const polyVert_t *verts, int numIndexes, const int *indexes, qhandle_t hShader );
+void RE_SetScissor2D( int x, int y, int w, int h );
+qhandle_t RE_RegisterShaderRGBA( const char *name, int width, int height, const byte *rgba );
 void RE_StretchPic ( float x, float y, float w, float h, 
 					  float s1, float t1, float s2, float t2, qhandle_t hShader );
 void RE_BeginFrame( stereoFrame_t stereoFrame );

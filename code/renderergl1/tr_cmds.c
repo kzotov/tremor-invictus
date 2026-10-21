@@ -234,6 +234,55 @@ void RE_StretchPic ( float x, float y, float w, float h,
 	cmd->t2 = t2;
 }
 
+/*
+=============
+RE_DrawTriangles2D
+
+Textured triangles in screen pixels, for the client's interface
+=============
+*/
+void RE_DrawTriangles2D( int numVerts, const polyVert_t *verts, int numIndexes, const int *indexes, qhandle_t hShader ) {
+	triangles2DCommand_t	*cmd;
+	int		size;
+
+	if ( !tr.registered || numVerts <= 0 || numIndexes <= 0 ) {
+		return;
+	}
+	size = sizeof( *cmd ) + numVerts * sizeof( polyVert_t ) + numIndexes * sizeof( int );
+	cmd = R_GetCommandBuffer( PAD( size, sizeof( void * ) ) );
+	if ( !cmd ) {
+		return;
+	}
+	cmd->commandId = RC_TRIANGLES_2D;
+	cmd->shader = R_GetShaderByHandle( hShader );
+	cmd->numVerts = numVerts;
+	cmd->numIndexes = numIndexes;
+	Com_Memcpy( cmd + 1, verts, numVerts * sizeof( polyVert_t ) );
+	Com_Memcpy( (byte *)( cmd + 1 ) + numVerts * sizeof( polyVert_t ), indexes, numIndexes * sizeof( int ) );
+}
+
+/*
+=============
+RE_SetScissor2D
+=============
+*/
+void RE_SetScissor2D( int x, int y, int w, int h ) {
+	scissor2DCommand_t	*cmd;
+
+	if ( !tr.registered ) {
+		return;
+	}
+	cmd = R_GetCommandBuffer( sizeof( *cmd ) );
+	if ( !cmd ) {
+		return;
+	}
+	cmd->commandId = RC_SCISSOR_2D;
+	cmd->x = x;
+	cmd->y = y;
+	cmd->w = w;
+	cmd->h = h;
+}
+
 #define MODE_RED_CYAN	1
 #define MODE_RED_BLUE	2
 #define MODE_RED_GREEN	3
