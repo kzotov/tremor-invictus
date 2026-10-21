@@ -636,7 +636,8 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed ) 
 		if ( other == ent || !other->client || other->health <= 0 || !other->takedamage ) {
 			continue;
 		}
-		if ( level.time - client->collisionTime[other->s.number] < g_collisionRepeat.integer ) {
+		if ( level.time - client->collisionTime[other->s.number]
+			< ( swinging ? g_hookSwingRepeat.integer : g_collisionRepeat.integer ) ) {
 			continue;
 		}
 
@@ -646,7 +647,8 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed ) 
 		} else if ( champ->abilities & MOVEABIL_HEAVYWEIGHT ) {
 			damage = G_HeavyweightDamage( impactSpeed );
 		} else {
-			damage = g_hookSwingDamage.integer;
+			// the swing hurts only when fast enough
+			damage = impactSpeed > g_hookSwingSpeed.value ? g_hookSwingDamage.integer : 0;
 		}
 		if ( damage <= 0 ) {
 			continue;

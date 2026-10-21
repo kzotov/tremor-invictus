@@ -269,7 +269,14 @@ owner to it.
 static void G_OrbExplode( gentity_t *orb ) {
 	gentity_t	*owner = orb->parent;
 
+	// the blast grows over the orb's first moments
 	orb->splashDamage = g_orbSplashDamage.integer;
+	if ( g_orbRampTime.integer > 0 && level.time - orb->timestamp < g_orbRampTime.integer ) {
+		orb->splashDamage = g_orbSplashDamage.integer * ( level.time - orb->timestamp ) / g_orbRampTime.integer;
+		if ( orb->splashDamage < 1 ) {
+			orb->splashDamage = 1;
+		}
+	}
 	orb->splashRadius = g_orbSplashRadius.integer;
 	orb->splashMethodOfDeath = MOD_ORB;
 	if ( owner && owner->client && owner->client->abilityEnt == orb ) {
@@ -332,6 +339,7 @@ static void G_FireOrb( gentity_t *ent ) {
 	orb->think = G_OrbThink;
 	orb->nextthink = level.time + ABILITY_FRAME;
 	orb->abilityTime = level.time + g_orbLife.integer;
+	orb->timestamp = level.time;
 	VectorCopy( forward, orb->movedir );
 	ent->client->abilityEnt = orb;
 }
@@ -985,6 +993,7 @@ left into a laser that hits what the player looks at.
 
 static void G_StartBarrier( gentity_t *ent ) {
 	ent->client->barrierMode = 1;
+	ent->client->barrierDamage = 0;
 	ent->client->ps.eFlags |= EF_BARRIER;
 }
 
@@ -995,6 +1004,7 @@ static void G_BarrierToLaser( gentity_t *ent ) {
 	ent->client->barrierMode = 2;
 	ent->client->ps.eFlags &= ~EF_BARRIER;
 	ent->client->laserTime = level.time + g_laserDelay.integer;
+	ent->client->laserEnd = ent->client->laserTime + g_laserTime.integer;
 }
 
 static void G_FireLaser( gentity_t *ent ) {
@@ -1015,6 +1025,27 @@ static void G_FireLaser( gentity_t *ent ) {
 	other = &g_entities[tr.entityNum];
 	if ( other->takedamage ) {
 		G_Damage( other, ent, ent, forward, tr.endpos, g_laserDamage.integer, DAMAGE_NO_KNOCKBACK, MOD_LASER );
+	}
+}
+
+/*
+================
+G_BarrierHit
+
+The shield breaks after taking enough damage
+================
+*/
+void G_BarrierHit( gentity_t *targ, int damage ) {
+	gclient_t	*client = targ->client;
+
+	if ( !client || client->barrierMode != 1 || !G_AbilityActive( targ, ACTIVE_BARRIER ) ) {
+		return;
+	}
+	client->barrierDamage += damage;
+	if ( client->barrierDamage >= g_barrierHealth.integer ) {
+		BG_SetAbility( &client->ps, ABILITY_IDLE, BG_AbilityCharges( &client->ps ) );
+		client->ps.stats[STAT_ABILITY_TIME] = 0;
+		G_AbilityEnded( targ );
 	}
 }
 
@@ -1402,9 +1433,14 @@ void G_AbilityClientThink( gentity_t *ent ) {
 	}
 
 	if ( G_AbilityActive( ent, ACTIVE_BARRIER ) && client->barrierMode == 2 ) {
-		while ( level.time >= client->laserTime ) {
+		while ( level.time >= client->laserTime && client->laserTime < client->laserEnd ) {
 			G_FireLaser( ent );
 			client->laserTime += g_laserInterval.integer;
+		}
+		if ( client->laserTime >= client->laserEnd ) {
+			BG_SetAbility( &client->ps, ABILITY_IDLE, BG_AbilityCharges( &client->ps ) );
+			client->ps.stats[STAT_ABILITY_TIME] = 0;
+			G_AbilityEnded( ent );
 		}
 	}
 	if ( G_AbilityActive( ent, ACTIVE_PLASMATRAIL ) ) {

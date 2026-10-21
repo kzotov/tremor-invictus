@@ -113,6 +113,55 @@ void Weapon_Gauntlet( gentity_t *ent ) {
 
 /*
 ===============
+G_BerserkTarget
+
+Berserk punches reach everything inside a cylinder in front of the player:
+the nearest enemy along it, if nothing solid is in the way
+===============
+*/
+static gentity_t *G_BerserkTarget( gentity_t *ent, vec3_t org, vec3_t dir, trace_t *tr ) {
+	gentity_t	*best = NULL, *other;
+	vec3_t		delta, point;
+	float		along, side, bestAlong = 0;
+	int			i;
+
+	for ( i = 0 ; i < level.maxclients ; i++ ) {
+		other = &g_entities[i];
+		if ( other == ent || !other->inuse || !other->client || other->health <= 0 || !other->takedamage
+			|| other->client->sess.sessionTeam == TEAM_SPECTATOR || OnSameTeam( ent, other ) ) {
+			continue;
+		}
+		VectorSubtract( other->r.currentOrigin, org, delta );
+		along = DotProduct( delta, dir );
+		if ( along < 0 || along > g_berserkReach.value ) {
+			continue;
+		}
+		VectorMA( delta, -along, dir, point );
+		side = VectorLength( point ) - other->r.maxs[0];		// to the body's edge
+		if ( side > g_berserkRadius.value ) {
+			continue;
+		}
+		if ( best && along >= bestAlong ) {
+			continue;
+		}
+		trap_Trace( tr, org, NULL, NULL, other->r.currentOrigin, ent->s.number, MASK_SOLID );
+		if ( tr->fraction < 1.0f ) {
+			continue;
+		}
+		best = other;
+		bestAlong = along;
+	}
+	if ( best ) {
+		VectorCopy( best->r.currentOrigin, tr->endpos );
+		VectorNegate( dir, tr->plane.normal );
+		tr->entityNum = best->s.number;
+		tr->surfaceFlags = 0;
+	}
+	return best;
+}
+
+/*
+===============
 CheckGauntletAttack
 ===============
 */
@@ -130,7 +179,9 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 
 	VectorMA (muzzle, BG_WeaponParam( WP_GAUNTLET, WPP_RANGE ) > 0 ? BG_WeaponParam( WP_GAUNTLET, WPP_RANGE ) : 32, forward, end);
 
-	trap_Trace (&tr, muzzle, NULL, NULL, end, ent->s.number, MASK_SHOT);
+	if ( !G_AbilityActive( ent, ACTIVE_BERSERK ) || !G_BerserkTarget( ent, muzzle, forward, &tr ) ) {
+		trap_Trace (&tr, muzzle, NULL, NULL, end, ent->s.number, MASK_SHOT);
+	}
 	if ( tr.surfaceFlags & SURF_NOIMPACT ) {
 		return qfalse;
 	}

@@ -83,6 +83,8 @@ static pmoveCvar_t pmoveCvars[] = {
 
 	{ {0}, "pm_chainTime",			"500",	&bg_pmoveSettings.chainTime },
 	{ {0}, "pm_chainVelocity",		"110",	&bg_pmoveSettings.chainVelocity },
+	{ {0}, "pm_stepJumpVelocity",	"48",	&bg_pmoveSettings.stepJumpVelocity },
+	{ {0}, "pm_stepJumpTime",		"100",	&bg_pmoveSettings.stepJumpTime },
 	{ {0}, "pm_chainScale",			"0.4",	&bg_pmoveSettings.chainScale },
 	{ {0}, "pm_crouchJumpScale",	"0.6",	&bg_pmoveSettings.crouchJumpScale },
 	{ {0}, "pm_crouchWalkScale",	"0.5",	&bg_pmoveSettings.crouchWalkScale },
@@ -115,7 +117,10 @@ static pmoveCvar_t pmoveCvars[] = {
 
 	{ {0}, "pm_rushSpeed",			"700",	&bg_pmoveSettings.rushSpeed },
 	{ {0}, "pm_rushTurnRate",		"120",	&bg_pmoveSettings.rushTurnRate },
-	{ {0}, "pm_rushStopFraction",	"0.5",	&bg_pmoveSettings.rushStopFraction },
+	{ {0}, "pm_rushStartSpeed",	"450",	&bg_pmoveSettings.rushStartSpeed },
+	{ {0}, "pm_rushAccel",			"150",	&bg_pmoveSettings.rushAccel },
+	{ {0}, "pm_rushMinSpeed",		"150",	&bg_pmoveSettings.rushMinSpeed },
+	{ {0}, "pm_rushGravity",		"2",	&bg_pmoveSettings.rushGravity },
 
 	{ {0}, "pm_hookImpulse",		"400",	&bg_pmoveSettings.hookImpulse },
 	{ {0}, "pm_hookPullStart",		"400",	&bg_pmoveSettings.hookPullStart },
@@ -710,6 +715,11 @@ static qboolean PM_CheckJump( void ) {
 			pm->ps->velocity[2] *= 1.0f + bg_pmoveSettings.chainScale
 				* ( bg_pmoveSettings.chainTime - pm->ps->stats[STAT_JUMP_TIME] ) / bg_pmoveSettings.chainTime;
 		}
+	}
+	// a jump just after a step up gets a small boost
+	if ( pm->ps->persistant[PERS_STEP_TIME] < bg_pmoveSettings.stepJumpTime ) {
+		pm->ps->velocity[2] += bg_pmoveSettings.stepJumpVelocity;
+		pm->ps->persistant[PERS_STEP_TIME] = STAT_TIME_CAP;
 	}
 	if ( style == MOVE_SLIDE ) {
 		pm->ps->stats[STAT_MOVE_STATE] = 0;
@@ -2484,6 +2494,10 @@ static void PM_MoveTimers( void ) {
 	if ( pm->ps->stats[STAT_LAND_TIME] > STAT_TIME_CAP ) {
 		pm->ps->stats[STAT_LAND_TIME] = STAT_TIME_CAP;
 	}
+	pm->ps->persistant[PERS_STEP_TIME] += pml.msec;
+	if ( pm->ps->persistant[PERS_STEP_TIME] > STAT_TIME_CAP ) {
+		pm->ps->persistant[PERS_STEP_TIME] = STAT_TIME_CAP;
+	}
 
 	if ( pml.champion->moveStyle != MOVE_SLIDE ) {
 		return;		// STAT_MOVE_STATE belongs to another mechanic
@@ -2776,7 +2790,7 @@ happen in the game on EV_USE_ABILITY and EV_ABILITY_REPRESS.
 ================
 */
 #define HOOK_THROW_GAP		1000	// msec between hook throws
-#define GRENADE_THROW_GAP	500		// msec between Keel's grenades
+#define GRENADE_THROW_GAP	400		// msec between Keel's grenades
 #define BERSERK_MIN_TIME	2000	// Berserk can be ended after this long
 
 static void PM_Ability( void ) {
@@ -3042,18 +3056,22 @@ static void PM_RushTurn( void ) {
 ================
 PM_RushMove
 
-Drives the player forward, from run speed up to the rush speed at the end
+Drives the player forward: the start speed, gaining speed each second up to
+the rush speed
 ================
 */
 static void PM_RushMove( void ) {
 	vec3_t	forward;
-	float	frac;
+	float	elapsed;
 
-	frac = 1.0f - pm->ps->stats[STAT_ABILITY_TIME] / BG_AbilityParam( ACTIVE_BULLRUSH, AP_DURATION );
-	if ( frac < 0 ) {
-		frac = 0;
+	elapsed = ( BG_AbilityParam( ACTIVE_BULLRUSH, AP_DURATION ) - pm->ps->stats[STAT_ABILITY_TIME] ) * 0.001f;
+	if ( elapsed < 0 ) {
+		elapsed = 0;
 	}
-	pml.rushSpeed = pml.runSpeed + ( bg_pmoveSettings.rushSpeed - pml.runSpeed ) * frac;
+	pml.rushSpeed = bg_pmoveSettings.rushStartSpeed + bg_pmoveSettings.rushAccel * elapsed;
+	if ( pml.rushSpeed > bg_pmoveSettings.rushSpeed ) {
+		pml.rushSpeed = bg_pmoveSettings.rushSpeed;
+	}
 
 	PM_FlatDirection( 0, forward );
 	pm->ps->velocity[0] = forward[0] * pml.rushSpeed;
@@ -3067,7 +3085,7 @@ static void PM_RushMove( void ) {
 ================
 PM_CheckRushBlocked
 
-A wall or object that stops the rush ends it; players are left to the game,
+A wall or object that slows the rush below the minimum speed ends it; players are left to the game,
 which ends the rush only if the player survives the hit
 ================
 */
@@ -3084,7 +3102,7 @@ static void PM_CheckRushBlocked( void ) {
 		}
 	}
 	PM_FlatDirection( 0, forward );
-	if ( DotProduct( pm->ps->velocity, forward ) < pml.rushSpeed * bg_pmoveSettings.rushStopFraction ) {
+	if ( DotProduct( pm->ps->velocity, forward ) < bg_pmoveSettings.rushMinSpeed ) {
 		PM_EndAbility();
 	}
 }
@@ -3526,7 +3544,16 @@ void Pmove (pmove_t *pmove) {
 			}
 		}
 		pmove->cmd.serverTime = pmove->ps->commandTime + msec;
-		PmoveSingle( pmove );
+		if ( BG_AbilityState( pmove->ps ) == ABILITY_RUSH ) {
+			// the bull rush falls faster
+			int		gravity = pmove->ps->gravity;
+
+			pmove->ps->gravity = (int)( gravity * bg_pmoveSettings.rushGravity );
+			PmoveSingle( pmove );
+			pmove->ps->gravity = gravity;
+		} else {
+			PmoveSingle( pmove );
+		}
 
 		if ( pmove->ps->pm_flags & PMF_JUMP_HELD ) {
 			pmove->cmd.upmove = 20;

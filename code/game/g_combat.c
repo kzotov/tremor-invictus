@@ -1144,7 +1144,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		return;
 	}
 	// barrier shield
-	damage *= G_BarrierScale( targ, mod );
+	{
+		float	shield = G_BarrierScale( targ, mod );
+
+		if ( shield < 1.0f ) {
+			G_BarrierHit( targ, damage );
+			damage *= shield;
+		}
+	}
 	if ( damage < 1 ) {
 		damage = 1;
 	}

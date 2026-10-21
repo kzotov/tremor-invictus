@@ -356,6 +356,8 @@ struct gclient_s {
 
 	int			barrierMode;		// 1 shield, 2 laser
 	int			laserTime;			// level.time of the next laser shot
+	int			laserEnd;			// level.time the laser stops
+	int			barrierDamage;		// damage the shield has taken
 	int			trailTime;			// level.time of the next plasma trail segment
 	gentity_t	*droneBody;			// the body left behind while flying the drone
 	int			droneStartTime;
@@ -758,6 +760,7 @@ void G_AbilityStarted( gentity_t *ent );
 void G_AbilityEnded( gentity_t *ent );
 void G_DroneEnd( gentity_t *ent, qboolean launch );
 float G_BarrierScale( gentity_t *targ, int mod );
+void G_BarrierHit( gentity_t *targ, int damage );
 qboolean G_DroneAbsorbDamage( gentity_t *ent, int take );
 void G_DropStroyentCell( gentity_t *victim, gentity_t *attacker );
 qboolean G_AbilityActive( gentity_t *ent, int active );
@@ -940,6 +943,8 @@ extern	vmCvar_t	g_gravity;
 extern	vmCvar_t	g_speed;
 extern	vmCvar_t	g_injectionHeal;
 extern	vmCvar_t	g_berserkDamage;
+extern	vmCvar_t	g_berserkReach;
+extern	vmCvar_t	g_berserkRadius;
 extern	vmCvar_t	g_ghostWalkTelefrag;
 extern	vmCvar_t	g_regenDelay;
 extern	vmCvar_t	g_regenRate;
@@ -953,6 +958,7 @@ extern	vmCvar_t	g_cooldownAmmo;
 extern	vmCvar_t	g_orbSpeed;
 extern	vmCvar_t	g_orbLife;
 extern	vmCvar_t	g_orbFuse;
+extern	vmCvar_t	g_orbRampTime;
 extern	vmCvar_t	g_orbContactDamage;
 extern	vmCvar_t	g_orbSplashDamage;
 extern	vmCvar_t	g_orbSplashRadius;
@@ -994,6 +1000,8 @@ extern	vmCvar_t	g_turretInterval;
 extern	vmCvar_t	g_turretRange;
 extern	vmCvar_t	g_turretBoltSpeed;
 extern	vmCvar_t	g_barrierScale;
+extern	vmCvar_t	g_barrierHealth;
+extern	vmCvar_t	g_laserTime;
 extern	vmCvar_t	g_laserDelay;
 extern	vmCvar_t	g_laserInterval;
 extern	vmCvar_t	g_laserDamage;
@@ -1047,6 +1055,8 @@ extern	vmCvar_t	g_hookSpeed;
 extern	vmCvar_t	g_hookRange;
 extern	vmCvar_t	g_hookDamage;
 extern	vmCvar_t	g_hookSwingDamage;
+extern	vmCvar_t	g_hookSwingSpeed;
+extern	vmCvar_t	g_hookSwingRepeat;
 extern	vmCvar_t	g_rushDamageScale;
 extern	vmCvar_t	g_hwSpeed;
 extern	vmCvar_t	g_hwDamage;

@@ -905,6 +905,8 @@ typedef struct {
 
 	float	chainTime;				// msec after a jump that a new jump goes higher
 	float	chainVelocity;			// air-control style: added upward speed
+	float	stepJumpVelocity;		// added to a jump made just after a step up
+	float	stepJumpTime;			// msec after a step up that still counts
 	float	chainScale;				// others: up to this share more, fading over the chain time
 	float	crouchJumpScale;		// a jump from a crouch (sliders jump fully)
 	float	crouchWalkScale;		// crouch walking, times run speed (sliders: pm_slideCrouchScale)
@@ -935,9 +937,12 @@ typedef struct {
 
 	float	accelAngle;				// degrees between aim and velocity still "straight"
 
-	float	rushSpeed;				// speed reached at the end of the rush
+	float	rushSpeed;				// top speed of the rush
 	float	rushTurnRate;			// degrees per second
-	float	rushStopFraction;		// rush ends if a hit leaves less of the speed
+	float	rushStartSpeed;			// bull rush speed at the start
+	float	rushAccel;				// speed gained per second, up to rushSpeed
+	float	rushMinSpeed;			// the rush ends when forward speed drops below this
+	float	rushGravity;			// gravity scale during the rush
 
 	float	hookImpulse;
 	float	hookPullStart;
@@ -1065,7 +1070,8 @@ typedef enum {
 	PERS_DEFEND_COUNT,				// defend awards
 	PERS_ASSIST_COUNT,				// assist awards
 	PERS_GAUNTLET_FRAG_COUNT,		// kills with the guantlet
-	PERS_CAPTURES					// captures
+	PERS_CAPTURES,					// captures
+	PERS_STEP_TIME					// msec since the last step up, capped (step jump boost)
 } persEnum_t;
 
 

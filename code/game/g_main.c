@@ -52,6 +52,8 @@ vmCvar_t	g_dedicated;
 vmCvar_t	g_speed;
 vmCvar_t	g_injectionHeal;
 vmCvar_t	g_berserkDamage;
+vmCvar_t	g_berserkReach;
+vmCvar_t	g_berserkRadius;
 vmCvar_t	g_ghostWalkTelefrag;
 vmCvar_t	g_regenDelay;
 vmCvar_t	g_regenRate;
@@ -65,6 +67,7 @@ vmCvar_t	g_cooldownAmmo;
 vmCvar_t	g_orbSpeed;
 vmCvar_t	g_orbLife;
 vmCvar_t	g_orbFuse;
+vmCvar_t	g_orbRampTime;
 vmCvar_t	g_orbContactDamage;
 vmCvar_t	g_orbSplashDamage;
 vmCvar_t	g_orbSplashRadius;
@@ -106,6 +109,8 @@ vmCvar_t	g_turretInterval;
 vmCvar_t	g_turretRange;
 vmCvar_t	g_turretBoltSpeed;
 vmCvar_t	g_barrierScale;
+vmCvar_t	g_barrierHealth;
+vmCvar_t	g_laserTime;
 vmCvar_t	g_laserDelay;
 vmCvar_t	g_laserInterval;
 vmCvar_t	g_laserDamage;
@@ -159,6 +164,8 @@ vmCvar_t	g_hookSpeed;
 vmCvar_t	g_hookRange;
 vmCvar_t	g_hookDamage;
 vmCvar_t	g_hookSwingDamage;
+vmCvar_t	g_hookSwingSpeed;
+vmCvar_t	g_hookSwingRepeat;
 vmCvar_t	g_rushDamageScale;
 vmCvar_t	g_hwSpeed;
 vmCvar_t	g_hwDamage;
@@ -317,6 +324,8 @@ static cvarTable_t		gameCvarTable[] = {
 	// champion abilities; numbers are placeholders until measured
 	{ &g_injectionHeal, "g_injectionHeal", "50", 0, 0, qtrue },
 	{ &g_berserkDamage, "g_berserkDamage", "75", 0, 0, qtrue },
+	{ &g_berserkReach, "g_berserkReach", "128", 0, 0, qtrue },
+	{ &g_berserkRadius, "g_berserkRadius", "44", 0, 0, qtrue },
 	{ &g_ghostWalkTelefrag, "g_ghostWalkTelefrag", "100", 0, 0, qtrue },
 	{ &g_regenDelay, "g_regenDelay", "3000", 0, 0, qtrue },
 	{ &g_regenRate, "g_regenRate", "10", 0, 0, qtrue },
@@ -329,7 +338,8 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_cooldownAmmo, "g_cooldownAmmo", "0.1", 0, 0, qtrue },
 	{ &g_orbSpeed, "g_orbSpeed", "900", 0, 0, qtrue },
 	{ &g_orbLife, "g_orbLife", "15000", 0, 0, qtrue },
-	{ &g_orbFuse, "g_orbFuse", "1000", 0, 0, qtrue },
+	{ &g_orbFuse, "g_orbFuse", "500", 0, 0, qtrue },
+	{ &g_orbRampTime, "g_orbRampTime", "1500", 0, 0, qtrue },
 	{ &g_orbContactDamage, "g_orbContactDamage", "15", 0, 0, qtrue },
 	{ &g_orbSplashDamage, "g_orbSplashDamage", "75", 0, 0, qtrue },
 	{ &g_orbSplashRadius, "g_orbSplashRadius", "120", 0, 0, qtrue },
@@ -350,10 +360,10 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_poisonDamage, "g_poisonDamage", "10", 0, 0, qtrue },
 	{ &g_poisonTime, "g_poisonTime", "10000", 0, 0, qtrue },
 	{ &g_acidBlobs, "g_acidBlobs", "5", 0, 0, qtrue },
-	{ &g_acidInterval, "g_acidInterval", "150", 0, 0, qtrue },
-	{ &g_acidSpeed, "g_acidSpeed", "900", 0, 0, qtrue },
+	{ &g_acidInterval, "g_acidInterval", "200", 0, 0, qtrue },
+	{ &g_acidSpeed, "g_acidSpeed", "800", 0, 0, qtrue },
 	{ &g_acidDamage, "g_acidDamage", "15", 0, 0, qtrue },
-	{ &g_acidPoolTime, "g_acidPoolTime", "10000", 0, 0, qtrue },
+	{ &g_acidPoolTime, "g_acidPoolTime", "5000", 0, 0, qtrue },
 	{ &g_acidPoolSize, "g_acidPoolSize", "20", 0, 0, qtrue },
 	{ &g_totemSpeed, "g_totemSpeed", "580", 0, 0, qtrue },
 	{ &g_totemArmTime, "g_totemArmTime", "1000", 0, 0, qtrue },
@@ -371,6 +381,8 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_turretRange, "g_turretRange", "1500", 0, 0, qtrue },
 	{ &g_turretBoltSpeed, "g_turretBoltSpeed", "2000", 0, 0, qtrue },
 	{ &g_barrierScale, "g_barrierScale", "0.5", 0, 0, qtrue },
+	{ &g_barrierHealth, "g_barrierHealth", "200", 0, 0, qtrue },
+	{ &g_laserTime, "g_laserTime", "3000", 0, 0, qtrue },
 	{ &g_laserDelay, "g_laserDelay", "250", 0, 0, qtrue },
 	{ &g_laserInterval, "g_laserInterval", "125", 0, 0, qtrue },
 	{ &g_laserDamage, "g_laserDamage", "10", 0, 0, qtrue },
@@ -422,9 +434,11 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_powerupWarning, "g_powerupWarning", "15", 0, 0, qtrue },
 	{ &g_powerupAlternate, "g_powerupAlternate", "1", 0, 0, qtrue },
 	{ &g_hookSpeed, "g_hookSpeed", "3000", 0, 0, qtrue },
-	{ &g_hookRange, "g_hookRange", "4000", 0, 0, qtrue },
+	{ &g_hookRange, "g_hookRange", "3000", 0, 0, qtrue },
 	{ &g_hookDamage, "g_hookDamage", "25", 0, 0, qtrue },
 	{ &g_hookSwingDamage, "g_hookSwingDamage", "20", 0, 0, qtrue },
+	{ &g_hookSwingSpeed, "g_hookSwingSpeed", "480", 0, 0, qtrue },
+	{ &g_hookSwingRepeat, "g_hookSwingRepeat", "1000", 0, 0, qtrue },
 	{ &g_rushDamageScale, "g_rushDamageScale", "0.4", 0, 0, qtrue },
 	{ &g_hwSpeed, "g_hwSpeed", "395", 0, 0, qtrue },
 	{ &g_hwDamage, "g_hwDamage", "25", 0, 0, qtrue },
