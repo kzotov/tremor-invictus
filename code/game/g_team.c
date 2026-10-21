@@ -1069,18 +1069,20 @@ void TeamplayInfoMessage( gentity_t *ent ) {
 	if ( ! ent->client->pers.teamInfo )
 		return;
 
-	// send team info to spectator for team of followed client
+	// send team info to spectator for team of followed client; a free-flying
+	// spectator gets both teams
 	if (ent->client->sess.sessionTeam == TEAM_SPECTATOR) {
 		if ( ent->client->sess.spectatorState != SPECTATOR_FOLLOW
 			|| ent->client->sess.spectatorClient < 0 ) {
-			return;
+			team = TEAM_NUM_TEAMS;
+		} else {
+			team = g_entities[ ent->client->sess.spectatorClient ].client->sess.sessionTeam;
 		}
-		team = g_entities[ ent->client->sess.spectatorClient ].client->sess.sessionTeam;
 	} else {
 		team = ent->client->sess.sessionTeam;
 	}
 
-	if (team != TEAM_RED && team != TEAM_BLUE) {
+	if (team != TEAM_RED && team != TEAM_BLUE && team != TEAM_NUM_TEAMS) {
 		return;
 	}
 
@@ -1089,7 +1091,8 @@ void TeamplayInfoMessage( gentity_t *ent ) {
 	// but in client order (so they don't keep changing position on the overlay)
 	for (i = 0, cnt = 0; i < g_maxclients.integer && cnt < TEAM_MAXOVERLAY; i++) {
 		player = g_entities + level.sortedClients[i];
-		if (player->inuse && player->client->sess.sessionTeam == team ) {
+		if (player->inuse && ( player->client->sess.sessionTeam == team || ( team == TEAM_NUM_TEAMS
+			&& ( player->client->sess.sessionTeam == TEAM_RED || player->client->sess.sessionTeam == TEAM_BLUE ) ) ) ) {
 			clients[cnt++] = level.sortedClients[i];
 		}
 	}
@@ -1103,7 +1106,8 @@ void TeamplayInfoMessage( gentity_t *ent ) {
 
 	for (i = 0, cnt = 0; i < g_maxclients.integer && cnt < TEAM_MAXOVERLAY; i++) {
 		player = g_entities + i;
-		if (player->inuse && player->client->sess.sessionTeam == team ) {
+		if (player->inuse && ( player->client->sess.sessionTeam == team || ( team == TEAM_NUM_TEAMS
+			&& ( player->client->sess.sessionTeam == TEAM_RED || player->client->sess.sessionTeam == TEAM_BLUE ) ) ) ) {
 
 			h = player->client->ps.stats[STAT_HEALTH];
 			a = player->client->ps.stats[STAT_ARMOR];

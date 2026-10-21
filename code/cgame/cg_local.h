@@ -548,6 +548,7 @@ typedef struct {
 	char		awardLines[MAX_AWARD_LINES][96];	// the end-of-match awards
 	int			numAwards;
 	qboolean	joinScreenShown;	// the join screen came up on this map
+	int			overlayTeam;		// team overlay for this team (spectators), 0 = the viewer's
 	char		infoScreenText[MAX_STRING_CHARS];
 
 	// scoreboard

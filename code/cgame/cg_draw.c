@@ -1544,12 +1544,14 @@ static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 	clientInfo_t *ci;
 	gitem_t	*item;
 	int ret_y, count;
+	// a free-flying spectator sees both teams (cg.overlayTeam picks which)
+	int overlayTeam = cg.overlayTeam ? cg.overlayTeam : cg.snap->ps.persistant[PERS_TEAM];
 
 	if ( !cg_drawTeamOverlay.integer ) {
 		return y;
 	}
 
-	if ( cg.snap->ps.persistant[PERS_TEAM] != TEAM_RED && cg.snap->ps.persistant[PERS_TEAM] != TEAM_BLUE ) {
+	if ( overlayTeam != TEAM_RED && overlayTeam != TEAM_BLUE ) {
 		return y; // Not on any team
 	}
 
@@ -1557,10 +1559,10 @@ static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 
 	// max player name width
 	pwidth = 0;
-	count = (numSortedTeamPlayers > 8) ? 8 : numSortedTeamPlayers;
+	count = (numSortedTeamPlayers > ( cg.overlayTeam ? 16 : 8 )) ? ( cg.overlayTeam ? 16 : 8 ) : numSortedTeamPlayers;
 	for (i = 0; i < count; i++) {
 		ci = cgs.clientinfo + sortedTeamPlayers[i];
-		if ( ci->infoValid && ci->team == cg.snap->ps.persistant[PERS_TEAM]) {
+		if ( ci->infoValid && ci->team == overlayTeam) {
 			plyrs++;
 			len = CG_DrawStrlen(ci->name);
 			if (len > pwidth)
@@ -1604,12 +1606,12 @@ static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 		ret_y = y;
 	}
 
-	if ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_RED ) {
+	if ( overlayTeam == TEAM_RED ) {
 		hcolor[0] = 1.0f;
 		hcolor[1] = 0.0f;
 		hcolor[2] = 0.0f;
 		hcolor[3] = 0.33f;
-	} else { // if ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_BLUE )
+	} else { // if ( overlayTeam == TEAM_BLUE )
 		hcolor[0] = 0.0f;
 		hcolor[1] = 0.0f;
 		hcolor[2] = 1.0f;
@@ -1621,7 +1623,7 @@ static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 
 	for (i = 0; i < count; i++) {
 		ci = cgs.clientinfo + sortedTeamPlayers[i];
-		if ( ci->infoValid && ci->team == cg.snap->ps.persistant[PERS_TEAM]) {
+		if ( ci->infoValid && ci->team == overlayTeam) {
 
 			hcolor[0] = hcolor[1] = hcolor[2] = hcolor[3] = 1.0;
 
@@ -4314,6 +4316,18 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 			cg_hudAnchor = ANCHOR_LEFT;
 			voteY = CG_DrawTeamOverlay( 28, qfalse, qtrue ) + 4;	// top left, under the clock
 			cg_hudAnchor = ANCHOR_CENTER;
+		}
+		// free-flying spectators: red top left, blue top right
+		if ( cgs.gametype >= GT_TEAM && cg_drawTeamOverlay.integer == 1
+			&& cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR && !( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
+			cg.overlayTeam = TEAM_RED;
+			cg_hudAnchor = ANCHOR_LEFT;
+			voteY = CG_DrawTeamOverlay( 28, qfalse, qtrue ) + 4;
+			cg.overlayTeam = TEAM_BLUE;
+			cg_hudAnchor = ANCHOR_RIGHT;
+			CG_DrawTeamOverlay( 28, qtrue, qtrue );
+			cg_hudAnchor = ANCHOR_CENTER;
+			cg.overlayTeam = 0;
 		}
 		cg_hudAnchor = ANCHOR_LEFT;
 		CG_DrawLowerLeft();
