@@ -73,7 +73,7 @@ build)
 	cmake --build "$BUILD" -j"$(sysctl -n hw.ncpu)"
 	# own bundle id, accessory app (no Dock icon, never activated)
 	rm -rf "$APP"
-	cp -R "$RELEASE/ioquake3.app" "$APP"
+	cp -R "$RELEASE/tremor-invictus.app" "$APP"
 	/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$APP/Contents/Info.plist"
 	/usr/libexec/PlistBuddy -c "Delete :LSUIElement" "$APP/Contents/Info.plist" 2>/dev/null || true
 	/usr/libexec/PlistBuddy -c "Add :LSUIElement bool true" "$APP/Contents/Info.plist"
@@ -82,7 +82,7 @@ build)
 	;;
 
 start)
-	[ -x "$APP/Contents/MacOS/ioquake3" ] || die "no test build; run: scripts/test-run.sh build"
+	[ -x "$APP/Contents/MacOS/tremor-invictus" ] || die "no test build; run: scripts/test-run.sh build"
 	[ -f "${TREMOR_Q3:-}/baseq3/pak0.pk3" ] || die "set TREMOR_Q3 to the folder with baseq3/pak0.pk3"
 	our_pid >/dev/null && die "run '$name' is already going; stop it first"
 	[ -n "$port" ] || port=$(( 28000 + $(printf '%s' "$name" | cksum | cut -d' ' -f1) % 1000 ))
@@ -105,7 +105,7 @@ start)
 	echo "$port" > "$HOME_DIR/port"
 	head -c 12 /dev/urandom | od -An -tx1 | tr -d ' \n' > "$HOME_DIR/rcon"
 
-	SDL_MAC_BACKGROUND_APP=1 "$APP/Contents/MacOS/ioquake3" \
+	SDL_MAC_BACKGROUND_APP=1 "$APP/Contents/MacOS/tremor-invictus" \
 		+set fs_basepath "$TREMOR_Q3" +set fs_homepath "$HOME_DIR" \
 		+set vm_game 0 +set vm_cgame 0 +set vm_ui 0 +set sv_pure 0 \
 		+set s_initsound 0 +set s_volume 0 +set s_musicvolume 0 +set s_alCapture 0 \

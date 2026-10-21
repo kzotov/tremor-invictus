@@ -30,6 +30,6 @@ ln -sfn "$ROOT/build-macos/generated/gfx/tremor" "$HOME_DIR/baseq3/gfx/tremor"
 . "$ROOT/scripts/local-assets.sh"
 LOCAL_ARGS=$(link_local_assets "$HOME_DIR/baseq3")
 
-exec "$RELEASE/ioquake3.app/Contents/MacOS/ioquake3" \
+exec "$RELEASE/tremor-invictus.app/Contents/MacOS/tremor-invictus" \
 	+set fs_basepath "$Q3" +set fs_homepath "$HOME_DIR" \
 	+set vm_game 0 +set vm_cgame 0 +set vm_ui 0 +set sv_pure 0 $LOCAL_ARGS "$@"

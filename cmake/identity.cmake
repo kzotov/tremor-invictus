@@ -2,7 +2,7 @@ set(PROJECT_NAME ioq3)
 set(PROJECT_VERSION 1.36)
 
 set(SERVER_NAME ioq3ded)
-set(CLIENT_NAME ioquake3)
+set(CLIENT_NAME tremor-invictus)
 
 set(BASEGAME baseq3)
 
@@ -33,7 +33,8 @@ if(CMAKE_HOST_APPLE)
             ${CMAKE_SOURCE_DIR}/misc/logo ${CMAKE_BINARY_DIR}/generated)
     endif()
 endif()
-set(MACOS_BUNDLE_ID org.ioquake.${CLIENT_NAME})
+set(MACOS_BUNDLE_ID org.tremor-invictus.game)
+set(MACOS_APP_DISPLAY_NAME "Tremor Invictus")
 
 set(COPYRIGHT "QUAKE III ARENA Copyright © 1999-2000 id Software, Inc. All rights reserved.")
 

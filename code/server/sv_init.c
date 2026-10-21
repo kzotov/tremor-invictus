@@ -286,7 +286,11 @@ static void SV_Startup( void ) {
 	Cvar_Set( "sv_running", "1" );
 	
 	// Join the ipv6 multicast group now that a map is running so clients can scan for us on the local network.
-	NET_JoinMulticast6();
+	// Only dedicated servers: a game hosted from the client would otherwise ask for macOS's local
+	// network permission every time; such games are still found through ipv4 broadcast.
+	if ( com_dedicated->integer ) {
+		NET_JoinMulticast6();
+	}
 }
 
 
