@@ -1251,6 +1251,7 @@ void ClientSpawn(gentity_t *ent) {
 	client->abilityPrevState = ABILITY_IDLE;
 	client->lastDamageTime = 0;
 	client->undyingUsed = qfalse;
+	client->ps.generic1 = 40;		// Clutch starts with one dodge
 	client->invulnEndTime = 0;
 	client->markEndTime = 0;
 	client->slowEndTime = 0;

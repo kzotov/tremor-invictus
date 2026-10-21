@@ -584,6 +584,8 @@ typedef struct {
 	float	slideCrouchScale;		// crouch walking without charge, times run speed
 
 	float	wallJumpVelocity;
+	float	wallJumpReach;			// how close the wall must be
+	float	wallJumpMaxSpeed;		// horizontal speed a wall jump can't go past
 	float	wallJumpPush;
 	float	wallJumpNormal;
 
@@ -591,7 +593,9 @@ typedef struct {
 
 	float	dodgeTapWindow;
 	float	dodgeSpeed;
-	float	dodgeUp;
+	float	dodgeUp;				// share of the dash speed added upward (air)
+	float	dodgeGroundSpeed;
+	float	dodgeGroundUp;
 
 	float	accelRate;				// u/s gained per second running straight
 	float	accelMax;				// total run speed cap

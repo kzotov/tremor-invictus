@@ -90,15 +90,19 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_slideAirGraceStrogg",	"2000",	&bg_pmoveSettings.slideAirGraceStrogg },
 	{ {0}, "pm_slideCrouchScale",	"0.85",	&bg_pmoveSettings.slideCrouchScale },
 
-	{ {0}, "pm_wallJumpVelocity",	"350",	&bg_pmoveSettings.wallJumpVelocity },
+	{ {0}, "pm_wallJumpVelocity",	"400",	&bg_pmoveSettings.wallJumpVelocity },
+	{ {0}, "pm_wallJumpReach",		"18",	&bg_pmoveSettings.wallJumpReach },
+	{ {0}, "pm_wallJumpMaxSpeed",	"680",	&bg_pmoveSettings.wallJumpMaxSpeed },
 	{ {0}, "pm_wallJumpPush",		"200",	&bg_pmoveSettings.wallJumpPush },
 	{ {0}, "pm_wallJumpNormal",		"0.3",	&bg_pmoveSettings.wallJumpNormal },
 
 	{ {0}, "pm_doubleJumpVelocity",	"275",	&bg_pmoveSettings.doubleJumpVelocity },
 
 	{ {0}, "pm_dodgeTapWindow",		"250",	&bg_pmoveSettings.dodgeTapWindow },
-	{ {0}, "pm_dodgeSpeed",			"550",	&bg_pmoveSettings.dodgeSpeed },
-	{ {0}, "pm_dodgeUp",			"0",	&bg_pmoveSettings.dodgeUp },
+	{ {0}, "pm_dodgeSpeed",			"320",	&bg_pmoveSettings.dodgeSpeed },
+	{ {0}, "pm_dodgeUp",			"0.25",	&bg_pmoveSettings.dodgeUp },
+	{ {0}, "pm_dodgeGroundSpeed",	"480",	&bg_pmoveSettings.dodgeGroundSpeed },
+	{ {0}, "pm_dodgeGroundUp",		"0.15",	&bg_pmoveSettings.dodgeGroundUp },
 
 	{ {0}, "pm_accelRate",			"50",	&bg_pmoveSettings.accelRate },
 	{ {0}, "pm_accelMax",			"800",	&bg_pmoveSettings.accelMax },
@@ -117,7 +121,7 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_hookSwingMax",		"1000",	&bg_pmoveSettings.hookSwingMax },
 
 	{ {0}, "pm_rampJumpScale",		"1",	&bg_pmoveSettings.rampJumpScale },
-	{ {0}, "pm_rampJumpMax",		"700",	&bg_pmoveSettings.rampJumpMax },
+	{ {0}, "pm_rampJumpMax",		"600",	&bg_pmoveSettings.rampJumpMax },
 
 	{ {0}, "pm_airAccelLight",		"0.85",	&bg_pmoveSettings.airAccelLight },
 	{ {0}, "pm_airAccelMedium",		"0.906",	&bg_pmoveSettings.airAccelMedium },
@@ -942,7 +946,7 @@ Looks for a wall to jump off in one horizontal direction
 static qboolean PM_WallTrace( const vec3_t dir, trace_t *trace ) {
 	vec3_t		end;
 
-	VectorMA( pm->ps->origin, pm->maxs[0], dir, end );
+	VectorMA( pm->ps->origin, pm->maxs[0] + bg_pmoveSettings.wallJumpReach, dir, end );
 	pm->trace( trace, pm->ps->origin, pm->mins, pm->maxs, end, pm->ps->clientNum, pm->tracemask );
 
 	if ( trace->allsolid || trace->fraction == 1.0f ) {
@@ -1011,6 +1015,15 @@ static qboolean PM_CheckWallJump( const vec3_t wishdir ) {
 	if ( away > 0 ) {
 		VectorMA( pm->ps->velocity, bg_pmoveSettings.wallJumpPush * away, normal, pm->ps->velocity );
 	}
+	// wall jumps can't build speed past a cap
+	{
+		float	h = sqrt( pm->ps->velocity[0] * pm->ps->velocity[0] + pm->ps->velocity[1] * pm->ps->velocity[1] );
+
+		if ( h > bg_pmoveSettings.wallJumpMaxSpeed ) {
+			pm->ps->velocity[0] *= bg_pmoveSettings.wallJumpMaxSpeed / h;
+			pm->ps->velocity[1] *= bg_pmoveSettings.wallJumpMaxSpeed / h;
+		}
+	}
 
 	pm->ps->pm_flags |= PMF_AIRMOVE_USED | PMF_JUMP_HELD;
 	pml.jumped = qtrue;
@@ -1040,6 +1053,9 @@ static qboolean PM_CheckDoubleJump( void ) {
 	}
 	if ( pm->ps->groundEntityNum != ENTITYNUM_NONE ) {
 		return qfalse;
+	}
+	if ( pm->ps->stats[STAT_JUMP_TIME] < 100 ) {
+		return qfalse;		// at least 0.1 s after the first jump
 	}
 
 	pm->ps->velocity[2] = bg_pmoveSettings.doubleJumpVelocity;
@@ -2492,14 +2508,25 @@ Double-tapping a movement direction dashes that way while airborne,
 once per airtime
 ================
 */
+#define DODGE_STAMINA_UNIT	40		// one dodge; refills at 10 units a second
+#define DODGE_STAMINA_MAX	120
+
 static void PM_AirDodge( void ) {
-	int		taps, held, last, time, fresh, i;
+	int		taps, held, last, time, fresh, i, stamina;
 	vec3_t	dir;
 	float	along;
 
 	if ( !( pml.champion->abilities & MOVEABIL_AIRDODGE ) ) {
 		return;
 	}
+
+	// stamina: up to 3 dodges, a quarter charge back each second (whole
+	// steps of 100 ms, so prediction and server always agree)
+	stamina = pm->ps->generic1 + ( pm->cmd.serverTime / 100 - pm->ps->commandTime / 100 );
+	if ( stamina > DODGE_STAMINA_MAX ) {
+		stamina = DODGE_STAMINA_MAX;
+	}
+	pm->ps->generic1 = stamina;
 
 	taps = pm->ps->stats[STAT_TAPS] & 0xffff;
 	last = ( taps & TAP_DIR_MASK ) >> TAP_DIR_SHIFT;
@@ -2520,19 +2547,24 @@ static void PM_AirDodge( void ) {
 		if ( !( fresh & ( 1 << i ) ) ) {
 			continue;
 		}
-		if ( last == i + 1 && time <= bg_pmoveSettings.dodgeTapWindow
-			&& pm->ps->groundEntityNum == ENTITYNUM_NONE
-			&& !( pm->ps->pm_flags & PMF_AIRMOVE_USED ) ) {
-			// dash: raise the speed along the tapped direction
+		if ( last == i + 1 && time <= bg_pmoveSettings.dodgeTapWindow && time >= 90
+			&& pm->ps->generic1 >= DODGE_STAMINA_UNIT ) {
+			// dash on the ground or in the air, for a charge of stamina
+			float	speed = pm->ps->groundEntityNum == ENTITYNUM_NONE
+				? bg_pmoveSettings.dodgeSpeed : bg_pmoveSettings.dodgeGroundSpeed;
+			float	up = pm->ps->groundEntityNum == ENTITYNUM_NONE
+				? bg_pmoveSettings.dodgeUp : bg_pmoveSettings.dodgeGroundUp;
+
 			PM_FlatDirection( i, dir );
 			along = DotProduct( pm->ps->velocity, dir );
-			if ( along < bg_pmoveSettings.dodgeSpeed ) {
-				VectorMA( pm->ps->velocity, bg_pmoveSettings.dodgeSpeed - along, dir, pm->ps->velocity );
+			if ( along < speed ) {
+				VectorMA( pm->ps->velocity, speed - along, dir, pm->ps->velocity );
 			}
-			if ( bg_pmoveSettings.dodgeUp > 0 ) {
-				pm->ps->velocity[2] = bg_pmoveSettings.dodgeUp;
+			if ( up > 0 && pm->ps->velocity[2] < speed * up ) {
+				pm->ps->velocity[2] = speed * up;
 			}
-			pm->ps->pm_flags |= PMF_AIRMOVE_USED;
+			pm->ps->groundEntityNum = ENTITYNUM_NONE;
+			pm->ps->generic1 -= DODGE_STAMINA_UNIT;
 			PM_AddEvent( EV_JUMP );
 			last = 0;
 		} else {
