@@ -391,6 +391,7 @@ static void G_UseAbility( gentity_t *ent ) {
 
 	case ACTIVE_INJECTION:
 		max = client->ps.stats[STAT_MAX_HEALTH] + G_ClassInfo( client )->maxHealthBonus;
+		G_ClearDamageOverTime( ent );
 		if ( ent->health < max ) {
 			ent->health += g_injectionHeal.integer;
 			if ( ent->health > max ) {
@@ -406,6 +407,7 @@ static void G_UseAbility( gentity_t *ent ) {
 		break;
 
 	default:
+		G_AbilityFire( ent );
 		break;
 	}
 }
@@ -487,6 +489,7 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 	int					state, charges, maxCharges, recharge;
 
 	G_Regeneration( ent, msec );
+	G_AbilityClientThink( ent );
 
 	if ( champ->active == ACTIVE_NONE ) {
 		return;
@@ -880,6 +883,10 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 		switch ( event ) {
 		case EV_USE_ABILITY:
 			G_UseAbility( ent );
+			break;
+
+		case EV_ABILITY_REPRESS:
+			G_AbilityRepress( ent );
 			break;
 
 		case EV_FALL_MEDIUM:

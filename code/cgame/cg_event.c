@@ -253,6 +253,24 @@ static void CG_Obituary( entityState_t *ent ) {
 		case MOD_HEAVYWEIGHT:
 			message = (char *)BG_String( STR_OBIT_HEAVYWEIGHT );
 			break;
+		case MOD_ORB:
+			message = (char *)BG_String( STR_OBIT_ORB );
+			break;
+		case MOD_FIREBALL:
+			message = (char *)BG_String( STR_OBIT_FIREBALL );
+			break;
+		case MOD_BURN:
+			message = (char *)BG_String( STR_OBIT_BURN );
+			break;
+		case MOD_ACID:
+			message = (char *)BG_String( STR_OBIT_ACID );
+			break;
+		case MOD_TOTEM:
+			message = (char *)BG_String( STR_OBIT_TOTEM );
+			break;
+		case MOD_TURRET:
+			message = (char *)BG_String( STR_OBIT_TURRET );
+			break;
 		case MOD_GAUNTLET:
 			message = "was pummeled by";
 			break;

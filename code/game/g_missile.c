@@ -276,6 +276,12 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace ) {
 #endif
 	other = &g_entities[trace->entityNum];
 
+	// champion ability entities handle their own impacts
+	if ( ent->abilityImpact ) {
+		ent->abilityImpact( ent, trace );
+		return;
+	}
+
 	// check for bounce
 	if ( !other->takedamage &&
 		( ent->s.eFlags & ( EF_BOUNCE | EF_BOUNCE_HALF ) ) ) {

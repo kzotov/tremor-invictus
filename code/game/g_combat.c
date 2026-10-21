@@ -310,7 +310,13 @@ char	*modNames[] = {
 	"MOD_JUICED",
 #endif
 	"MOD_GRAPPLE",
-	"MOD_HEAVYWEIGHT"
+	"MOD_HEAVYWEIGHT",
+	"MOD_ORB",
+	"MOD_FIREBALL",
+	"MOD_BURN",
+	"MOD_ACID",
+	"MOD_TOTEM",
+	"MOD_TURRET"
 };
 
 #ifdef MISSIONPACK
@@ -461,6 +467,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	self->client->ps.stats[STAT_ABILITY_TIME] = 0;
 	self->client->abilityPrevState = ABILITY_IDLE;
 	self->client->ps.powerups[PW_INVIS] = 0;
+	G_AbilityClientDied( self );
 #ifdef MISSIONPACK
 	if ((self->client->ps.eFlags & EF_TICKING) && self->activator) {
 		self->client->ps.eFlags &= ~EF_TICKING;

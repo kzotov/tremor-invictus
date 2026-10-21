@@ -121,6 +121,9 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 	}
 	G_Damage( traceEnt, ent, ent, forward, tr.endpos,
 		damage, 0, MOD_GAUNTLET );
+	if ( traceEnt->client && ( BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_CHARRING ) ) {
+		G_Ignite( traceEnt, ent );
+	}
 
 	return qtrue;
 }

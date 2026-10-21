@@ -174,6 +174,11 @@ struct gentity_s {
 	float		random;
 
 	gitem_t		*item;			// for bonus items
+
+	// champion ability entities
+	void		(*abilityImpact)( gentity_t *self, trace_t *trace );	// replaces the missile impact
+	int			abilityMask[MAX_CLIENTS / 32];	// players already affected once
+	int			abilityTime;	// meaning depends on the entity
 };
 
 
@@ -308,6 +313,15 @@ struct gclient_s {
 	int			abilityPrevState;	// ability state after the last think
 	int			lastDamageTime;		// level.time this client last lost health
 	int			regenResidual;		// msec of regeneration not yet turned into health
+
+	gentity_t	*abilityEnt;		// orb in flight
+	gentity_t	*fireballs[3];		// flame strike fireballs in flight
+	gentity_t	*turret;			// placed sentry turret
+	int			abilityShots;		// acid blobs spat so far
+	int			abilityShotTime;	// level.time of the next blob
+
+	int			burnEndTime, burnNextTime, burnAttacker;
+	int			poisonEndTime, poisonNextTime, poisonAttacker;
 	int			collisionTime[MAX_CLIENTS];	// level.time of the last collision hit per victim
 
 	int			switchTeamTime;		// time the player switched teams
@@ -565,6 +579,18 @@ void Ability_HookFire( gentity_t *ent );
 void G_EndRush( gentity_t *ent );
 void G_CutAbilityCooldown( gentity_t *ent, float fraction );
 void G_UpdateRevealedPlayers( void );
+
+//
+// g_ability.c
+//
+void G_AbilityFire( gentity_t *ent );
+void G_AbilityRepress( gentity_t *ent );
+void G_AbilityClientThink( gentity_t *ent );
+void G_AbilityClientDied( gentity_t *ent );
+void G_Ignite( gentity_t *target, gentity_t *attacker );
+void G_Poison( gentity_t *target, gentity_t *attacker );
+void G_ClearDamageOverTime( gentity_t *ent );
+void G_ExplodeMissile( gentity_t *ent );
 qboolean G_AbilityActive( gentity_t *ent, int active );
 
 #define	G_ClassInfo( client )	( &bg_classInfo[BG_Champion( (client)->ps.stats[STAT_CHAMPION] )->bodyClass] )
@@ -736,6 +762,49 @@ extern	vmCvar_t	g_cooldownArmorHeavy;
 extern	vmCvar_t	g_cooldownHealth;
 extern	vmCvar_t	g_cooldownMega;
 extern	vmCvar_t	g_cooldownAmmo;
+extern	vmCvar_t	g_orbSpeed;
+extern	vmCvar_t	g_orbLife;
+extern	vmCvar_t	g_orbFuse;
+extern	vmCvar_t	g_orbContactDamage;
+extern	vmCvar_t	g_orbSplashDamage;
+extern	vmCvar_t	g_orbSplashRadius;
+extern	vmCvar_t	g_orbTelefragDamage;
+extern	vmCvar_t	g_swarmSpeed;
+extern	vmCvar_t	g_swarmFuse;
+extern	vmCvar_t	g_swarmDamage;
+extern	vmCvar_t	g_swarmRadius;
+extern	vmCvar_t	g_fireballSpeed;
+extern	vmCvar_t	g_fireballSpread;
+extern	vmCvar_t	g_fireballDamage;
+extern	vmCvar_t	g_fireballSplash;
+extern	vmCvar_t	g_fireballRadius;
+extern	vmCvar_t	g_flameConvergeDamage;
+extern	vmCvar_t	g_flameConvergeRadius;
+extern	vmCvar_t	g_burnDamage;
+extern	vmCvar_t	g_burnTime;
+extern	vmCvar_t	g_poisonDamage;
+extern	vmCvar_t	g_poisonTime;
+extern	vmCvar_t	g_acidBlobs;
+extern	vmCvar_t	g_acidInterval;
+extern	vmCvar_t	g_acidSpeed;
+extern	vmCvar_t	g_acidDamage;
+extern	vmCvar_t	g_acidPoolTime;
+extern	vmCvar_t	g_acidPoolSize;
+extern	vmCvar_t	g_totemSpeed;
+extern	vmCvar_t	g_totemArmTime;
+extern	vmCvar_t	g_totemHealth;
+extern	vmCvar_t	g_totemHeal;
+extern	vmCvar_t	g_totemDamage;
+extern	vmCvar_t	g_totemHealRadius;
+extern	vmCvar_t	g_totemHurtRadius;
+extern	vmCvar_t	g_totemEnforcedHeal;
+extern	vmCvar_t	g_totemEnforcedDamage;
+extern	vmCvar_t	g_totemMax;
+extern	vmCvar_t	g_turretHealth;
+extern	vmCvar_t	g_turretDamage;
+extern	vmCvar_t	g_turretInterval;
+extern	vmCvar_t	g_turretRange;
+extern	vmCvar_t	g_turretBoltSpeed;
 extern	vmCvar_t	g_hookSpeed;
 extern	vmCvar_t	g_hookRange;
 extern	vmCvar_t	g_hookDamage;

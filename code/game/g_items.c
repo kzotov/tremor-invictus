@@ -309,6 +309,8 @@ int Pickup_Health (gentity_t *ent, gentity_t *other) {
 	}
 	other->client->ps.stats[STAT_HEALTH] = other->health;
 
+	G_ClearDamageOverTime( other );
+
 	if ( BG_Champion( other->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_HEALTHCOOLDOWN ) {
 		G_CutAbilityCooldown( other, ent->item->quantity == 100 ? g_cooldownMega.value : g_cooldownHealth.value );
 	}

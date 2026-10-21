@@ -951,22 +951,22 @@ const classInfo_t bg_classInfo[CLASS_NUM_CLASSES] = {
 const champion_t bg_championList[] = {
 	// name, body class, run speed, jump speed cap, style, movement abilities, active ability, passives,
 	// player model, display name
-	{ "ranger", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, PASSIVE_SELFDAMAGE, "ranger", STR_CHAMPION_RANGER },	// default, must stay first
+	{ "ranger", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_ORB, PASSIVE_SELFDAMAGE, "ranger", STR_CHAMPION_RANGER },	// default, must stay first
 	{ "anarki", CLASS_LIGHT, 315, 640, MOVE_AIRCONTROL, 0, ACTIVE_INJECTION, 0, "anarki", STR_CHAMPION_ANARKI },
 	{ "athena", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, MOVEABIL_RAMPJUMP, ACTIVE_HOOK, 0, "crash", STR_CHAMPION_ATHENA },
 	{ "nyx", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, MOVEABIL_WALLJUMP, ACTIVE_GHOSTWALK, 0, "mynx", STR_CHAMPION_NYX },
 	{ "slash", CLASS_LIGHT, 320, 750, MOVE_SLIDE, 0, ACTIVE_NONE, 0, "slash", STR_CHAMPION_SLASH },
 	{ "bj", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_DUALWIELD, PASSIVE_REGENERATION, "bitterman", STR_CHAMPION_BJ },
-	{ "deathknight", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, PASSIVE_FIREPROOF, "bones", STR_CHAMPION_DEATHKNIGHT },
+	{ "deathknight", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_FLAMESTRIKE, PASSIVE_FIREPROOF | PASSIVE_CHARRING, "bones", STR_CHAMPION_DEATHKNIGHT },
 	{ "doomslayer", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, MOVEABIL_DOUBLEJUMP, ACTIVE_BERSERK, 0, "doom", STR_CHAMPION_DOOMSLAYER },
-	{ "eisen", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, PASSIVE_ARMORCOOLDOWN, "biker", STR_CHAMPION_EISEN },
-	{ "galena", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, PASSIVE_HEALTHCOOLDOWN, "lucy", STR_CHAMPION_GALENA },
+	{ "eisen", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_TURRET, PASSIVE_ARMORCOOLDOWN, "biker", STR_CHAMPION_EISEN },
+	{ "galena", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_TOTEM, PASSIVE_HEALTHCOOLDOWN, "lucy", STR_CHAMPION_GALENA },
 	{ "strogg", CLASS_MEDIUM, 310, 750, MOVE_SLIDE, 0, ACTIVE_NONE, 0, "grunt", STR_CHAMPION_STROGG },
 	{ "visor", CLASS_MEDIUM, 320, 0, MOVE_STANDARD, 0, ACTIVE_PIERCINGSIGHT, PASSIVE_FULLSPRINT, "visor", STR_CHAMPION_VISOR },
 	{ "clutch", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_AIRDODGE | MOVEABIL_ACCELERATION, ACTIVE_NONE, 0, "tankjr", STR_CHAMPION_CLUTCH },
-	{ "keel", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, PASSIVE_AMMOCOOLDOWN | PASSIVE_SPLASHRESIST, "keel", STR_CHAMPION_KEEL },
+	{ "keel", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, 0, ACTIVE_GRENADES, PASSIVE_AMMOCOOLDOWN | PASSIVE_SPLASHRESIST, "keel", STR_CHAMPION_KEEL },
 	{ "scalebearer", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_HEAVYWEIGHT, ACTIVE_BULLRUSH, 0, "razor", STR_CHAMPION_SCALEBEARER },
-	{ "sorlag", CLASS_HEAVY, 300, 600, MOVE_AIRCONTROL, 0, ACTIVE_NONE, PASSIVE_ACIDPROOF, "sorlag", STR_CHAMPION_SORLAG }
+	{ "sorlag", CLASS_HEAVY, 300, 600, MOVE_AIRCONTROL, 0, ACTIVE_ACIDSPIT, PASSIVE_ACIDPROOF, "sorlag", STR_CHAMPION_SORLAG }
 };
 
 const int bg_numChampions = ARRAY_LEN( bg_championList );
@@ -1029,7 +1029,13 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Takes effect when you next spawn",
 	"BACK",
 
-	"was trampled by"
+	"was trampled by",
+	"was blasted by the orb of",
+	"was scorched by",
+	"was burned by",
+	"was dissolved by",
+	"stepped on the totem of",
+	"was gunned down by the turret of"
 };
 
 /*
@@ -1118,15 +1124,15 @@ const abilityInfo_t bg_abilityInfo[ACTIVE_NUM_ABILITIES] = {
 	{ "injection",		STR_ABILITY_INJECTION,		qfalse,	{ "1", "45000", "0", "10000", "500" } },
 	{ "dualwield",		STR_ABILITY_DUALWIELD,		qfalse,	{ "1", "45000", "0", "5400", "400" } },
 	{ "barrier",		STR_ABILITY_BARRIER,		qtrue,	{ "1", "45000", "250", "5000", "500" } },
-	{ "flamestrike",	STR_ABILITY_FLAMESTRIKE,	qfalse,	{ "1", "45000", "125", "0", "0" } },
+	{ "flamestrike",	STR_ABILITY_FLAMESTRIKE,	qfalse,	{ "1", "45000", "125", "4000", "0" } },
 	{ "berserk",		STR_ABILITY_BERSERK,		qfalse,	{ "1", "45000", "800", "6000", "0" } },
 	{ "turret",			STR_ABILITY_TURRET,			qfalse,	{ "1", "45000", "0", "0", "500" } },
 	{ "totem",			STR_ABILITY_TOTEM,			qfalse,	{ "1", "45000", "0", "0", "500" } },
 	{ "grenades",		STR_ABILITY_GRENADES,		qfalse,	{ "5", "9000", "0", "0", "500" } },
 	{ "ghostwalk",		STR_ABILITY_GHOSTWALK,		qtrue,	{ "1", "45000", "0", "3000", "500" } },
-	{ "orb",			STR_ABILITY_ORB,			qfalse,	{ "1", "45000", "125", "0", "500" } },
+	{ "orb",			STR_ABILITY_ORB,			qfalse,	{ "1", "45000", "125", "16000", "500" } },
 	{ "plasmatrail",	STR_ABILITY_PLASMATRAIL,	qfalse,	{ "1", "45000", "0", "5000", "0" } },
-	{ "acidspit",		STR_ABILITY_ACIDSPIT,		qfalse,	{ "1", "45000", "0", "0", "1300" } },
+	{ "acidspit",		STR_ABILITY_ACIDSPIT,		qfalse,	{ "1", "45000", "0", "750", "1300" } },
 	{ "drone",			STR_ABILITY_DRONE,			qfalse,	{ "1", "45000", "0", "10000", "0" } },
 	{ "piercingsight",	STR_ABILITY_PIERCINGSIGHT,	qfalse,	{ "1", "45000", "0", "5000", "0" } }
 };

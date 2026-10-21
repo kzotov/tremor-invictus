@@ -62,6 +62,49 @@ vmCvar_t	g_cooldownArmorHeavy;
 vmCvar_t	g_cooldownHealth;
 vmCvar_t	g_cooldownMega;
 vmCvar_t	g_cooldownAmmo;
+vmCvar_t	g_orbSpeed;
+vmCvar_t	g_orbLife;
+vmCvar_t	g_orbFuse;
+vmCvar_t	g_orbContactDamage;
+vmCvar_t	g_orbSplashDamage;
+vmCvar_t	g_orbSplashRadius;
+vmCvar_t	g_orbTelefragDamage;
+vmCvar_t	g_swarmSpeed;
+vmCvar_t	g_swarmFuse;
+vmCvar_t	g_swarmDamage;
+vmCvar_t	g_swarmRadius;
+vmCvar_t	g_fireballSpeed;
+vmCvar_t	g_fireballSpread;
+vmCvar_t	g_fireballDamage;
+vmCvar_t	g_fireballSplash;
+vmCvar_t	g_fireballRadius;
+vmCvar_t	g_flameConvergeDamage;
+vmCvar_t	g_flameConvergeRadius;
+vmCvar_t	g_burnDamage;
+vmCvar_t	g_burnTime;
+vmCvar_t	g_poisonDamage;
+vmCvar_t	g_poisonTime;
+vmCvar_t	g_acidBlobs;
+vmCvar_t	g_acidInterval;
+vmCvar_t	g_acidSpeed;
+vmCvar_t	g_acidDamage;
+vmCvar_t	g_acidPoolTime;
+vmCvar_t	g_acidPoolSize;
+vmCvar_t	g_totemSpeed;
+vmCvar_t	g_totemArmTime;
+vmCvar_t	g_totemHealth;
+vmCvar_t	g_totemHeal;
+vmCvar_t	g_totemDamage;
+vmCvar_t	g_totemHealRadius;
+vmCvar_t	g_totemHurtRadius;
+vmCvar_t	g_totemEnforcedHeal;
+vmCvar_t	g_totemEnforcedDamage;
+vmCvar_t	g_totemMax;
+vmCvar_t	g_turretHealth;
+vmCvar_t	g_turretDamage;
+vmCvar_t	g_turretInterval;
+vmCvar_t	g_turretRange;
+vmCvar_t	g_turretBoltSpeed;
 vmCvar_t	g_hookSpeed;
 vmCvar_t	g_hookRange;
 vmCvar_t	g_hookDamage;
@@ -177,6 +220,49 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_cooldownHealth, "g_cooldownHealth", "0.05", 0, 0, qtrue },
 	{ &g_cooldownMega, "g_cooldownMega", "0.2", 0, 0, qtrue },
 	{ &g_cooldownAmmo, "g_cooldownAmmo", "0.05", 0, 0, qtrue },
+	{ &g_orbSpeed, "g_orbSpeed", "900", 0, 0, qtrue },
+	{ &g_orbLife, "g_orbLife", "15000", 0, 0, qtrue },
+	{ &g_orbFuse, "g_orbFuse", "1000", 0, 0, qtrue },
+	{ &g_orbContactDamage, "g_orbContactDamage", "25", 0, 0, qtrue },
+	{ &g_orbSplashDamage, "g_orbSplashDamage", "75", 0, 0, qtrue },
+	{ &g_orbSplashRadius, "g_orbSplashRadius", "120", 0, 0, qtrue },
+	{ &g_orbTelefragDamage, "g_orbTelefragDamage", "100", 0, 0, qtrue },
+	{ &g_swarmSpeed, "g_swarmSpeed", "700", 0, 0, qtrue },
+	{ &g_swarmFuse, "g_swarmFuse", "2000", 0, 0, qtrue },
+	{ &g_swarmDamage, "g_swarmDamage", "50", 0, 0, qtrue },
+	{ &g_swarmRadius, "g_swarmRadius", "120", 0, 0, qtrue },
+	{ &g_fireballSpeed, "g_fireballSpeed", "900", 0, 0, qtrue },
+	{ &g_fireballSpread, "g_fireballSpread", "15", 0, 0, qtrue },
+	{ &g_fireballDamage, "g_fireballDamage", "25", 0, 0, qtrue },
+	{ &g_fireballSplash, "g_fireballSplash", "25", 0, 0, qtrue },
+	{ &g_fireballRadius, "g_fireballRadius", "120", 0, 0, qtrue },
+	{ &g_flameConvergeDamage, "g_flameConvergeDamage", "75", 0, 0, qtrue },
+	{ &g_flameConvergeRadius, "g_flameConvergeRadius", "180", 0, 0, qtrue },
+	{ &g_burnDamage, "g_burnDamage", "10", 0, 0, qtrue },
+	{ &g_burnTime, "g_burnTime", "10000", 0, 0, qtrue },
+	{ &g_poisonDamage, "g_poisonDamage", "10", 0, 0, qtrue },
+	{ &g_poisonTime, "g_poisonTime", "10000", 0, 0, qtrue },
+	{ &g_acidBlobs, "g_acidBlobs", "5", 0, 0, qtrue },
+	{ &g_acidInterval, "g_acidInterval", "150", 0, 0, qtrue },
+	{ &g_acidSpeed, "g_acidSpeed", "900", 0, 0, qtrue },
+	{ &g_acidDamage, "g_acidDamage", "15", 0, 0, qtrue },
+	{ &g_acidPoolTime, "g_acidPoolTime", "10000", 0, 0, qtrue },
+	{ &g_acidPoolSize, "g_acidPoolSize", "20", 0, 0, qtrue },
+	{ &g_totemSpeed, "g_totemSpeed", "580", 0, 0, qtrue },
+	{ &g_totemArmTime, "g_totemArmTime", "1000", 0, 0, qtrue },
+	{ &g_totemHealth, "g_totemHealth", "25", 0, 0, qtrue },
+	{ &g_totemHeal, "g_totemHeal", "50", 0, 0, qtrue },
+	{ &g_totemDamage, "g_totemDamage", "40", 0, 0, qtrue },
+	{ &g_totemHealRadius, "g_totemHealRadius", "120", 0, 0, qtrue },
+	{ &g_totemHurtRadius, "g_totemHurtRadius", "75", 0, 0, qtrue },
+	{ &g_totemEnforcedHeal, "g_totemEnforcedHeal", "75", 0, 0, qtrue },
+	{ &g_totemEnforcedDamage, "g_totemEnforcedDamage", "60", 0, 0, qtrue },
+	{ &g_totemMax, "g_totemMax", "3", 0, 0, qtrue },
+	{ &g_turretHealth, "g_turretHealth", "120", 0, 0, qtrue },
+	{ &g_turretDamage, "g_turretDamage", "15", 0, 0, qtrue },
+	{ &g_turretInterval, "g_turretInterval", "200", 0, 0, qtrue },
+	{ &g_turretRange, "g_turretRange", "1500", 0, 0, qtrue },
+	{ &g_turretBoltSpeed, "g_turretBoltSpeed", "2000", 0, 0, qtrue },
 	{ &g_hookSpeed, "g_hookSpeed", "3000", 0, 0, qtrue },
 	{ &g_hookRange, "g_hookRange", "4000", 0, 0, qtrue },
 	{ &g_hookDamage, "g_hookDamage", "25", 0, 0, qtrue },

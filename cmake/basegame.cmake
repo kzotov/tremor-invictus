@@ -48,6 +48,7 @@ set(GAME_SOURCES
     ${SOURCE_DIR}/game/bg_slidemove.c
     ${SOURCE_DIR}/game/bg_lib.c
     ${SOURCE_DIR}/game/g_active.c
+    ${SOURCE_DIR}/game/g_ability.c
     ${SOURCE_DIR}/game/g_arenas.c
     ${SOURCE_DIR}/game/g_bot.c
     ${SOURCE_DIR}/game/g_client.c

@@ -259,6 +259,12 @@ typedef enum {
 	STR_MENU_BACK,
 
 	STR_OBIT_HEAVYWEIGHT,
+	STR_OBIT_ORB,
+	STR_OBIT_FIREBALL,
+	STR_OBIT_BURN,
+	STR_OBIT_ACID,
+	STR_OBIT_TOTEM,
+	STR_OBIT_TURRET,
 
 	STR_NUM_STRINGS
 } stringId_t;
@@ -346,6 +352,7 @@ float	BG_AbilityParam( int active, int param );
 #define	PASSIVE_HEALTHCOOLDOWN	64		// health pickups cut the cooldown
 #define	PASSIVE_AMMOCOOLDOWN	128		// ammo pickups cut the cooldown
 #define	PASSIVE_FULLSPRINT		256		// higher air acceleration
+#define	PASSIVE_CHARRING		512		// melee hits set the target burning
 
 typedef struct {
 	char		*name;				// userinfo "champion" value
@@ -895,7 +902,13 @@ typedef enum {
 	MOD_JUICED,
 #endif
 	MOD_GRAPPLE,
-	MOD_HEAVYWEIGHT
+	MOD_HEAVYWEIGHT,
+	MOD_ORB,
+	MOD_FIREBALL,
+	MOD_BURN,
+	MOD_ACID,
+	MOD_TOTEM,
+	MOD_TURRET
 } meansOfDeath_t;
 
 
