@@ -142,6 +142,7 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_dualWieldRateHeavy",	"1.5",	&bg_pmoveSettings.dualWieldRateHeavy },
 	{ {0}, "pm_trailSpeed",			"1.1",	&bg_pmoveSettings.trailSpeed },
 	{ {0}, "pm_berserkSpeed",		"500",	&bg_pmoveSettings.berserkSpeed },
+	{ {0}, "pm_berserkLunge",		"666",	&bg_pmoveSettings.berserkLunge },
 
 	{ {0}, "pm_hmgZoomRefire",		"150",	&bg_pmoveSettings.hmgZoomRefire },
 	{ {0}, "pm_droneSpeed",			"400",	&bg_pmoveSettings.droneSpeed },
@@ -2258,6 +2259,18 @@ static void PM_Weapon( void ) {
 	if ( pml.champion->active == ACTIVE_BERSERK
 		&& ( PM_AbilityActive( ACTIVE_BERSERK ) || BG_AbilityState( pm->ps ) == ABILITY_WINDUP ) ) {
 		pm->cmd.weapon = WP_GAUNTLET;
+
+		// the jump strike: a punch in the air lunges where the player looks,
+		// once per time off the ground
+		if ( PM_AbilityActive( ACTIVE_BERSERK ) && pm->ps->groundEntityNum == ENTITYNUM_NONE
+			&& ( pm->cmd.buttons & BUTTON_ATTACK ) && pm->ps->weaponTime <= 0
+			&& !( pm->ps->pm_flags & PMF_AIRMOVE_USED ) ) {
+			vec3_t	forward;
+
+			AngleVectors( pm->ps->viewangles, forward, NULL, NULL );
+			VectorScale( forward, bg_pmoveSettings.berserkLunge, pm->ps->velocity );
+			pm->ps->pm_flags |= PMF_AIRMOVE_USED;
+		}
 	}
 
 	// don't allow attack until all buttons are up

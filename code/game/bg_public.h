@@ -1224,6 +1224,7 @@ typedef struct {
 	float	dualWieldRateHeavy;		// tri-bolt and rocket launcher
 	float	trailSpeed;				// Slash's run speed while laying the trail			// fire rate multiplier
 	float	berserkSpeed;			// run speed while berserk
+	float	berserkLunge;			// Berserk jump strike speed toward the aim
 
 	float	hmgZoomRefire;			// heavy machinegun refire while zoomed
 	float	droneSpeed;				// drone flying speed
