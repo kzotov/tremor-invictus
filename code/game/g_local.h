@@ -239,6 +239,8 @@ typedef struct {
 	qboolean	initialSpawn;		// the first spawn should be at a cool location
 	qboolean	predictItemPickup;	// based on cg_predictItems userinfo
 	qboolean	pmoveFixed;			//
+	int			champion;			// bg_championList index, applied on spawn
+	qboolean	autoHop;			// userinfo cg_autoHop
 	char		netname[MAX_NETNAME];
 	int			maxHealth;			// for handicapping
 	int			enterTime;			// level.time the client entered the game

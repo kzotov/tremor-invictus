@@ -840,7 +840,7 @@ void ClientThink_real( gentity_t *ent ) {
 	client->ps.gravity = g_gravity.value;
 
 	// set speed
-	client->ps.speed = g_speed.value;
+	client->ps.speed = BG_Champion( client->ps.stats[STAT_CHAMPION] )->runSpeed;
 
 #ifdef MISSIONPACK
 	if( bg_itemlist[client->ps.stats[STAT_PERSISTANT_POWERUP]].giTag == PW_SCOUT ) {
@@ -920,6 +920,7 @@ void ClientThink_real( gentity_t *ent ) {
 
 	pm.pmove_fixed = pmove_fixed.integer | client->pers.pmoveFixed;
 	pm.pmove_msec = pmove_msec.integer;
+	pm.autoHop = client->pers.autoHop;
 
 	VectorCopy( client->ps.origin, client->oldOrigin );
 

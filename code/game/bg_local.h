@@ -26,8 +26,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define	STEPSIZE		18
 
-#define	JUMP_VELOCITY	270
-
 #define	TIMER_LAND		130
 #define	TIMER_GESTURE	(34*66+50)
 
@@ -51,22 +49,22 @@ typedef struct {
 	vec3_t		previous_origin;
 	vec3_t		previous_velocity;
 	int			previous_waterlevel;
+
+	const champion_t	*champion;
+	qboolean	jumpWasDown;		// jump was held on the previous frame
+	qboolean	wasSliding;			// sliding as the frame began; jump and crouch share upmove
+	qboolean	jumped;				// left the ground by jumping this frame
 } pml_t;
 
 extern	pmove_t		*pm;
 extern	pml_t		pml;
 
 // movement parameters
-extern	float	pm_stopspeed;
-extern	float	pm_duckScale;
 extern	float	pm_swimScale;
 
-extern	float	pm_accelerate;
-extern	float	pm_airaccelerate;
 extern	float	pm_wateraccelerate;
 extern	float	pm_flyaccelerate;
 
-extern	float	pm_friction;
 extern	float	pm_waterfriction;
 extern	float	pm_flightfriction;
 

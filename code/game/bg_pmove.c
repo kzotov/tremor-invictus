@@ -31,21 +31,92 @@ pmove_t		*pm;
 pml_t		pml;
 
 // movement parameters
-float	pm_stopspeed = 100.0f;
-float	pm_duckScale = 0.25f;
 float	pm_swimScale = 0.50f;
 
-float	pm_accelerate = 10.0f;
-float	pm_airaccelerate = 1.0f;
 float	pm_wateraccelerate = 4.0f;
 float	pm_flyaccelerate = 8.0f;
 
-float	pm_friction = 6.0f;
 float	pm_waterfriction = 1.0f;
 float	pm_flightfriction = 3.0f;
 float	pm_spectatorfriction = 5.0f;
 
 int		c_pmove = 0;
+
+pmoveSettings_t	bg_pmoveSettings;
+
+typedef struct {
+	vmCvar_t	vmCvar;
+	char		*name;
+	char		*defaultString;
+	float		*value;
+} pmoveCvar_t;
+
+// the server sends these to clients as systeminfo so prediction matches
+static pmoveCvar_t pmoveCvars[] = {
+	{ {0}, "pm_jumpVelocity",		"270",	&bg_pmoveSettings.jumpVelocity },
+	{ {0}, "pm_accelerate",			"10",	&bg_pmoveSettings.accelerate },
+	{ {0}, "pm_airAccelerate",		"1",	&bg_pmoveSettings.airAccelerate },
+	{ {0}, "pm_friction",			"6",	&bg_pmoveSettings.friction },
+	{ {0}, "pm_stopSpeed",			"100",	&bg_pmoveSettings.stopSpeed },
+	{ {0}, "pm_crouchSpeed",		"160",	&bg_pmoveSettings.crouchSpeed },
+	{ {0}, "pm_speedLimit",			"0",	&bg_pmoveSettings.speedLimit },
+	{ {0}, "pm_jumpSilentTime",		"100",	&bg_pmoveSettings.jumpSilentTime },
+
+	{ {0}, "pm_acFriction",			"8",	&bg_pmoveSettings.acFriction },
+	{ {0}, "pm_acStrafeAccel",		"70",	&bg_pmoveSettings.acStrafeAccel },
+	{ {0}, "pm_acStrafeSpeed",		"30",	&bg_pmoveSettings.acStrafeSpeed },
+	{ {0}, "pm_acBrakeAccel",		"1.5",	&bg_pmoveSettings.acBrakeAccel },
+	{ {0}, "pm_acAirControl",		"50",	&bg_pmoveSettings.acAirControl },
+
+	{ {0}, "pm_chainTime",			"400",	&bg_pmoveSettings.chainTime },
+	{ {0}, "pm_chainVelocity",		"50",	&bg_pmoveSettings.chainVelocity },
+
+	{ {0}, "pm_slideFriction",		"0.5",	&bg_pmoveSettings.slideFriction },
+	{ {0}, "pm_slideChargeRate",	"2",	&bg_pmoveSettings.slideChargeRate },
+	{ {0}, "pm_slideChargeMax",		"2000",	&bg_pmoveSettings.slideChargeMax },
+	{ {0}, "pm_slideDrain",			"1",	&bg_pmoveSettings.slideDrain },
+
+	{ {0}, "pm_wallJumpVelocity",	"350",	&bg_pmoveSettings.wallJumpVelocity },
+	{ {0}, "pm_wallJumpPush",		"200",	&bg_pmoveSettings.wallJumpPush },
+	{ {0}, "pm_wallJumpNormal",		"0.3",	&bg_pmoveSettings.wallJumpNormal }
+};
+
+static const int pmoveCvarCount = ARRAY_LEN( pmoveCvars );
+
+void	trap_Cvar_Register( vmCvar_t *vmCvar, const char *varName, const char *defaultValue, int flags );
+void	trap_Cvar_Update( vmCvar_t *vmCvar );
+
+/*
+===============
+BG_RegisterPmoveCvars
+
+The game registers with CVAR_SYSTEMINFO so clients receive the values,
+cgame registers with CVAR_SYSTEMINFO so it accepts them
+===============
+*/
+void BG_RegisterPmoveCvars( int flags ) {
+	int		i;
+
+	for ( i = 0 ; i < pmoveCvarCount ; i++ ) {
+		trap_Cvar_Register( &pmoveCvars[i].vmCvar, pmoveCvars[i].name,
+			pmoveCvars[i].defaultString, flags );
+		*pmoveCvars[i].value = pmoveCvars[i].vmCvar.value;
+	}
+}
+
+/*
+===============
+BG_UpdatePmoveCvars
+===============
+*/
+void BG_UpdatePmoveCvars( void ) {
+	int		i;
+
+	for ( i = 0 ; i < pmoveCvarCount ; i++ ) {
+		trap_Cvar_Update( &pmoveCvars[i].vmCvar );
+		*pmoveCvars[i].value = pmoveCvars[i].vmCvar.value;
+	}
+}
 
 
 /*
@@ -163,6 +234,35 @@ void PM_ClipVelocity( vec3_t in, vec3_t normal, vec3_t out, float overbounce ) {
 
 /*
 ==================
+PM_IsSliding
+
+Slide style: crouching on the ground with slide charge left
+==================
+*/
+static qboolean PM_IsSliding( void ) {
+	return pml.champion->moveStyle == MOVE_SLIDE && pml.walking
+		&& ( pm->ps->pm_flags & PMF_DUCKED )
+		&& pm->ps->stats[STAT_SLIDE_CHARGE] > 0;
+}
+
+/*
+==================
+PM_GroundFriction
+==================
+*/
+static float PM_GroundFriction( void ) {
+	if ( PM_IsSliding() ) {
+		return bg_pmoveSettings.slideFriction;
+	}
+	if ( pml.champion->moveStyle == MOVE_AIRCONTROL ) {
+		return bg_pmoveSettings.acFriction;
+	}
+	return bg_pmoveSettings.friction;
+}
+
+
+/*
+==================
 PM_Friction
 
 Handles both ground friction and water friction
@@ -196,14 +296,14 @@ static void PM_Friction( void ) {
 		if ( pml.walking && !(pml.groundTrace.surfaceFlags & SURF_SLICK) ) {
 			// if getting knocked back, no friction
 			if ( ! (pm->ps->pm_flags & PMF_TIME_KNOCKBACK) ) {
-				control = speed < pm_stopspeed ? pm_stopspeed : speed;
-				drop += control*pm_friction*pml.frametime;
+				control = speed < bg_pmoveSettings.stopSpeed ? bg_pmoveSettings.stopSpeed : speed;
+				drop += control*PM_GroundFriction()*pml.frametime;
 			}
 		}
 	}
 
-	// apply water friction even if just wading
-	if ( pm->waterlevel ) {
+	// water below the waist counts as dry ground
+	if ( pm->waterlevel > 1 ) {
 		drop += speed*pm_waterfriction*pm->waterlevel*pml.frametime;
 	}
 
@@ -356,6 +456,10 @@ PM_CheckJump
 =============
 */
 static qboolean PM_CheckJump( void ) {
+	qboolean	silent;
+	int			style;
+	float		cap, speed;
+
 	if ( pm->ps->pm_flags & PMF_RESPAWNED ) {
 		return qfalse;		// don't allow jump until all buttons are up
 	}
@@ -365,20 +469,51 @@ static qboolean PM_CheckJump( void ) {
 		return qfalse;
 	}
 
-	// must wait for jump to be released
-	if ( pm->ps->pm_flags & PMF_JUMP_HELD ) {
+	// must wait for jump to be released, unless auto-hopping
+	if ( ( pm->ps->pm_flags & PMF_JUMP_HELD ) && !pm->autoHop ) {
 		// clear upmove so cmdscale doesn't lower running speed
 		pm->cmd.upmove = 0;
 		return qfalse;
 	}
 
+	// landing and sliding jumps are silent
+	silent = pm->ps->stats[STAT_LAND_TIME] < bg_pmoveSettings.jumpSilentTime
+		|| pml.wasSliding;
+
 	pml.groundPlane = qfalse;		// jumping away
 	pml.walking = qfalse;
+	pml.jumped = qtrue;
 	pm->ps->pm_flags |= PMF_JUMP_HELD;
 
 	pm->ps->groundEntityNum = ENTITYNUM_NONE;
-	pm->ps->velocity[2] = JUMP_VELOCITY;
-	PM_AddEvent( EV_JUMP );
+	pm->ps->velocity[2] = bg_pmoveSettings.jumpVelocity;
+
+	style = pml.champion->moveStyle;
+	if ( style == MOVE_AIRCONTROL || style == MOVE_SLIDE ) {
+		// chained jumps go higher
+		if ( pm->ps->stats[STAT_JUMP_TIME] < bg_pmoveSettings.chainTime ) {
+			pm->ps->velocity[2] += bg_pmoveSettings.chainVelocity;
+		}
+	}
+	if ( style == MOVE_SLIDE ) {
+		pm->ps->stats[STAT_SLIDE_CHARGE] = 0;
+	}
+	pm->ps->stats[STAT_JUMP_TIME] = 0;
+
+	// optional per-champion horizontal speed cap
+	cap = pml.champion->jumpSpeedCap;
+	if ( bg_pmoveSettings.speedLimit && cap > 0 ) {
+		speed = sqrt( pm->ps->velocity[0] * pm->ps->velocity[0]
+			+ pm->ps->velocity[1] * pm->ps->velocity[1] );
+		if ( speed > cap ) {
+			pm->ps->velocity[0] *= cap / speed;
+			pm->ps->velocity[1] *= cap / speed;
+		}
+	}
+
+	if ( !silent ) {
+		PM_AddEvent( EV_JUMP );
+	}
 
 	if ( pm->cmd.forwardmove >= 0 ) {
 		PM_ForceLegsAnim( LEGS_JUMP );
@@ -593,6 +728,134 @@ static void PM_FlyMove( void ) {
 
 /*
 ===================
+PM_WallTrace
+
+Looks for a wall to jump off in one horizontal direction
+===================
+*/
+static qboolean PM_WallTrace( const vec3_t dir, trace_t *trace ) {
+	vec3_t		end;
+
+	VectorMA( pm->ps->origin, pm->maxs[0], dir, end );
+	pm->trace( trace, pm->ps->origin, pm->mins, pm->maxs, end, pm->ps->clientNum, pm->tracemask );
+
+	if ( trace->allsolid || trace->fraction == 1.0f ) {
+		return qfalse;
+	}
+	if ( fabs( trace->plane.normal[2] ) >= bg_pmoveSettings.wallJumpNormal ) {
+		return qfalse;		// floor, ceiling or slope, not a wall
+	}
+	if ( trace->surfaceFlags & ( SURF_SKY | SURF_NOWALLJUMP ) ) {
+		return qfalse;
+	}
+	if ( trace->entityNum < MAX_CLIENTS ) {
+		return qfalse;		// other players
+	}
+	return qtrue;
+}
+
+/*
+===================
+PM_CheckWallJump
+
+A fresh jump press in the air next to a wall, once per airtime
+===================
+*/
+static qboolean PM_CheckWallJump( const vec3_t wishdir ) {
+	trace_t		trace;
+	vec3_t		dir, normal;
+	float		away;
+	int			i;
+	qboolean	found;
+
+	if ( !( pml.champion->abilities & MOVEABIL_WALLJUMP ) ) {
+		return qfalse;
+	}
+	if ( pm->ps->pm_flags & ( PMF_WALLJUMPED | PMF_RESPAWNED ) ) {
+		return qfalse;
+	}
+	if ( pm->cmd.upmove < 10 || pml.jumpWasDown ) {
+		return qfalse;
+	}
+	if ( pm->ps->groundEntityNum != ENTITYNUM_NONE ) {
+		return qfalse;
+	}
+
+	// movement input direction first, then all around
+	found = qfalse;
+	if ( VectorLength( wishdir ) > 0 ) {
+		found = PM_WallTrace( wishdir, &trace );
+	}
+	for ( i = 0 ; i < 8 && !found ; i++ ) {
+		dir[0] = cos( DEG2RAD( i * 45 ) );
+		dir[1] = sin( DEG2RAD( i * 45 ) );
+		dir[2] = 0;
+		found = PM_WallTrace( dir, &trace );
+	}
+	if ( !found ) {
+		return qfalse;
+	}
+
+	pm->ps->velocity[2] = bg_pmoveSettings.wallJumpVelocity;
+
+	// push off the wall as far as the input points away from it
+	VectorSet( normal, trace.plane.normal[0], trace.plane.normal[1], 0 );
+	VectorNormalize( normal );
+	away = DotProduct( wishdir, normal );
+	if ( away > 0 ) {
+		VectorMA( pm->ps->velocity, bg_pmoveSettings.wallJumpPush * away, normal, pm->ps->velocity );
+	}
+
+	pm->ps->pm_flags |= PMF_WALLJUMPED | PMF_JUMP_HELD;
+	pml.jumped = qtrue;
+	PM_AddEvent( EV_JUMP );
+	PM_ForceLegsAnim( LEGS_JUMP );
+	pm->ps->pm_flags &= ~PMF_BACKWARDS_JUMP;
+
+	return qtrue;
+}
+
+/*
+===================
+PM_AirControl
+
+Air-control style: with only forward or back held, turn the velocity
+toward the wish direction without changing speed
+===================
+*/
+static void PM_AirControl( const vec3_t wishdir, float wishspeed ) {
+	vec3_t		dir;
+	float		zspeed, speed, dot, k;
+
+	if ( wishspeed == 0 || bg_pmoveSettings.acAirControl <= 0 ) {
+		return;
+	}
+
+	zspeed = pm->ps->velocity[2];
+	VectorSet( dir, pm->ps->velocity[0], pm->ps->velocity[1], 0 );
+	speed = VectorNormalize( dir );
+	if ( speed < 1 ) {
+		return;
+	}
+
+	dot = DotProduct( dir, wishdir );
+	if ( dot <= 0 ) {
+		return;		// no turning while slowing down
+	}
+
+	// turn rate grows with the square of how well aim and velocity agree
+	k = bg_pmoveSettings.acAirControl * 32 * dot * dot * pml.frametime;
+	VectorScale( dir, speed, dir );
+	VectorMA( dir, k, wishdir, dir );
+	VectorNormalize( dir );
+
+	pm->ps->velocity[0] = dir[0] * speed;
+	pm->ps->velocity[1] = dir[1] * speed;
+	pm->ps->velocity[2] = zspeed;
+}
+
+/*
+===================
 PM_AirMove
 
 ===================
@@ -605,6 +868,7 @@ static void PM_AirMove( void ) {
 	float		wishspeed;
 	float		scale;
 	usercmd_t	cmd;
+	float		accelerate, accelspeed;
 
 	PM_Friction();
 
@@ -632,8 +896,27 @@ static void PM_AirMove( void ) {
 	wishspeed = VectorNormalize(wishdir);
 	wishspeed *= scale;
 
+	PM_CheckWallJump( wishdir );
+
 	// not on ground, so little effect on velocity
-	PM_Accelerate (wishdir, wishspeed, pm_airaccelerate);
+	accelerate = bg_pmoveSettings.airAccelerate;
+	accelspeed = wishspeed;
+	if ( pml.champion->moveStyle == MOVE_AIRCONTROL ) {
+		if ( fmove == 0 && smove != 0 ) {
+			// pure side strafe turns sharply
+			accelerate = bg_pmoveSettings.acStrafeAccel;
+			if ( accelspeed > bg_pmoveSettings.acStrafeSpeed ) {
+				accelspeed = bg_pmoveSettings.acStrafeSpeed;
+			}
+		} else if ( DotProduct( pm->ps->velocity, wishdir ) < 0 ) {
+			accelerate = bg_pmoveSettings.acBrakeAccel;
+		}
+	}
+	PM_Accelerate (wishdir, accelspeed, accelerate);
+
+	if ( pml.champion->moveStyle == MOVE_AIRCONTROL && fmove != 0 && smove == 0 ) {
+		PM_AirControl( wishdir, wishspeed );
+	}
 
 	// we may have a ground plane that is very steep, even
 	// though we don't have a groundentity
@@ -748,15 +1031,15 @@ static void PM_WalkMove( void ) {
 	wishspeed = VectorNormalize(wishdir);
 	wishspeed *= scale;
 
-	// clamp the speed lower if ducking
-	if ( pm->ps->pm_flags & PMF_DUCKED ) {
-		if ( wishspeed > pm->ps->speed * pm_duckScale ) {
-			wishspeed = pm->ps->speed * pm_duckScale;
+	// crouching is a fixed speed, except while sliding
+	if ( ( pm->ps->pm_flags & PMF_DUCKED ) && !PM_IsSliding() ) {
+		if ( wishspeed > bg_pmoveSettings.crouchSpeed ) {
+			wishspeed = bg_pmoveSettings.crouchSpeed;
 		}
 	}
 
-	// clamp the speed lower if wading or walking on the bottom
-	if ( pm->waterlevel ) {
+	// clamp the speed lower if walking on the bottom; below the waist is dry
+	if ( pm->waterlevel > 1 ) {
 		float	waterScale;
 
 		waterScale = pm->waterlevel / 3.0;
@@ -769,9 +1052,9 @@ static void PM_WalkMove( void ) {
 	// when a player gets hit, they temporarily lose
 	// full control, which allows them to be moved a bit
 	if ( ( pml.groundTrace.surfaceFlags & SURF_SLICK ) || pm->ps->pm_flags & PMF_TIME_KNOCKBACK ) {
-		accelerate = pm_airaccelerate;
+		accelerate = bg_pmoveSettings.airAccelerate;
 	} else {
-		accelerate = pm_accelerate;
+		accelerate = bg_pmoveSettings.accelerate;
 	}
 
 	PM_Accelerate (wishdir, wishspeed, accelerate);
@@ -860,8 +1143,8 @@ static void PM_NoclipMove( void ) {
 	{
 		drop = 0;
 
-		friction = pm_friction*1.5;	// extra friction
-		control = speed < pm_stopspeed ? pm_stopspeed : speed;
+		friction = bg_pmoveSettings.friction*1.5;	// extra friction
+		control = speed < bg_pmoveSettings.stopSpeed ? bg_pmoveSettings.stopSpeed : speed;
 		drop += control*friction*pml.frametime;
 
 		// scale the velocity
@@ -887,7 +1170,7 @@ static void PM_NoclipMove( void ) {
 	wishspeed = VectorNormalize(wishdir);
 	wishspeed *= scale;
 
-	PM_Accelerate( wishdir, wishspeed, pm_accelerate );
+	PM_Accelerate( wishdir, wishspeed, bg_pmoveSettings.accelerate );
 
 	// move
 	VectorMA (pm->ps->origin, pml.frametime, pm->ps->velocity, pm->ps->origin);
@@ -1100,6 +1383,51 @@ static void PM_GroundTraceMissed( void ) {
 
 /*
 =============
+PM_OverbounceLanding
+
+A fall that ends in an upward bounce without the hull reaching the floor
+counts as a landing. Only bounces that clipping against the floor can't
+explain are caught, so ramp jumps still throw the player up.
+=============
+*/
+static qboolean PM_OverbounceLanding( trace_t *result ) {
+	trace_t		tr;
+	trace_t		*trace = &tr;
+	vec3_t		point, clipped;
+	float		dist;
+
+	if ( pml.jumped || pml.previous_velocity[2] >= 0 || pm->ps->velocity[2] < 0 ) {
+		return qfalse;
+	}
+
+	dist = -pml.previous_velocity[2] * pml.frametime + 0.25f;
+	VectorCopy( pm->ps->origin, point );
+	point[2] -= dist;
+	pm->trace( trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask );
+	if ( trace->allsolid || trace->fraction == 1.0f || trace->plane.normal[2] < MIN_WALK_NORMAL ) {
+		return qfalse;
+	}
+
+	// sliding along this floor would not send the player up
+	PM_ClipVelocity( pml.previous_velocity, trace->plane.normal, clipped, 1.0f );
+	if ( clipped[2] > 1.0f ) {
+		return qfalse;
+	}
+
+	if ( pm->debugLevel ) {
+		Com_Printf("%i:overbounce\n", c_pmove);
+	}
+	VectorCopy( trace->endpos, pm->ps->origin );
+	PM_ClipVelocity( pm->ps->velocity, trace->plane.normal, pm->ps->velocity, 1.0f );
+	if ( pm->ps->velocity[2] > 0 ) {
+		pm->ps->velocity[2] = 0;
+	}
+	*result = tr;
+	return qtrue;
+}
+
+/*
+=============
 PM_GroundTrace
 =============
 */
@@ -1118,6 +1446,11 @@ static void PM_GroundTrace( void ) {
 	if ( trace.allsolid ) {
 		if ( !PM_CorrectAllSolid(&trace) )
 			return;
+	}
+
+	// a fall that bounced off the floor without touching it lands
+	if ( ( trace.fraction == 1.0 || pm->ps->velocity[2] > 0 ) && PM_OverbounceLanding( &trace ) ) {
+		pml.groundTrace = trace;
 	}
 
 	// if the trace didn't hit anything, we are in free fall
@@ -1163,6 +1496,7 @@ static void PM_GroundTrace( void ) {
 
 	pml.groundPlane = qtrue;
 	pml.walking = qtrue;
+	pm->ps->pm_flags &= ~PMF_WALLJUMPED;
 
 	// hitting solid ground will end a waterjump
 	if (pm->ps->pm_flags & PMF_TIME_WATERJUMP)
@@ -1178,6 +1512,7 @@ static void PM_GroundTrace( void ) {
 		}
 		
 		PM_CrashLand();
+		pm->ps->stats[STAT_LAND_TIME] = 0;
 
 		// don't do landing time if we were just going down a slope
 		if ( pml.previous_velocity[2] < -200 ) {
@@ -1248,6 +1583,7 @@ Sets mins, maxs, and pm->ps->viewheight
 static void PM_CheckDuck (void)
 {
 	trace_t	trace;
+	float	width;
 
 	if ( pm->ps->powerups[PW_INVULNERABILITY] ) {
 		if ( pm->ps->pm_flags & PMF_INVULEXPAND ) {
@@ -1265,11 +1601,12 @@ static void PM_CheckDuck (void)
 	}
 	pm->ps->pm_flags &= ~PMF_INVULEXPAND;
 
-	pm->mins[0] = -PLAYER_WIDTH;
-	pm->mins[1] = -PLAYER_WIDTH;
+	width = bg_classHalfWidth[pml.champion->bodyClass];
+	pm->mins[0] = -width;
+	pm->mins[1] = -width;
 
-	pm->maxs[0] = PLAYER_WIDTH;
-	pm->maxs[1] = PLAYER_WIDTH;
+	pm->maxs[0] = width;
+	pm->maxs[1] = width;
 
 	pm->mins[2] = MINS_Z;
 
@@ -1755,6 +2092,47 @@ static void PM_Animate( void ) {
 
 /*
 ================
+PM_MoveTimers
+
+Jump, landing and slide charge timers kept in stats
+================
+*/
+static void PM_MoveTimers( void ) {
+	int		charge;
+
+	pm->ps->stats[STAT_JUMP_TIME] += pml.msec;
+	if ( pm->ps->stats[STAT_JUMP_TIME] > STAT_TIME_CAP ) {
+		pm->ps->stats[STAT_JUMP_TIME] = STAT_TIME_CAP;
+	}
+	pm->ps->stats[STAT_LAND_TIME] += pml.msec;
+	if ( pm->ps->stats[STAT_LAND_TIME] > STAT_TIME_CAP ) {
+		pm->ps->stats[STAT_LAND_TIME] = STAT_TIME_CAP;
+	}
+
+	if ( pml.champion->moveStyle != MOVE_SLIDE ) {
+		pm->ps->stats[STAT_SLIDE_CHARGE] = 0;
+		return;
+	}
+
+	charge = pm->ps->stats[STAT_SLIDE_CHARGE];
+	if ( pml.walking ) {
+		charge -= bg_pmoveSettings.slideDrain * pml.msec;
+	} else if ( pm->ps->groundEntityNum == ENTITYNUM_NONE
+		&& pm->ps->velocity[2] < 0 && pm->cmd.upmove >= 0 ) {
+		// falling without holding crouch charges the slide
+		charge += bg_pmoveSettings.slideChargeRate * pml.msec;
+	}
+	if ( charge > bg_pmoveSettings.slideChargeMax ) {
+		charge = bg_pmoveSettings.slideChargeMax;
+	}
+	if ( charge < 0 ) {
+		charge = 0;
+	}
+	pm->ps->stats[STAT_SLIDE_CHARGE] = charge;
+}
+
+/*
+================
 PM_DropTimers
 ================
 */
@@ -1890,6 +2268,8 @@ void PmoveSingle (pmove_t *pmove) {
 	// clear all pmove local vars
 	memset (&pml, 0, sizeof(pml));
 
+	pml.champion = BG_Champion( pm->ps->stats[STAT_CHAMPION] );
+
 	// determine the time
 	pml.msec = pmove->cmd.serverTime - pm->ps->commandTime;
 	if ( pml.msec < 1 ) {
@@ -1915,6 +2295,14 @@ void PmoveSingle (pmove_t *pmove) {
 	if ( pm->cmd.upmove < 10 ) {
 		// not holding jump
 		pm->ps->pm_flags &= ~PMF_JUMP_HELD;
+	}
+
+	// remember whether jump was down so a press can be told from a hold
+	pml.jumpWasDown = ( pm->ps->pm_flags & PMF_JUMP_DOWN ) != 0;
+	if ( pm->cmd.upmove >= 10 ) {
+		pm->ps->pm_flags |= PMF_JUMP_DOWN;
+	} else {
+		pm->ps->pm_flags &= ~PMF_JUMP_DOWN;
 	}
 
 	// decide if backpedaling animations should be used
@@ -1955,6 +2343,12 @@ void PmoveSingle (pmove_t *pmove) {
 	PM_SetWaterLevel();
 	pml.previous_waterlevel = pmove->waterlevel;
 
+	// releasing crouch to jump stands up first, so note a slide beforehand
+	pml.wasSliding = pml.champion->moveStyle == MOVE_SLIDE
+		&& pm->ps->groundEntityNum != ENTITYNUM_NONE
+		&& ( pm->ps->pm_flags & PMF_DUCKED )
+		&& pm->ps->stats[STAT_SLIDE_CHARGE] > 0;
+
 	// set mins, maxs, and viewheight
 	PM_CheckDuck ();
 
@@ -1966,6 +2360,7 @@ void PmoveSingle (pmove_t *pmove) {
 	}
 
 	PM_DropTimers();
+	PM_MoveTimers();
 
 #ifdef MISSIONPACK
 	if ( pm->ps->powerups[PW_INVULNERABILITY] ) {

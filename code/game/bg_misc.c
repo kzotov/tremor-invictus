@@ -924,6 +924,76 @@ int		bg_numItems = ARRAY_LEN( bg_itemlist ) - 1;
 
 
 /*
+==============================================================================
+
+CHAMPIONS
+
+Body class, run speed, jump speed cap and movement style per champion.
+Retune here; the global movement numbers are cvars (see bg_pmove.c).
+
+==============================================================================
+*/
+
+const float bg_classHalfWidth[CLASS_NUM_CLASSES] = {
+	13,		// CLASS_LIGHT
+	15,		// CLASS_MEDIUM
+	17		// CLASS_HEAVY
+};
+
+const champion_t bg_championList[] = {
+	// name			class			run	 jumpcap	style				abilities
+	{ "ranger",		CLASS_MEDIUM,	310, 1000,	MOVE_STANDARD,		0 },	// default, must stay first
+	{ "anarki",		CLASS_LIGHT,	315, 640,	MOVE_AIRCONTROL,	0 },
+	{ "athena",		CLASS_LIGHT,	320, 1000,	MOVE_STANDARD,		0 },
+	{ "nyx",		CLASS_LIGHT,	320, 1000,	MOVE_STANDARD,		MOVEABIL_WALLJUMP },
+	{ "slash",		CLASS_LIGHT,	320, 750,	MOVE_SLIDE,			0 },
+	{ "bj",			CLASS_MEDIUM,	310, 1000,	MOVE_STANDARD,		0 },
+	{ "deathknight",CLASS_MEDIUM,	310, 1000,	MOVE_STANDARD,		0 },
+	{ "doomslayer",	CLASS_MEDIUM,	310, 1000,	MOVE_STANDARD,		0 },
+	{ "eisen",		CLASS_MEDIUM,	310, 1000,	MOVE_STANDARD,		0 },
+	{ "galena",		CLASS_MEDIUM,	310, 1000,	MOVE_STANDARD,		0 },
+	{ "strogg",		CLASS_MEDIUM,	310, 750,	MOVE_SLIDE,			0 },
+	{ "visor",		CLASS_MEDIUM,	320, 0,		MOVE_STANDARD,		0 },
+	{ "clutch",		CLASS_HEAVY,	300, 1000,	MOVE_STANDARD,		0 },
+	{ "keel",		CLASS_HEAVY,	300, 1000,	MOVE_STANDARD,		0 },
+	{ "scalebearer",CLASS_HEAVY,	300, 1000,	MOVE_STANDARD,		0 },
+	{ "sorlag",		CLASS_HEAVY,	300, 600,	MOVE_AIRCONTROL,	0 }
+};
+
+const int bg_numChampions = ARRAY_LEN( bg_championList );
+
+/*
+==============
+BG_ChampionForName
+
+Returns the index of the named champion, or 0 (the default) if unknown
+==============
+*/
+int BG_ChampionForName( const char *name ) {
+	int		i;
+
+	for ( i = 0 ; i < bg_numChampions ; i++ ) {
+		if ( !Q_stricmp( name, bg_championList[i].name ) ) {
+			return i;
+		}
+	}
+	return 0;
+}
+
+/*
+==============
+BG_Champion
+==============
+*/
+const champion_t *BG_Champion( int index ) {
+	if ( index < 0 || index >= bg_numChampions ) {
+		index = 0;
+	}
+	return &bg_championList[index];
+}
+
+
+/*
 ==============
 BG_FindItemForPowerup
 ==============

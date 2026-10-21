@@ -355,6 +355,8 @@ void G_RegisterCvars( void ) {
 		G_RemapTeamShaders();
 	}
 
+	BG_RegisterPmoveCvars( CVAR_SYSTEMINFO );
+
 	// check some things
 	if ( g_gametype.integer < 0 || g_gametype.integer >= GT_MAX_GAME_TYPE ) {
 		G_Printf( "g_gametype %i is out of range, defaulting to 0\n", g_gametype.integer );
@@ -397,6 +399,8 @@ void G_UpdateCvars( void ) {
 	if (remapped) {
 		G_RemapTeamShaders();
 	}
+
+	BG_UpdatePmoveCvars();
 }
 
 /*

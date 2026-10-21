@@ -24,8 +24,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 // g_client.c -- client functions that don't happen every frame
 
-static vec3_t	playerMins = {-15, -15, -24};
-static vec3_t	playerMaxs = {15, 15, 32};
+static vec3_t	playerMins = {-PLAYER_WIDTH, -PLAYER_WIDTH, MINS_Z};
+static vec3_t	playerMaxs = {PLAYER_WIDTH, PLAYER_WIDTH, DEFAULT_HEIGHT};
 
 /*QUAKED info_player_deathmatch (1 0 1) (-16 -16 -24) (16 16 32) initial
 potential spawning position for deathmatch games.
@@ -822,6 +822,14 @@ void ClientUserinfoChanged( int clientNum ) {
 		client->pers.teamInfo = qfalse;
 	}
 #endif
+
+	// champion, takes effect on the next spawn
+	s = Info_ValueForKey( userinfo, "champion" );
+	client->pers.champion = BG_ChampionForName( *s ? s : DEFAULT_CHAMPION );
+
+	// auto-hop defaults to on
+	s = Info_ValueForKey( userinfo, "cg_autoHop" );
+	client->pers.autoHop = ( !*s || atoi( s ) != 0 );
 	/*
 	s = Info_ValueForKey( userinfo, "cg_pmove_fixed" );
 	if ( !*s || atoi( s ) == 0 ) {
@@ -1161,8 +1169,14 @@ void ClientSpawn(gentity_t *ent) {
 	
 	VectorCopy (playerMins, ent->r.mins);
 	VectorCopy (playerMaxs, ent->r.maxs);
+	ent->r.mins[0] = ent->r.mins[1] = -bg_classHalfWidth[BG_Champion( client->pers.champion )->bodyClass];
+	ent->r.maxs[0] = ent->r.maxs[1] = bg_classHalfWidth[BG_Champion( client->pers.champion )->bodyClass];
 
 	client->ps.clientNum = index;
+
+	client->ps.stats[STAT_CHAMPION] = client->pers.champion;
+	client->ps.stats[STAT_JUMP_TIME] = STAT_TIME_CAP;
+	client->ps.stats[STAT_LAND_TIME] = STAT_TIME_CAP;
 
 	client->ps.stats[STAT_WEAPONS] = ( 1 << WP_MACHINEGUN );
 	if ( g_gametype.integer == GT_TEAM ) {

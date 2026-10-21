@@ -46,12 +46,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define	VOTE_TIME			30000	// 30 seconds before vote times out
 
-#define PLAYER_WIDTH		15
+#define PLAYER_WIDTH		15		// medium body; see bg_classHalfWidth
 #define	MINS_Z				-24
-#define DEFAULT_HEIGHT		32
-#define	DEFAULT_VIEWHEIGHT	26
-#define CROUCH_HEIGHT		16
-#define CROUCH_VIEWHEIGHT	12
+#define DEFAULT_HEIGHT		45		// 69 units standing
+#define	DEFAULT_VIEWHEIGHT	39
+#define CROUCH_HEIGHT		10.5f	// half the standing height
+#define CROUCH_VIEWHEIGHT	6
 #define DEAD_HEIGHT			-8
 #define	DEAD_VIEWHEIGHT		-16
 #define INVUL_RADIUS		42
@@ -147,6 +147,7 @@ typedef enum {
 // pmove->pm_flags
 #define	PMF_DUCKED			1
 #define	PMF_JUMP_HELD		2
+#define	PMF_JUMP_DOWN		4		// jump button was down on the previous frame
 #define	PMF_BACKWARDS_JUMP	8		// go into backwards land
 #define	PMF_BACKWARDS_RUN	16		// coast down to backwards run
 #define	PMF_TIME_LAND		32		// pm_time is time before rejump
@@ -158,6 +159,7 @@ typedef enum {
 #define PMF_FOLLOW			4096	// spectate following another player
 #define PMF_SCOREBOARD		8192	// spectate as a scoreboard
 #define PMF_INVULEXPAND		16384	// invulnerability sphere set to full size
+#define	PMF_WALLJUMPED		128		// wall jump used during this airtime
 
 #define	PMF_ALL_TIMES	(PMF_TIME_WATERJUMP|PMF_TIME_LAND|PMF_TIME_KNOCKBACK)
 
@@ -190,6 +192,8 @@ typedef struct {
 	int			pmove_fixed;
 	int			pmove_msec;
 
+	qboolean	autoHop;			// holding jump jumps again on landing
+
 	// callbacks to test the world
 	// these will be different functions during game and cgame
 	void		(*trace)( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentMask );
@@ -199,6 +203,82 @@ typedef struct {
 // if a full pmove isn't done on the client, you can just update the angles
 void PM_UpdateViewAngles( playerState_t *ps, const usercmd_t *cmd );
 void Pmove (pmove_t *pmove);
+
+//===================================================================================
+
+// champions
+
+typedef enum {
+	CLASS_LIGHT,
+	CLASS_MEDIUM,
+	CLASS_HEAVY,
+
+	CLASS_NUM_CLASSES
+} championClass_t;
+
+typedef enum {
+	MOVE_STANDARD,					// plain VQ3
+	MOVE_AIRCONTROL,				// CPM-like air control
+	MOVE_SLIDE,						// crouch slide charged by falling
+
+	MOVE_NUM_STYLES
+} moveStyle_t;
+
+// extra movement abilities on top of the style, champion_t.abilities bits
+#define	MOVEABIL_WALLJUMP	1
+
+typedef struct {
+	char		*name;				// userinfo "champion" value
+	int			bodyClass;			// championClass_t
+	int			runSpeed;
+	int			jumpSpeedCap;		// horizontal cap on jump, 0 = none
+	int			moveStyle;			// moveStyle_t
+	int			abilities;			// MOVEABIL_* bits
+} champion_t;
+
+extern	const champion_t	bg_championList[];
+extern	const int			bg_numChampions;
+extern	const float			bg_classHalfWidth[CLASS_NUM_CLASSES];
+
+#define	DEFAULT_CHAMPION	"ranger"
+
+int					BG_ChampionForName( const char *name );
+const champion_t	*BG_Champion( int index );
+
+// movement tunables, shared with the client through CVAR_SYSTEMINFO cvars
+typedef struct {
+	float	jumpVelocity;
+	float	accelerate;
+	float	airAccelerate;
+	float	friction;
+	float	stopSpeed;
+	float	crouchSpeed;
+	float	speedLimit;				// non-zero: cap horizontal speed on jump
+	float	jumpSilentTime;
+
+	float	acFriction;				// air-control style
+	float	acStrafeAccel;
+	float	acStrafeSpeed;
+	float	acBrakeAccel;
+	float	acAirControl;
+
+	float	chainTime;				// air-control and slide styles
+	float	chainVelocity;
+
+	float	slideFriction;
+	float	slideChargeRate;
+	float	slideChargeMax;
+	float	slideDrain;
+
+	float	wallJumpVelocity;
+	float	wallJumpPush;
+	float	wallJumpNormal;
+} pmoveSettings_t;
+
+extern	pmoveSettings_t	bg_pmoveSettings;
+
+void	BG_RegisterPmoveCvars( int flags );
+void	BG_UpdatePmoveCvars( void );
 
 //===================================================================================
 
@@ -215,8 +295,14 @@ typedef enum {
 	STAT_ARMOR,				
 	STAT_DEAD_YAW,					// look this direction when dead (FIXME: get rid of?)
 	STAT_CLIENTS_READY,				// bit mask of clients wishing to exit the intermission (FIXME: configstring?)
-	STAT_MAX_HEALTH					// health / armor limit, changeable by handicap
+	STAT_MAX_HEALTH,				// health / armor limit, changeable by handicap
+	STAT_CHAMPION,					// index into bg_championList
+	STAT_SLIDE_CHARGE,				// msec of slide left (slide style)
+	STAT_JUMP_TIME,					// msec since the last jump, capped
+	STAT_LAND_TIME					// msec since the last landing, capped
 } statIndex_t;
+
+#define	STAT_TIME_CAP		30000	// timer stats stop counting here (16 bit)
 
 
 // player_state->persistant[] indexes
