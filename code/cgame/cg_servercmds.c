@@ -1021,6 +1021,53 @@ static void CG_AnnounceKey( const char *key ) {
 
 /*
 =================
+CG_ParseAwards
+
+"awards <type> <client> <value> ...": the end-of-match awards, kept for the
+podium screen as ready lines
+=================
+*/
+static void CG_ParseAwards( void ) {
+	int		i, client, value;
+	const char	*title, *amount;
+	char	type[16];
+
+	cg.numAwards = 0;
+	for ( i = 1 ; i + 2 < trap_Argc() && cg.numAwards < MAX_AWARD_LINES ; i += 3 ) {
+		Q_strncpyz( type, CG_Argv( i ), sizeof( type ) );		// CG_Argv's buffer is reused
+		client = atoi( CG_Argv( i + 1 ) );
+		value = atoi( CG_Argv( i + 2 ) );
+		if ( client < 0 || client >= MAX_CLIENTS ) {
+			continue;
+		}
+		amount = "";
+		if ( !strcmp( type, "accuracy" ) ) {
+			title = BG_String( STR_AWARD_ACCURACY );
+			amount = va( "%i.%i%%", value / 10, value % 10 );
+		} else if ( !strcmp( type, "damage" ) ) {
+			title = BG_String( STR_AWARD_DAMAGE );
+			amount = va( "%i", value );
+		} else if ( !strcmp( type, "net" ) ) {
+			title = BG_String( STR_AWARD_NET );
+			amount = va( "%+i", value );
+		} else if ( !strcmp( type, "perfect" ) ) {
+			title = BG_String( STR_AWARD_PERFECT );
+		} else if ( type[0] == 'w' ) {
+			gitem_t	*item = BG_FindItemForWeapon( atoi( type + 1 ) );
+
+			title = va( (char *)BG_String( STR_AWARD_WEAPON ), item ? item->pickup_name : "?" );
+			amount = va( "%i", value );
+		} else {
+			continue;
+		}
+		Com_sprintf( cg.awardLines[cg.numAwards], sizeof( cg.awardLines[0] ), "%s: %s" S_COLOR_WHITE " %s", title,
+			cgs.clientinfo[client].name, amount );
+		cg.numAwards++;
+	}
+}
+
+/*
+=================
 CG_Medal
 
 A medal earned: its icon and announcer line from the install when it has
@@ -1153,6 +1200,11 @@ static void CG_ServerCommand( void ) {
 
 	if ( !strcmp( cmd, "announce" ) ) {
 		CG_AnnounceKey( CG_Argv( 1 ) );
+		return;
+	}
+
+	if ( !strcmp( cmd, "awards" ) ) {
+		CG_ParseAwards();
 		return;
 	}
 

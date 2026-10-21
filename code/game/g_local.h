@@ -719,6 +719,7 @@ void		G_MedalsDeath( gentity_t *self, gentity_t *inflictor, gentity_t *attacker,
 void		G_MedalsPickup( gentity_t *ent, gentity_t *item );
 void		G_MedalsRail( gentity_t *ent, int hits );
 void		G_MedalsSpawn( gentity_t *ent );
+void		G_SendAwards( void );
 void		G_Announce( int clientNum, const char *key );
 
 //

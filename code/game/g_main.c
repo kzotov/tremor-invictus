@@ -1400,6 +1400,7 @@ void BeginIntermission( void ) {
 	// send the current scoring to all clients
 	SendScoreboardMessageToAllClients();
 
+	G_SendAwards();
 	G_MapVoteStart();
 }
 

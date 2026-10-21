@@ -366,6 +366,78 @@ void G_MedalsPickup( gentity_t *ent, gentity_t *item ) {
 
 /*
 =================
+G_SendAwards
+
+At the end of a match: the most accurate, most damage, best net damage,
+most frags with each weapon, and a perfect match (no deaths, duel and
+free-for-all), as "awards <type> <client> <value> ..." to everyone
+=================
+*/
+void G_SendAwards( void ) {
+	static const int	weapons[] = { WP_GAUNTLET, WP_MACHINEGUN, WP_HEAVY_MACHINEGUN, WP_SHOTGUN, WP_SUPER_SHOTGUN,
+		WP_NAILGUN, WP_TRIBOLT, WP_ROCKET_LAUNCHER, WP_LIGHTNING, WP_RAILGUN };
+	char		msg[MAX_STRING_CHARS];
+	int			best[4], bestValue[4], i, w, value;
+	gclient_t	*cl;
+
+	Q_strncpyz( msg, "awards", sizeof( msg ) );
+	for ( i = 0 ; i < 4 ; i++ ) {
+		best[i] = -1;
+		bestValue[i] = -999999;
+	}
+	for ( i = 0 ; i < level.maxclients ; i++ ) {
+		cl = &level.clients[i];
+		if ( cl->pers.connected != CON_CONNECTED || cl->sess.sessionTeam == TEAM_SPECTATOR ) {
+			continue;
+		}
+		// accuracy in tenths of a percent, from 10 shots up
+		value = cl->accuracy_shots >= 10 ? cl->accuracy_hits * 1000 / cl->accuracy_shots : -1;
+		if ( value > bestValue[0] ) {
+			best[0] = i;
+			bestValue[0] = value;
+		}
+		if ( cl->pers.damageGiven > bestValue[1] ) {
+			best[1] = i;
+			bestValue[1] = cl->pers.damageGiven;
+		}
+		value = cl->pers.damageGiven - cl->pers.damageTaken;
+		if ( value > bestValue[2] ) {
+			best[2] = i;
+			bestValue[2] = value;
+		}
+		// perfect: no deaths, at least one frag, duel or free-for-all
+		if ( g_gametype.integer < GT_TEAM && !cl->ps.persistant[PERS_KILLED] && cl->ps.persistant[PERS_SCORE] > 0 ) {
+			Q_strcat( msg, sizeof( msg ), va( " perfect %i 0", i ) );
+		}
+	}
+	if ( best[0] >= 0 && bestValue[0] >= 0 ) {
+		Q_strcat( msg, sizeof( msg ), va( " accuracy %i %i", best[0], bestValue[0] ) );
+	}
+	if ( best[1] >= 0 && bestValue[1] > 0 ) {
+		Q_strcat( msg, sizeof( msg ), va( " damage %i %i", best[1], bestValue[1] ) );
+	}
+	if ( best[2] >= 0 && bestValue[2] > 0 ) {
+		Q_strcat( msg, sizeof( msg ), va( " net %i %i", best[2], bestValue[2] ) );
+	}
+	for ( w = 0 ; w < ARRAY_LEN( weapons ) ; w++ ) {
+		best[3] = -1;
+		bestValue[3] = 0;
+		for ( i = 0 ; i < level.maxclients ; i++ ) {
+			cl = &level.clients[i];
+			if ( cl->pers.connected == CON_CONNECTED && cl->weaponKills[weapons[w]] > bestValue[3] ) {
+				best[3] = i;
+				bestValue[3] = cl->weaponKills[weapons[w]];
+			}
+		}
+		if ( best[3] >= 0 ) {
+			Q_strcat( msg, sizeof( msg ), va( " w%i %i %i", weapons[w], best[3], bestValue[3] ) );
+		}
+	}
+	trap_SendServerCommand( -1, msg );
+}
+
+/*
+=================
 G_MedalsRail
 
 One railgun shot through several players

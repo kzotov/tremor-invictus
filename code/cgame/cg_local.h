@@ -453,6 +453,7 @@ typedef struct {
 
 #define MAX_REWARDSTACK		10
 #define MAX_REVEAL_MODELS	64
+#define MAX_AWARD_LINES		16
 #define MAX_SOUNDBUFFER		32		// announcer queue
 
 //======================================================================
@@ -544,6 +545,8 @@ typedef struct {
 	int			mapVoteTime;		// end time of that vote, to notice a new one
 	refEntity_t	revealModels[MAX_REVEAL_MODELS];	// this frame's revealed players' parts
 	int			numRevealModels;
+	char		awardLines[MAX_AWARD_LINES][96];	// the end-of-match awards
+	int			numAwards;
 	char		infoScreenText[MAX_STRING_CHARS];
 
 	// scoreboard

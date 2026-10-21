@@ -3747,7 +3747,7 @@ heights 3, 2 and 1, the winner in the middle
 =================
 */
 static void CG_DrawPodium( void ) {
-	static const vec4_t	dim = { 0.05f, 0.05f, 0.06f, 0.85f };
+	static const vec4_t	dim = { 0.05f, 0.05f, 0.06f, 1.0f };		// a screen of its own
 	int		clients[3], heights[3], teams[3], ranks[3], count = 0, order[3] = { 1, 0, 2 }, i, n;
 	const char	*labels[3];
 
@@ -3774,6 +3774,13 @@ static void CG_DrawPodium( void ) {
 	}
 	CG_FillRect( -1000, 0, 3000, 480, dim );
 	CG_DrawPillars( clients, heights, teams, count, labels, ranks );
+
+	// the awards above, in two columns
+	for ( i = 0 ; i < cg.numAwards ; i++ ) {
+		float	x = i & 1 ? 330 : 10, y = 20 + ( i / 2 ) * 14;
+
+		CG_DrawStringExt( x, y, cg.awardLines[i], colorLtGrey, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+	}
 }
 
 static void CG_DrawWarmup( void ) {
