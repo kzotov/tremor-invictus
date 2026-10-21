@@ -1738,6 +1738,10 @@ void ClientCommand( int clientNum ) {
 		Cmd_Tell_f ( ent );
 		return;
 	}
+	if (Q_stricmp (cmd, "readyup") == 0) {
+		Cmd_ReadyUp_f( ent );
+		return;
+	}
 #ifdef MISSIONPACK
 	if (Q_stricmp (cmd, "vsay") == 0) {
 		Cmd_Voice_f (ent, SAY_ALL, qfalse, qfalse);

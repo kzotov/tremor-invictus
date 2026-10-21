@@ -251,6 +251,9 @@ typedef struct {
 	qboolean	predictItemPickup;	// based on cg_predictItems userinfo
 	qboolean	pmoveFixed;			//
 	int			champion;			// bg_championList index, applied on spawn
+	qboolean	ready;				// duel warmup: readyup typed
+	qboolean	championLocked;		// duel: the match's champion is fixed
+	int			lockedChampion;
 	int			startWeapon;		// weapon_t chosen to spawn with
 	qboolean	autoHop;			// userinfo cg_autoHop
 	char		netname[MAX_NETNAME];
@@ -435,6 +438,11 @@ typedef struct {
 	int			intermissiontime;		// time the intermission was started
 	char		*changemap;
 	qboolean	readyToExit;			// at least one client wants to exit
+
+	// duel
+	int			overtimes;				// overtime periods added so far
+	qboolean	duelForceReady;			// allready: start without waiting for readyup
+	int			duelReadyHintTime;		// next warmup reminder
 	int			exitTime;
 	vec3_t		intermission_origin;	// also used for spectator spawns
 	vec3_t		intermission_angle;
@@ -616,6 +624,19 @@ void G_SchedulePowerup( gentity_t *ent, int seconds );
 void G_SplashParams( float minDamage, float knock, float knockSelf );
 
 //
+void LogExit( const char *string );
+qboolean ScoreIsTied( void );
+
+// g_duel.c
+qboolean	G_DuelPlayersReady( void );
+qboolean	G_DuelCheckTime( void );
+void		G_DuelCheckFraglimit( void );
+void		Cmd_ReadyUp_f( gentity_t *ent );
+void		Svcmd_AllReady_f( void );
+void		Svcmd_Abort_f( void );
+int			G_DuelSpawnChampion( gclient_t *client );
+gentity_t	*G_SelectDuelSpawnPoint( gentity_t *ent, qboolean initial, vec3_t origin, vec3_t angles, qboolean isbot );
+
 // g_rewind.c
 //
 void G_RewindInit( void );
@@ -780,6 +801,9 @@ extern	vmCvar_t	g_cheats;
 extern	vmCvar_t	g_maxclients;			// allow this many total, including spectators
 extern	vmCvar_t	g_maxGameClients;		// allow this many active
 extern	vmCvar_t	g_restarted;
+extern	vmCvar_t	g_overtime;
+extern	vmCvar_t	g_duelReadyUp;
+extern	vmCvar_t	g_duelFraglimit;
 
 extern	vmCvar_t	g_dmflags;
 extern	vmCvar_t	g_fraglimit;

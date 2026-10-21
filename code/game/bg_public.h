@@ -294,6 +294,14 @@ typedef enum {
 	STR_OBIT_PLASMATRAIL,
 	STR_OBIT_DRONE,
 
+	STR_DUEL_READY,					// "%s is ready"
+	STR_DUEL_NOT_READY,				// "%s is not ready"
+	STR_DUEL_TYPE_READYUP,			// warmup hint for players not yet ready
+	STR_DUEL_OVERTIME,				// "Overtime: %i minutes"
+	STR_DUEL_SUDDEN_DEATH,
+	STR_DUEL_ABORTED,
+	STR_DUEL_CHAMPION_LOCKED,
+
 	STR_NUM_STRINGS
 } stringId_t;
 

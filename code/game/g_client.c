@@ -1142,8 +1142,15 @@ void ClientSpawn(gentity_t *ent) {
 	}
 	else
 	{
+		// duel: rated against the opponent; the match's first spawn at an initial spot
+		if ( g_gametype.integer == GT_TOURNAMENT )
+		{
+			spawnPoint = G_SelectDuelSpawnPoint( ent, !client->pers.initialSpawn && !level.warmupTime,
+				spawn_origin, spawn_angles, !!(ent->r.svFlags & SVF_BOT) );
+			client->pers.initialSpawn = qtrue;
+		}
 		// the first spawn should be at a good looking spot
-		if ( !client->pers.initialSpawn && client->pers.localClient )
+		else if ( !client->pers.initialSpawn && client->pers.localClient )
 		{
 			client->pers.initialSpawn = qtrue;
 			spawnPoint = SelectInitialSpawnPoint(spawn_origin, spawn_angles,
@@ -1224,6 +1231,10 @@ void ClientSpawn(gentity_t *ent) {
 	
 	VectorCopy (playerMins, ent->r.mins);
 	VectorCopy (playerMaxs, ent->r.maxs);
+	// in a running duel the champion stays the one the match started with
+	if ( g_gametype.integer == GT_TOURNAMENT ) {
+		client->pers.champion = G_DuelSpawnChampion( client );
+	}
 	ent->r.mins[0] = ent->r.mins[1] = -bg_classInfo[BG_Champion( client->pers.champion )->bodyClass].halfWidth;
 	ent->r.maxs[0] = ent->r.maxs[1] = bg_classInfo[BG_Champion( client->pers.champion )->bodyClass].halfWidth;
 

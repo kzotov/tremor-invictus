@@ -183,6 +183,9 @@ vmCvar_t	g_synchronousClients;
 vmCvar_t	g_warmup;
 vmCvar_t	g_doWarmup;
 vmCvar_t	g_restarted;
+vmCvar_t	g_overtime;
+vmCvar_t	g_duelReadyUp;
+vmCvar_t	g_duelFraglimit;
 vmCvar_t	g_logfile;
 vmCvar_t	g_logfileSync;
 vmCvar_t	g_blood;
@@ -221,6 +224,11 @@ static cvarTable_t		gameCvarTable[] = {
 	{ NULL, "gamename", GAMEVERSION , CVAR_SERVERINFO | CVAR_ROM, 0, qfalse  },
 	{ NULL, "gamedate", PRODUCT_DATE , CVAR_ROM, 0, qfalse  },
 	{ &g_restarted, "g_restarted", "0", CVAR_ROM, 0, qfalse  },
+	// duel: overtime period in seconds while tied (0 = sudden death), readyup before the
+	// countdown, and a frag limit of its own (0 = none; fraglimit is for the other modes)
+	{ &g_overtime, "g_overtime", "120", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_duelReadyUp, "g_duelReadyUp", "1", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_duelFraglimit, "g_duelFraglimit", "0", CVAR_ARCHIVE, 0, qtrue },
 
 	// latched vars
 	{ &g_gametype, "g_gametype", "0", CVAR_SERVERINFO | CVAR_USERINFO | CVAR_LATCH, 0, qfalse  },
@@ -241,7 +249,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_teamAutoJoin, "g_teamAutoJoin", "0", CVAR_ARCHIVE  },
 	{ &g_teamForceBalance, "g_teamForceBalance", "0", CVAR_ARCHIVE  },
 
-	{ &g_warmup, "g_warmup", "20", CVAR_ARCHIVE, 0, qtrue  },
+	{ &g_warmup, "g_warmup", "10", CVAR_ARCHIVE, 0, qtrue  },
 	{ &g_doWarmup, "g_doWarmup", "0", CVAR_ARCHIVE, 0, qtrue  },
 	{ &g_logfile, "g_log", "games.log", CVAR_ARCHIVE, 0, qfalse  },
 	{ &g_logfileSync, "g_logsync", "0", CVAR_ARCHIVE, 0, qfalse  },
@@ -380,7 +388,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_knockback, "g_knockback", "1000", 0, 0, qtrue  },
 	{ &g_quadfactor, "g_quadfactor", "4", 0, 0, qtrue  },
 	{ &g_weaponRespawn, "g_weaponrespawn", "5", 0, 0, qtrue  },
-	{ &g_weaponTeamRespawn, "g_weaponTeamRespawn", "30", 0, 0, qtrue },
+	{ &g_weaponTeamRespawn, "g_weaponTeamRespawn", "5", 0, 0, qtrue },
 	{ &g_forcerespawn, "g_forcerespawn", "20", 0, 0, qtrue },
 	{ &g_inactivity, "g_inactivity", "0", 0, 0, qtrue },
 	{ &g_debugMove, "g_debugMove", "0", 0, 0, qfalse },
@@ -667,6 +675,12 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	memset( &level, 0, sizeof( level ) );
 	level.time = levelTime;
 	level.startTime = levelTime;
+	// a duel map starts in warmup; only the restart at the end of the countdown starts the match
+	if ( g_gametype.integer == GT_TOURNAMENT ) {
+		level.warmupTime = g_restarted.integer ? 0 : -1;
+		trap_Cvar_Set( "g_restarted", "0" );
+		trap_SetConfigstring( CS_WARMUP, va( "%i", level.warmupTime ) );
+	}
 
 	level.snd_fry = G_SoundIndex("sound/player/fry.wav");	// FIXME standing in lava / slime
 
@@ -1603,8 +1617,12 @@ void CheckExitRules( void ) {
 		return;
 	}
 
-	// check for sudden death
-	if ( ScoreIsTied() ) {
+	if ( g_gametype.integer == GT_TOURNAMENT ) {
+		if ( G_DuelCheckTime() ) {
+			return;
+		}
+	} else if ( ScoreIsTied() ) {
+		// check for sudden death
 		// always wait for sudden death
 		return;
 	}
@@ -1615,7 +1633,7 @@ void CheckExitRules( void ) {
 		trap_Cvar_Update( &g_timelimit );
 	}
 
-	if ( g_timelimit.integer && !level.warmupTime ) {
+	if ( g_timelimit.integer && !level.warmupTime && g_gametype.integer != GT_TOURNAMENT ) {
 		if ( level.time - level.startTime >= g_timelimit.integer*60000 ) {
 			trap_SendServerCommand( -1, "print \"Timelimit hit.\n\"");
 			LogExit( "Timelimit hit." );
@@ -1627,6 +1645,11 @@ void CheckExitRules( void ) {
 		G_Printf( "fraglimit %i is out of range, defaulting to 0\n", g_fraglimit.integer );
 		trap_Cvar_Set( "fraglimit", "0" );
 		trap_Cvar_Update( &g_fraglimit );
+	}
+
+	if ( g_gametype.integer == GT_TOURNAMENT ) {
+		G_DuelCheckFraglimit();
+		return;
 	}
 
 	if ( g_gametype.integer < GT_CTF && g_fraglimit.integer ) {
@@ -1734,8 +1757,11 @@ void CheckTournament( void ) {
 			level.warmupTime = -1;
 		}
 
-		// if all players have arrived, start the countdown
+		// if all players have arrived and are ready, start the countdown
 		if ( level.warmupTime < 0 ) {
+			if ( !G_DuelPlayersReady() ) {
+				return;
+			}
 			if ( level.numPlayingClients == 2 ) {
 				// fudge by -1 to account for extra delays
 				if ( g_warmup.integer > 1 ) {

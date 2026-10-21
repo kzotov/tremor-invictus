@@ -1114,7 +1114,15 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"was gunned down by the turret of",
 	"was cut down by the laser of",
 	"walked into the plasma trail of",
-	"was shot down by the drone of"
+	"was shot down by the drone of",
+
+	"%s is ready",
+	"%s is not ready",
+	"Warmup: type readyup when you are ready",
+	"Overtime: %i minutes",
+	"Sudden death: the next frag wins",
+	"The match was stopped; back to warmup",
+	"Champion locked until the match ends; your pick applies next match"
 };
 
 /*

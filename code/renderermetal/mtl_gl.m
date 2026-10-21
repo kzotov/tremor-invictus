@@ -30,9 +30,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
+#import <AppKit/AppKit.h>
 
 #include <SDL.h>
 #include <SDL_metal.h>
+#include <SDL_syswm.h>
 #include <SDL_opengl.h>
 
 #include "../renderercommon/tr_common.h"
@@ -98,6 +100,7 @@ static struct {
 	id<MTLDevice>				device;
 	id<MTLCommandQueue>			queue;
 	CAMetalLayer				*layer;
+	__weak NSWindow				*window;		// to skip presenting while nobody can see it
 	SDL_MetalView				view;
 	id<MTLLibrary>				library;
 	id<MTLFunction>				vertexFunction, fragmentFunction;
@@ -1507,6 +1510,14 @@ void *MTL_CreateContext( SDL_Window *window ) {
 	mtl.layer.device = mtl.device;
 	mtl.layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
 	mtl.layer.framebufferOnly = NO;
+	{
+		SDL_SysWMinfo	info;
+
+		SDL_VERSION( &info.version );
+		if ( SDL_GetWindowWMInfo( window, &info ) && info.subsystem == SDL_SYSWM_COCOA ) {
+			mtl.window = info.info.cocoa.window;
+		}
+	}
 
 	// draw at the window's size in points, as the OpenGL path does
 	SDL_GetWindowSize( window, &w, &h );
@@ -1600,6 +1611,7 @@ void MTL_DestroyContext( void *context ) {
 	mtl.vertexDescriptor = nil;
 	mtl.frameSemaphore = nil;
 	mtl.layer = nil;
+	mtl.window = nil;
 	mtl.queue = nil;
 	mtl.device = nil;
 	memset( (void *)&mtl, 0, sizeof( mtl ) );
@@ -1621,7 +1633,12 @@ void MTL_SwapWindow( SDL_Window *window ) {
 	MTL_EndPass();
 
 	@autoreleasepool {
-		drawable = [mtl.layer nextDrawable];
+		// a hidden or covered window gets no drawables in time, and waiting
+		// for one would stall the whole game
+		drawable = nil;
+		if ( !mtl.window || ( mtl.window.occlusionState & NSWindowOcclusionStateVisible ) ) {
+			drawable = [mtl.layer nextDrawable];
+		}
 		if ( drawable && drawable.texture.width == (NSUInteger)mtl.width && drawable.texture.height == (NSUInteger)mtl.height ) {
 			if ( mtl.gammaActive && mtl.gammaPipeline ) {
 				MTLRenderPassDescriptor		*pass = [MTLRenderPassDescriptor renderPassDescriptor];

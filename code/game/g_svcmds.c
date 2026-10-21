@@ -463,6 +463,16 @@ qboolean	ConsoleCommand( void ) {
 		return qtrue;
 	}
 
+	if ( Q_stricmp (cmd, "allready") == 0 ) {
+		Svcmd_AllReady_f();
+		return qtrue;
+	}
+
+	if ( Q_stricmp (cmd, "abort") == 0 ) {
+		Svcmd_Abort_f();
+		return qtrue;
+	}
+
 	if (Q_stricmp (cmd, "game_memory") == 0) {
 		Svcmd_GameMem_f();
 		return qtrue;
