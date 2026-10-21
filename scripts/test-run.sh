@@ -96,6 +96,7 @@ start)
 	ln -sfn "$ROOT/assets/baseq3/ui" "$HOME_DIR/baseq3/ui"
 	ln -sfn "$ROOT/assets/baseq3/presets" "$HOME_DIR/baseq3/presets"
 	ln -sfn "$ROOT/assets/baseq3/mappools" "$HOME_DIR/baseq3/mappools"
+	ln -sfn "$ROOT/assets/baseq3/configs" "$HOME_DIR/baseq3/configs"
 	# images made at build time (the menu logo)
 	mkdir -p "$HOME_DIR/baseq3/gfx"
 	ln -sfn "$BUILD/generated/gfx/tremor" "$HOME_DIR/baseq3/gfx/tremor"

@@ -133,6 +133,8 @@ static const settingRow_t controlRows[] = {
 };
 
 static const settingRow_t gameRows[] = {
+	{ ROW_SPIN, STR_SET_CONFIGPRESET, STR_SET_CONFIGPRESET_HELP, "ui_configPreset", 4, { "", "competitive", "casual", "default" },
+		{ STR_SET_CUSTOM, STR_SET_COMPETITIVE, STR_SET_CASUAL, STR_SET_DEFAULTPRESET } },
 	{ ROW_SPIN, STR_SET_HUDSTYLE, STR_SET_HUDSTYLE_HELP, "cg_hudStyle", 2, { "1", "0" }, { STR_SET_HUD_NEW, STR_SET_HUD_CLASSIC } },
 	{ ROW_SPIN, STR_SET_AUTOSWITCH, STR_SET_AUTOSWITCH_HELP, "cg_autoswitch", OFF_ON },
 	{ ROW_SPIN, STR_SET_AUTOHOP, STR_SET_AUTOHOP_HELP, "cg_autoHop", OFF_ON },
@@ -318,6 +320,11 @@ static void Settings_RowEvent( void *ptr, int event ) {
 	switch ( row->type ) {
 	case ROW_SPIN:
 		trap_Cvar_Set( row->cvar, row->values[it->spin.curvalue] );
+		// a config preset sets a group of options at once
+		if ( !Q_stricmp( row->cvar, "ui_configPreset" ) && row->values[it->spin.curvalue][0] ) {
+			trap_Cmd_ExecuteText( EXEC_APPEND, va( "exec configs/%s.cfg\n", row->values[it->spin.curvalue] ) );
+			trap_Cmd_ExecuteText( EXEC_APPEND, "ui_settingsRefresh\n" );
+		}
 		break;
 	case ROW_SLIDER:
 		if ( row->max - row->min > 5 ) {
