@@ -2250,49 +2250,70 @@ static void CG_DrawShellShock( void ) {
 
 /*
 ===================
-CG_DrawRevealedPlayers
+CG_PlayerRevealed
 
-Piercing sight: outline enemies through walls
+Piercing sight shows every enemy; marks and storms show the players they caught
 ===================
 */
-static void CG_DrawRevealedPlayers( void ) {
+qboolean CG_PlayerRevealed( int clientNum ) {
 	playerState_t	*ps = &cg.snap->ps;
-	centity_t		*cent;
-	vec3_t			feet, head;
-	float			x1, y1, x2, y2, w;
-	int				i, myTeam;
-	static vec4_t	revealColor = { 1.0f, 0.2f, 0.1f, 0.8f };
-	qboolean		sight;
+	centity_t		*cent = &cg_entities[clientNum];
 
-	// piercing sight shows every enemy; marks and storms show the players they caught
-	sight = BG_Champion( ps->stats[STAT_CHAMPION] )->active == ACTIVE_PIERCINGSIGHT
-		&& BG_AbilityState( ps ) == ABILITY_ACTIVE;
-
-	myTeam = ps->persistant[PERS_TEAM];
-	for ( i = 0 ; i < MAX_CLIENTS ; i++ ) {
-		cent = &cg_entities[i];
-		if ( i == ps->clientNum || !cent->currentValid || cent->currentState.eType != ET_PLAYER ) {
-			continue;
-		}
-		if ( !sight && !( cent->currentState.eFlags & EF_MARKED ) ) {
-			continue;
-		}
-		if ( cent->currentState.eFlags & EF_DEAD ) {
-			continue;
-		}
-		if ( cgs.gametype >= GT_TEAM && cgs.clientinfo[i].team == myTeam ) {
-			continue;
-		}
-		VectorCopy( cent->lerpOrigin, feet );
-		VectorCopy( cent->lerpOrigin, head );
-		feet[2] += MINS_Z;
-		head[2] += DEFAULT_HEIGHT;
-		if ( !CG_WorldToScreen( feet, &x1, &y1 ) || !CG_WorldToScreen( head, &x2, &y2 ) ) {
-			continue;
-		}
-		w = ( y1 - y2 ) * 0.4f;
-		CG_DrawRect( x1 - w * 0.5f, y2, w, y1 - y2, 1, revealColor );
+	if ( clientNum == ps->clientNum || !cent->currentValid || cent->currentState.eType != ET_PLAYER
+		|| ( cent->currentState.eFlags & EF_DEAD ) ) {
+		return qfalse;
 	}
+	if ( cgs.gametype >= GT_TEAM && cgs.clientinfo[clientNum].team == ps->persistant[PERS_TEAM] ) {
+		return qfalse;
+	}
+	if ( cent->currentState.eFlags & EF_MARKED ) {
+		return qtrue;
+	}
+	return BG_Champion( ps->stats[STAT_CHAMPION] )->active == ACTIVE_PIERCINGSIGHT
+		&& BG_AbilityState( ps ) == ABILITY_ACTIVE;
+}
+
+/*
+===================
+CG_RevealModel
+
+Keeps a copy of a revealed player's model part, drawn again after the world
+in a pass of its own so it shows through walls
+===================
+*/
+void CG_RevealModel( const refEntity_t *ent, int clientNum ) {
+	if ( clientNum < 0 || clientNum >= MAX_CLIENTS || cg.numRevealModels >= MAX_REVEAL_MODELS
+		|| !CG_PlayerRevealed( clientNum ) ) {
+		return;
+	}
+	cg.revealModels[cg.numRevealModels] = *ent;
+	cg.revealModels[cg.numRevealModels].customShader = cgs.media.revealShader;
+	cg.revealModels[cg.numRevealModels].renderfx &= ~( RF_FIRST_PERSON | RF_THIRD_PERSON );
+	cg.numRevealModels++;
+}
+
+/*
+===================
+CG_DrawRevealedModels
+
+The revealed players' silhouettes, over the rendered world
+===================
+*/
+static void CG_DrawRevealedModels( void ) {
+	refdef_t	refdef;
+	int			i;
+
+	if ( !cg.numRevealModels ) {
+		return;
+	}
+	refdef = cg.refdef;
+	refdef.rdflags |= RDF_NOWORLDMODEL;
+	trap_R_ClearScene();
+	for ( i = 0 ; i < cg.numRevealModels ; i++ ) {
+		trap_R_AddRefEntityToScene( &cg.revealModels[i] );
+	}
+	trap_R_RenderScene( &refdef );
+	cg.numRevealModels = 0;
 }
 
 #ifndef MISSIONPACK
@@ -3965,7 +3986,6 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 #ifdef MISSIONPACK
 			CG_DrawProxWarning();
 #endif      
-			CG_DrawRevealedPlayers();
 			CG_DrawShellShock();
 			if(stereoFrame == STEREO_CENTER)
 				CG_DrawCrosshair();
@@ -4087,6 +4107,7 @@ void CG_DrawActive( stereoFrame_t stereoView ) {
 
 	// draw 3D view
 	trap_R_RenderScene( &cg.refdef );
+	CG_DrawRevealedModels();
 
 	// draw status bar and other floating elements
  	CG_Draw2D(stereoView);

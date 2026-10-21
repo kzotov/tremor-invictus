@@ -34,3 +34,16 @@ tremor/tint
 		depthFunc equal
 	}
 }
+
+// enemies revealed through walls (Piercing Sight, marks): the model's shape,
+// drawn in a pass of its own over the world
+tremor/reveal
+{
+	nopicmip
+	cull none
+	{
+		map $whiteimage
+		blendFunc add
+		rgbGen const ( 0.75 0.12 0.06 )
+	}
+}

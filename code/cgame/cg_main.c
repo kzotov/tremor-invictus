@@ -971,6 +971,7 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.battleSuitShader = trap_R_RegisterShader("powerups/battleSuit" );
 	cgs.media.battleWeaponShader = trap_R_RegisterShader("powerups/battleWeapon" );
 	cgs.media.invisShader = trap_R_RegisterShader("powerups/invisibility" );
+	cgs.media.revealShader = trap_R_RegisterShader( "tremor/reveal" );
 	cgs.media.droneModel = trap_R_RegisterModel( "models/powerups/holdable/teleporter.md3" );
 	cgs.media.brightShader = trap_R_RegisterShader( "tremor/bright" );
 	cgs.media.sportShader = trap_R_RegisterShader( "tremor/sport" );

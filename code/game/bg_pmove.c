@@ -650,9 +650,12 @@ static void PM_SetMovementDir( void ) {
 PM_CheckJump
 =============
 */
+#define CHAIN_FULL_MSEC		300		// air control: full chain boost this soon after a jump
+#define CHAIN_END_VELOCITY	37		// ... fading to this at the chain time
+
 static qboolean PM_CheckJump( void ) {
 	qboolean	silent;
-	int			style;
+	int			style, jt;
 	float		cap, speed;
 
 	if ( pm->ps->pm_flags & PMF_RESPAWNED ) {
@@ -706,21 +709,29 @@ static qboolean PM_CheckJump( void ) {
 		pm->ps->velocity[2] *= bg_pmoveSettings.crouchJumpScale;
 	}
 
-	// chained jumps go higher: air control adds a fixed boost, everyone else
-	// a share that fades over the chain time
-	if ( pm->ps->stats[STAT_JUMP_TIME] < bg_pmoveSettings.chainTime ) {
-		if ( style == MOVE_AIRCONTROL ) {
-			pm->ps->velocity[2] += bg_pmoveSettings.chainVelocity;
-		} else {
-			pm->ps->velocity[2] *= 1.0f + bg_pmoveSettings.chainScale
-				* ( bg_pmoveSettings.chainTime - pm->ps->stats[STAT_JUMP_TIME] ) / bg_pmoveSettings.chainTime;
+	// one bonus per jump. A ramp jump keeps its climb and gets nothing more.
+	// Air control: a chained jump adds a fixed boost that fades from 300 ms
+	// to the chain time, or else a jump off a step up adds a small one.
+	// Everyone else: a chained jump scales up, fading over the chain time.
+	jt = pm->ps->stats[STAT_JUMP_TIME];
+	if ( speed > 0 ) {
+		// ramp jump
+	} else if ( style == MOVE_AIRCONTROL ) {
+		if ( jt < bg_pmoveSettings.chainTime ) {
+			if ( jt <= CHAIN_FULL_MSEC ) {
+				pm->ps->velocity[2] += bg_pmoveSettings.chainVelocity;
+			} else {
+				pm->ps->velocity[2] += bg_pmoveSettings.chainVelocity - ( bg_pmoveSettings.chainVelocity - CHAIN_END_VELOCITY )
+					* ( jt - CHAIN_FULL_MSEC ) / ( bg_pmoveSettings.chainTime - CHAIN_FULL_MSEC );
+			}
+		} else if ( pm->ps->persistant[PERS_STEP_TIME] < bg_pmoveSettings.stepJumpTime ) {
+			pm->ps->velocity[2] += bg_pmoveSettings.stepJumpVelocity;
 		}
+	} else if ( jt < bg_pmoveSettings.chainTime ) {
+		pm->ps->velocity[2] *= 1.0f + bg_pmoveSettings.chainScale
+			* ( bg_pmoveSettings.chainTime - jt ) / bg_pmoveSettings.chainTime;
 	}
-	// a jump just after a step up gets a small boost
-	if ( pm->ps->persistant[PERS_STEP_TIME] < bg_pmoveSettings.stepJumpTime ) {
-		pm->ps->velocity[2] += bg_pmoveSettings.stepJumpVelocity;
-		pm->ps->persistant[PERS_STEP_TIME] = STAT_TIME_CAP;
-	}
+	pm->ps->persistant[PERS_STEP_TIME] = STAT_TIME_CAP;
 	if ( style == MOVE_SLIDE ) {
 		pm->ps->stats[STAT_MOVE_STATE] = 0;
 	}

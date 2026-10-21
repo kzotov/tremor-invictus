@@ -794,6 +794,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 
 	// clear all the render lists
 	trap_R_ClearScene();
+	cg.numRevealModels = 0;
 
 	// set up cg.snap and possibly cg.nextSnap
 	CG_ProcessSnapshots();

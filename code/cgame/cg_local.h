@@ -452,6 +452,7 @@ typedef struct {
 
 
 #define MAX_REWARDSTACK		10
+#define MAX_REVEAL_MODELS	64
 #define MAX_SOUNDBUFFER		32		// announcer queue
 
 //======================================================================
@@ -541,6 +542,8 @@ typedef struct {
 	// information screen text during loading
 	int			mapVote;			// 1-3, the map this player voted for
 	int			mapVoteTime;		// end time of that vote, to notice a new one
+	refEntity_t	revealModels[MAX_REVEAL_MODELS];	// this frame's revealed players' parts
+	int			numRevealModels;
 	char		infoScreenText[MAX_STRING_CHARS];
 
 	// scoreboard
@@ -805,6 +808,7 @@ typedef struct {
 	qhandle_t	redQuadShader;
 	qhandle_t	quadWeaponShader;
 	qhandle_t	invisShader;
+	qhandle_t	revealShader;		// enemies seen through walls
 	qhandle_t	droneModel;
 	qhandle_t	brightShader;			// player colours
 	qhandle_t	sportShader;
@@ -1573,6 +1577,8 @@ void CG_PlayBufferedVoiceChats( void );
 //
 void CG_Respawn( void );
 void CG_TransitionPlayerState( playerState_t *ps, playerState_t *ops );
+qboolean CG_PlayerRevealed( int clientNum );
+void CG_RevealModel( const refEntity_t *ent, int clientNum );
 void CG_PushReward( sfxHandle_t sfx, qhandle_t shader, int rewardCount, int name );
 void CG_CheckChangedPredictableEvents( playerState_t *ps );
 
