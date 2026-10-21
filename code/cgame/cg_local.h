@@ -695,6 +695,9 @@ typedef struct {
 	qhandle_t	charsetPropGlow;
 	qhandle_t	charsetPropB;
 	qhandle_t	whiteShader;
+	qhandle_t	pillarSideShader;	// lineup and podium pillars
+	qhandle_t	pillarCapShader;
+	qhandle_t	pillarRankShader[3];
 
 #ifdef MISSIONPACK
 	qhandle_t	redCubeModel;
@@ -1264,6 +1267,7 @@ extern	vmCvar_t		cg_crosshairColor;
 extern	vmCvar_t		cg_drawSpeed;
 extern	vmCvar_t		cg_layoutDebug;
 extern	vmCvar_t		cg_showLoading;
+extern	vmCvar_t		cg_showLineup;
 extern	vmCvar_t		cg_damageArc;
 extern	vmCvar_t		cg_zoomToggle;
 extern	vmCvar_t		cg_lowHealthWarning;

@@ -237,8 +237,11 @@ void InGame_MenuInit( void ) {
 	y = 104;
 	InGame_Item( &s_ingame.resume, ID_RESUME, BG_String( STR_MENU_RESUME ), y );
 	y += INGAME_MENU_VERTICAL_SPACING;
-	InGame_Item( &s_ingame.champion, ID_CHAMPION, BG_String( STR_MENU_CHAMPION ), y );
-	y += INGAME_MENU_VERTICAL_SPACING;
+	// in duel the champion is set for the match, so no Champion entry
+	if ( trap_Cvar_VariableValue( "g_gametype" ) != GT_TOURNAMENT ) {
+		InGame_Item( &s_ingame.champion, ID_CHAMPION, BG_String( STR_MENU_CHAMPION ), y );
+		y += INGAME_MENU_VERTICAL_SPACING;
+	}
 	InGame_Item( &s_ingame.colors, ID_COLORS, BG_String( STR_MENU_PLAYER_COLORS ), y );
 	y += INGAME_MENU_VERTICAL_SPACING;
 	InGame_Item( &s_ingame.setup, ID_SETUP, BG_String( STR_MENU_SETTINGS ), y );
@@ -274,7 +277,9 @@ void InGame_MenuInit( void ) {
 	InGame_Item( &s_ingame.quit, ID_QUIT, BG_String( STR_MENU_QUIT ), y );
 
 	Menu_AddItem( &s_ingame.menu, &s_ingame.resume );
-	Menu_AddItem( &s_ingame.menu, &s_ingame.champion );
+	if ( trap_Cvar_VariableValue( "g_gametype" ) != GT_TOURNAMENT ) {
+		Menu_AddItem( &s_ingame.menu, &s_ingame.champion );
+	}
 	Menu_AddItem( &s_ingame.menu, &s_ingame.colors );
 	Menu_AddItem( &s_ingame.menu, &s_ingame.setup );
 	Menu_AddItem( &s_ingame.menu, &s_ingame.team );

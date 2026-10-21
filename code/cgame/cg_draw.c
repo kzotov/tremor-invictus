@@ -3488,62 +3488,93 @@ their own in front of the darkened screen
 ==============================================================================
 */
 
-#define PILLAR_RADIUS	24
+#define PILLAR_RADIUS	24		// centre to corner; each face is this wide
 #define PILLAR_DIST		300		// how far in front of the camera the row stands
+#define PILLAR_GAP		56		// least distance between pillar centres
+#define PILLAR_V_SCALE	128		// side texture: v runs over this many units down
 
 /*
 =================
 CG_PillarPoly
+
+One textured quad, every corner in the glow colour
 =================
 */
-static void CG_PillarPoly( vec3_t a, vec3_t b, vec3_t c, vec3_t d, const byte *rgba ) {
+static void CG_PillarPoly( qhandle_t shader, vec3_t xyz[4], float st[4][2], const byte *glow ) {
 	polyVert_t	v[4];
 	int			i;
 
-	VectorCopy( a, v[0].xyz );
-	VectorCopy( b, v[1].xyz );
-	VectorCopy( c, v[2].xyz );
-	VectorCopy( d, v[3].xyz );
 	for ( i = 0 ; i < 4 ; i++ ) {
-		v[i].st[0] = v[i].st[1] = 0;
-		v[i].modulate[0] = rgba[0];
-		v[i].modulate[1] = rgba[1];
-		v[i].modulate[2] = rgba[2];
-		v[i].modulate[3] = rgba[3];
+		VectorCopy( xyz[i], v[i].xyz );
+		v[i].st[0] = st[i][0];
+		v[i].st[1] = st[i][1];
+		v[i].modulate[0] = glow[0];
+		v[i].modulate[1] = glow[1];
+		v[i].modulate[2] = glow[2];
+		v[i].modulate[3] = 255;
 	}
-	trap_R_AddPolyToScene( cgs.media.whiteShader, 4, v );
+	trap_R_AddPolyToScene( shader, 4, v );
 }
 
 /*
 =================
 CG_AddPillar
 
-A hexagonal column from the floor up to `top`, with a coloured strip
-around its top edge
+A hexagonal column from the floor up to its top at base: metal sides and
+cap whose lines glow in `glow`; rank 1-3 adds the place on the face toward
+the camera
 =================
 */
-static void CG_AddPillar( const vec3_t base, float top, const byte *strip ) {
-	static const byte	side[4] = { 18, 18, 22, 255 };
-	static const byte	cap[4] = { 34, 34, 40, 255 };
-	vec3_t	lo[6], hi[6], st[6], center;
+static void CG_AddPillar( const vec3_t base, const byte *glow, int rank ) {
+	vec3_t	corner[6], q[4];
+	float	st[4][2], top = base[2], bottom = base[2] - 400;
 	int		i, j;
 
 	for ( i = 0 ; i < 6 ; i++ ) {
 		float	a = DEG2RAD( 30 + i * 60 );
 
-		VectorSet( lo[i], base[0] + cos( a ) * PILLAR_RADIUS, base[1] + sin( a ) * PILLAR_RADIUS, base[2] - 400 );
-		VectorSet( hi[i], lo[i][0], lo[i][1], base[2] + top );
-		VectorSet( st[i], lo[i][0], lo[i][1], base[2] + top - 4 );
+		VectorSet( corner[i], base[0] + cos( a ) * PILLAR_RADIUS, base[1] + sin( a ) * PILLAR_RADIUS, top );
 	}
+
+	// sides: u from corner i to corner i+1, v down from the top
 	for ( i = 0 ; i < 6 ; i++ ) {
 		j = ( i + 1 ) % 6;
-		CG_PillarPoly( lo[i], lo[j], st[j], st[i], side );
-		CG_PillarPoly( st[i], st[j], hi[j], hi[i], strip );
+		VectorCopy( corner[i], q[0] );
+		VectorCopy( corner[j], q[1] );
+		VectorCopy( corner[j], q[2] );
+		VectorCopy( corner[i], q[3] );
+		q[0][2] = q[1][2] = bottom;
+		st[0][0] = 0; st[0][1] = ( top - bottom ) / PILLAR_V_SCALE;
+		st[1][0] = 1; st[1][1] = ( top - bottom ) / PILLAR_V_SCALE;
+		st[2][0] = 1; st[2][1] = 0;
+		st[3][0] = 0; st[3][1] = 0;
+		CG_PillarPoly( cgs.media.pillarSideShader, q, st, glow );
 	}
-	VectorSet( center, base[0], base[1], base[2] + top );
-	for ( i = 0 ; i < 6 ; i++ ) {
-		j = ( i + 1 ) % 6;
-		CG_PillarPoly( center, hi[j], hi[i], center, cap );
+
+	// cap: mapped flat over 48 x 48 units, two quads of the hexagon
+	for ( i = 0 ; i < 6 ; i += 3 ) {
+		for ( j = 0 ; j < 4 ; j++ ) {
+			VectorCopy( corner[( i + j ) % 6], q[3 - j] );
+			st[3 - j][0] = ( q[3 - j][0] - base[0] ) / 48 + 0.5f;
+			st[3 - j][1] = ( q[3 - j][1] - base[1] ) / 48 + 0.5f;
+		}
+		CG_PillarPoly( cgs.media.pillarCapShader, q, st, glow );
+	}
+
+	// the podium place on the face toward the camera (-x), just in front of it
+	if ( rank >= 1 && rank <= 3 ) {
+		float	x = base[0] - PILLAR_RADIUS * cos( DEG2RAD( 30 ) ) - 0.1f;
+		float	y0 = base[1] + PILLAR_RADIUS / 2 - 4, y1 = base[1] + PILLAR_RADIUS / 2 - 20;
+
+		VectorSet( q[0], x, y0, top - 33 );
+		VectorSet( q[1], x, y1, top - 33 );
+		VectorSet( q[2], x, y1, top - 17 );
+		VectorSet( q[3], x, y0, top - 17 );
+		st[0][0] = 0; st[0][1] = 1;
+		st[1][0] = 1; st[1][1] = 1;
+		st[2][0] = 1; st[2][1] = 0;
+		st[3][0] = 0; st[3][1] = 0;
+		CG_PillarPoly( cgs.media.pillarRankShader[rank - 1], q, st, glow );
 	}
 }
 
@@ -3604,8 +3635,10 @@ Up to 16 players on pillars across the screen: `height` per slot (0 for
 the same height), names under them. Positions are spread from left to right.
 =================
 */
-static void CG_DrawPillars( const int *clients, const int *heights, const int *teams, int count, const char **labels ) {
-	static const byte	strips[3][4] = { { 179, 178, 173, 255 }, { 208, 26, 26, 255 }, { 40, 90, 220, 255 } };
+static void CG_DrawPillars( const int *clients, const int *heights, const int *teams, int count, const char **labels, const int *ranks ) {
+	// glow: logo red when neutral, else the team colour
+	static const byte	glows[3][4] = { { 211, 25, 31, 255 }, { 208, 26, 26, 255 }, { 40, 90, 220, 255 } };
+	float		dist;
 	refdef_t	refdef;
 	vec3_t		base;
 	float		spacing, y, sx;
@@ -3627,14 +3660,19 @@ static void CG_DrawPillars( const int *clients, const int *heights, const int *t
 	refdef.time = cg.time;
 
 	trap_R_ClearScene();
-	spacing = count > 1 ? 2 * PILLAR_DIST * tan( DEG2RAD( 25 ) ) / ( count - 1 ) : 0;
+	// a long row stands further back, so the pillars never overlap
+	dist = PILLAR_DIST;
+	if ( count > 1 && ( count - 1 ) * PILLAR_GAP > 2 * dist * tan( DEG2RAD( 25 ) ) ) {
+		dist = ( count - 1 ) * PILLAR_GAP / ( 2 * tan( DEG2RAD( 25 ) ) );
+	}
+	spacing = count > 1 ? 2 * dist * tan( DEG2RAD( 25 ) ) / ( count - 1 ) : 0;
 	if ( spacing > 110 ) {
 		spacing = 110;
 	}
 	for ( i = 0 ; i < count ; i++ ) {
 		y = ( ( count - 1 ) / 2.0f - i ) * spacing;
-		VectorSet( base, PILLAR_DIST, y, -60 + ( heights ? heights[i] : 0 ) );
-		CG_AddPillar( base, 0, strips[teams ? teams[i] : 0] );
+		VectorSet( base, dist, y, -60 + ( heights ? heights[i] : 0 ) );
+		CG_AddPillar( base, glows[teams ? teams[i] : 0], ranks ? ranks[i] : 0 );
 		CG_AddPillarPlayer( clients[i], base );
 	}
 	trap_R_AddLightToScene( vec3_origin, 600, 1, 1, 1 );
@@ -3644,7 +3682,7 @@ static void CG_DrawPillars( const int *clients, const int *heights, const int *t
 	for ( i = 0 ; i < count ; i++ ) {
 		y = ( ( count - 1 ) / 2.0f - i ) * spacing;
 		// the pillar's place on screen, in 640x480 units (the scene spans the whole width)
-		sx = 320 - y / ( PILLAR_DIST * tan( DEG2RAD( 30 ) ) ) * 0.5f * cgs.glconfig.vidWidth * 480 / cgs.glconfig.vidHeight;
+		sx = 320 - y / ( dist * tan( DEG2RAD( 30 ) ) ) * 0.5f * cgs.glconfig.vidWidth * 480 / cgs.glconfig.vidHeight;
 		ci = &cgs.clientinfo[clients[i]];
 		CG_DrawStringExt( sx - CG_DrawStrlen( ci->name ) * SMALLCHAR_WIDTH / 2, 404, ci->name, colorWhite,
 			qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 16 );
@@ -3664,10 +3702,10 @@ blue right; in duel the local player is on the left
 =================
 */
 static void CG_DrawLineup( void ) {
-	static const vec4_t	dim = { 0.05f, 0.05f, 0.06f, 0.85f };
+	static const vec4_t	dim = { 0.05f, 0.05f, 0.06f, 1.0f };		// a screen of its own, the world hidden
 	int		clients[16], teams[16], count = 0, i, t, local = cg.snap->ps.clientNum;
 
-	if ( cg.warmup <= 0 || cg.warmup < cg.time ) {
+	if ( ( cg.warmup <= 0 || cg.warmup < cg.time ) && !cg_showLineup.integer ) {
 		return;
 	}
 	// the local player first in duel; in team modes red, then blue
@@ -3694,7 +3732,10 @@ static void CG_DrawLineup( void ) {
 		return;
 	}
 	CG_FillRect( -1000, 0, 3000, 480, dim );
-	CG_DrawPillars( clients, NULL, teams, count, NULL );
+	CG_DrawPillars( clients, NULL, teams, count, NULL, NULL );
+	UI_DrawProportionalString( 320, 40, CG_ModeString(), UI_CENTER | UI_DROPSHADOW, colorWhite );
+	UI_DrawProportionalString( 320, 66, CG_ConfigString( CS_MESSAGE )[0] ? CG_ConfigString( CS_MESSAGE ) : cgs.mapname + 5,
+		UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorLtGrey );
 }
 
 /*
@@ -3707,7 +3748,7 @@ heights 3, 2 and 1, the winner in the middle
 */
 static void CG_DrawPodium( void ) {
 	static const vec4_t	dim = { 0.05f, 0.05f, 0.06f, 0.85f };
-	int		clients[3], heights[3], teams[3], count = 0, order[3] = { 1, 0, 2 }, i, n;
+	int		clients[3], heights[3], teams[3], ranks[3], count = 0, order[3] = { 1, 0, 2 }, i, n;
 	const char	*labels[3];
 
 	static char	scoreText[3][16];
@@ -3725,13 +3766,14 @@ static void CG_DrawPodium( void ) {
 		}
 		clients[count] = cg.scores[rank].client;
 		heights[count] = ( 3 - rank ) * 20;
+		ranks[count] = rank + 1;
 		teams[count] = cg.scores[rank].team == TEAM_RED ? 1 : cg.scores[rank].team == TEAM_BLUE ? 2 : 0;
 		Com_sprintf( scoreText[count], sizeof( scoreText[count] ), "%i", cg.scores[rank].score );
 		labels[count] = scoreText[count];
 		count++;
 	}
 	CG_FillRect( -1000, 0, 3000, 480, dim );
-	CG_DrawPillars( clients, heights, teams, count, labels );
+	CG_DrawPillars( clients, heights, teams, count, labels, ranks );
 }
 
 static void CG_DrawWarmup( void ) {
@@ -3945,7 +3987,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	cg.podiumTime = 0;
 
 	// the countdown: everyone on pillars
-	if ( cg.warmup > cg.time && cg_drawLineup.integer ) {
+	if ( ( cg.warmup > cg.time && cg_drawLineup.integer ) || cg_showLineup.integer ) {
 		CG_DrawLineup();
 		CG_DrawWarmup();
 		return;

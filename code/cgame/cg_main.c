@@ -220,6 +220,7 @@ vmCvar_t	cg_crosshairColor;
 vmCvar_t	cg_drawSpeed;
 vmCvar_t	cg_layoutDebug;
 vmCvar_t	cg_showLoading;
+vmCvar_t	cg_showLineup;
 vmCvar_t	cg_damageArc;
 vmCvar_t	cg_zoomToggle;
 vmCvar_t	cg_lowHealthWarning;
@@ -400,6 +401,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_drawSpeed, "cg_drawSpeed", "0", CVAR_ARCHIVE},
 	{ &cg_layoutDebug, "cg_layoutDebug", "0", CVAR_CHEAT},
 	{ &cg_showLoading, "cg_showLoading", "0", CVAR_CHEAT},		// show the loading screen, to check its layout
+	{ &cg_showLineup, "cg_showLineup", "0", CVAR_CHEAT},		// show the pre-match lineup, to check its layout
 	{ &cg_damageArc, "cg_damageArc", "1", CVAR_ARCHIVE},		// arc toward where damage came from
 	{ &cg_zoomToggle, "cg_zoomToggle", "0", CVAR_ARCHIVE},		// 1: +zoom toggles instead of holding
 	{ &cg_lowHealthWarning, "cg_lowHealthWarning", "1", CVAR_ARCHIVE},	// red edge and heartbeat below 25 health
@@ -1970,6 +1972,11 @@ void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum ) {
 	// load a few needed things before we do any screen updates
 	cgs.media.charsetShader		= trap_R_RegisterShader( "gfx/2d/bigchars" );
 	cgs.media.whiteShader		= trap_R_RegisterShader( "white" );
+	cgs.media.pillarSideShader	= trap_R_RegisterShader( "tremor/pillar/side" );
+	cgs.media.pillarCapShader	= trap_R_RegisterShader( "tremor/pillar/cap" );
+	cgs.media.pillarRankShader[0] = trap_R_RegisterShader( "tremor/pillar/rank1" );
+	cgs.media.pillarRankShader[1] = trap_R_RegisterShader( "tremor/pillar/rank2" );
+	cgs.media.pillarRankShader[2] = trap_R_RegisterShader( "tremor/pillar/rank3" );
 	cgs.media.charsetProp		= trap_R_RegisterShaderNoMip( "menu/art/font1_prop.tga" );
 	cgs.media.charsetPropGlow	= trap_R_RegisterShaderNoMip( "menu/art/font1_prop_glo.tga" );
 	cgs.media.charsetPropB		= trap_R_RegisterShaderNoMip( "menu/art/font2_prop.tga" );
