@@ -574,6 +574,7 @@ extern "C" void RML_Show( const char *path ) {
 		return;
 	}
 	documentPath = path;
+	imp.SetCvar( "rml_doc", path );
 	ApplyConditions( document );
 	document->Show();
 	imp.SetCvar( "rml_active", "1" );

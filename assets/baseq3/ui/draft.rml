@@ -1,0 +1,38 @@
+<rml>
+<head>
+	<title>Draft</title>
+	<link type="text/rcss" href="tremor.rcss"/>
+</head>
+<body>
+	<div class="draft">
+		<h1>[draft_title]</h1>
+		<div class="sub">[draft_turn]</div>
+		<div class="grid">
+		<button onclick="pick ranger">[champ_ranger]</button>
+		<button onclick="pick anarki">[champ_anarki]</button>
+		<button onclick="pick athena">[champ_athena]</button>
+		<button onclick="pick nyx">[champ_nyx]</button>
+		<button onclick="pick slash">[champ_slash]</button>
+		<button onclick="pick bj">[champ_bj]</button>
+		<button onclick="pick deathknight">[champ_deathknight]</button>
+		<button onclick="pick doomslayer">[champ_doomslayer]</button>
+		<button onclick="pick eisen">[champ_eisen]</button>
+		<button onclick="pick galena">[champ_galena]</button>
+		<button onclick="pick strogg">[champ_strogg]</button>
+		<button onclick="pick visor">[champ_visor]</button>
+		<button onclick="pick clutch">[champ_clutch]</button>
+		<button onclick="pick keel">[champ_keel]</button>
+		<button onclick="pick scalebearer">[champ_scalebearer]</button>
+		<button onclick="pick sorlag">[champ_sorlag]</button>
+		<button onclick="pick wrack">[champ_wrack]</button>
+		<button onclick="pick sarge">[champ_sarge]</button>
+		<button onclick="pick klesk">[champ_klesk]</button>
+		<button onclick="pick hunter">[champ_hunter]</button>
+		<button onclick="pick xaero">[champ_xaero]</button>
+		<button onclick="pick raine">[champ_raine]</button>
+		<button onclick="pick beastmaster">[champ_beastmaster]</button>
+		<button onclick="pick unumrey">[champ_unumrey]</button>
+		</div>
+	</div>
+</body>
+</rml>

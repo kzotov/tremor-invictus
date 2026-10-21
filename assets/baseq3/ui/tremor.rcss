@@ -143,3 +143,36 @@ button.small {
 	font-size: 26dp;
 	color: #8a8780;
 }
+
+/* round duel draft: the champions to pick, along the top over the pedestals */
+.draft {
+	position: absolute;
+	left: 5%;
+	top: 30dp;
+	width: 90%;
+}
+
+.draft h1 {
+	display: block;
+	text-align: center;
+	font-family: "Arial Black";
+	font-size: 40dp;
+	color: #f2efe9;
+}
+
+.draft .sub {
+	display: block;
+	text-align: center;
+	font-size: 24dp;
+	color: #8a8780;
+	margin-bottom: 14dp;
+}
+
+.draft .grid button {
+	display: inline-block;
+	width: 15%;
+	font-size: 24dp;
+	padding: 6dp 10dp;
+	margin: 2dp;
+	border-left-width: 4dp;
+}

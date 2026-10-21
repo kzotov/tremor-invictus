@@ -1737,7 +1737,7 @@ static float CG_DrawSacrifice( float y ) {
 		int		n;
 
 		cs += 3;
-		while ( *cs ) {
+		while ( *cs && *cs != '#' ) {
 			for ( n = 0 ; *cs && *cs != '|' && n < (int)sizeof( line ) - 1 ; n++ ) {
 				line[n] = *cs++;
 			}
@@ -3748,6 +3748,123 @@ static void CG_DrawPillars( const int *clients, const int *heights, const int *t
 
 /*
 =================
+CG_DraftState
+
+Round duel's draft from its config string: whether it is on, the two
+players and their picks (-1 not yet)
+=================
+*/
+static qboolean CG_DraftState( int players[2], int picks[2][3] ) {
+	const char	*cs = strchr( CG_ConfigString( CS_SACRIFICE ), '#' );
+	char		*p;
+	int			i;
+
+	if ( !cs || Q_strncmp( CG_ConfigString( CS_SACRIFICE ), "rd|", 3 ) ) {
+		return qfalse;
+	}
+	p = (char *)cs + 1;
+	if ( !atoi( COM_Parse( &p ) ) ) {
+		return qfalse;
+	}
+	players[0] = atoi( COM_Parse( &p ) );
+	players[1] = atoi( COM_Parse( &p ) );
+	for ( i = 0 ; i < 6 ; i++ ) {
+		picks[i / 3][i % 3] = atoi( COM_Parse( &p ) );
+	}
+	return qtrue;
+}
+
+/*
+=================
+CG_DrawDraft
+
+Round duel's draft in the lineup look: each player's three pedestals, the
+local player on the left, filling with the champions as they are picked.
+The picking itself is ui/draft.rml over it.
+=================
+*/
+static qboolean CG_DrawDraft( void ) {
+	static const vec4_t	dim = { 0.05f, 0.05f, 0.06f, 1.0f };
+	static const byte	glows[2][4] = { { 211, 25, 31, 255 }, { 40, 90, 220, 255 } };
+	int			players[2], picks[2][3], side, k, local = 0;
+	refdef_t	refdef;
+	vec3_t		base;
+	float		y, sx, dist = 420;
+	char		doc[MAX_QPATH], active[8];
+	qboolean	shown;
+
+	trap_Cvar_VariableStringBuffer( "rml_doc", doc, sizeof( doc ) );
+	trap_Cvar_VariableStringBuffer( "rml_active", active, sizeof( active ) );
+	shown = !Q_stricmp( doc, "ui/draft.rml" ) && atoi( active );
+	if ( !CG_DraftState( players, picks ) ) {
+		// the draft is over: put the picking document away
+		if ( shown ) {
+			trap_SendConsoleCommand( "rml_hide\n" );
+		}
+		return qfalse;
+	}
+	if ( !shown ) {
+		trap_SendConsoleCommand( "rml_show ui/draft.rml\n" );
+	}
+	if ( players[1] == cg.snap->ps.clientNum ) {
+		local = 1;		// the local player on the left
+	}
+
+	CG_FillRect( -1000, 0, 3000, 480, dim );
+	memset( &refdef, 0, sizeof( refdef ) );
+	refdef.rdflags = RDF_NOWORLDMODEL;
+	AxisClear( refdef.viewaxis );
+	refdef.fov_x = 60;
+	refdef.fov_y = 60 * cgs.glconfig.vidHeight / (float)cgs.glconfig.vidWidth;
+	refdef.width = cgs.glconfig.vidWidth;
+	refdef.height = cgs.glconfig.vidHeight;
+	refdef.time = cg.time;
+	trap_R_ClearScene();
+	for ( side = 0 ; side < 2 ; side++ ) {
+		for ( k = 0 ; k < 3 ; k++ ) {
+			y = ( side ? -1 : 1 ) * ( 60 + k * 54 );
+			VectorSet( base, dist, y, -40 );
+			CG_AddPillar( base, glows[side], 0 );
+		}
+	}
+	trap_R_AddLightToScene( vec3_origin, 600, 1, 1, 1 );
+	trap_R_RenderScene( &refdef );
+
+	// the picks over their pedestals, the players' names above each group
+	for ( side = 0 ; side < 2 ; side++ ) {
+		int			who = side ? players[!local] : players[local];
+		const int	*row = side ? picks[!local] : picks[local];
+
+		for ( k = 0 ; k < 3 ; k++ ) {
+			y = ( side ? -1 : 1 ) * ( 60 + k * 54 );
+			sx = 320 - y / ( dist * tan( DEG2RAD( 30 ) ) ) * 0.5f * cgs.glconfig.vidWidth * 480 / cgs.glconfig.vidHeight;
+			if ( row[k] >= 0 && row[k] < bg_numChampions ) {
+				const champion_t	*c = BG_Champion( row[k] );
+				char				model[MAX_QPATH], *skin;
+				qhandle_t			icon;
+
+				Q_strncpyz( model, c->model, sizeof( model ) );
+				skin = strchr( model, '/' );
+				if ( skin ) {
+					*skin++ = 0;
+				}
+				icon = trap_R_RegisterShaderNoMip( va( "models/players/%s/icon_%s", model, skin ? skin : "default" ) );
+				CG_DrawPic( sx - 24, 258, 48, 48, icon );
+				CG_DrawStringExt( sx - CG_DrawStrlen( BG_String( c->nameString ) ) * TINYCHAR_WIDTH / 2, 310,
+					BG_String( c->nameString ), colorWhite, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+			}
+		}
+		sx = side ? 470 : 170;
+		if ( who >= 0 && who < MAX_CLIENTS ) {
+			CG_DrawStringExt( sx - CG_DrawStrlen( cgs.clientinfo[who].name ) * BIGCHAR_WIDTH / 2, 220,
+				cgs.clientinfo[who].name, colorWhite, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+		}
+	}
+	return qtrue;
+}
+
+/*
+=================
 CG_DrawLineup
 
 During the countdown: everyone in the match on a pillar, red team left,
@@ -4045,6 +4162,11 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 		return;
 	}
 	cg.podiumTime = 0;
+
+	// round duel's draft: its own screen
+	if ( CG_DrawDraft() ) {
+		return;
+	}
 
 	// the countdown: everyone on pillars
 	if ( ( cg.warmup > cg.time && cg_drawLineup.integer ) || cg_showLineup.integer ) {

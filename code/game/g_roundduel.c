@@ -146,7 +146,24 @@ static void G_RDUpdateHud( void ) {
 			Q_strcat( line[side], sizeof( line[side] ), S_COLOR_WHITE );
 		}
 	}
-	trap_SetConfigstring( CS_SACRIFICE, va( "rd|%s|%s", line[0], line[1] ) );
+	// then, for the draft screen: "#<drafting> <clientA> <clientB> <a1 a2 a3> <b1 b2 b3>", -1 not picked yet
+	{
+		int		pick[2][RD_CHAMPIONS], n[2] = { 0, 0 }, s;
+
+		for ( side = 0 ; side < 2 ; side++ ) {
+			for ( i = 0 ; i < RD_CHAMPIONS ; i++ ) {
+				pick[side][i] = -1;
+			}
+		}
+		for ( i = 0 ; i < RD_CHAMPIONS * 2 && i < rd.numPicks ; i++ ) {
+			s = rdPickOrder[i];
+			pick[s][n[s]] = rd.picks[s][n[s]];
+			n[s]++;
+		}
+		trap_SetConfigstring( CS_SACRIFICE, va( "rd|%s|%s|#%i %i %i %i %i %i %i %i %i", line[0], line[1],
+			rd.state == RD_DRAFT, rd.player[0], rd.player[1], pick[0][0], pick[0][1], pick[0][2],
+			pick[1][0], pick[1][1], pick[1][2] ) );
+	}
 }
 
 static void G_RDAnnounce( const char *msg ) {
