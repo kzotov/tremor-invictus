@@ -250,6 +250,7 @@ typedef struct {
 	int			moveStyle;			// moveStyle_t
 	int			abilities;			// MOVEABIL_* bits
 	int			active;				// activeAbility_t
+	char		*model;				// player model, "name" or "name/skin"
 } champion_t;
 
 extern	const champion_t	bg_championList[];
@@ -259,6 +260,7 @@ extern	const float			bg_classHalfWidth[CLASS_NUM_CLASSES];
 #define	DEFAULT_CHAMPION	"ranger"
 
 int					BG_ChampionForName( const char *name );
+int					BG_ChampionForModel( const char *model );
 const champion_t	*BG_Champion( int index );
 
 // movement tunables, shared with the client through CVAR_SYSTEMINFO cvars

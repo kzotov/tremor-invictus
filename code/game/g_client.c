@@ -772,6 +772,17 @@ void ClientUserinfoChanged( int clientNum ) {
 #endif
 	client->ps.stats[STAT_MAX_HEALTH] = client->pers.maxHealth;
 
+	// champion, takes effect on the next spawn; bots pick the one matching their model
+	s = Info_ValueForKey( userinfo, "champion" );
+	if ( !*s && ( ent->r.svFlags & SVF_BOT ) ) {
+		client->pers.champion = BG_ChampionForModel( Info_ValueForKey( userinfo, "model" ) );
+		if ( client->pers.champion < 0 ) {
+			client->pers.champion = 0;
+		}
+	} else {
+		client->pers.champion = BG_ChampionForName( *s ? s : DEFAULT_CHAMPION );
+	}
+
 	// set model
 	if( g_gametype.integer >= GT_TEAM ) {
 		Q_strncpyz( model, Info_ValueForKey (userinfo, "team_model"), sizeof( model ) );
@@ -780,6 +791,10 @@ void ClientUserinfoChanged( int clientNum ) {
 		Q_strncpyz( model, Info_ValueForKey (userinfo, "model"), sizeof( model ) );
 		Q_strncpyz( headModel, Info_ValueForKey (userinfo, "headmodel"), sizeof( headModel ) );
 	}
+
+	// the champion decides the model
+	Q_strncpyz( model, BG_Champion( client->pers.champion )->model, sizeof( model ) );
+	Q_strncpyz( headModel, model, sizeof( headModel ) );
 
 /*	NOTE: all client side now
 
@@ -822,10 +837,6 @@ void ClientUserinfoChanged( int clientNum ) {
 		client->pers.teamInfo = qfalse;
 	}
 #endif
-
-	// champion, takes effect on the next spawn
-	s = Info_ValueForKey( userinfo, "champion" );
-	client->pers.champion = BG_ChampionForName( *s ? s : DEFAULT_CHAMPION );
 
 	// auto-hop defaults to on
 	s = Info_ValueForKey( userinfo, "cg_autoHop" );

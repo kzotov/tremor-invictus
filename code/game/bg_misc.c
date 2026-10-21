@@ -931,6 +931,12 @@ CHAMPIONS
 Body class, run speed, jump speed cap and movement style per champion.
 Retune here; the global movement numbers are cvars (see bg_pmove.c).
 
+Player models are stand-ins from the player's own Quake III Arena install
+(models/players/<model>), never shipped. Swap the model column for free
+models in a standalone build.
+klesk, xaero, sarge and hunter are kept for the hidden champions; don't use
+them as stand-ins.
+
 ==============================================================================
 */
 
@@ -941,23 +947,23 @@ const float bg_classHalfWidth[CLASS_NUM_CLASSES] = {
 };
 
 const champion_t bg_championList[] = {
-	// name, body class, run speed, jump speed cap, style, passive abilities, active ability
-	{ "ranger", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE },	// default, must stay first
-	{ "anarki", CLASS_LIGHT, 315, 640, MOVE_AIRCONTROL, 0, ACTIVE_NONE },
-	{ "athena", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, MOVEABIL_RAMPJUMP, ACTIVE_HOOK },
-	{ "nyx", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, MOVEABIL_WALLJUMP, ACTIVE_NONE },
-	{ "slash", CLASS_LIGHT, 320, 750, MOVE_SLIDE, 0, ACTIVE_NONE },
-	{ "bj", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE },
-	{ "deathknight", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE },
-	{ "doomslayer", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, MOVEABIL_DOUBLEJUMP, ACTIVE_NONE },
-	{ "eisen", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE },
-	{ "galena", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE },
-	{ "strogg", CLASS_MEDIUM, 310, 750, MOVE_SLIDE, 0, ACTIVE_NONE },
-	{ "visor", CLASS_MEDIUM, 320, 0, MOVE_STANDARD, 0, ACTIVE_NONE },
-	{ "clutch", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_AIRDODGE | MOVEABIL_ACCELERATION, ACTIVE_NONE },
-	{ "keel", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, 0, ACTIVE_NONE },
-	{ "scalebearer", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_HEAVYWEIGHT, ACTIVE_BULLRUSH },
-	{ "sorlag", CLASS_HEAVY, 300, 600, MOVE_AIRCONTROL, 0, ACTIVE_NONE }
+	// name, body class, run speed, jump speed cap, style, passive abilities, active ability, player model
+	{ "ranger", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "ranger" },	// default, must stay first
+	{ "anarki", CLASS_LIGHT, 315, 640, MOVE_AIRCONTROL, 0, ACTIVE_NONE, "anarki" },
+	{ "athena", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, MOVEABIL_RAMPJUMP, ACTIVE_HOOK, "crash" },
+	{ "nyx", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, MOVEABIL_WALLJUMP, ACTIVE_NONE, "mynx" },
+	{ "slash", CLASS_LIGHT, 320, 750, MOVE_SLIDE, 0, ACTIVE_NONE, "slash" },
+	{ "bj", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "bitterman" },
+	{ "deathknight", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "bones" },
+	{ "doomslayer", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, MOVEABIL_DOUBLEJUMP, ACTIVE_NONE, "doom" },
+	{ "eisen", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "biker" },
+	{ "galena", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "lucy" },
+	{ "strogg", CLASS_MEDIUM, 310, 750, MOVE_SLIDE, 0, ACTIVE_NONE, "grunt" },
+	{ "visor", CLASS_MEDIUM, 320, 0, MOVE_STANDARD, 0, ACTIVE_NONE, "visor" },
+	{ "clutch", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_AIRDODGE | MOVEABIL_ACCELERATION, ACTIVE_NONE, "tankjr" },
+	{ "keel", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "keel" },
+	{ "scalebearer", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_HEAVYWEIGHT, ACTIVE_BULLRUSH, "razor" },
+	{ "sorlag", CLASS_HEAVY, 300, 600, MOVE_AIRCONTROL, 0, ACTIVE_NONE, "sorlag" }
 };
 
 const int bg_numChampions = ARRAY_LEN( bg_championList );
@@ -978,6 +984,32 @@ int BG_ChampionForName( const char *name ) {
 		}
 	}
 	return 0;
+}
+
+/*
+==============
+BG_ChampionForModel
+
+Returns the champion that uses this player model ("name" or "name/skin"),
+or -1 if none does
+==============
+*/
+int BG_ChampionForModel( const char *model ) {
+	char	name[MAX_QPATH];
+	char	*slash;
+	int		i;
+
+	Q_strncpyz( name, model, sizeof( name ) );
+	slash = strchr( name, '/' );
+	if ( slash ) {
+		*slash = 0;
+	}
+	for ( i = 0 ; i < bg_numChampions ; i++ ) {
+		if ( !Q_stricmp( name, bg_championList[i].model ) ) {
+			return i;
+		}
+	}
+	return -1;
 }
 
 /*
