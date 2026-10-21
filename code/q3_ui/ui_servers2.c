@@ -949,9 +949,11 @@ static void ArenaServers_DoRefresh( void )
 		g_arenaservers.currentping++;
 	}
 
-	if (!trap_LAN_GetPingQueueCount())
+	// all pings completed; a master's answer can take a moment, so an empty
+	// list waits until the refresh time is up
+	if (!trap_LAN_GetPingQueueCount() && g_arenaservers.currentping >= g_arenaservers.numqueriedservers
+		&& (g_arenaservers.numqueriedservers > 0 || uis.realtime >= g_arenaservers.refreshtime))
 	{
-		// all pings completed
 		ArenaServers_StopRefresh();
 		return;
 	}
