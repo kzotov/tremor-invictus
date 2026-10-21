@@ -1056,6 +1056,7 @@ extern	vmCvar_t	g_hwDamagePer100;
 extern	vmCvar_t	g_hwKnockback;
 extern	vmCvar_t	g_hookKnockback;
 extern	vmCvar_t	g_warmupMax;
+extern	vmCvar_t	g_blindPick;
 extern	vmCvar_t	g_teleportKeepSpeed;
 extern	vmCvar_t	g_injectionMaxGain;
 extern	vmCvar_t	g_injectionMaxGainCap;

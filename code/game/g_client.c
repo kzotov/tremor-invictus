@@ -826,8 +826,13 @@ void ClientUserinfoChanged( int clientNum ) {
 		Q_strncpyz( headModel, Info_ValueForKey (userinfo, "headmodel"), sizeof( headModel ) );
 	}
 
-	// the champion being played decides the model; a new pick shows on respawn
-	G_ChampionModel( client->ps.stats[STAT_CHAMPION], model, sizeof( model ) );
+	// the champion being played decides the model; a new pick shows on respawn.
+	// Blind pick: before a duel's countdown everyone looks like the default
+	if ( g_blindPick.integer && g_gametype.integer == GT_TOURNAMENT && level.warmupTime < 0 ) {
+		G_ChampionModel( 0, model, sizeof( model ) );
+	} else {
+		G_ChampionModel( client->ps.stats[STAT_CHAMPION], model, sizeof( model ) );
+	}
 	Q_strncpyz( headModel, model, sizeof( headModel ) );
 
 /*	NOTE: all client side now
