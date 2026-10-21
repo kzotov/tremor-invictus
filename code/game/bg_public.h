@@ -146,6 +146,22 @@ typedef struct {
 
 extern const medalInfo_t	bg_medalInfo[MEDAL_NUM];
 
+// loading-screen tips: general, for a mode, or for a champion
+typedef enum {
+	TIP_GENERAL,
+	TIP_MODE,
+	TIP_CHAMPION
+} tipArea_t;
+
+typedef struct {
+	int			area;			// tipArea_t
+	const char	*key;			// mode or champion name
+	int			text;			// string table
+} tipInfo_t;
+
+extern const tipInfo_t	bg_tips[];
+extern const int		bg_numTips;
+
 // entityState generic1 of ability entities: which placeholder look to draw
 typedef enum {
 	AV_NONE,
@@ -447,6 +463,62 @@ typedef enum {
 	STR_ADMIN_NORIGHTS,
 	STR_ADMIN_LOCKED,
 	STR_MENU_TEAM_ORDERS,
+	STR_TIP,
+	STR_TIP_GEN_1,
+	STR_TIP_GEN_2,
+	STR_TIP_GEN_3,
+	STR_TIP_GEN_4,
+	STR_TIP_GEN_5,
+	STR_TIP_GEN_6,
+	STR_TIP_GEN_7,
+	STR_TIP_GEN_8,
+	STR_TIP_GEN_9,
+	STR_TIP_GEN_10,
+	STR_TIP_GEN_11,
+	STR_TIP_GEN_12,
+	STR_TIP_GEN_13,
+	STR_TIP_MODE_DUEL_1,
+	STR_TIP_MODE_DUEL_2,
+	STR_TIP_MODE_TDM_1,
+	STR_TIP_MODE_TDM_2,
+	STR_TIP_MODE_CTF_1,
+	STR_TIP_MODE_CTF_2,
+	STR_TIP_MODE_CA_1,
+	STR_TIP_MODE_CA_2,
+	STR_TIP_MODE_SACRIFICE_1,
+	STR_TIP_MODE_SACRIFICE_2,
+	STR_TIP_MODE_ROUNDDUEL_1,
+	STR_TIP_MODE_ROUNDDUEL_2,
+	STR_TIP_CH_RANGER_1,
+	STR_TIP_CH_ANARKI_1,
+	STR_TIP_CH_ATHENA_1,
+	STR_TIP_CH_ATHENA_2,
+	STR_TIP_CH_NYX_1,
+	STR_TIP_CH_NYX_2,
+	STR_TIP_CH_SLASH_1,
+	STR_TIP_CH_SLASH_2,
+	STR_TIP_CH_BJ_1,
+	STR_TIP_CH_DEATHKNIGHT_1,
+	STR_TIP_CH_DOOMSLAYER_1,
+	STR_TIP_CH_DOOMSLAYER_2,
+	STR_TIP_CH_EISEN_1,
+	STR_TIP_CH_GALENA_1,
+	STR_TIP_CH_STROGG_1,
+	STR_TIP_CH_VISOR_1,
+	STR_TIP_CH_CLUTCH_1,
+	STR_TIP_CH_CLUTCH_2,
+	STR_TIP_CH_KEEL_1,
+	STR_TIP_CH_SCALEBEARER_1,
+	STR_TIP_CH_SORLAG_1,
+	STR_TIP_CH_SORLAG_2,
+	STR_TIP_CH_WRACK_1,
+	STR_TIP_CH_SARGE_1,
+	STR_TIP_CH_KLESK_1,
+	STR_TIP_CH_HUNTER_1,
+	STR_TIP_CH_XAERO_1,
+	STR_TIP_CH_RAINE_1,
+	STR_TIP_CH_BEASTMASTER_1,
+	STR_TIP_CH_UNUMREY_1,
 	STR_MEDAL_FIRSTBLOOD,
 	STR_MEDAL_MIDAIR,
 	STR_MEDAL_AIRBORNE,

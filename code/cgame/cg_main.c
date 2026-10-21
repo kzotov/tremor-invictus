@@ -221,6 +221,7 @@ vmCvar_t	cg_drawSpeed;
 vmCvar_t	cg_layoutDebug;
 vmCvar_t	cg_showLoading;
 vmCvar_t	cg_showLineup;
+vmCvar_t	cg_loadingTips;
 vmCvar_t	cg_damageArc;
 vmCvar_t	cg_zoomToggle;
 vmCvar_t	cg_lowHealthWarning;
@@ -402,6 +403,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_layoutDebug, "cg_layoutDebug", "0", CVAR_CHEAT},
 	{ &cg_showLoading, "cg_showLoading", "0", CVAR_CHEAT},		// show the loading screen, to check its layout
 	{ &cg_showLineup, "cg_showLineup", "0", CVAR_CHEAT},		// show the pre-match lineup, to check its layout
+	{ &cg_loadingTips, "cg_loadingTips", "1", CVAR_ARCHIVE},		// a gameplay tip while a map loads
 	{ &cg_damageArc, "cg_damageArc", "1", CVAR_ARCHIVE},		// arc toward where damage came from
 	{ &cg_zoomToggle, "cg_zoomToggle", "0", CVAR_ARCHIVE},		// 1: +zoom toggles instead of holding
 	{ &cg_lowHealthWarning, "cg_lowHealthWarning", "1", CVAR_ARCHIVE},	// red edge and heartbeat below 25 health

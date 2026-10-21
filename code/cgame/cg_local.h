@@ -1268,6 +1268,7 @@ extern	vmCvar_t		cg_drawSpeed;
 extern	vmCvar_t		cg_layoutDebug;
 extern	vmCvar_t		cg_showLoading;
 extern	vmCvar_t		cg_showLineup;
+extern	vmCvar_t		cg_loadingTips;
 extern	vmCvar_t		cg_damageArc;
 extern	vmCvar_t		cg_zoomToggle;
 extern	vmCvar_t		cg_lowHealthWarning;

@@ -109,6 +109,117 @@ const char *CG_ModeString( void ) {
 
 /*
 ====================
+CG_PickTip
+
+A tip for this load: 40% the selected champion, 30% the mode, 30% general,
+skipping the last 10 shown (kept in cg_tipHistory)
+====================
+*/
+static int CG_PickTip( void ) {
+	char		history[256], champion[64], *p, *token;
+	const char	*mode = Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_mode" );
+	int			recent[10], numRecent = 0, candidates[64], count, area, i, j, roll, pick;
+
+	trap_Cvar_VariableStringBuffer( "cg_tipHistory", history, sizeof( history ) );
+	trap_Cvar_VariableStringBuffer( "champion", champion, sizeof( champion ) );
+	p = history;
+	while ( numRecent < 10 ) {
+		token = COM_Parse( &p );
+		if ( !token[0] ) {
+			break;
+		}
+		recent[numRecent++] = atoi( token );
+	}
+
+	roll = ( trap_Milliseconds() * 7919 + 13 ) % 100;
+	area = roll < 40 ? TIP_CHAMPION : roll < 70 ? TIP_MODE : TIP_GENERAL;
+	for ( ; area >= TIP_GENERAL ; area-- ) {
+		count = 0;
+		for ( i = 0 ; i < bg_numTips && count < ARRAY_LEN( candidates ) ; i++ ) {
+			if ( bg_tips[i].area != area ) {
+				continue;
+			}
+			if ( area == TIP_MODE && Q_stricmp( bg_tips[i].key, mode ) ) {
+				continue;
+			}
+			if ( area == TIP_CHAMPION && Q_stricmp( bg_tips[i].key, champion ) ) {
+				continue;
+			}
+			for ( j = 0 ; j < numRecent && recent[j] != i ; j++ ) {
+			}
+			if ( j == numRecent ) {
+				candidates[count++] = i;
+			}
+		}
+		if ( count ) {
+			break;
+		}
+		if ( area == TIP_CHAMPION ) {
+			area = TIP_GENERAL + 1;		// no champion tip left: try general next
+		}
+	}
+	if ( area < TIP_GENERAL || !count ) {
+		trap_Cvar_Set( "cg_tipHistory", "" );
+		return ( trap_Milliseconds() % bg_numTips );
+	}
+	pick = candidates[( trap_Milliseconds() / 7 ) % count];
+
+	// remember it, the newest first
+	Q_strncpyz( history, va( "%i", pick ), sizeof( history ) );
+	for ( i = 0 ; i < numRecent && i < 9 ; i++ ) {
+		Q_strcat( history, sizeof( history ), va( " %i", recent[i] ) );
+	}
+	trap_Cvar_Set( "cg_tipHistory", history );
+	return pick;
+}
+
+/*
+====================
+CG_DrawTip
+
+The tip under the progress bar, wrapped onto two lines when long; a new
+one after 8 s of loading
+====================
+*/
+static void CG_DrawTip( void ) {
+	static int	tip = -1, tipTime;
+	static vec4_t	accent = { 0.85f, 0.12f, 0.1f, 1 };
+	static vec4_t	band = { 0.06f, 0.06f, 0.08f, 0.6f };
+	char		line[2][128];
+	const char	*text;
+	int			len, cut, i, now = trap_Milliseconds();
+
+	if ( !cg_loadingTips.integer || bg_numTips <= 0 ) {
+		return;
+	}
+	if ( tip < 0 || now - tipTime > 8000 ) {
+		tip = CG_PickTip();
+		tipTime = now;
+	}
+	text = BG_String( bg_tips[tip].text );
+	len = strlen( text );
+	cut = len;
+	if ( len > 70 ) {
+		for ( cut = 70 ; cut > 0 && text[cut] != ' ' ; cut-- ) {
+		}
+		if ( !cut ) {
+			cut = 70;
+		}
+	}
+	Q_strncpyz( line[0], text, cut + 1 < sizeof( line[0] ) ? cut + 1 : sizeof( line[0] ) );
+	Q_strncpyz( line[1], text[cut] ? text + cut + 1 : "", sizeof( line[1] ) );
+
+	CG_FillRect( 0, 340, SCREEN_WIDTH, line[1][0] ? 66 : 48, band );
+	CG_DrawSmallStringColor( 320 - CG_DrawStrlen( BG_String( STR_TIP ) ) * SMALLCHAR_WIDTH / 2, 346, BG_String( STR_TIP ), accent );
+	for ( i = 0 ; i < 2 ; i++ ) {
+		if ( line[i][0] ) {
+			CG_DrawSmallStringColor( 320 - CG_DrawStrlen( line[i] ) * SMALLCHAR_WIDTH / 2, 364 + i * 18, line[i], colorLtGrey );
+		}
+	}
+}
+
+/*
+====================
 CG_DrawLevelshot
 
 The map's picture over the whole screen, cropped to keep its shape
@@ -187,4 +298,5 @@ void CG_DrawInformation( void ) {
 	UI_DrawProportionalString( SCREEN_WIDTH / 2, 300, BG_String( STR_LOADING ), UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite );
 	CG_FillRect( 220, 324, 200, 4, trackColor );
 	CG_FillRect( 220, 324, 200 * loadingFraction, 4, fillColor );
+	CG_DrawTip();
 }
