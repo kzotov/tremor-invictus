@@ -88,6 +88,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define CS_SACRIFICE			26		// "red blue soulState carrier extract meterTime": sacrifice HUD
 
 #define	CS_ITEMS				27		// string of 0's and 1's that tell which items are present
+#define	CS_ITEM_TIMERS			28		// "item respawnTime ..." for major items, time 0 = up
 
 #define	CS_MODELS				32
 #define	CS_SOUNDS				(CS_MODELS+MAX_MODELS)
@@ -1447,6 +1448,7 @@ gitem_t	*BG_FindItemForHoldable( holdable_t pw );
 #define	ITEM_INDEX(x) ((x)-bg_itemlist)
 
 int			BG_AmmoBoxAmount( int weapon );
+int			BG_ItemTimerClass( const gitem_t *item );
 qboolean	BG_AmmoBoxUseful( const playerState_t *ps );
 qboolean	BG_CanItemBeGrabbed( int gametype, const entityState_t *ent, const playerState_t *ps );
 

@@ -664,6 +664,54 @@ static void CG_DrawChat( void ) {
 
 /*
 =================
+CG_DrawSpecItemTimers
+
+For spectators and demos: each major item's icon and the seconds until it
+comes back, down the left edge
+=================
+*/
+static void CG_DrawSpecItemTimers( void ) {
+	char		*p;
+	int			item, time, y = 200, left;
+	char		buf[MAX_STRING_CHARS];
+	vec4_t		color = { 1, 1, 1, 1 };
+
+	if ( !cg_specItemTimers.integer ) {
+		return;
+	}
+	if ( !cg.demoPlayback && !( cg.snap->ps.pm_flags & PMF_FOLLOW )
+		&& cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
+		return;
+	}
+
+	Q_strncpyz( buf, CG_ConfigString( CS_ITEM_TIMERS ), sizeof( buf ) );
+	p = buf;
+	while ( 1 ) {
+		char	*token = COM_Parse( &p );
+
+		if ( !token[0] ) {
+			break;
+		}
+		item = atoi( token );
+		time = atoi( COM_Parse( &p ) );
+		if ( item <= 0 || item >= bg_numItems || !( BG_ItemTimerClass( &bg_itemlist[item] ) & cg_specItemTimers.integer ) ) {
+			continue;
+		}
+		CG_DrawPic( 10, y, 20, 20, cg_items[item].icon );
+		left = time ? ( time - cg.time + 999 ) / 1000 : 0;
+		if ( left > 0 ) {
+			color[0] = color[1] = color[2] = 1;
+			CG_DrawStringExt( 34, y + 2, va( "%i", left ), color, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+		} else {
+			color[0] = 0.3f; color[1] = 1; color[2] = 0.3f;
+			CG_DrawStringExt( 34, y + 2, "up", color, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+		}
+		y += 24;
+	}
+}
+
+/*
+=================
 CG_HudNumberColor
 
 White normally, yellow at 50 and below, red at 25 and below
@@ -3262,6 +3310,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 		CG_DrawLowerLeft();
 	}
 	CG_DrawChat();
+	CG_DrawSpecItemTimers();
 #endif
 
 	if ( !CG_DrawFollow() ) {

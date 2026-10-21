@@ -1823,6 +1823,23 @@ This needs to be the same for client side prediction and server use.
 */
 /*
 ================
+BG_ItemTimerClass
+
+Which spectator item timer an item belongs to (cg_specItemTimers bits):
+1 power-ups, 2 mega health, 4 heavy armour, 8 light armour; 0 for none
+================
+*/
+int BG_ItemTimerClass( const gitem_t *item ) {
+	switch ( item->giType ) {
+	case IT_POWERUP:	return 1;
+	case IT_HEALTH:		return item->quantity == 100 ? 2 : 0;
+	case IT_ARMOR:		return item->quantity >= 100 ? 4 : item->quantity >= 50 ? 8 : 0;
+	default:			return 0;
+	}
+}
+
+/*
+================
 BG_AmmoBoxAmount
 
 What an ammo box gives a weapon: a lot for the fast-firing ones, a few

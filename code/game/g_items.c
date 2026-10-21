@@ -448,6 +448,36 @@ void G_SchedulePowerup( gentity_t *ent, int seconds ) {
 RespawnItem
 ===============
 */
+/*
+===============
+G_UpdateItemTimers
+
+Major items and when each comes back, for spectators' item timers
+===============
+*/
+void G_UpdateItemTimers( void ) {
+	static char	last[MAX_STRING_CHARS];
+	char		info[MAX_STRING_CHARS];
+	gentity_t	*ent;
+	int			i;
+
+	info[0] = 0;
+	for ( i = MAX_CLIENTS, ent = &g_entities[MAX_CLIENTS] ; i < level.num_entities ; i++, ent++ ) {
+		if ( !ent->inuse || ent->s.eType != ET_ITEM || !ent->item || ( ent->flags & FL_DROPPED_ITEM ) ) {
+			continue;
+		}
+		if ( !BG_ItemTimerClass( ent->item ) ) {
+			continue;
+		}
+		Q_strcat( info, sizeof( info ), va( "%i %i ", ent->s.modelindex,
+			( ent->s.eFlags & EF_NODRAW ) && ent->nextthink ? ent->nextthink : 0 ) );
+	}
+	if ( strcmp( info, last ) ) {
+		Q_strncpyz( last, info, sizeof( last ) );
+		trap_SetConfigstring( CS_ITEM_TIMERS, info );
+	}
+}
+
 void RespawnItem( gentity_t *ent ) {
 	if (!ent) {
 		return;
@@ -499,6 +529,7 @@ void RespawnItem( gentity_t *ent ) {
 	ent->s.eFlags &= ~EF_NODRAW;
 	ent->r.svFlags &= ~SVF_NOCLIENT;
 	trap_LinkEntity (ent);
+	G_UpdateItemTimers();
 
 	if ( ent->item->giType == IT_POWERUP ) {
 		// play powerup spawn sound to all clients
@@ -682,6 +713,7 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
 		ent->think = RespawnItem;
 	}
 	trap_LinkEntity( ent );
+	G_UpdateItemTimers();
 }
 
 
@@ -840,6 +872,7 @@ void FinishSpawningItem( gentity_t *ent ) {
 
 
 	trap_LinkEntity (ent);
+	G_UpdateItemTimers();
 }
 
 

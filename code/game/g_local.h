@@ -1047,6 +1047,7 @@ extern	vmCvar_t	g_injectionMaxGain;
 extern	vmCvar_t	g_injectionMaxGainCap;
 extern	vmCvar_t	g_berserkHitCooldown;
 void G_BreakHook( gentity_t *ent );
+void G_UpdateItemTimers( void );
 void G_BounceMissile( gentity_t *ent, trace_t *trace );
 void G_MissileImpact( gentity_t *ent, trace_t *trace );
 extern	vmCvar_t	g_hookBreakDamage;

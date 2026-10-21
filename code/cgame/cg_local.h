@@ -1222,6 +1222,7 @@ extern	vmCvar_t		cg_hudStyle;
 extern	vmCvar_t		cg_drawCooldownArc;
 extern	vmCvar_t		cg_obituaryRowSize;
 extern	vmCvar_t		cg_chatHistoryLength;
+extern	vmCvar_t		cg_specItemTimers;
 #ifdef MISSIONPACK
 extern	vmCvar_t		cg_redTeamName;
 extern	vmCvar_t		cg_blueTeamName;
