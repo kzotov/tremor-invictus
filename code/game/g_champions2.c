@@ -616,6 +616,18 @@ void G_ChampionClientThink( gentity_t *ent ) {
 		client->ps.stats[STAT_HEALTH] = ent->health;
 	}
 
+	// Armour Regen: 3 s after the last hit, 5 armour a second up to 50
+	if ( ( passives & PASSIVE_ARMORREGEN ) && level.time - client->lastDamageTime >= 3000
+		&& client->ps.stats[STAT_ARMOR] < 50 ) {
+		client->armorRegenResidual += 5 * CHAMP_FRAME;
+		add = client->armorRegenResidual / 1000;
+		client->armorRegenResidual -= add * 1000;
+		client->ps.stats[STAT_ARMOR] += add;
+		if ( client->ps.stats[STAT_ARMOR] > 50 ) {
+			client->ps.stats[STAT_ARMOR] = 50;
+		}
+	}
+
 	// Echo: a quarter of the last hit heals back over 3 s
 	if ( ( passives & PASSIVE_ECHO ) && client->echoLeft > 0 && level.time < client->echoEndTime ) {
 		client->echoResidual += client->echoLeft * CHAMP_FRAME;

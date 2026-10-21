@@ -805,9 +805,15 @@ void ClientTimerActions( gentity_t *ent, int msec ) {
 			}
 #endif
 		} else if ( !G_ClanArena() ) {
-			// count down health when over max
+			// count down health when over max; slow decay skips every other second
 			if ( ent->health > client->ps.stats[STAT_MAX_HEALTH] ) {
-				ent->health--;
+				if ( ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_SLOWDECAY )
+					&& !client->decaySkipped ) {
+					client->decaySkipped = qtrue;
+				} else {
+					client->decaySkipped = qfalse;
+					ent->health--;
+				}
 			}
 		}
 

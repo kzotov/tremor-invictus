@@ -2880,6 +2880,8 @@ static void PM_AbilitySpeed( void ) {
 		pml.runSpeed *= bg_pmoveSettings.injectionSpeed;
 	} else if ( PM_AbilityActive( ACTIVE_BERSERK ) ) {
 		pml.runSpeed = bg_pmoveSettings.berserkSpeed;
+	} else if ( PM_AbilityActive( ACTIVE_PIERCINGSIGHT ) ) {
+		pml.runSpeed *= 1.1f;		// Visor runs a little faster while looking
 	}
 }
 

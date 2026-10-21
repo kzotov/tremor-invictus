@@ -333,6 +333,8 @@ struct gclient_s {
 	int			echoEndTime;
 	int			echoResidual;
 	int			hiveResidual;
+	int			armorRegenResidual;
+	qboolean	decaySkipped;		// slow decay: every other second
 	vec3_t		anchorOrigin;
 	struct gentity_s	*anchorEnt;
 	int			abilityPrevState;	// ability state after the last think

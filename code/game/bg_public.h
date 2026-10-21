@@ -552,6 +552,8 @@ typedef enum {
 	STR_PASSIVE_SLIPSTREAM,
 	STR_PASSIVE_THICKHIDE,
 	STR_PASSIVE_ECHO,
+	STR_PASSIVE_ARMORREGEN,
+	STR_PASSIVE_SLOWDECAY,
 	STR_CH_HEALTH,
 	STR_CH_ARMOR,
 	STR_CH_SPEED,
@@ -764,6 +766,9 @@ void	BG_ShotgunPelletOffset( int weapon, int index, int count, int *seed, float 
 #define	PASSIVE_SLIPSTREAM		65536	// more air acceleration
 #define	PASSIVE_THICKHIDE		131072	// less splash damage from others
 #define	PASSIVE_ECHO			262144	// part of each hit heals back
+#define	PASSIVE_ARMORREGEN		524288	// armour regrows to a floor after a quiet while
+#define	PASSIVE_SLOWDECAY		1048576	// health over max falls at half speed
+#define	NUM_PASSIVES			21
 
 typedef struct {
 	char		*name;				// userinfo "champion" value

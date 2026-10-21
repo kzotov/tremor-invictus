@@ -850,6 +850,34 @@ static float	splashKnock = -1, splashKnockSelf = -1;
 
 /*
 ============
+G_PopUpHeight
+
+How high a hit lifts a standing target, in units
+============
+*/
+static float G_PopUpHeight( int mod ) {
+	switch ( mod ) {
+	case MOD_MACHINEGUN:
+	case MOD_SHOTGUN:
+	case MOD_LIGHTNING:
+		return 10;
+#ifdef MISSIONPACK
+	case MOD_NAIL:
+#endif
+	case MOD_ROCKET:
+	case MOD_ROCKET_SPLASH:
+	case MOD_GRENADE:
+	case MOD_GRENADE_SPLASH:
+	case MOD_PLASMA:
+	case MOD_PLASMA_SPLASH:
+		return 24;
+	default:
+		return 0;
+	}
+}
+
+/*
+============
 G_NextKnockback
 
 Weapons give knockback in their own numbers; g_knockbackScale turns them
@@ -978,6 +1006,19 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
 		VectorScale (dir, g_knockback.value * (float)knockback / mass, kvel);
 		VectorAdd (targ->client->ps.velocity, kvel, targ->client->ps.velocity);
+
+		// pop-up: a hit on someone standing lifts them at least this high
+		if ( targ->client->ps.groundEntityNum != ENTITYNUM_NONE ) {
+			float	lift = G_PopUpHeight( mod );
+
+			if ( lift > 0 ) {
+				float	up = sqrt( 2 * g_gravity.value * lift );
+
+				if ( targ->client->ps.velocity[2] < up ) {
+					targ->client->ps.velocity[2] = up;
+				}
+			}
+		}
 
 		// set the timer so that the other client can't cancel
 		// out the movement immediately

@@ -343,7 +343,7 @@ static void Champion_Draw( void ) {
 		y = Champion_DrawWrapped( INFO_X, y, BG_String( STR_ABILDESC_HOOK + c->active - ACTIVE_HOOK ), TEXT_WIDTH, color_white );
 		y += 6;
 	}
-	for ( bit = 0; bit < 19; bit++ ) {
+	for ( bit = 0; bit < NUM_PASSIVES; bit++ ) {
 		if ( c->passives & ( 1 << bit ) ) {
 			UI_DrawString( INFO_X, y, BG_String( STR_CH_PASSIVE ), UI_LEFT | UI_SMALLFONT, color_orange );
 			y += 18;
