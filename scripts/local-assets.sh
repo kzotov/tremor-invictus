@@ -18,7 +18,7 @@ link_local_assets() {
 	for f in "$TREMOR_LOCAL"/*.pk3 "$TREMOR_LOCAL"/*.zip; do
 		[ -f "$f" ] || continue
 		name=$(basename "$f")
-		ln -s "$f" "$gamedir/zz-local-${name%.*}.pk3"
+		ln -sf "$f" "$gamedir/zz-local-$name.pk3"
 	done
 	if [ -f "$TREMOR_LOCAL/local.cfg" ]; then
 		ln -s "$TREMOR_LOCAL/local.cfg" "$gamedir/tremor-local.cfg"

@@ -337,6 +337,12 @@ extern void Champion_Cache( void );
 extern void UI_ChampionMenu( void );
 
 //
+// ui_colors.c
+//
+extern void Colors_Cache( void );
+extern void UI_ColorsMenu( void );
+
+//
 // ui_confirm.c
 //
 extern void ConfirmMenu_Cache( void );

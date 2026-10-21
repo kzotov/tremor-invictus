@@ -90,6 +90,15 @@ The engine settings behind it are `in_ignoreInput 1` and
 | Champion ability | bind a key to `+button12`, for example `bind e +button12` |
 | Auto-hop | holding jump jumps again on landing; turn off with `cg_autoHop 0` |
 
+### Player colours
+
+Esc, then **Player Colors**, forces a skin on enemies and teammates: *bright*
+(flat colour, visible in dark corners) or *sport* (the model tinted), with a
+colour for head, upper and lower body. The same settings are cvars:
+`cg_forceEnemySkin`, `cg_forceTeamSkin`, `cg_enemyHeadColor` and so on
+(`0xRRGGBB` or `0xRRGGBBAA`), plus weapon, grenade and corpse colours.
+Champion models are never replaced, so every enemy keeps its true size.
+
 ### Body classes
 
 | Class | Half-width | Health | Armor (base / max) | Spawn armor |

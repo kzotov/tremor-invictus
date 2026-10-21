@@ -20,6 +20,8 @@ mkdir -p "$HOME_DIR/baseq3"
 for f in cgame.dylib qagame.dylib ui.dylib vm; do
 	ln -sfn "$RELEASE/baseq3/$f" "$HOME_DIR/baseq3/$f"
 done
+# our own data files (shaders), never game data
+ln -sfn "$ROOT/assets/baseq3/scripts" "$HOME_DIR/baseq3/scripts"
 
 # local test assets from outside the repo (see scripts/local-assets.sh)
 . "$ROOT/scripts/local-assets.sh"

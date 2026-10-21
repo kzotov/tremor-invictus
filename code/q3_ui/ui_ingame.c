@@ -34,7 +34,7 @@ INGAME MENU
 
 #define INGAME_FRAME					"menu/art/addbotframe"
 //#define INGAME_FRAME					"menu/art/cut_frame"
-#define INGAME_MENU_VERTICAL_SPACING	26
+#define INGAME_MENU_VERTICAL_SPACING	24
 
 #define ID_TEAM					10
 #define ID_ADDBOTS				11
@@ -47,6 +47,7 @@ INGAME MENU
 #define ID_RESUME				18
 #define ID_TEAMORDERS			19
 #define ID_CHAMPION				20
+#define ID_COLORS				21
 
 
 typedef struct {
@@ -59,6 +60,7 @@ typedef struct {
 	menutext_s		leave;
 	menutext_s		restart;
 	menutext_s		champion;
+	menutext_s		colors;
 	menutext_s		addbots;
 	menutext_s		removebots;
 	menutext_s		teamorders;
@@ -115,6 +117,10 @@ void InGame_Event( void *ptr, int notification ) {
 
 	case ID_CHAMPION:
 		UI_ChampionMenu();
+		break;
+
+	case ID_COLORS:
+		UI_ColorsMenu();
 		break;
 
 	case ID_SETUP:
@@ -204,6 +210,17 @@ void InGame_MenuInit( void ) {
 	s_ingame.champion.string			= (char *)BG_String( STR_MENU_CHAMPION );
 	s_ingame.champion.color				= color_red;
 	s_ingame.champion.style				= UI_CENTER|UI_SMALLFONT;
+
+	y += INGAME_MENU_VERTICAL_SPACING;
+	s_ingame.colors.generic.type		= MTYPE_PTEXT;
+	s_ingame.colors.generic.flags		= QMF_CENTER_JUSTIFY|QMF_PULSEIFFOCUS;
+	s_ingame.colors.generic.x			= 320;
+	s_ingame.colors.generic.y			= y;
+	s_ingame.colors.generic.id			= ID_COLORS;
+	s_ingame.colors.generic.callback	= InGame_Event;
+	s_ingame.colors.string				= (char *)BG_String( STR_MENU_COLORS );
+	s_ingame.colors.color				= color_red;
+	s_ingame.colors.style				= UI_CENTER|UI_SMALLFONT;
 
 	y += INGAME_MENU_VERTICAL_SPACING;
 	s_ingame.addbots.generic.type		= MTYPE_PTEXT;
@@ -327,6 +344,7 @@ void InGame_MenuInit( void ) {
 	Menu_AddItem( &s_ingame.menu, &s_ingame.frame );
 	Menu_AddItem( &s_ingame.menu, &s_ingame.team );
 	Menu_AddItem( &s_ingame.menu, &s_ingame.champion );
+	Menu_AddItem( &s_ingame.menu, &s_ingame.colors );
 	Menu_AddItem( &s_ingame.menu, &s_ingame.addbots );
 	Menu_AddItem( &s_ingame.menu, &s_ingame.removebots );
 	Menu_AddItem( &s_ingame.menu, &s_ingame.teamorders );

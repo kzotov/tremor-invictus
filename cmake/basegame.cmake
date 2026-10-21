@@ -12,6 +12,7 @@ set(CGAME_SOURCES
     ${SOURCE_DIR}/game/bg_slidemove.c
     ${SOURCE_DIR}/game/bg_lib.c
     ${SOURCE_DIR}/cgame/cg_consolecmds.c
+    ${SOURCE_DIR}/cgame/cg_colors.c
     ${SOURCE_DIR}/cgame/cg_draw.c
     ${SOURCE_DIR}/cgame/cg_drawtools.c
     ${SOURCE_DIR}/cgame/cg_effects.c
@@ -90,6 +91,7 @@ set(UI_SOURCES
     ${SOURCE_DIR}/q3_ui/ui_gameinfo.c
     ${SOURCE_DIR}/q3_ui/ui_ingame.c
     ${SOURCE_DIR}/q3_ui/ui_champion.c
+    ${SOURCE_DIR}/q3_ui/ui_colors.c
     ${SOURCE_DIR}/q3_ui/ui_loadconfig.c
     ${SOURCE_DIR}/q3_ui/ui_menu.c
     ${SOURCE_DIR}/q3_ui/ui_mfield.c

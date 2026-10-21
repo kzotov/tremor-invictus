@@ -1266,6 +1266,9 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 	gun.backlerp = parent->backlerp;
 
 	CG_AddWeaponWithPowerups( &gun, cent->currentState.powerups );
+	if ( !ps && !( cent->currentState.powerups & ( 1 << PW_INVIS ) ) ) {
+		CG_ColorWeapon( &gun );		// world view of another player's weapon
+	}
 
 	// add the spinning barrel
 	if ( weapon->barrelModel ) {

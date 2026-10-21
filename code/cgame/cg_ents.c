@@ -511,7 +511,11 @@ static void CG_Missile( centity_t *cent ) {
 	}
 
 	// add to refresh list, possibly with quad glow
+	CG_ColorReset();
 	CG_AddRefEntityWithPowerups( &ent, s1, TEAM_FREE );
+	if ( s1->weapon == WP_GRENADE_LAUNCHER ) {
+		CG_ColorGrenade( &ent );
+	}
 }
 
 /*

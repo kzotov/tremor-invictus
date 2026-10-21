@@ -963,6 +963,7 @@ void UI_Cache_f( void ) {
 	MainMenu_Cache();
 	InGame_Cache();
 	Champion_Cache();
+	Colors_Cache();
 	ConfirmMenu_Cache();
 	PlayerModel_Cache();
 	PlayerSettings_Cache();

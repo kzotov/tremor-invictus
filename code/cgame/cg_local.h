@@ -192,6 +192,7 @@ typedef struct centity_s {
 	// exact interpolated position of entity on this frame
 	vec3_t			lerpOrigin;
 	vec3_t			lerpAngles;
+	int				deadTime;		// cg.time the corpse was first seen, for darkening
 } centity_t;
 
 
@@ -763,6 +764,9 @@ typedef struct {
 	qhandle_t	quadWeaponShader;
 	qhandle_t	invisShader;
 	qhandle_t	droneModel;
+	qhandle_t	brightShader;			// player colours
+	qhandle_t	sportShader;
+	qhandle_t	tintShader;
 	qhandle_t	regenShader;
 	qhandle_t	battleSuitShader;
 	qhandle_t	battleWeaponShader;
@@ -1165,6 +1169,23 @@ extern	vmCvar_t		pmove_msec;
 extern	vmCvar_t		cg_autoHop;
 extern	vmCvar_t		cg_playerScale;
 extern	vmCvar_t		cg_projectileNudge;
+extern	vmCvar_t		cg_forceEnemySkin;
+extern	vmCvar_t		cg_forceTeamSkin;
+extern	vmCvar_t		cg_enemyHeadColor;
+extern	vmCvar_t		cg_enemyUpperColor;
+extern	vmCvar_t		cg_enemyLowerColor;
+extern	vmCvar_t		cg_teamHeadColor;
+extern	vmCvar_t		cg_teamUpperColor;
+extern	vmCvar_t		cg_teamLowerColor;
+extern	vmCvar_t		cg_forceRedTeamSkin;
+extern	vmCvar_t		cg_forceBlueTeamSkin;
+extern	vmCvar_t		cg_redTeamColor;
+extern	vmCvar_t		cg_blueTeamColor;
+extern	vmCvar_t		cg_forceEnemyWeaponColor;
+extern	vmCvar_t		cg_forceTeamWeaponColor;
+extern	vmCvar_t		cg_weaponColor_grenade;
+extern	vmCvar_t		cg_deadBodyColor;
+extern	vmCvar_t		cg_deadBodyDarken;
 extern	vmCvar_t		cg_autoProjectileNudge;
 //extern	vmCvar_t		cg_pmove_fixed;
 extern	vmCvar_t		cg_cameraOrbit;
@@ -1315,6 +1336,18 @@ qhandle_t CG_StatusHandle(int task);
 // cg_player.c
 //
 void CG_Player( centity_t *cent );
+
+//
+// cg_colors.c
+//
+void CG_PlayerColors( centity_t *cent, clientInfo_t *ci );
+void CG_PlayerColorPart( int part );
+void CG_ColorReset( void );
+void CG_ColorBeforeDraw( refEntity_t *ent );
+void CG_ColorAfterDraw( refEntity_t *ent );
+void CG_ColorWeapon( refEntity_t *gun );
+void CG_ColorGrenade( refEntity_t *ent );
+void CG_ColorCorpse( centity_t *cent, refEntity_t *ent );
 void CG_ResetPlayerEntity( centity_t *cent );
 void CG_AddRefEntityWithPowerups( refEntity_t *ent, entityState_t *state, int team );
 void CG_NewClientInfo( int clientNum );

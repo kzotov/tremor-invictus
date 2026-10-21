@@ -2153,6 +2153,7 @@ void CG_AddRefEntityWithPowerups( refEntity_t *ent, entityState_t *state, int te
 		ent->customShader = cgs.media.invisShader;
 		trap_R_AddRefEntityToScene( ent );
 	} else {
+		CG_ColorBeforeDraw( ent );
 		/*
 		if ( state->eFlags & EF_KAMIKAZE ) {
 			if (team == TEAM_BLUE)
@@ -2164,6 +2165,7 @@ void CG_AddRefEntityWithPowerups( refEntity_t *ent, entityState_t *state, int te
 		else {*/
 			trap_R_AddRefEntityToScene( ent );
 		//}
+		CG_ColorAfterDraw( ent );
 
 		if ( state->eFlags & EF_BARRIER ) {
 			ent->customShader = cgs.media.battleSuitShader;
@@ -2358,7 +2360,10 @@ void CG_Player( centity_t *cent ) {
 	legs.renderfx = renderfx;
 	VectorCopy (legs.origin, legs.oldorigin);	// don't positionally lerp at all
 
+	CG_PlayerColors( cent, ci );
+	CG_PlayerColorPart( 2 );
 	CG_AddRefEntityWithPowerups( &legs, &cent->currentState, ci->team );
+	CG_ColorCorpse( cent, &legs );
 
 	// if the model failed, allow the default nullmodel to be displayed
 	if (!legs.hModel) {
@@ -2382,7 +2387,9 @@ void CG_Player( centity_t *cent ) {
 	torso.shadowPlane = shadowPlane;
 	torso.renderfx = renderfx;
 
+	CG_PlayerColorPart( 1 );
 	CG_AddRefEntityWithPowerups( &torso, &cent->currentState, ci->team );
+	CG_ColorCorpse( cent, &torso );
 
 #ifdef MISSIONPACK
 	if ( cent->currentState.eFlags & EF_KAMIKAZE ) {
@@ -2608,7 +2615,9 @@ void CG_Player( centity_t *cent ) {
 	head.shadowPlane = shadowPlane;
 	head.renderfx = renderfx;
 
+	CG_PlayerColorPart( 0 );
 	CG_AddRefEntityWithPowerups( &head, &cent->currentState, ci->team );
+	CG_ColorCorpse( cent, &head );
 
 #ifdef MISSIONPACK
 	CG_BreathPuffs(cent, &head);

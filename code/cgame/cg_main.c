@@ -171,6 +171,23 @@ vmCvar_t	pmove_msec;
 vmCvar_t	cg_autoHop;
 vmCvar_t	cg_playerScale;
 vmCvar_t	cg_projectileNudge;
+vmCvar_t	cg_forceEnemySkin;
+vmCvar_t	cg_forceTeamSkin;
+vmCvar_t	cg_enemyHeadColor;
+vmCvar_t	cg_enemyUpperColor;
+vmCvar_t	cg_enemyLowerColor;
+vmCvar_t	cg_teamHeadColor;
+vmCvar_t	cg_teamUpperColor;
+vmCvar_t	cg_teamLowerColor;
+vmCvar_t	cg_forceRedTeamSkin;
+vmCvar_t	cg_forceBlueTeamSkin;
+vmCvar_t	cg_redTeamColor;
+vmCvar_t	cg_blueTeamColor;
+vmCvar_t	cg_forceEnemyWeaponColor;
+vmCvar_t	cg_forceTeamWeaponColor;
+vmCvar_t	cg_weaponColor_grenade;
+vmCvar_t	cg_deadBodyColor;
+vmCvar_t	cg_deadBodyDarken;
 vmCvar_t	cg_autoProjectileNudge;
 vmCvar_t	cg_pmove_msec;
 vmCvar_t	cg_cameraMode;
@@ -318,6 +335,23 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_autoHop, "cg_autoHop", "1", CVAR_USERINFO | CVAR_ARCHIVE},
 	{ &cg_playerScale, "cg_playerScale", "1", CVAR_ARCHIVE},
 	{ &cg_projectileNudge, "cg_projectileNudge", "0", CVAR_CHEAT},
+	{ &cg_forceEnemySkin, "cg_forceEnemySkin", "", CVAR_ARCHIVE},
+	{ &cg_forceTeamSkin, "cg_forceTeamSkin", "", CVAR_ARCHIVE},
+	{ &cg_enemyHeadColor, "cg_enemyHeadColor", "0x00FF00FF", CVAR_ARCHIVE},
+	{ &cg_enemyUpperColor, "cg_enemyUpperColor", "0x00FF00FF", CVAR_ARCHIVE},
+	{ &cg_enemyLowerColor, "cg_enemyLowerColor", "0x00FF00FF", CVAR_ARCHIVE},
+	{ &cg_teamHeadColor, "cg_teamHeadColor", "0x00FFFFFF", CVAR_ARCHIVE},
+	{ &cg_teamUpperColor, "cg_teamUpperColor", "0x00FFFFFF", CVAR_ARCHIVE},
+	{ &cg_teamLowerColor, "cg_teamLowerColor", "0x00FFFFFF", CVAR_ARCHIVE},
+	{ &cg_forceRedTeamSkin, "cg_forceRedTeamSkin", "", CVAR_ARCHIVE},
+	{ &cg_forceBlueTeamSkin, "cg_forceBlueTeamSkin", "", CVAR_ARCHIVE},
+	{ &cg_redTeamColor, "cg_redTeamColor", "0xFF2020FF", CVAR_ARCHIVE},
+	{ &cg_blueTeamColor, "cg_blueTeamColor", "0x2040FFFF", CVAR_ARCHIVE},
+	{ &cg_forceEnemyWeaponColor, "cg_forceEnemyWeaponColor", "1", CVAR_ARCHIVE},
+	{ &cg_forceTeamWeaponColor, "cg_forceTeamWeaponColor", "1", CVAR_ARCHIVE},
+	{ &cg_weaponColor_grenade, "cg_weaponColor_grenade", "0xFCFC00FF", CVAR_ARCHIVE},
+	{ &cg_deadBodyColor, "cg_deadBodyColor", "0x101010FF", CVAR_ARCHIVE},
+	{ &cg_deadBodyDarken, "cg_deadBodyDarken", "1", CVAR_ARCHIVE},
 	{ &cg_autoProjectileNudge, "cg_autoProjectileNudge", "1", CVAR_ARCHIVE},
 #ifdef MISSIONPACK
 	{ &cg_smallFont, "ui_smallFont", "0.25", CVAR_ARCHIVE},
@@ -892,6 +926,9 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.battleWeaponShader = trap_R_RegisterShader("powerups/battleWeapon" );
 	cgs.media.invisShader = trap_R_RegisterShader("powerups/invisibility" );
 	cgs.media.droneModel = trap_R_RegisterModel( "models/powerups/holdable/teleporter.md3" );
+	cgs.media.brightShader = trap_R_RegisterShader( "tremor/bright" );
+	cgs.media.sportShader = trap_R_RegisterShader( "tremor/sport" );
+	cgs.media.tintShader = trap_R_RegisterShader( "tremor/tint" );
 	cgs.media.regenShader = trap_R_RegisterShader("powerups/regen" );
 	cgs.media.hastePuffShader = trap_R_RegisterShader("hasteSmokePuff" );
 
