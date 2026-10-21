@@ -97,16 +97,23 @@ void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles ) {
 	VectorCopy ( origin, player->client->ps.origin );
 	player->client->ps.origin[2] += 1;
 	if (!noAngles) {
-	// spit the player out, keeping their speed (at least 400)
+	// spit the player out level along the destination's facing, keeping
+	// their horizontal speed (at least 400); falling speed is not carried
 	{
-		float	speed = VectorLength( player->client->ps.velocity );
+		vec3_t	level;
+		float	speed = sqrt( player->client->ps.velocity[0] * player->client->ps.velocity[0]
+			+ player->client->ps.velocity[1] * player->client->ps.velocity[1] );
 
 		if ( !g_teleportKeepSpeed.integer || speed < 400 ) {
 			speed = 400;
 		}
-		AngleVectors( angles, player->client->ps.velocity, NULL, NULL );
+		VectorSet( level, 0, angles[YAW], 0 );
+		AngleVectors( level, player->client->ps.velocity, NULL, NULL );
 		VectorScale( player->client->ps.velocity, speed, player->client->ps.velocity );
 	}
+	// the first jump out gets no chain or step bonus
+	player->client->ps.stats[STAT_JUMP_TIME] = STAT_TIME_CAP;
+	player->client->ps.persistant[PERS_STEP_TIME] = STAT_TIME_CAP;
 	player->client->ps.pm_time = 160;		// hold time
 	player->client->ps.pm_flags |= PMF_TIME_KNOCKBACK;
 	// set angles

@@ -2410,27 +2410,26 @@ static void CG_DrawReward( void ) {
 
 	// a medal: its icon (or a plate when the install has none), name and count
 	if ( cg.rewardName[0] ) {
-		static vec4_t	plate = { 0.5f, 0.08f, 0.06f, 0.85f };
+		static vec4_t	plate = { 0.65f, 0.08f, 0.06f, 0.9f };
 		vec4_t			c;
 		const char		*name = BG_String( cg.rewardName[0] );
+		const float		size = 56, top = 64;
 
 		Vector4Copy( plate, c );
 		c[3] *= color[3];
 		if ( cg.rewardShader[0] ) {
 			trap_R_SetColor( color );
-			CG_DrawPic( 320 - ICON_SIZE / 2, 56, ICON_SIZE - 4, ICON_SIZE - 4, cg.rewardShader[0] );
+			CG_DrawPic( 320 - size / 2, top, size, size, cg.rewardShader[0] );
 			trap_R_SetColor( NULL );
 		} else {
-			CG_FillRect( 320 - ICON_SIZE / 2, 56, ICON_SIZE - 4, ICON_SIZE - 4, c );
-			CG_DrawStringExt( 320 - SMALLCHAR_WIDTH / 2 - 2, 56 + ( ICON_SIZE - 4 - SMALLCHAR_HEIGHT ) / 2,
-				va( "%c", name[0] ), color, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+			CG_FillRect( 320 - size / 2, top, size, size, c );
+			CG_DrawStringExt( 320 - GIANTCHAR_WIDTH / 2, top + ( size - GIANTCHAR_HEIGHT ) / 2,
+				va( "%c", name[0] ), color, qfalse, qtrue, GIANTCHAR_WIDTH, GIANTCHAR_HEIGHT, 0 );
 		}
-		CG_DrawStringExt( 320 - CG_DrawStrlen( name ) * SMALLCHAR_WIDTH / 2, 56 + ICON_SIZE, name, color,
-			qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+		UI_DrawProportionalString( 320, top + size + 4, name, UI_CENTER | UI_DROPSHADOW, color );
 		if ( cg.rewardCount[0] > 1 ) {
 			name = va( "x%i", cg.rewardCount[0] );
-			CG_DrawStringExt( 320 - CG_DrawStrlen( name ) * SMALLCHAR_WIDTH / 2, 56 + ICON_SIZE + SMALLCHAR_HEIGHT + 2,
-				name, color, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+			UI_DrawProportionalString( 320, top + size + 4 + PROP_HEIGHT, name, UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, color );
 		}
 		return;
 	}

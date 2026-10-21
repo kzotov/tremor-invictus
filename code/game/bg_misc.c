@@ -2098,8 +2098,21 @@ qboolean BG_CanItemBeGrabbed( int gametype, const entityState_t *ent, const play
 			return qfalse;
 		}
 #else
-		if ( ps->stats[STAT_ARMOR] >= ps->stats[STAT_MAX_HEALTH] * 2 ) {
-			return qfalse;
+		{
+			// light armour only below the class base; heavy armour and
+			// shards up to the class maximum (Eisen 150); as Pickup_Armor
+			const champion_t	*champ = BG_Champion( ps->stats[STAT_CHAMPION] );
+			int					cap = bg_classInfo[champ->bodyClass].maxArmor;
+
+			if ( !Q_stricmp( champ->name, "eisen" ) ) {
+				cap = 150;
+			}
+			if ( item->quantity >= 25 && item->quantity < 100 ) {
+				cap = bg_classInfo[champ->bodyClass].baseArmor;
+			}
+			if ( ps->stats[STAT_ARMOR] >= cap ) {
+				return qfalse;
+			}
 		}
 #endif
 		return qtrue;
@@ -2112,8 +2125,10 @@ qboolean BG_CanItemBeGrabbed( int gametype, const entityState_t *ent, const play
 		}
 		else
 #endif
-		if ( item->quantity == 5 || item->quantity == 100 ) {
-			if ( ps->stats[STAT_HEALTH] >= ps->stats[STAT_MAX_HEALTH] * 2 ) {
+		// mega health up to the class bonus over max; the rest only below max
+		if ( item->quantity == 100 ) {
+			if ( ps->stats[STAT_HEALTH] >= ps->stats[STAT_MAX_HEALTH]
+				+ bg_classInfo[BG_Champion( ps->stats[STAT_CHAMPION] )->bodyClass].maxHealthBonus ) {
 				return qfalse;
 			}
 			return qtrue;
