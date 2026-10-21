@@ -470,6 +470,297 @@ static void CG_DrawStatusBarHead( float x ) {
 }
 #endif // MISSIONPACK
 
+#ifndef MISSIONPACK
+/*
+==============================================================================
+
+THE HUD (cg_hudStyle 1)
+
+Health left of the centre, the champion portrait with its ability ring in
+the middle, armour to the right, ammo bottom right, a weapon bar down the
+right edge, the clock and scores top centre and the kill feed top right
+==============================================================================
+*/
+
+#define KILLFEED_QUEUE		16
+#define KILLFEED_TIME		3000
+
+typedef struct {
+	char	killer[MAX_QPATH];
+	char	victim[MAX_QPATH];
+	int		weapon;			// icon, WP_NONE for none
+	int		time;
+} killFeed_t;
+
+static killFeed_t	killFeed[KILLFEED_QUEUE];
+static int			killFeedHead;
+
+/*
+=================
+CG_AddKillFeed
+=================
+*/
+void CG_AddKillFeed( const char *killer, const char *victim, int weapon ) {
+	killFeed_t	*k = &killFeed[killFeedHead++ % KILLFEED_QUEUE];
+
+	Q_strncpyz( k->killer, killer, sizeof( k->killer ) );
+	Q_strncpyz( k->victim, victim, sizeof( k->victim ) );
+	k->weapon = weapon;
+	k->time = cg.time;
+}
+
+static void CG_DrawKillFeed( void ) {
+	killFeed_t	*k;
+	int			i, n, rows = cg_obituaryRowSize.integer, y = 40, w, x;
+	vec4_t		fade = { 1, 1, 1, 1 };
+
+	if ( rows <= 0 ) {
+		return;
+	}
+	if ( rows > 5 ) {
+		rows = 5;
+	}
+	for ( i = 0, n = 0 ; i < KILLFEED_QUEUE && n < rows ; i++ ) {
+		k = &killFeed[( killFeedHead - 1 - i + KILLFEED_QUEUE * 2 ) % KILLFEED_QUEUE];
+		if ( !k->time || cg.time - k->time > KILLFEED_TIME || k->time > cg.time ) {
+			continue;
+		}
+		fade[3] = cg.time - k->time > KILLFEED_TIME - 500 ? ( KILLFEED_TIME - ( cg.time - k->time ) ) / 500.0f : 1;
+		x = 636;
+		w = CG_DrawStrlen( k->victim ) * TINYCHAR_WIDTH;
+		x -= w;
+		CG_DrawStringExt( x, y + 4, k->victim, fade, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+		x -= 20;
+		if ( k->weapon > WP_NONE && k->weapon < WP_NUM_WEAPONS && cg_weapons[k->weapon].weaponIcon ) {
+			trap_R_SetColor( fade );
+			CG_DrawPic( x + 2, y, 16, 16, cg_weapons[k->weapon].weaponIcon );
+			trap_R_SetColor( NULL );
+		} else {
+			CG_DrawStringExt( x + 4, y + 4, ">", fade, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+		}
+		if ( k->killer[0] ) {
+			w = CG_DrawStrlen( k->killer ) * TINYCHAR_WIDTH;
+			x -= w + 4;
+			CG_DrawStringExt( x, y + 4, k->killer, fade, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+		}
+		y += 18;
+		n++;
+	}
+}
+
+/*
+=================
+CG_HudNumberColor
+
+White normally, yellow at 50 and below, red at 25 and below
+=================
+*/
+static void CG_HudNumberColor( int value, vec4_t out ) {
+	if ( value <= 25 ) {
+		VectorSet( out, 1.0f, 0.2f, 0.2f );
+	} else if ( value <= 50 ) {
+		VectorSet( out, 1.0f, 0.85f, 0.2f );
+	} else {
+		VectorSet( out, 1.0f, 1.0f, 1.0f );
+	}
+	out[3] = 1.0f;
+}
+
+/*
+=================
+CG_DrawAbilityRing
+
+Dots around a centre: the share of the ability's recharge done, full and
+bright when a charge is ready
+=================
+*/
+static void CG_DrawAbilityRing( float cx, float cy, float radius, float startDeg, float spanDeg, int dots, float dotSize ) {
+	playerState_t		*ps = &cg.snap->ps;
+	const champion_t	*champ = BG_Champion( ps->stats[STAT_CHAMPION] );
+	vec4_t				on = { 1.0f, 0.75f, 0.2f, 1.0f }, off = { 0.3f, 0.3f, 0.3f, 0.6f };
+	float				frac, a;
+	int					i, recharge, left;
+
+	if ( champ->active == ACTIVE_NONE ) {
+		return;
+	}
+	recharge = BG_AbilityParam( champ->active, AP_RECHARGE );
+	left = ps->stats[STAT_ABILITY_RECHARGE] * 100;
+	if ( BG_AbilityCharges( ps ) > 0 && left <= 0 ) {
+		frac = 1.0f;
+		on[0] = on[1] = on[2] = 1.0f;		// ready: bright
+	} else {
+		frac = recharge > 0 ? 1.0f - (float)left / recharge : 0;
+	}
+	if ( BG_AbilityState( ps ) == ABILITY_ACTIVE || BG_AbilityState( ps ) == ABILITY_RUSH ) {
+		VectorSet( on, 0.3f, 0.9f, 1.0f );
+	}
+	for ( i = 0 ; i < dots ; i++ ) {
+		a = DEG2RAD( startDeg + spanDeg * ( i + 0.5f ) / dots );
+		CG_FillRect( cx + cos( a ) * radius - dotSize / 2, cy + sin( a ) * radius - dotSize / 2, dotSize, dotSize,
+			( i + 0.5f ) / dots <= frac ? on : off );
+	}
+}
+
+/*
+=================
+CG_DrawHudClock
+
+Top centre: the clock counting down to the limit, and the scores
+=================
+*/
+static void CG_DrawHudClock( void ) {
+	const char	*info = CG_ConfigString( CS_SERVERINFO );
+	int			limit = cgs.timelimit, msec, mins, secs, w;
+	const char	*s;
+	vec4_t		red = { 1, 0.3f, 0.3f, 1 }, blue = { 0.3f, 0.5f, 1, 1 };
+
+	if ( !limit && ( cgs.gametype == GT_TOURNAMENT || cgs.gametype == GT_TEAM ) ) {
+		limit = 10;
+	}
+	if ( !limit && cgs.gametype == GT_CTF && !atoi( Info_ValueForKey( info, "g_sacrifice" ) ) ) {
+		limit = 14;
+	}
+	msec = cg.time - cgs.levelStartTime;
+	if ( cg.warmup ) {
+		msec = 0;
+	}
+	if ( limit ) {
+		msec = limit * 60000 - msec;
+		if ( msec < 0 ) {
+			msec = 0;
+		}
+	}
+	secs = msec / 1000;
+	mins = secs / 60;
+	secs %= 60;
+	s = va( "%i:%02i", mins, secs );
+	w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
+	CG_DrawBigString( 320 - w / 2, 4, s, 1.0f );
+
+	// scores either side of the clock
+	if ( cgs.gametype >= GT_TEAM ) {
+		s = va( "%i", cgs.scores1 );
+		CG_DrawStringExt( 320 - w / 2 - 12 - CG_DrawStrlen( s ) * BIGCHAR_WIDTH, 4, s, red, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+		s = va( "%i", cgs.scores2 );
+		CG_DrawStringExt( 320 + w / 2 + 12, 4, s, blue, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+	} else if ( cgs.scores1 != SCORE_NOT_PRESENT ) {
+		s = va( "%i", cg.snap->ps.persistant[PERS_SCORE] );
+		CG_DrawStringExt( 320 - w / 2 - 12 - CG_DrawStrlen( s ) * BIGCHAR_WIDTH, 4, s, colorWhite, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+		// the best other score
+		s = va( "%i", cgs.scores1 == cg.snap->ps.persistant[PERS_SCORE] && cgs.scores2 != SCORE_NOT_PRESENT ? cgs.scores2 : cgs.scores1 );
+		CG_DrawStringExt( 320 + w / 2 + 12, 4, s, colorMdGrey, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+	}
+}
+
+/*
+=================
+CG_DrawWeaponBar
+
+Down the right edge: owned weapons bright, missing dim, the current one framed
+=================
+*/
+static void CG_DrawWeaponBar( void ) {
+	playerState_t	*ps = &cg.snap->ps;
+	vec4_t			dim = { 1, 1, 1, 0.25f }, frame = { 1, 0.75f, 0.2f, 1 };
+	int				w, y = 130, have;
+	const char		*s;
+
+	for ( w = WP_GAUNTLET ; w < WP_NUM_WEAPONS ; w++ ) {
+		if ( w == WP_GRAPPLING_HOOK || !cg_weapons[w].registered || !cg_weapons[w].weaponIcon ) {
+			continue;
+		}
+		have = ps->stats[STAT_WEAPONS] & ( 1 << w );
+		if ( !have && BG_AmmoPartner( w ) && ( ps->stats[STAT_WEAPONS] & ( 1 << BG_AmmoPartner( w ) ) ) ) {
+			continue;		// a pair sharing a slot shows the one held
+		}
+		trap_R_SetColor( have ? NULL : dim );
+		CG_DrawPic( 612, y, 24, 24, cg_weapons[w].weaponIcon );
+		trap_R_SetColor( NULL );
+		if ( have && ps->ammo[w] >= 0 ) {
+			s = va( "%i", ps->ammo[w] );
+			CG_DrawStringExt( 608 - CG_DrawStrlen( s ) * TINYCHAR_WIDTH, y + 8, s, have ? colorWhite : dim,
+				qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+		}
+		if ( w == ps->weapon ) {
+			CG_DrawRect( 610, y - 2, 28, 28, 1, frame );
+		}
+		y += 30;
+	}
+}
+
+/*
+=================
+CG_DrawHud
+=================
+*/
+static void CG_DrawHud( void ) {
+	playerState_t	*ps = &cg.snap->ps;
+	centity_t		*cent = &cg_entities[ps->clientNum];
+	vec4_t			color;
+	int				value, i, charges, maxCharges;
+	static qhandle_t	healthIcon;
+
+	if ( cg_drawStatus.integer == 0 ) {
+		return;
+	}
+	if ( !healthIcon ) {
+		healthIcon = trap_R_RegisterShaderNoMip( "icons/iconh_yellow" );
+	}
+
+	// health, left of the centre
+	value = ps->stats[STAT_HEALTH];
+	CG_HudNumberColor( value, color );
+	trap_R_SetColor( color );
+	CG_DrawField( 296 - 8 - CHAR_WIDTH * 3, 432, 3, value );
+	trap_R_SetColor( NULL );
+	if ( healthIcon ) {
+		CG_DrawPic( 296 - 8 - CHAR_WIDTH * 3 - 32, 440, 28, 28, healthIcon );
+	}
+
+	// the portrait, with the ability ring around it and charge pips below
+	CG_DrawStatusBarHead( 296 );
+	CG_DrawAbilityRing( 320, 452, 32, 0, 360, 24, 3 );
+	maxCharges = BG_AbilityParam( BG_Champion( ps->stats[STAT_CHAMPION] )->active, AP_CHARGES );
+	charges = BG_AbilityCharges( ps );
+	if ( maxCharges > 1 ) {
+		for ( i = 0 ; i < maxCharges ; i++ ) {
+			CG_FillRect( 320 - maxCharges * 5 + i * 10 + 2, 474, 6, 4, i < charges ? colorWhite : colorMdGrey );
+		}
+	}
+
+	// armour, right of the centre
+	value = ps->stats[STAT_ARMOR];
+	CG_HudNumberColor( value > 50 ? 100 : value, color );
+	trap_R_SetColor( color );
+	CG_DrawField( 344 + 8, 432, 3, value );
+	trap_R_SetColor( NULL );
+	CG_DrawPic( 344 + 8 + CHAR_WIDTH * 3 + 4, 440, 28, 28, cgs.media.armorIcon );
+
+	// ammo, bottom right
+	if ( cent->currentState.weapon && ps->ammo[cent->currentState.weapon] > -1 ) {
+		value = ps->ammo[cent->currentState.weapon];
+		trap_R_SetColor( value <= 5 ? colorRed : NULL );
+		CG_DrawField( 640 - CHAR_WIDTH * 3 - 4, 432, 3, value );
+		trap_R_SetColor( NULL );
+		if ( cg_weapons[cent->currentState.weapon].ammoIcon ) {
+			CG_DrawPic( 640 - CHAR_WIDTH * 3 - 40, 440, 28, 28, cg_weapons[cent->currentState.weapon].ammoIcon );
+		}
+	}
+
+	// the ability arc by the crosshair: 1 bottom (default 3), 2 top, 4 left, 5 right
+	switch ( cg_drawCooldownArc.integer ) {
+	case 2:		CG_DrawAbilityRing( 320, 240, 26, 225, 90, 12, 2 ); break;
+	case 3:		CG_DrawAbilityRing( 320, 240, 26, 45, 90, 12, 2 ); break;
+	case 4:		CG_DrawAbilityRing( 320, 240, 26, 135, 90, 12, 2 ); break;
+	case 5:		CG_DrawAbilityRing( 320, 240, 26, -45, 90, 12, 2 ); break;
+	default:	break;
+	}
+
+	CG_DrawWeaponBar();
+}
+#endif
+
 /*
 ================
 CG_DrawStatusBarFlag
@@ -2795,7 +3086,11 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 				CG_DrawTimedMenus();
 			}
 #else
-			CG_DrawStatusBar();
+			if ( cg_hudStyle.integer ) {
+				CG_DrawHud();
+			} else {
+				CG_DrawStatusBar();
+			}
 #endif
       
 			CG_DrawAmmoWarning();
@@ -2812,7 +3107,9 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 
 #ifndef MISSIONPACK
 			CG_DrawHoldableItem();
-			CG_DrawAbility();
+			if ( !cg_hudStyle.integer ) {
+				CG_DrawAbility();
+			}
 #else
 			//CG_DrawPersistantPowerup();
 #endif
@@ -2840,8 +3137,16 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 #endif
 
 #ifndef MISSIONPACK
-	CG_DrawLowerRight();
-	CG_DrawLowerLeft();
+	if ( cg_hudStyle.integer ) {
+		if ( cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
+			CG_DrawHudClock();
+		}
+		CG_DrawKillFeed();
+		CG_DrawLowerLeft();
+	} else {
+		CG_DrawLowerRight();
+		CG_DrawLowerLeft();
+	}
 #endif
 
 	if ( !CG_DrawFollow() ) {

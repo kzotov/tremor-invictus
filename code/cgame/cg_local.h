@@ -1217,6 +1217,9 @@ extern	vmCvar_t		cg_oldPlasma;
 extern	vmCvar_t		cg_trueLightning;
 extern	vmCvar_t		cg_predictLocalRailshots;
 extern	vmCvar_t		cg_autoAction;
+extern	vmCvar_t		cg_hudStyle;
+extern	vmCvar_t		cg_drawCooldownArc;
+extern	vmCvar_t		cg_obituaryRowSize;
 #ifdef MISSIONPACK
 extern	vmCvar_t		cg_redTeamName;
 extern	vmCvar_t		cg_blueTeamName;
@@ -1753,3 +1756,4 @@ void CG_AddOwnMissiles( void );
 // cg_demo.c
 //
 void CG_DemoFrame( void );
+void CG_AddKillFeed( const char *killer, const char *victim, int weapon );

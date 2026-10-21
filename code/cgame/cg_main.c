@@ -209,6 +209,9 @@ vmCvar_t	cg_oldPlasma;
 vmCvar_t	cg_trueLightning;
 vmCvar_t	cg_predictLocalRailshots;
 vmCvar_t	cg_autoAction;
+vmCvar_t	cg_hudStyle;
+vmCvar_t	cg_drawCooldownArc;
+vmCvar_t	cg_obituaryRowSize;
 
 #ifdef MISSIONPACK
 vmCvar_t 	cg_redTeamName;
@@ -370,7 +373,12 @@ static cvarTable_t cvarTable[] = {
 	// own instant-hit shots drawn at once from the predicted aim
 	{ &cg_predictLocalRailshots, "cg_predictLocalRailshots", "1", CVAR_ARCHIVE},
 	// 1: record every match, 2: screenshot at its end
-	{ &cg_autoAction, "cg_autoAction", "3", CVAR_ARCHIVE}
+	{ &cg_autoAction, "cg_autoAction", "3", CVAR_ARCHIVE},
+	// 1: the champions HUD, 0: the classic status bar
+	{ &cg_hudStyle, "cg_hudStyle", "1", CVAR_ARCHIVE},
+	// the ability arc by the crosshair: 0 off, 2 top, 3 bottom, 4 left, 5 right
+	{ &cg_drawCooldownArc, "cg_drawCooldownArc", "3", CVAR_ARCHIVE},
+	{ &cg_obituaryRowSize, "cg_obituaryRowSize", "5", CVAR_ARCHIVE}
 //	{ &cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR_USERINFO | CVAR_ARCHIVE }
 };
 

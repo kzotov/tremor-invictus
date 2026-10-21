@@ -79,6 +79,32 @@ const char	*CG_PlaceString( int rank ) {
 CG_Obituary
 =============
 */
+/*
+=============
+CG_WeaponForMod
+
+The weapon whose icon stands for a means of death in the kill feed
+=============
+*/
+static int CG_WeaponForMod( int mod ) {
+	switch ( mod ) {
+	case MOD_GAUNTLET:		return WP_GAUNTLET;
+	case MOD_MACHINEGUN:	return WP_MACHINEGUN;
+	case MOD_SHOTGUN:		return WP_SHOTGUN;
+	case MOD_GRENADE:
+	case MOD_GRENADE_SPLASH:	return WP_GRENADE_LAUNCHER;
+	case MOD_ROCKET:
+	case MOD_ROCKET_SPLASH:	return WP_ROCKET_LAUNCHER;
+	case MOD_PLASMA:
+	case MOD_PLASMA_SPLASH:	return WP_PLASMAGUN;
+	case MOD_RAILGUN:		return WP_RAILGUN;
+	case MOD_LIGHTNING:		return WP_LIGHTNING;
+	case MOD_BFG:
+	case MOD_BFG_SPLASH:	return WP_BFG;
+	default:				return WP_NONE;
+	}
+}
+
 static void CG_Obituary( entityState_t *ent ) {
 	int			mod;
 	int			target, attacker;
@@ -207,6 +233,9 @@ static void CG_Obituary( entityState_t *ent ) {
 
 	if (message) {
 		CG_Printf( "%s %s.\n", targetName, message);
+#ifndef MISSIONPACK
+		CG_AddKillFeed( "", targetName, WP_NONE );
+#endif
 		return;
 	}
 
@@ -365,6 +394,9 @@ static void CG_Obituary( entityState_t *ent ) {
 		if (message) {
 			CG_Printf( "%s %s %s%s\n", 
 				targetName, message, attackerName, message2);
+#ifndef MISSIONPACK
+			CG_AddKillFeed( attackerName, targetName, CG_WeaponForMod( mod ) );
+#endif
 			return;
 		}
 	}
