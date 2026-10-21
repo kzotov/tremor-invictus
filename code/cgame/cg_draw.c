@@ -3874,6 +3874,7 @@ blue right; in duel the local player is on the left
 static void CG_DrawLineup( void ) {
 	static const vec4_t	dim = { 0.05f, 0.05f, 0.06f, 1.0f };		// a screen of its own, the world hidden
 	int		clients[16], teams[16], count = 0, i, t, local = cg.snap->ps.clientNum;
+	const char	*labels[16];
 
 	if ( ( cg.warmup <= 0 || cg.warmup < cg.time ) && !cg_showLineup.integer ) {
 		return;
@@ -3901,8 +3902,14 @@ static void CG_DrawLineup( void ) {
 	if ( count < 2 ) {
 		return;
 	}
+	// each player's champion under their name
+	for ( i = 0 ; i < count ; i++ ) {
+		int		champ = BG_ChampionForModel( cgs.clientinfo[clients[i]].modelName );
+
+		labels[i] = champ >= 0 ? BG_String( BG_Champion( champ )->nameString ) : NULL;
+	}
 	CG_FillRect( -1000, 0, 3000, 480, dim );
-	CG_DrawPillars( clients, NULL, teams, count, NULL, NULL );
+	CG_DrawPillars( clients, NULL, teams, count, labels, NULL );
 	UI_DrawProportionalString( 320, 40, CG_ModeString(), UI_CENTER | UI_DROPSHADOW, colorWhite );
 	UI_DrawProportionalString( 320, 66, CG_ConfigString( CS_MESSAGE )[0] ? CG_ConfigString( CS_MESSAGE ) : cgs.mapname + 5,
 		UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorLtGrey );
