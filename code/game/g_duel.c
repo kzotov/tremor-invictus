@@ -261,6 +261,9 @@ match once it is running
 =================
 */
 int G_DuelSpawnChampion( gclient_t *client ) {
+	if ( G_RoundDuel() && !level.warmupTime ) {
+		return G_RoundDuelChampion( client );
+	}
 	if ( g_gametype.integer != GT_TOURNAMENT || level.warmupTime ) {
 		client->pers.championLocked = qfalse;
 		return client->pers.champion;

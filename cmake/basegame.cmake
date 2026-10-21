@@ -56,6 +56,7 @@ set(GAME_SOURCES
     ${SOURCE_DIR}/game/g_ctf.c
     ${SOURCE_DIR}/game/g_ca.c
     ${SOURCE_DIR}/game/g_sacrifice.c
+    ${SOURCE_DIR}/game/g_roundduel.c
     ${SOURCE_DIR}/game/g_arenas.c
     ${SOURCE_DIR}/game/g_bot.c
     ${SOURCE_DIR}/game/g_client.c

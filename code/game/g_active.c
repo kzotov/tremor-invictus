@@ -1184,7 +1184,7 @@ void ClientThink_real( gentity_t *ent ) {
 	} else if ( client->ps.stats[STAT_HEALTH] <= 0 ) {
 		client->ps.pm_type = PM_DEAD;
 	} else if ( G_MatchMode() && ( level.warmupTime > 0 || level.halfTimeEnd
-		|| ( G_ClanArena() && level.caState == CA_COUNTDOWN ) ) ) {
+		|| ( G_ClanArena() && level.caState == CA_COUNTDOWN ) || G_RoundDuelHolds() ) ) {
 		// countdown or half time: held in place, no firing
 		client->ps.pm_type = PM_FREEZE;
 	} else {
@@ -1360,8 +1360,8 @@ void ClientThink_real( gentity_t *ent ) {
 
 	// check for respawning
 	if ( client->ps.stats[STAT_HEALTH] <= 0 ) {
-		// clan arena: the dead wait for the next round
-		if ( G_ClanArena() && !level.warmupTime ) {
+		// clan arena: the dead wait for the next round; round duel only respawns mid-round
+		if ( ( G_ClanArena() || ( G_RoundDuel() && G_RoundDuelHolds() ) ) && !level.warmupTime ) {
 			return;
 		}
 		// wait for the attack button to be pressed

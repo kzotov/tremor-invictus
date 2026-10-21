@@ -1145,7 +1145,13 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Soul: on the ground",
 	"Soul: at red's obelisk",
 	"Soul: at blue's obelisk",
-	"Extracting %i%%"
+	"Extracting %i%%",
+	"Your pick: type pick <champion> (%i s)",
+	"%s picks %s",
+	"Round %i",
+	"%s wins the round",
+	"Sudden death: the next frag wins the round",
+	"Your next champion: type next 1, 2 or 3"
 };
 
 /*

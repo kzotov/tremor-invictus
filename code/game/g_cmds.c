@@ -1738,6 +1738,14 @@ void ClientCommand( int clientNum ) {
 		Cmd_Tell_f ( ent );
 		return;
 	}
+	if (Q_stricmp (cmd, "pick") == 0) {
+		Cmd_Pick_f( ent );
+		return;
+	}
+	if (Q_stricmp (cmd, "next") == 0) {
+		Cmd_Next_f( ent );
+		return;
+	}
 	if (Q_stricmp (cmd, "readyup") == 0) {
 		Cmd_ReadyUp_f( ent );
 		return;

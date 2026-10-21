@@ -991,7 +991,8 @@ CG_DrawUpperRight
 =================
 CG_DrawSacrifice
 
-Sacrifice: both meters, where the soul is, and extraction progress
+Sacrifice: both meters, where the soul is, and extraction progress;
+round duel: both rosters
 =================
 */
 static float CG_DrawSacrifice( float y ) {
@@ -999,7 +1000,32 @@ static float CG_DrawSacrifice( float y ) {
 	int			v[6], i, w;
 	const char	*s;
 
-	if ( cgs.gametype != GT_CTF || !cs[0] ) {
+	if ( !cs[0] ) {
+		return y;
+	}
+
+	// round duel: "rd|first roster|second roster"
+	if ( !Q_strncmp( cs, "rd|", 3 ) ) {
+		char	line[256];
+		int		n;
+
+		cs += 3;
+		while ( *cs ) {
+			for ( n = 0 ; *cs && *cs != '|' && n < (int)sizeof( line ) - 1 ; n++ ) {
+				line[n] = *cs++;
+			}
+			line[n] = 0;
+			if ( *cs == '|' ) {
+				cs++;
+			}
+			w = CG_DrawStrlen( line ) * SMALLCHAR_WIDTH;
+			CG_DrawSmallString( 635 - w, y + 2, line, 1.0F );
+			y += SMALLCHAR_HEIGHT + 4;
+		}
+		return y;
+	}
+
+	if ( cgs.gametype != GT_CTF ) {
 		return y;
 	}
 	for ( i = 0 ; i < 6 ; i++ ) {

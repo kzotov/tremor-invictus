@@ -325,6 +325,12 @@ typedef enum {
 	STR_SAC_SOUL_RED,
 	STR_SAC_SOUL_BLUE,
 	STR_SAC_EXTRACTING,				// "Extracting %i%%"
+	STR_RD_YOUR_PICK,				// "Your pick: type pick <champion> (%i s)"
+	STR_RD_PICKED,					// "%s picks %s"
+	STR_RD_ROUND,					// "Round %i"
+	STR_RD_WINS_ROUND,				// "%s wins the round"
+	STR_RD_SUDDEN_DEATH,
+	STR_RD_NEXT,					// "Next champion: type next <1-3>"
 
 	STR_NUM_STRINGS
 } stringId_t;

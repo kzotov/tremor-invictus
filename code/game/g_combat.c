@@ -53,8 +53,8 @@ void AddScore( gentity_t *ent, vec3_t origin, int score ) {
 	if ( !ent->client ) {
 		return;
 	}
-	// no scoring during pre-match warmup
-	if ( level.warmupTime ) {
+	// no scoring during pre-match warmup; in round duel the score is rounds won
+	if ( level.warmupTime || G_RoundDuel() ) {
 		return;
 	}
 	// show score plum
@@ -601,6 +601,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	}
 
 	G_SacrificeKill( self, attacker );
+	G_RoundDuelKill( self );
 	TossClientItems( self );
 #ifdef MISSIONPACK
 	TossClientPersistantPowerups( self );

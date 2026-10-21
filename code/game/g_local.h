@@ -679,6 +679,15 @@ void		G_SacrificeDropSoul( gentity_t *ent, qboolean thrown );
 void		G_SacrificeKill( gentity_t *victim, gentity_t *attacker );
 gentity_t	*G_SacrificeSpawnPoint( gentity_t *ent, vec3_t origin, vec3_t angles, qboolean isbot );
 
+// g_roundduel.c
+qboolean	G_RoundDuel( void );
+qboolean	G_RoundDuelHolds( void );
+int			G_RoundDuelChampion( gclient_t *client );
+void		G_RoundDuelKill( gentity_t *victim );
+void		G_RoundDuelCheckRules( void );
+void		Cmd_Pick_f( gentity_t *ent );
+void		Cmd_Next_f( gentity_t *ent );
+
 // g_rewind.c
 //
 void G_RewindInit( void );
@@ -858,6 +867,9 @@ extern	vmCvar_t	g_sacMeterTime;
 extern	vmCvar_t	g_sacExtractTime;
 extern	vmCvar_t	g_sacObeliskRadius;
 extern	vmCvar_t	g_sacSoulReturn;
+extern	vmCvar_t	g_roundDuel;
+extern	vmCvar_t	g_rdRounds;
+extern	vmCvar_t	g_rdRoundTime;
 
 extern	vmCvar_t	g_dmflags;
 extern	vmCvar_t	g_fraglimit;

@@ -198,6 +198,9 @@ vmCvar_t	g_sacMeterTime;
 vmCvar_t	g_sacExtractTime;
 vmCvar_t	g_sacObeliskRadius;
 vmCvar_t	g_sacSoulReturn;
+vmCvar_t	g_roundDuel;
+vmCvar_t	g_rdRounds;
+vmCvar_t	g_rdRoundTime;
 vmCvar_t	g_logfile;
 vmCvar_t	g_logfileSync;
 vmCvar_t	g_blood;
@@ -256,6 +259,10 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_sacExtractTime, "g_sacExtractTime", "2500", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_sacObeliskRadius, "g_sacObeliskRadius", "192", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_sacSoulReturn, "g_sacSoulReturn", "20", CVAR_ARCHIVE, 0, qtrue },
+	// round duel: three drafted champions each, one life apiece (g_gametype 1 with g_roundDuel 1)
+	{ &g_roundDuel, "g_roundDuel", "0", CVAR_SERVERINFO | CVAR_LATCH, 0, qtrue },
+	{ &g_rdRounds, "g_rdRounds", "2", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_rdRoundTime, "g_rdRoundTime", "300", CVAR_ARCHIVE, 0, qtrue },
 
 	// latched vars
 	{ &g_gametype, "g_gametype", "0", CVAR_SERVERINFO | CVAR_USERINFO | CVAR_LATCH, 0, qfalse  },
@@ -1648,6 +1655,11 @@ void CheckExitRules( void ) {
 
 	if ( G_Sacrifice() ) {
 		G_SacrificeCheckRules();
+		return;
+	}
+
+	if ( G_RoundDuel() ) {
+		G_RoundDuelCheckRules();
 		return;
 	}
 
