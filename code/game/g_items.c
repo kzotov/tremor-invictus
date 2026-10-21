@@ -239,7 +239,7 @@ int Pickup_Ammo (gentity_t *ent, gentity_t *other)
 		G_CutAbilityCooldown( other, g_cooldownAmmo.value );
 	}
 
-	return RESPAWN_AMMO;
+	return g_respawnAmmo.integer;
 }
 
 //======================================================================
@@ -333,10 +333,10 @@ int Pickup_Health (gentity_t *ent, gentity_t *other) {
 	}
 
 	if ( ent->item->quantity == 100 ) {		// mega health respawns slow
-		return RESPAWN_MEGAHEALTH;
+		return g_respawnMega.integer;
 	}
 
-	return RESPAWN_HEALTH;
+	return ent->item->quantity >= 50 ? g_respawnHealthLarge.integer : g_respawnHealth.integer;
 }
 
 //======================================================================
@@ -358,9 +358,22 @@ int Pickup_Armor( gentity_t *ent, gentity_t *other ) {
 		other->client->ps.stats[STAT_ARMOR] = upperBound;
 	}
 #else
-	other->client->ps.stats[STAT_ARMOR] += ent->item->quantity;
-	if ( other->client->ps.stats[STAT_ARMOR] > G_ClassInfo( other->client )->maxArmor ) {
-		other->client->ps.stats[STAT_ARMOR] = G_ClassInfo( other->client )->maxArmor;
+	{
+		// heavy armor and shards may go over the class base armor, light armor not
+		int		amount = ent->item->quantity;
+		int		cap = G_ClassInfo( other->client )->maxArmor;
+
+		if ( amount < 25 ) {
+			amount = g_shardArmor.integer;
+		} else if ( amount < 100 ) {
+			cap = G_ClassInfo( other->client )->baseArmor;
+		}
+		if ( other->client->ps.stats[STAT_ARMOR] < cap ) {
+			other->client->ps.stats[STAT_ARMOR] += amount;
+			if ( other->client->ps.stats[STAT_ARMOR] > cap ) {
+				other->client->ps.stats[STAT_ARMOR] = cap;
+			}
+		}
 	}
 #endif
 
@@ -370,10 +383,54 @@ int Pickup_Armor( gentity_t *ent, gentity_t *other ) {
 		G_CutAbilityCooldown( other, ent->item->quantity >= 100 ? g_cooldownArmorHeavy.value : g_cooldownArmorLight.value );
 	}
 
-	return RESPAWN_ARMOR;
+	return g_respawnArmor.integer;
 }
 
 //======================================================================
+
+/*
+===============
+G_PowerupWarning
+
+Tells everyone a power-up is about to appear
+===============
+*/
+static void G_PowerupWarning( gentity_t *ent ) {
+	gitem_t		*item = ent->item;
+	char		msg[MAX_STRING_CHARS];
+
+	// the item shown is the one the spot will give next
+	if ( g_powerupAlternate.integer && ent->abilityTime ) {
+		if ( item->giTag == PW_QUAD ) {
+			item = BG_FindItemForPowerup( PW_BATTLESUIT );
+		} else if ( item->giTag == PW_BATTLESUIT ) {
+			item = BG_FindItemForPowerup( PW_QUAD );
+		}
+	}
+	Com_sprintf( msg, sizeof( msg ), BG_String( STR_POWERUP_WARNING ), item->pickup_name, g_powerupWarning.integer );
+
+	trap_SendServerCommand( -1, va( "cp \"%s\"", msg ) );
+	trap_SendServerCommand( -1, va( "print \"%s\n\"", msg ) );
+	ent->think = RespawnItem;
+	ent->nextthink = level.time + g_powerupWarning.integer * 1000;
+}
+
+/*
+===============
+G_SchedulePowerup
+
+A power-up appears after the given seconds, with a warning beforehand
+===============
+*/
+void G_SchedulePowerup( gentity_t *ent, int seconds ) {
+	if ( seconds > g_powerupWarning.integer && g_powerupWarning.integer > 0 ) {
+		ent->think = G_PowerupWarning;
+		ent->nextthink = level.time + ( seconds - g_powerupWarning.integer ) * 1000;
+	} else {
+		ent->think = RespawnItem;
+		ent->nextthink = level.time + seconds * 1000;
+	}
+}
 
 /*
 ===============
@@ -383,6 +440,24 @@ RespawnItem
 void RespawnItem( gentity_t *ent ) {
 	if (!ent) {
 		return;
+	}
+
+	// a quad spot alternates with protection after its first appearance
+	if ( ent->item && ent->item->giType == IT_POWERUP && g_powerupAlternate.integer && ent->abilityTime ) {
+		gitem_t	*other = NULL;
+
+		if ( ent->item->giTag == PW_QUAD ) {
+			other = BG_FindItemForPowerup( PW_BATTLESUIT );
+		} else if ( ent->item->giTag == PW_BATTLESUIT ) {
+			other = BG_FindItemForPowerup( PW_QUAD );
+		}
+		if ( other ) {
+			ent->item = other;
+			ent->s.modelindex = other - bg_itemlist;
+		}
+	}
+	if ( ent->item && ent->item->giType == IT_POWERUP ) {
+		ent->abilityTime = 1;		// has appeared once
 	}
 
 	// randomly select from teamed entities
@@ -584,6 +659,8 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
 	if ( respawn <= 0 ) {
 		ent->nextthink = 0;
 		ent->think = 0;
+	} else if ( ent->item->giType == IT_POWERUP ) {
+		G_SchedulePowerup( ent, respawn );
 	} else {
 		ent->nextthink = level.time + respawn * 1000;
 		ent->think = RespawnItem;
@@ -734,11 +811,14 @@ void FinishSpawningItem( gentity_t *ent ) {
 	if ( ent->item->giType == IT_POWERUP ) {
 		float	respawn;
 
-		respawn = 45 + crandom() * 15;
+		respawn = g_powerupFirstSpawn.integer;
 		ent->s.eFlags |= EF_NODRAW;
 		ent->r.contents = 0;
-		ent->nextthink = level.time + respawn * 1000;
-		ent->think = RespawnItem;
+		G_SchedulePowerup( ent, respawn );
+		if ( g_powerupAlternate.integer ) {
+			RegisterItem( BG_FindItemForPowerup( PW_QUAD ) );
+			RegisterItem( BG_FindItemForPowerup( PW_BATTLESUIT ) );
+		}
 		return;
 	}
 

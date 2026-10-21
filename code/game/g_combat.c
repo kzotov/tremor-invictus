@@ -79,6 +79,18 @@ void TossClientItems( gentity_t *self ) {
 	float		angle;
 	int			i;
 	gentity_t	*drop;
+	gitem_t		*shard;
+	vec3_t		velocity;
+
+	// every death drops a few armor shards close together, gone after a while
+	shard = BG_FindItem( "Armor Shard" );
+	for ( i = 0 ; shard && i < g_shardDrops.integer ; i++ ) {
+		velocity[0] = cos( i * 2 * M_PI / g_shardDrops.integer ) * 60;
+		velocity[1] = sin( i * 2 * M_PI / g_shardDrops.integer ) * 60;
+		velocity[2] = 150;
+		drop = LaunchItem( shard, self->s.pos.trBase, velocity );
+		drop->nextthink = level.time + g_shardLife.integer;
+	}
 
 	// drop the weapon if not a gauntlet or machinegun
 	weapon = self->s.weapon;

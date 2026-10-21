@@ -1104,6 +1104,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Lime",
 	"Teal",
 
+	"%s in %i seconds",
 	"was trampled by",
 	"was blasted by the orb of",
 	"was scorched by",

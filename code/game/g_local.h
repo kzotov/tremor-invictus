@@ -612,6 +612,7 @@ void G_ExplodeMissile( gentity_t *ent );
 void G_NextKnockback( float knock );
 void G_WeaponTuneMissile( gentity_t *m, int weapon );
 void G_WeaponThink( gentity_t *ent );
+void G_SchedulePowerup( gentity_t *ent, int seconds );
 void G_SplashParams( float minDamage, float knock, float knockSelf );
 
 //
@@ -883,6 +884,17 @@ extern	vmCvar_t	g_ssgCloseFade;
 extern	vmCvar_t	g_triboltShots;
 extern	vmCvar_t	g_triboltInterval;
 extern	vmCvar_t	g_triboltFuse;
+extern	vmCvar_t	g_respawnHealth;
+extern	vmCvar_t	g_respawnHealthLarge;
+extern	vmCvar_t	g_respawnMega;
+extern	vmCvar_t	g_respawnArmor;
+extern	vmCvar_t	g_respawnAmmo;
+extern	vmCvar_t	g_shardArmor;
+extern	vmCvar_t	g_shardDrops;
+extern	vmCvar_t	g_shardLife;
+extern	vmCvar_t	g_powerupFirstSpawn;
+extern	vmCvar_t	g_powerupWarning;
+extern	vmCvar_t	g_powerupAlternate;
 extern	vmCvar_t	g_hookSpeed;
 extern	vmCvar_t	g_hookRange;
 extern	vmCvar_t	g_hookDamage;

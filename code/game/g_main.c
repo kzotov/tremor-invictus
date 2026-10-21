@@ -144,6 +144,17 @@ vmCvar_t	g_ssgCloseFade;
 vmCvar_t	g_triboltShots;
 vmCvar_t	g_triboltInterval;
 vmCvar_t	g_triboltFuse;
+vmCvar_t	g_respawnHealth;
+vmCvar_t	g_respawnHealthLarge;
+vmCvar_t	g_respawnMega;
+vmCvar_t	g_respawnArmor;
+vmCvar_t	g_respawnAmmo;
+vmCvar_t	g_shardArmor;
+vmCvar_t	g_shardDrops;
+vmCvar_t	g_shardLife;
+vmCvar_t	g_powerupFirstSpawn;
+vmCvar_t	g_powerupWarning;
+vmCvar_t	g_powerupAlternate;
 vmCvar_t	g_hookSpeed;
 vmCvar_t	g_hookRange;
 vmCvar_t	g_hookDamage;
@@ -342,6 +353,17 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_triboltShots, "g_triboltShots", "3", 0, 0, qtrue },
 	{ &g_triboltInterval, "g_triboltInterval", "125", 0, 0, qtrue },
 	{ &g_triboltFuse, "g_triboltFuse", "600", 0, 0, qtrue },
+	{ &g_respawnHealth, "g_respawnHealth", "15", 0, 0, qtrue },
+	{ &g_respawnHealthLarge, "g_respawnHealthLarge", "30", 0, 0, qtrue },
+	{ &g_respawnMega, "g_respawnMega", "30", 0, 0, qtrue },
+	{ &g_respawnArmor, "g_respawnArmor", "30", 0, 0, qtrue },
+	{ &g_respawnAmmo, "g_respawnAmmo", "20", 0, 0, qtrue },
+	{ &g_shardArmor, "g_shardArmor", "10", 0, 0, qtrue },
+	{ &g_shardDrops, "g_shardDrops", "2", 0, 0, qtrue },
+	{ &g_shardLife, "g_shardLife", "15000", 0, 0, qtrue },
+	{ &g_powerupFirstSpawn, "g_powerupFirstSpawn", "90", 0, 0, qtrue },
+	{ &g_powerupWarning, "g_powerupWarning", "15", 0, 0, qtrue },
+	{ &g_powerupAlternate, "g_powerupAlternate", "1", 0, 0, qtrue },
 	{ &g_hookSpeed, "g_hookSpeed", "3000", 0, 0, qtrue },
 	{ &g_hookRange, "g_hookRange", "4000", 0, 0, qtrue },
 	{ &g_hookDamage, "g_hookDamage", "25", 0, 0, qtrue },
