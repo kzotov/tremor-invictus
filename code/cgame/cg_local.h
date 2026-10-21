@@ -546,6 +546,7 @@ typedef struct {
 	int			teamScores[2];
 	score_t		scores[MAX_CLIENTS];
 	qboolean	showScores;
+	qboolean	showChatHistory;	// +chathistory held
 	qboolean	scoreBoardShowing;
 	int			scoreFadeTime;
 	char		killerName[MAX_NAME_LENGTH];
@@ -1220,6 +1221,7 @@ extern	vmCvar_t		cg_autoAction;
 extern	vmCvar_t		cg_hudStyle;
 extern	vmCvar_t		cg_drawCooldownArc;
 extern	vmCvar_t		cg_obituaryRowSize;
+extern	vmCvar_t		cg_chatHistoryLength;
 #ifdef MISSIONPACK
 extern	vmCvar_t		cg_redTeamName;
 extern	vmCvar_t		cg_blueTeamName;
@@ -1757,3 +1759,4 @@ void CG_AddOwnMissiles( void );
 //
 void CG_DemoFrame( void );
 void CG_AddKillFeed( const char *killer, const char *victim, int weapon );
+void CG_AddChat( const char *text );

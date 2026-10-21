@@ -84,6 +84,14 @@ static void CG_Viewpos_f (void) {
 }
 
 
+static void CG_ChatHistoryDown_f( void ) {
+	cg.showChatHistory = qtrue;
+}
+
+static void CG_ChatHistoryUp_f( void ) {
+	cg.showChatHistory = qfalse;
+}
+
 static void CG_ScoresDown_f( void ) {
 
 #ifdef MISSIONPACK
@@ -459,6 +467,8 @@ static consoleCommand_t	commands[] = {
 	{ "prevskin", CG_TestModelPrevSkin_f },
 	{ "viewpos", CG_Viewpos_f },
 	{ "+scores", CG_ScoresDown_f },
+	{ "+chathistory", CG_ChatHistoryDown_f },
+	{ "-chathistory", CG_ChatHistoryUp_f },
 	{ "-scores", CG_ScoresUp_f },
 	{ "+zoom", CG_ZoomDown_f },
 	{ "-zoom", CG_ZoomUp_f },

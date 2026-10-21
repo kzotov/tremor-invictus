@@ -212,6 +212,7 @@ vmCvar_t	cg_autoAction;
 vmCvar_t	cg_hudStyle;
 vmCvar_t	cg_drawCooldownArc;
 vmCvar_t	cg_obituaryRowSize;
+vmCvar_t	cg_chatHistoryLength;
 
 #ifdef MISSIONPACK
 vmCvar_t 	cg_redTeamName;
@@ -378,7 +379,8 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_hudStyle, "cg_hudStyle", "1", CVAR_ARCHIVE},
 	// the ability arc by the crosshair: 0 off, 2 top, 3 bottom, 4 left, 5 right
 	{ &cg_drawCooldownArc, "cg_drawCooldownArc", "3", CVAR_ARCHIVE},
-	{ &cg_obituaryRowSize, "cg_obituaryRowSize", "5", CVAR_ARCHIVE}
+	{ &cg_obituaryRowSize, "cg_obituaryRowSize", "5", CVAR_ARCHIVE},
+	{ &cg_chatHistoryLength, "cg_chatHistoryLength", "6", CVAR_ARCHIVE}
 //	{ &cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR_USERINFO | CVAR_ARCHIVE }
 };
 

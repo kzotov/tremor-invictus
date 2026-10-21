@@ -119,6 +119,7 @@ static const settingRow_t controlRows[] = {
 	BIND( STR_SET_BIND_ABILITY, "+button12" ),
 	BIND( STR_SET_BIND_CHAT, "messagemode" ),
 	BIND( STR_SET_BIND_TEAMCHAT, "messagemode2" ),
+	BIND( STR_SET_BIND_CHATHISTORY, "+chathistory" ),
 	BIND( STR_SET_BIND_VOICE, "+voiprecord" ),
 	BIND( STR_SET_BIND_FOLLOWNEXT, "follownext" ),
 	BIND( STR_SET_BIND_FOLLOWPREV, "followprev" ),

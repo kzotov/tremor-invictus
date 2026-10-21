@@ -1329,6 +1329,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Scores",
 	"Screenshot",
 	"Console",
+	"Chat history",
 	"Auto-switch on pickup",
 	"Switch to a better weapon when you pick it up.",
 	"Auto-hop",

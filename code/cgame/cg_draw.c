@@ -549,6 +549,120 @@ static void CG_DrawKillFeed( void ) {
 }
 
 /*
+==============================================================================
+
+CHAT BOX
+
+Bottom left: the last cg_chatHistoryLength lines for a few seconds each;
+holding +chathistory shows the whole history
+
+==============================================================================
+*/
+
+#define CHAT_HISTORY		24
+#define CHAT_TIME			8000
+#define CHAT_WIDTH			56		// characters a line, wrapped at spaces
+#define CHAT_Y				360		// bottom line
+
+typedef struct {
+	char	text[MAX_SAY_TEXT];
+	int		time;
+} chatLine_t;
+
+static chatLine_t	chatLines[CHAT_HISTORY];
+static int			chatHead;
+
+/*
+=================
+CG_AddChatLine
+=================
+*/
+static void CG_AddChatLine( const char *text, int len ) {
+	chatLine_t	*c = &chatLines[chatHead++ % CHAT_HISTORY];
+
+	if ( len >= (int)sizeof( c->text ) ) {
+		len = sizeof( c->text ) - 1;
+	}
+	Q_strncpyz( c->text, text, len + 1 );
+	c->time = cg.time;
+}
+
+/*
+=================
+CG_AddChat
+
+Wraps a chat message into lines; colour carries over to the next line
+=================
+*/
+void CG_AddChat( const char *text ) {
+	char		line[MAX_SAY_TEXT];
+	const char	*p = text;
+	int			visible, cut, i;
+	char		lastColor = COLOR_WHITE;
+
+	while ( *p ) {
+		// find where CHAT_WIDTH visible characters end
+		visible = 0;
+		cut = 0;
+		for ( i = 0 ; p[i] && visible < CHAT_WIDTH ; i++ ) {
+			if ( Q_IsColorString( p + i ) ) {
+				i++;
+				continue;
+			}
+			visible++;
+			if ( p[i] == ' ' ) {
+				cut = i;
+			}
+		}
+		if ( !p[i] || !cut ) {
+			cut = i;
+		}
+		line[0] = Q_COLOR_ESCAPE;
+		line[1] = lastColor;
+		Q_strncpyz( line + 2, p, cut + 1 > (int)sizeof( line ) - 2 ? (int)sizeof( line ) - 2 : cut + 1 );
+		for ( i = 0 ; i < cut ; i++ ) {
+			if ( Q_IsColorString( p + i ) ) {
+				lastColor = p[i + 1];
+			}
+		}
+		CG_AddChatLine( line, strlen( line ) );
+		p += cut;
+		while ( *p == ' ' ) {
+			p++;
+		}
+	}
+}
+
+/*
+=================
+CG_DrawChat
+=================
+*/
+static void CG_DrawChat( void ) {
+	chatLine_t	*c;
+	int			i, rows, y = CHAT_Y;
+	vec4_t		color = { 1, 1, 1, 1 };
+
+	rows = cg.showChatHistory ? CHAT_HISTORY : cg_chatHistoryLength.integer;
+	if ( rows > CHAT_HISTORY ) {
+		rows = CHAT_HISTORY;
+	}
+	for ( i = 0 ; i < rows ; i++ ) {
+		c = &chatLines[( chatHead - 1 - i + CHAT_HISTORY * 2 ) % CHAT_HISTORY];
+		if ( !c->time || c->time > cg.time ) {
+			break;
+		}
+		if ( !cg.showChatHistory && cg.time - c->time > CHAT_TIME ) {
+			break;
+		}
+		color[3] = !cg.showChatHistory && cg.time - c->time > CHAT_TIME - 500
+			? ( CHAT_TIME - ( cg.time - c->time ) ) / 500.0f : 1;
+		CG_DrawStringExt( 8, y, c->text, color, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+		y -= SMALLCHAR_HEIGHT + 2;
+	}
+}
+
+/*
 =================
 CG_HudNumberColor
 
@@ -3147,6 +3261,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 		CG_DrawLowerRight();
 		CG_DrawLowerLeft();
 	}
+	CG_DrawChat();
 #endif
 
 	if ( !CG_DrawFollow() ) {

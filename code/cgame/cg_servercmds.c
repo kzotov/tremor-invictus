@@ -1035,7 +1035,12 @@ static void CG_ServerCommand( void ) {
 		trap_S_StartLocalSound( cgs.media.talkSound, CHAN_LOCAL_SOUND );
 		Q_strncpyz( text, CG_Argv(1), MAX_SAY_TEXT );
 		CG_RemoveChatEscapeChar( text );
+#ifndef MISSIONPACK
+		CG_AddChat( text );
+		CG_Printf( "[skipnotify]%s\n", text );
+#else
 		CG_Printf( "%s\n", text );
+#endif
 		return;
 	}
 
@@ -1043,8 +1048,13 @@ static void CG_ServerCommand( void ) {
 		trap_S_StartLocalSound( cgs.media.talkSound, CHAN_LOCAL_SOUND );
 		Q_strncpyz( text, CG_Argv(1), MAX_SAY_TEXT );
 		CG_RemoveChatEscapeChar( text );
+#ifndef MISSIONPACK
+		CG_AddChat( text );
+		CG_Printf( "[skipnotify]%s\n", text );
+#else
 		CG_AddToTeamChat( text );
 		CG_Printf( "%s\n", text );
+#endif
 		return;
 	}
 
