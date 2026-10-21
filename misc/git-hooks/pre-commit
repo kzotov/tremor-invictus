@@ -12,8 +12,16 @@ max_bytes=1048576
 # Path globs that must never be committed, kept outside version control.
 denylist="$(git rev-parse --git-dir)/info/commit-denylist"
 
+# Plain POSIX sh (dash on Linux): one path per line. Git C-quotes paths with
+# unusual characters even with core.quotePath off; those are refused.
 status=0
-git diff --cached --name-only --diff-filter=ACMR -z | while IFS= read -r -d '' f; do
+git -c core.quotePath=false diff --cached --name-only --diff-filter=ACMR | while IFS= read -r f; do
+	case "$f" in
+	\"*)
+		echo "pre-commit: refusing path with unusual characters: $f" >&2
+		exit 1
+		;;
+	esac
 	# local, untracked denylist: one shell glob per line, # for comments
 	if [ -f "$denylist" ]; then
 		while IFS= read -r pattern; do
