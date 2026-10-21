@@ -209,6 +209,9 @@ vmCvar_t	g_overtime;
 vmCvar_t	g_duelReadyUp;
 vmCvar_t	g_duelFraglimit;
 vmCvar_t	g_tdmFraglimit;
+vmCvar_t	g_mapVote;
+vmCvar_t	g_mapVoteTime;
+vmCvar_t	g_mapVoteDelay;
 vmCvar_t	g_ffaFraglimit;
 vmCvar_t	g_ffaMaxPlayers;
 vmCvar_t	g_ctfHalfLength;
@@ -269,6 +272,10 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_duelReadyUp, "g_duelReadyUp", "1", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_duelFraglimit, "g_duelFraglimit", "0", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_tdmFraglimit, "g_tdmFraglimit", "75", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_mapVote, "g_mapVote", "1", CVAR_ARCHIVE, 0, qtrue },			// end-of-match map vote; 0 = the rotation decides
+	{ &g_mapVoteTime, "g_mapVoteTime", "20", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_mapVoteDelay, "g_mapVoteDelay", "6000", 0, 0, qtrue },		// msec of podium before the vote
+	{ NULL, "g_mapPool", "", CVAR_ARCHIVE, 0, qfalse },
 	{ &g_ffaFraglimit, "g_ffaFraglimit", "50", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_ffaMaxPlayers, "g_ffaMaxPlayers", "8", CVAR_ARCHIVE, 0, qtrue },
 	// capture the flag: two halves of this many minutes, and no capture limit by default
@@ -857,6 +864,7 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	G_RemapTeamShaders();
 
 	trap_SetConfigstring( CS_INTERMISSION, "" );
+	trap_SetConfigstring( CS_MAPVOTE, "" );
 }
 
 
@@ -1376,6 +1384,7 @@ void BeginIntermission( void ) {
 	// send the current scoring to all clients
 	SendScoreboardMessageToAllClients();
 
+	G_MapVoteStart();
 }
 
 
@@ -1393,13 +1402,22 @@ void ExitLevel (void) {
 	gclient_t *cl;
 	char nextmap[MAX_STRING_CHARS];
 	char d1[MAX_STRING_CHARS];
+	const char	*voted;
 
 	//bot interbreeding
 	BotInterbreedEndMatch();
 
+	// the map vote's winner comes next
+	voted = G_MapVoteWinner();
+
 	// if we are running a tournement map, kick the loser to spectator status,
 	// which will automatically grab the next spectator and restart
-	if ( g_gametype.integer == GT_TOURNAMENT  ) {
+	if ( voted ) {
+		if ( g_gametype.integer == GT_TOURNAMENT ) {
+			RemoveTournamentLoser();
+		}
+		trap_SendConsoleCommand( EXEC_APPEND, va( "map %s\n", voted ) );
+	} else if ( g_gametype.integer == GT_TOURNAMENT  ) {
 		if ( !level.restarted ) {
 			RemoveTournamentLoser();
 			trap_SendConsoleCommand( EXEC_APPEND, "map_restart 0\n" );
@@ -1408,16 +1426,16 @@ void ExitLevel (void) {
 			level.intermissiontime = 0;
 		}
 		return;	
-	}
-
-	trap_Cvar_VariableStringBuffer( "nextmap", nextmap, sizeof(nextmap) );
-	trap_Cvar_VariableStringBuffer( "d1", d1, sizeof(d1) );
-
-	if( !Q_stricmp( nextmap, "map_restart 0" ) && Q_stricmp( d1, "" ) ) {
-		trap_Cvar_Set( "nextmap", "vstr d2" );
-		trap_SendConsoleCommand( EXEC_APPEND, "vstr d1\n" );
 	} else {
-		trap_SendConsoleCommand( EXEC_APPEND, "vstr nextmap\n" );
+		trap_Cvar_VariableStringBuffer( "nextmap", nextmap, sizeof(nextmap) );
+		trap_Cvar_VariableStringBuffer( "d1", d1, sizeof(d1) );
+
+		if( !Q_stricmp( nextmap, "map_restart 0" ) && Q_stricmp( d1, "" ) ) {
+			trap_Cvar_Set( "nextmap", "vstr d2" );
+			trap_SendConsoleCommand( EXEC_APPEND, "vstr d1\n" );
+		} else {
+			trap_SendConsoleCommand( EXEC_APPEND, "vstr nextmap\n" );
+		}
 	}
 
 	level.changemap = NULL;
@@ -1618,6 +1636,14 @@ void CheckIntermissionExit( void ) {
 
 	// never exit in less than five seconds
 	if ( level.time < level.intermissiontime + 5000 ) {
+		return;
+	}
+
+	// a map vote decides when to go: as it closes
+	if ( G_MapVoteWinner() ) {
+		if ( !G_MapVoteActive() ) {
+			ExitLevel();
+		}
 		return;
 	}
 

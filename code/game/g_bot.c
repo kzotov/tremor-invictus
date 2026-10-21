@@ -187,6 +187,24 @@ static void G_LoadArenas( void ) {
 
 /*
 ===============
+G_ArenaCount / G_ArenaInfo
+
+The arena list for the map vote; loaded here when bots are off
+===============
+*/
+int G_ArenaCount( void ) {
+	if ( !g_numArenas ) {
+		G_LoadArenas();
+	}
+	return g_numArenas;
+}
+
+const char *G_ArenaInfo( int n ) {
+	return n >= 0 && n < g_numArenas ? g_arenaInfos[n] : "";
+}
+
+/*
+===============
 G_GetArenaInfoByNumber
 ===============
 */

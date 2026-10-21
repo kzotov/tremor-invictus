@@ -539,6 +539,8 @@ typedef struct {
 	float		zoomSensitivity;
 
 	// information screen text during loading
+	int			mapVote;			// 1-3, the map this player voted for
+	int			mapVoteTime;		// end time of that vote, to notice a new one
 	char		infoScreenText[MAX_STRING_CHARS];
 
 	// scoreboard

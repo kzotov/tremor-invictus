@@ -3144,6 +3144,67 @@ static qboolean CG_DrawScoreboard( void ) {
 CG_DrawIntermission
 =================
 */
+/*
+=================
+CG_DrawMapVote
+
+The end-of-match map vote: three maps across the bottom with their votes
+=================
+*/
+static void CG_DrawMapVote( void ) {
+	static vec4_t	panel = { 0.06f, 0.06f, 0.08f, 0.85f };
+	static vec4_t	mine = { 0.85f, 0.12f, 0.1f, 1 };
+	char		maps[3][MAX_QPATH];
+	int			endTime, votes[3], i, x, left;
+	char		*p;
+	qhandle_t	shot;
+	const char	*cs = CG_ConfigString( CS_MAPVOTE );
+
+	if ( !cs[0] ) {
+		return;
+	}
+	p = (char *)cs;
+	endTime = atoi( COM_Parse( &p ) );
+	for ( i = 0 ; i < 3 ; i++ ) {
+		Q_strncpyz( maps[i], COM_Parse( &p ), sizeof( maps[i] ) );
+	}
+	for ( i = 0 ; i < 3 ; i++ ) {
+		votes[i] = atoi( COM_Parse( &p ) );
+	}
+	if ( !maps[0][0] || cg.time >= endTime ) {
+		return;
+	}
+	if ( cg.mapVoteTime != endTime ) {
+		cg.mapVoteTime = endTime;		// a new vote: nothing chosen yet
+		cg.mapVote = 0;
+	}
+
+	CG_FillRect( 0, 318, SCREEN_WIDTH, 162, panel );
+	UI_DrawProportionalString( SCREEN_WIDTH / 2, 322, BG_String( STR_MV_TITLE ), UI_CENTER | UI_SMALLFONT, colorWhite );
+	left = ( endTime - cg.time + 999 ) / 1000;
+	CG_DrawSmallStringColor( SCREEN_WIDTH / 2 - CG_DrawStrlen( va( (char *)BG_String( STR_MV_ENDS ), left ) ) * SMALLCHAR_WIDTH / 2,
+		342, va( (char *)BG_String( STR_MV_ENDS ), left ), colorLtGrey );
+
+	for ( i = 0 ; i < 3 ; i++ ) {
+		if ( maps[i][0] == '-' ) {
+			continue;
+		}
+		x = 110 + i * 150;
+		if ( cg.mapVote == i + 1 ) {
+			CG_FillRect( x - 3, 359, 126, 100, mine );
+		}
+		shot = trap_R_RegisterShaderNoMip( va( "levelshots/%s.tga", maps[i] ) );
+		if ( !shot ) {
+			shot = trap_R_RegisterShaderNoMip( "menu/art/unknownmap" );
+		}
+		CG_DrawPic( x, 362, 120, 66, shot );
+		CG_DrawSmallStringColor( x, 430, va( "%i %s", i + 1, maps[i] ), colorWhite );
+		CG_DrawSmallStringColor( x, 444, va( (char *)BG_String( STR_MV_VOTES ), votes[i] ), colorLtGrey );
+	}
+	CG_DrawSmallStringColor( SCREEN_WIDTH / 2 - CG_DrawStrlen( BG_String( STR_MV_HELP ) ) * SMALLCHAR_WIDTH / 2,
+		464, BG_String( STR_MV_HELP ), colorLtGrey );
+}
+
 static void CG_DrawIntermission( void ) {
 //	int key;
 #ifdef MISSIONPACK
@@ -3159,6 +3220,7 @@ static void CG_DrawIntermission( void ) {
 #endif
 	cg.scoreFadeTime = cg.time;
 	cg.scoreBoardShowing = CG_DrawScoreboard();
+	CG_DrawMapVote();
 }
 
 /*

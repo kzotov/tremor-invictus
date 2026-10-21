@@ -676,6 +676,16 @@ qboolean	G_MatchMode( void );
 int			G_MatchTimeLimit( void );
 int			G_MatchFragLimit( void );
 int			G_MaxPlayers( void );
+
+//
+// g_mapvote.c
+//
+void		G_MapVoteStart( void );
+qboolean	G_MapVoteActive( void );
+const char	*G_MapVoteWinner( void );
+void		Cmd_MapVote_f( gentity_t *ent );
+int			G_ArenaCount( void );
+const char	*G_ArenaInfo( int n );
 qboolean	G_DuelPlayersReady( void );
 qboolean	G_DuelCheckTime( void );
 void		G_DuelCheckFraglimit( void );
@@ -918,6 +928,9 @@ extern	vmCvar_t	g_overtime;
 extern	vmCvar_t	g_duelReadyUp;
 extern	vmCvar_t	g_duelFraglimit;
 extern	vmCvar_t	g_tdmFraglimit;
+extern	vmCvar_t	g_mapVote;
+extern	vmCvar_t	g_mapVoteTime;
+extern	vmCvar_t	g_mapVoteDelay;
 extern	vmCvar_t	g_ffaFraglimit;
 extern	vmCvar_t	g_ffaMaxPlayers;
 extern	vmCvar_t	g_ctfHalfLength;

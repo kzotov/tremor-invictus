@@ -1635,6 +1635,15 @@ void CG_Weapon_f( void ) {
 		return;
 	}
 
+	// at the end of a match the first weapon keys vote for the next map
+	if ( cg.snap->ps.pm_type == PM_INTERMISSION ) {
+		if ( num <= 3 ) {
+			cg.mapVote = num;
+			trap_SendClientCommand( va( "mapvote %i", num ) );
+		}
+		return;
+	}
+
 	cg.weaponSelectTime = cg.time;
 
 	// keys are slots: pick the slot's weapon, the upgrade first; pressing

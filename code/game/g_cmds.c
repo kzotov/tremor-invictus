@@ -1858,6 +1858,11 @@ void ClientCommand( int clientNum ) {
 		return;
 	}
 
+	if ( Q_stricmp( cmd, "mapvote" ) == 0 ) {
+		Cmd_MapVote_f( ent );
+		return;
+	}
+
 	// ignore all other commands when at intermission
 	if (level.intermissiontime) {
 		Cmd_Say_f (ent, qfalse, qtrue);
