@@ -1122,7 +1122,9 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Overtime: %i minutes",
 	"Sudden death: the next frag wins",
 	"The match was stopped; back to warmup",
-	"Champion locked until the match ends; your pick applies next match"
+	"Champion locked until the match ends; your pick applies next match",
+	"Half time: red %i, blue %i. Teams swap bases",
+	"Second half"
 };
 
 /*

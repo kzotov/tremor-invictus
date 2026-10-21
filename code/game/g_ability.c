@@ -370,6 +370,9 @@ static void G_OrbTeleport( gentity_t *ent ) {
 		return;		// nowhere to stand; keep the orb
 	}
 
+	// a carried flag stays behind where the carrier was
+	G_DropCarriedFlag( ent, qfalse );
+
 	tent = G_TempEntity( ent->client->ps.origin, EV_PLAYER_TELEPORT_OUT );
 	tent->s.clientNum = ent->s.clientNum;
 	tent = G_TempEntity( spot, EV_PLAYER_TELEPORT_IN );

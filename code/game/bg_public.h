@@ -301,6 +301,8 @@ typedef enum {
 	STR_DUEL_SUDDEN_DEATH,
 	STR_DUEL_ABORTED,
 	STR_DUEL_CHAMPION_LOCKED,
+	STR_CTF_HALF_TIME,				// "Half time: red %i, blue %i"
+	STR_CTF_SECOND_HALF,
 
 	STR_NUM_STRINGS
 } stringId_t;

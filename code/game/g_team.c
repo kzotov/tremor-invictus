@@ -853,6 +853,14 @@ int Pickup_Team( gentity_t *ent, gentity_t *other ) {
 		return 0;
 	}
 #endif
+	// a hidden player can't take a flag, and a thrown flag isn't caught by its thrower at once
+	if ( G_AbilityActive( other, ACTIVE_GHOSTWALK ) || ( cl->ps.eFlags & EF_DRONE ) ) {
+		return 0;
+	}
+	if ( ( ent->flags & FL_DROPPED_ITEM ) && ent->enemy == other && level.time < ent->timestamp + 1000 ) {
+		return 0;
+	}
+
 	// figure out what team this flag is
 	if( strcmp(ent->classname, "team_CTF_redflag") == 0 ) {
 		team = TEAM_RED;

@@ -43,7 +43,7 @@ respawn and spawn rules below
 =================
 */
 qboolean G_MatchMode( void ) {
-	return g_gametype.integer == GT_TOURNAMENT || g_gametype.integer == GT_TEAM;
+	return g_gametype.integer == GT_TOURNAMENT || g_gametype.integer == GT_TEAM || g_gametype.integer == GT_CTF;
 }
 
 /*

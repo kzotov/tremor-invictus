@@ -1178,8 +1178,8 @@ void ClientThink_real( gentity_t *ent ) {
 		client->ps.pm_type = PM_NOCLIP;
 	} else if ( client->ps.stats[STAT_HEALTH] <= 0 ) {
 		client->ps.pm_type = PM_DEAD;
-	} else if ( G_MatchMode() && level.warmupTime > 0 ) {
-		// countdown: held in place, no firing
+	} else if ( G_MatchMode() && ( level.warmupTime > 0 || level.halfTimeEnd ) ) {
+		// countdown or half time: held in place, no firing
 		client->ps.pm_type = PM_FREEZE;
 	} else {
 		client->ps.pm_type = PM_NORMAL;

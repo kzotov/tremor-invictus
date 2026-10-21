@@ -187,6 +187,8 @@ vmCvar_t	g_overtime;
 vmCvar_t	g_duelReadyUp;
 vmCvar_t	g_duelFraglimit;
 vmCvar_t	g_tdmFraglimit;
+vmCvar_t	g_ctfHalfLength;
+vmCvar_t	g_ctfCapturelimit;
 vmCvar_t	g_logfile;
 vmCvar_t	g_logfileSync;
 vmCvar_t	g_blood;
@@ -231,6 +233,9 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_duelReadyUp, "g_duelReadyUp", "1", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_duelFraglimit, "g_duelFraglimit", "0", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_tdmFraglimit, "g_tdmFraglimit", "75", CVAR_ARCHIVE, 0, qtrue },
+	// capture the flag: two halves of this many minutes, and no capture limit by default
+	{ &g_ctfHalfLength, "g_ctfHalfLength", "7", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_ctfCapturelimit, "g_ctfCapturelimit", "0", CVAR_ARCHIVE, 0, qtrue },
 
 	// latched vars
 	{ &g_gametype, "g_gametype", "0", CVAR_SERVERINFO | CVAR_USERINFO | CVAR_LATCH, 0, qfalse  },
@@ -1616,6 +1621,11 @@ void CheckExitRules( void ) {
 			BeginIntermission();
 		}
 #endif
+		return;
+	}
+
+	if ( g_gametype.integer == GT_CTF ) {
+		G_CTFCheckRules();
 		return;
 	}
 

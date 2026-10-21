@@ -42,14 +42,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define CTF_TEAM_BONUS			0		// what your team gets for capture
 #define CTF_RECOVERY_BONUS		1		// what you get for recovery
 #define CTF_FLAG_BONUS			0		// what you get for picking up enemy flag
-#define CTF_FRAG_CARRIER_BONUS	2		// what you get for fragging enemy flag carrier
-#define CTF_FLAG_RETURN_TIME	40000	// seconds until auto return
+#define CTF_FRAG_CARRIER_BONUS	1		// on top of the frag: 2 for the enemy flag carrier
+#define CTF_FLAG_RETURN_TIME	30000	// seconds until auto return
 
-#define CTF_CARRIER_DANGER_PROTECT_BONUS	2	// bonus for fraggin someone who has recently hurt your flag carrier
+#define CTF_CARRIER_DANGER_PROTECT_BONUS	1	// bonus for fraggin someone who has recently hurt your flag carrier
 #define CTF_CARRIER_PROTECT_BONUS			1	// bonus for fraggin someone while either you or your target are near your flag carrier
 #define CTF_FLAG_DEFENSE_BONUS				1	// bonus for fraggin someone while either you or your target are near your flag
 #define CTF_RETURN_FLAG_ASSIST_BONUS		1	// awarded for returning a flag that causes a capture to happen almost immediately
-#define CTF_FRAG_CARRIER_ASSIST_BONUS		2	// award for fragging a flag carrier if a capture happens almost immediately
+#define CTF_FRAG_CARRIER_ASSIST_BONUS		1	// award for fragging a flag carrier if a capture happens almost immediately
 
 #endif
 
@@ -77,6 +77,7 @@ void Team_FragBonuses(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker
 void Team_CheckHurtCarrier(gentity_t *targ, gentity_t *attacker);
 void Team_InitGame(void);
 void Team_ReturnFlag(int team);
+void Team_ResetFlags(void);
 void Team_FreeEntity(gentity_t *ent);
 gentity_t *SelectCTFSpawnPoint ( team_t team, int teamstate, vec3_t origin, vec3_t angles, qboolean isbot );
 gentity_t *Team_GetLocation(gentity_t *ent);

@@ -2589,6 +2589,11 @@ static void PM_Ability( void ) {
 		if ( !pressed || charges <= 0 || ( pm->ps->pm_flags & PMF_RESPAWNED ) ) {
 			return;
 		}
+		// a flag carrier must stay visible: no ghost walk, no leaving the body for the drone
+		if ( ( active == ACTIVE_GHOSTWALK || active == ACTIVE_DRONE )
+			&& ( pm->ps->powerups[PW_REDFLAG] || pm->ps->powerups[PW_BLUEFLAG] || pm->ps->powerups[PW_NEUTRALFLAG] ) ) {
+			return;
+		}
 		charges--;
 		if ( !bg_abilityInfo[active].lockoutAtEnd ) {
 			PM_WeaponLockout( active );

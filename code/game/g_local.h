@@ -443,6 +443,10 @@ typedef struct {
 	int			overtimes;				// overtime periods added so far
 	qboolean	duelForceReady;			// allready: start without waiting for readyup
 	int			duelReadyHintTime;		// next warmup reminder
+
+	// capture the flag
+	int			ctfHalf;				// 0 or 1 the first half, 2 the second
+	int			halfTimeEnd;			// level.time the half-time break ends, while in it
 	int			exitTime;
 	vec3_t		intermission_origin;	// also used for spectator spawns
 	vec3_t		intermission_angle;
@@ -640,6 +644,11 @@ void		Svcmd_Abort_f( void );
 int			G_DuelSpawnChampion( gclient_t *client );
 gentity_t	*G_SelectDuelSpawnPoint( gentity_t *ent, qboolean initial, vec3_t origin, vec3_t angles, qboolean isbot );
 
+// g_ctf.c
+void		G_DropCarriedFlag( gentity_t *ent, qboolean thrown );
+void		Cmd_DropFlag_f( gentity_t *ent );
+void		G_CTFCheckRules( void );
+
 // g_rewind.c
 //
 void G_RewindInit( void );
@@ -808,6 +817,8 @@ extern	vmCvar_t	g_overtime;
 extern	vmCvar_t	g_duelReadyUp;
 extern	vmCvar_t	g_duelFraglimit;
 extern	vmCvar_t	g_tdmFraglimit;
+extern	vmCvar_t	g_ctfHalfLength;
+extern	vmCvar_t	g_ctfCapturelimit;
 
 extern	vmCvar_t	g_dmflags;
 extern	vmCvar_t	g_fraglimit;
