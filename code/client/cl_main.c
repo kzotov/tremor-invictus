@@ -3878,6 +3878,7 @@ static void CL_SetServerInfo(serverInfo_t *server, const char *info, int ping) {
 			server->punkbuster = atoi(Info_ValueForKey(info, "punkbuster"));
 			server->g_humanplayers = atoi(Info_ValueForKey(info, "g_humanplayers"));
 			server->g_needpass = atoi(Info_ValueForKey(info, "g_needpass"));
+			Q_strncpyz(server->mode, Info_ValueForKey(info, "mode"), sizeof(server->mode));
 		}
 		server->ping = ping;
 	}

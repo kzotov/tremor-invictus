@@ -53,7 +53,7 @@ static void UI_PlayMenu_Event( void *ptr, int event ) {
 		UI_PracticeMenu();
 		break;
 	case ID_FIND:
-		UI_ArenaServersMenu();
+		UI_FindServersMenu();
 		break;
 	case ID_CREATE:
 		UI_StartServerMenu( qtrue );

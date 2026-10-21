@@ -372,6 +372,11 @@ extern void UI_PracticeMenu( void );
 extern void UI_PracticeStart( void );
 
 //
+// ui_findservers.c
+//
+extern void UI_FindServersMenu( void );
+
+//
 // ui_team.c
 //
 extern void UI_TeamMainMenu( void );
@@ -710,6 +715,11 @@ int				trap_LAN_ServerStatus( const char *serverAddress, char *serverStatus, int
 void			trap_LAN_ClearPing( int n );
 void			trap_LAN_GetPing( int n, char *buf, int buflen, int *pingtime );
 void			trap_LAN_GetPingInfo( int n, char *buf, int buflen );
+void			trap_LAN_ResetPings( int n );
+void			trap_LAN_MarkServerVisible( int source, int n, qboolean visible );
+qboolean		trap_LAN_UpdateVisiblePings( int source );
+int				trap_LAN_AddServer( int source, const char *name, const char *addr );
+void			trap_LAN_RemoveServer( int source, const char *addr );
 int				trap_MemoryRemaining( void );
 void			trap_GetCDKey( char *buf, int buflen );
 void			trap_SetCDKey( char *buf );

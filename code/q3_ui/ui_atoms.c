@@ -1024,7 +1024,7 @@ qboolean UI_ConsoleCommand( int realTime ) {
 	}
 
 	if ( Q_stricmp (cmd, "ui_servers") == 0 ) {
-		UI_ArenaServersMenu();
+		UI_FindServersMenu();
 		return qtrue;
 	}
 

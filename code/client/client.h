@@ -302,6 +302,7 @@ typedef struct {
 	int			punkbuster;
 	int			g_humanplayers;
 	int			g_needpass;
+	char		mode[16];			// this game's mode name, from the server's info
 } serverInfo_t;
 
 typedef struct {
