@@ -224,6 +224,7 @@ vmCvar_t	cg_showLineup;
 vmCvar_t	cg_loadingTips;
 vmCvar_t	cg_damageArc;
 vmCvar_t	cg_zoomToggle;
+vmCvar_t	cg_joinScreen;
 vmCvar_t	cg_damagePlum;
 vmCvar_t	cg_hitBeep;
 vmCvar_t	cg_killBeep;
@@ -410,6 +411,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_loadingTips, "cg_loadingTips", "1", CVAR_ARCHIVE},		// a gameplay tip while a map loads
 	{ &cg_damageArc, "cg_damageArc", "1", CVAR_ARCHIVE},		// arc toward where damage came from
 	{ &cg_zoomToggle, "cg_zoomToggle", "0", CVAR_ARCHIVE},		// 1: +zoom toggles instead of holding
+	{ &cg_joinScreen, "cg_joinScreen", "1", CVAR_ARCHIVE},		// the join screen for spectators on a new map
 	{ &cg_damagePlum, "cg_damagePlum", "1", CVAR_ARCHIVE},		// damage numbers over hit enemies
 	{ &cg_hitBeep, "cg_hitBeep", "1", CVAR_ARCHIVE},
 	{ &cg_killBeep, "cg_killBeep", "1", CVAR_ARCHIVE},

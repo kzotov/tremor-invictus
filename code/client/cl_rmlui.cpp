@@ -238,8 +238,19 @@ public:
 			if ( close == Rml::String::npos ) {
 				break;
 			}
-			auto	it = strings.find( translated.substr( open + 1, close - open - 1 ) );
+			Rml::String	key = translated.substr( open + 1, close - open - 1 );
+			auto	it = strings.find( key );
 
+			// [$name] is a cvar's value
+			if ( !key.empty() && key[0] == '$' ) {
+				char	value[256];
+
+				imp.GetCvar( key.c_str() + 1, value, sizeof( value ) );
+				translated.replace( open, close - open + 1, value );
+				count++;
+				open = translated.find( '[', open + strlen( value ) );
+				continue;
+			}
 			if ( it != strings.end() ) {
 				translated.replace( open, close - open + 1, it->second );
 				count++;
@@ -546,10 +557,9 @@ extern "C" void RML_Show( const char *path ) {
 	if ( !initialised ) {
 		return;
 	}
-	if ( document && documentPath == path ) {
-		ApplyConditions( document );
-		document->Show();
-		imp.SetCvar( "rml_active", "1" );
+	// showing: nothing to do; hidden: load it again, so text taken from
+	// cvars ([$name]) is current
+	if ( document && documentPath == path && document->IsVisible() ) {
 		return;
 	}
 	if ( document ) {

@@ -767,6 +767,30 @@ static void CG_PlayBufferedSounds( void ) {
 
 /*
 =================
+CG_JoinScreen
+
+Once a map has loaded, a spectator who has not chosen yet gets the join
+screen (ui/join.rml): the mode, the map and the ways in
+=================
+*/
+static void CG_JoinScreen( void ) {
+	const char	*info;
+
+	if ( cg.joinScreenShown || !cg.snap || cg.demoPlayback || !cg_joinScreen.integer
+		|| cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR || ( cg.snap->ps.pm_flags & PMF_FOLLOW )
+		|| cg.snap->ps.pm_type == PM_INTERMISSION ) {
+		return;
+	}
+	cg.joinScreenShown = qtrue;
+	info = CG_ConfigString( CS_SERVERINFO );
+	trap_Cvar_Set( "cg_joinMode", CG_ModeString() );
+	trap_Cvar_Set( "cg_joinMap", CG_ConfigString( CS_MESSAGE )[0] ? CG_ConfigString( CS_MESSAGE ) : Info_ValueForKey( info, "mapname" ) );
+	trap_Cvar_Set( "cg_joinTeams", cgs.gametype >= GT_TEAM ? "1" : "0" );
+	trap_SendConsoleCommand( "rml_show ui/join.rml\n" );
+}
+
+/*
+=================
 CG_DrawActiveFrame
 
 Generates and draws a game scene and status information at the given time.
@@ -787,6 +811,8 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 		CG_DrawInformation();
 		return;
 	}
+
+	CG_JoinScreen();
 
 	// any looped sounds will be respecified as entities
 	// are added to the render list

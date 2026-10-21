@@ -102,3 +102,36 @@ button.small {
 	height: 30dp;
 	margin-bottom: 0dp;
 }
+
+/* the join screen: a centred card over the game */
+.card {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 720dp;
+	margin-left: -360dp;
+	margin-top: -300dp;
+	padding: 40dp 50dp;
+	background-color: #16171bf0;
+	border-left: 6dp #d3191f;
+}
+
+.card h1 {
+	display: block;
+	font-family: "Arial Black";
+	font-size: 44dp;
+	color: #f2efe9;
+	margin-bottom: 10dp;
+}
+
+.card .sub {
+	display: block;
+	font-size: 30dp;
+	color: #8a8780;
+	margin-bottom: 30dp;
+}
+
+.card button {
+	font-size: 38dp;
+	margin-bottom: 6dp;
+}

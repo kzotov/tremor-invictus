@@ -547,6 +547,7 @@ typedef struct {
 	int			numRevealModels;
 	char		awardLines[MAX_AWARD_LINES][96];	// the end-of-match awards
 	int			numAwards;
+	qboolean	joinScreenShown;	// the join screen came up on this map
 	char		infoScreenText[MAX_STRING_CHARS];
 
 	// scoreboard
@@ -1274,6 +1275,7 @@ extern	vmCvar_t		cg_showLineup;
 extern	vmCvar_t		cg_loadingTips;
 extern	vmCvar_t		cg_damageArc;
 extern	vmCvar_t		cg_zoomToggle;
+extern	vmCvar_t		cg_joinScreen;
 extern	vmCvar_t		cg_damagePlum;
 extern	vmCvar_t		cg_hitBeep;
 extern	vmCvar_t		cg_killBeep;

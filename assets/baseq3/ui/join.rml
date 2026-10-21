@@ -1,0 +1,18 @@
+<rml>
+<head>
+	<title>Join</title>
+	<link type="text/rcss" href="tremor.rcss"/>
+</head>
+<body data-escape="rml_hide">
+	<div class="card">
+		<h1>[$cg_joinMode]</h1>
+		<div class="sub">[$cg_joinMap]</div>
+		<button data-when="cg_joinTeams=1" onclick="rml_hide; team red">[join_red]</button>
+		<button data-when="cg_joinTeams=1" onclick="rml_hide; team blue">[join_blue]</button>
+		<button data-when="cg_joinTeams=1" onclick="rml_hide; team free">[join_auto]</button>
+		<button data-when="cg_joinTeams=0" onclick="rml_hide; team free">[join_play]</button>
+		<button onclick="rml_hide; team spectator">[join_spectate]</button>
+		<button onclick="rml_hide; ui_champions">[join_champion]</button>
+	</div>
+</body>
+</rml>
