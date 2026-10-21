@@ -628,6 +628,9 @@ void LogExit( const char *string );
 qboolean ScoreIsTied( void );
 
 // g_duel.c
+qboolean	G_MatchMode( void );
+int			G_MatchTimeLimit( void );
+int			G_MatchFragLimit( void );
 qboolean	G_DuelPlayersReady( void );
 qboolean	G_DuelCheckTime( void );
 void		G_DuelCheckFraglimit( void );
@@ -804,6 +807,7 @@ extern	vmCvar_t	g_restarted;
 extern	vmCvar_t	g_overtime;
 extern	vmCvar_t	g_duelReadyUp;
 extern	vmCvar_t	g_duelFraglimit;
+extern	vmCvar_t	g_tdmFraglimit;
 
 extern	vmCvar_t	g_dmflags;
 extern	vmCvar_t	g_fraglimit;

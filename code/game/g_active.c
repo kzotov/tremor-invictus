@@ -1178,8 +1178,8 @@ void ClientThink_real( gentity_t *ent ) {
 		client->ps.pm_type = PM_NOCLIP;
 	} else if ( client->ps.stats[STAT_HEALTH] <= 0 ) {
 		client->ps.pm_type = PM_DEAD;
-	} else if ( g_gametype.integer == GT_TOURNAMENT && level.warmupTime > 0 ) {
-		// duel countdown: held in place, no firing
+	} else if ( G_MatchMode() && level.warmupTime > 0 ) {
+		// countdown: held in place, no firing
 		client->ps.pm_type = PM_FREEZE;
 	} else {
 		client->ps.pm_type = PM_NORMAL;
@@ -1359,7 +1359,7 @@ void ClientThink_real( gentity_t *ent ) {
 			// forcerespawn is to prevent users from waiting out powerups
 			if ( ( g_forcerespawn.integer > 0 && 
 				( level.time - client->respawnTime ) > g_forcerespawn.integer * 1000 )
-				|| ( g_gametype.integer == GT_TOURNAMENT && level.time - client->respawnTime >= 300 ) ) {
+				|| ( G_MatchMode() && level.time - client->respawnTime >= 300 ) ) {
 				ClientRespawn( ent );
 				return;
 			}

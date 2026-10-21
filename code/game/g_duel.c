@@ -22,7 +22,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 //
 // g_duel.c -- the classic timed duel: readyup and countdown, overtime,
-// rated spawn points and a champion fixed for the match
+// rated spawn points and a champion fixed for the match. Team deathmatch
+// shares the warmup, readyup, respawn and spawn rules.
 
 #include "g_local.h"
 
@@ -31,12 +32,56 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define DUEL_SPAWN_KEEP_MAX		26
 #define DUEL_SPAWN_CLEARANCE	64
 #define DUEL_READY_HINT_MSEC	5000
+#define SPAWN_TEAMMATE_SCALE	1.5f	// teammates count this much further away than enemies
+
+/*
+=================
+G_MatchMode
+
+Modes played as matches: warmup with readyup, a countdown, and the
+respawn and spawn rules below
+=================
+*/
+qboolean G_MatchMode( void ) {
+	return g_gametype.integer == GT_TOURNAMENT || g_gametype.integer == GT_TEAM;
+}
+
+/*
+=================
+G_MatchTimeLimit
+
+Minutes; duel and TDM run 10 when no timelimit is set
+=================
+*/
+int G_MatchTimeLimit( void ) {
+	if ( g_timelimit.integer > 0 ) {
+		return g_timelimit.integer;
+	}
+	return G_MatchMode() ? 10 : 0;
+}
+
+/*
+=================
+G_MatchFragLimit
+
+Duel and TDM have frag limits of their own (none and 75)
+=================
+*/
+int G_MatchFragLimit( void ) {
+	if ( g_gametype.integer == GT_TOURNAMENT ) {
+		return g_duelFraglimit.integer;
+	}
+	if ( g_gametype.integer == GT_TEAM ) {
+		return g_tdmFraglimit.integer;
+	}
+	return g_fraglimit.integer;
+}
 
 /*
 =================
 G_DuelPlayersReady
 
-True once both players have typed readyup (bots always are), or the
+True once every player has typed readyup (bots always are), or the
 server said allready; then the countdown may start
 =================
 */
@@ -50,7 +95,7 @@ qboolean G_DuelPlayersReady( void ) {
 	}
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
 		cl = &level.clients[i];
-		if ( cl->pers.connected != CON_CONNECTED || cl->sess.sessionTeam != TEAM_FREE ) {
+		if ( cl->pers.connected != CON_CONNECTED || cl->sess.sessionTeam == TEAM_SPECTATOR ) {
 			continue;
 		}
 		if ( g_entities[i].r.svFlags & SVF_BOT ) {
@@ -62,11 +107,11 @@ qboolean G_DuelPlayersReady( void ) {
 	}
 
 	// remind whoever is not ready yet
-	if ( !ready && level.numPlayingClients == 2 && level.time >= level.duelReadyHintTime ) {
+	if ( !ready && level.numPlayingClients >= 2 && level.time >= level.duelReadyHintTime ) {
 		level.duelReadyHintTime = level.time + DUEL_READY_HINT_MSEC;
 		for ( i = 0 ; i < level.maxclients ; i++ ) {
 			cl = &level.clients[i];
-			if ( cl->pers.connected == CON_CONNECTED && cl->sess.sessionTeam == TEAM_FREE
+			if ( cl->pers.connected == CON_CONNECTED && cl->sess.sessionTeam != TEAM_SPECTATOR
 				&& !cl->pers.ready && !( g_entities[i].r.svFlags & SVF_BOT ) ) {
 				trap_SendServerCommand( i, va( "cp \"%s\"", BG_String( STR_DUEL_TYPE_READYUP ) ) );
 			}
@@ -86,7 +131,7 @@ void Cmd_ReadyUp_f( gentity_t *ent ) {
 	gclient_t	*cl = ent->client;
 	char		msg[MAX_STRING_CHARS];
 
-	if ( g_gametype.integer != GT_TOURNAMENT || level.warmupTime >= 0 || cl->sess.sessionTeam != TEAM_FREE ) {
+	if ( !G_MatchMode() || level.warmupTime >= 0 || cl->sess.sessionTeam == TEAM_SPECTATOR ) {
 		return;
 	}
 	cl->pers.ready = !cl->pers.ready;
@@ -103,7 +148,7 @@ Server: start the countdown without waiting for readyup
 =================
 */
 void Svcmd_AllReady_f( void ) {
-	if ( g_gametype.integer == GT_TOURNAMENT && level.warmupTime < 0 ) {
+	if ( G_MatchMode() && level.warmupTime < 0 ) {
 		level.duelForceReady = qtrue;
 	}
 }
@@ -118,7 +163,7 @@ Server: stop a countdown or a running match and go back to warmup
 void Svcmd_Abort_f( void ) {
 	int		i;
 
-	if ( g_gametype.integer != GT_TOURNAMENT ) {
+	if ( !G_MatchMode() ) {
 		return;
 	}
 	trap_SendServerCommand( -1, va( "print \"%s\n\"", BG_String( STR_DUEL_ABORTED ) ) );
@@ -155,7 +200,7 @@ qboolean G_DuelCheckTime( void ) {
 	if ( level.warmupTime ) {
 		return qfalse;
 	}
-	minutes = g_timelimit.integer > 0 ? g_timelimit.integer : 10;
+	minutes = G_MatchTimeLimit();
 	limit = minutes * 60000 + level.overtimes * ( g_overtime.integer > 0 ? g_overtime.integer : 0 ) * 1000;
 	if ( level.time - level.startTime < limit ) {
 		return qfalse;
@@ -191,7 +236,7 @@ void G_DuelCheckFraglimit( void ) {
 	gclient_t	*cl;
 	int			i;
 
-	if ( g_duelFraglimit.integer <= 0 || level.warmupTime ) {
+	if ( G_MatchFragLimit() <= 0 || level.warmupTime ) {
 		return;
 	}
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
@@ -199,7 +244,7 @@ void G_DuelCheckFraglimit( void ) {
 		if ( cl->pers.connected != CON_CONNECTED || cl->sess.sessionTeam != TEAM_FREE ) {
 			continue;
 		}
-		if ( cl->ps.persistant[PERS_SCORE] >= g_duelFraglimit.integer ) {
+		if ( cl->ps.persistant[PERS_SCORE] >= G_MatchFragLimit() ) {
 			LogExit( "Fraglimit hit." );
 			trap_SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE " hit the fraglimit.\n\"", cl->pers.netname ) );
 			return;
@@ -232,33 +277,70 @@ int G_DuelSpawnChampion( gclient_t *client ) {
 
 /*
 =================
-G_SelectDuelSpawnPoint
+G_SpawnRating
 
-Spots are rated by how far they are from the opponent (the largest of the
-x, y and z gaps); the safer half is kept, at least 3 and at most 26, spots
-right next to a player are left out, and one is picked at random. The
-first spawn of a match uses the spots the map marks as initial.
+How safe a spot is: the distance to the nearest living player (the largest
+of the x, y and z gaps), with teammates counting 1.5 times further away
 =================
 */
-gentity_t *G_SelectDuelSpawnPoint( gentity_t *ent, qboolean initial, vec3_t origin, vec3_t angles, qboolean isbot ) {
-	gentity_t	*spot, *list[DUEL_SPAWN_SPOTS];
-	float		rating[DUEL_SPAWN_SPOTS], r, d, t;
-	gentity_t	*opponent = NULL, *other;
-	int			num, keep, i, j, pass;
+static float G_SpawnRating( gentity_t *ent, gentity_t *spot ) {
+	gentity_t	*other;
+	float		best = -1, r, d;
+	int			i, j;
 
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
 		other = &g_entities[i];
-		if ( other != ent && other->inuse && other->client && other->client->sess.sessionTeam == TEAM_FREE
-			&& other->client->pers.connected == CON_CONNECTED && other->health > 0 ) {
-			opponent = other;
-			break;
+		if ( other == ent || !other->inuse || !other->client || other->health <= 0
+			|| other->client->pers.connected != CON_CONNECTED
+			|| other->client->sess.sessionTeam == TEAM_SPECTATOR ) {
+			continue;
+		}
+		r = 0;
+		for ( j = 0 ; j < 3 ; j++ ) {
+			d = fabs( spot->s.origin[j] - other->r.currentOrigin[j] );
+			if ( d > r ) {
+				r = d;
+			}
+		}
+		if ( OnSameTeam( ent, other ) ) {
+			r *= SPAWN_TEAMMATE_SCALE;
+		}
+		if ( best < 0 || r < best ) {
+			best = r;
+		}
+	}
+	return best < 0 ? 0 : best;
+}
+
+/*
+=================
+G_SelectDuelSpawnPoint
+
+Spots are rated as above; the safer half is kept, at least 3 and at most
+26, spots right next to a player are left out, and one is picked at
+random. The first spawn of a match uses the spots the map marks as
+initial. In TDM, maps with red and blue spawns keep each team to its own.
+=================
+*/
+gentity_t *G_SelectDuelSpawnPoint( gentity_t *ent, qboolean initial, vec3_t origin, vec3_t angles, qboolean isbot ) {
+	gentity_t	*spot, *list[DUEL_SPAWN_SPOTS], *other;
+	float		rating[DUEL_SPAWN_SPOTS], r, t;
+	const char	*classname = "info_player_deathmatch";
+	int			num, keep, i, j, pass;
+
+	if ( g_gametype.integer == GT_TEAM ) {
+		const char	*teamSpot = ent->client->sess.sessionTeam == TEAM_RED ? "team_CTF_redspawn" : "team_CTF_bluespawn";
+
+		if ( G_Find( NULL, FOFS( classname ), teamSpot ) ) {
+			classname = teamSpot;
+			initial = qfalse;
 		}
 	}
 
 	num = 0;
 	for ( pass = initial ? 0 : 1 ; pass < 2 && !num ; pass++ ) {
 		spot = NULL;
-		while ( ( spot = G_Find( spot, FOFS( classname ), "info_player_deathmatch" ) ) != NULL && num < DUEL_SPAWN_SPOTS ) {
+		while ( ( spot = G_Find( spot, FOFS( classname ), classname ) ) != NULL && num < DUEL_SPAWN_SPOTS ) {
 			if ( pass == 0 && !( spot->spawnflags & 1 ) ) {
 				continue;
 			}
@@ -273,7 +355,7 @@ gentity_t *G_SelectDuelSpawnPoint( gentity_t *ent, qboolean initial, vec3_t orig
 			for ( j = 0 ; j < level.maxclients ; j++ ) {
 				other = &g_entities[j];
 				if ( other != ent && other->inuse && other->client && other->health > 0
-					&& other->client->sess.sessionTeam == TEAM_FREE
+					&& other->client->sess.sessionTeam != TEAM_SPECTATOR
 					&& Distance( other->r.currentOrigin, spot->s.origin ) < DUEL_SPAWN_CLEARANCE ) {
 					break;
 				}
@@ -282,15 +364,7 @@ gentity_t *G_SelectDuelSpawnPoint( gentity_t *ent, qboolean initial, vec3_t orig
 				continue;
 			}
 
-			r = 0;
-			if ( opponent ) {
-				for ( j = 0 ; j < 3 ; j++ ) {
-					d = fabs( spot->s.origin[j] - opponent->r.currentOrigin[j] );
-					if ( d > r ) {
-						r = d;
-					}
-				}
-			}
+			r = G_SpawnRating( ent, spot );
 
 			// insert, safest first
 			for ( i = num ; i > 0 && rating[i - 1] < r ; i-- ) {

@@ -186,6 +186,7 @@ vmCvar_t	g_restarted;
 vmCvar_t	g_overtime;
 vmCvar_t	g_duelReadyUp;
 vmCvar_t	g_duelFraglimit;
+vmCvar_t	g_tdmFraglimit;
 vmCvar_t	g_logfile;
 vmCvar_t	g_logfileSync;
 vmCvar_t	g_blood;
@@ -229,6 +230,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_overtime, "g_overtime", "120", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_duelReadyUp, "g_duelReadyUp", "1", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_duelFraglimit, "g_duelFraglimit", "0", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_tdmFraglimit, "g_tdmFraglimit", "75", CVAR_ARCHIVE, 0, qtrue },
 
 	// latched vars
 	{ &g_gametype, "g_gametype", "0", CVAR_SERVERINFO | CVAR_USERINFO | CVAR_LATCH, 0, qfalse  },
@@ -675,8 +677,8 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	memset( &level, 0, sizeof( level ) );
 	level.time = levelTime;
 	level.startTime = levelTime;
-	// a duel map starts in warmup; only the restart at the end of the countdown starts the match
-	if ( g_gametype.integer == GT_TOURNAMENT ) {
+	// a duel or TDM map starts in warmup; only the restart at the end of the countdown starts the match
+	if ( G_MatchMode() ) {
 		level.warmupTime = g_restarted.integer ? 0 : -1;
 		trap_Cvar_Set( "g_restarted", "0" );
 		trap_SetConfigstring( CS_WARMUP, va( "%i", level.warmupTime ) );
@@ -1627,6 +1629,25 @@ void CheckExitRules( void ) {
 		return;
 	}
 
+	// team deathmatch: its own limits, 10 minutes and 75 frags by default
+	if ( g_gametype.integer == GT_TEAM ) {
+		if ( !level.warmupTime && level.time - level.startTime >= G_MatchTimeLimit() * 60000 ) {
+			trap_SendServerCommand( -1, "print \"Timelimit hit.\n\"" );
+			LogExit( "Timelimit hit." );
+			return;
+		}
+		if ( !level.warmupTime && G_MatchFragLimit() > 0 ) {
+			if ( level.teamScores[TEAM_RED] >= G_MatchFragLimit() ) {
+				trap_SendServerCommand( -1, "print \"Red hit the fraglimit.\n\"" );
+				LogExit( "Fraglimit hit." );
+			} else if ( level.teamScores[TEAM_BLUE] >= G_MatchFragLimit() ) {
+				trap_SendServerCommand( -1, "print \"Blue hit the fraglimit.\n\"" );
+				LogExit( "Fraglimit hit." );
+			}
+		}
+		return;
+	}
+
 	if ( g_timelimit.integer < 0 || g_timelimit.integer > INT_MAX / 60000 ) {
 		G_Printf( "timelimit %i is out of range, defaulting to 0\n", g_timelimit.integer );
 		trap_Cvar_Set( "timelimit", "0" );
@@ -1817,8 +1838,11 @@ void CheckTournament( void ) {
 			level.warmupTime = -1;
 		}
 
-		// if all players have arrived, start the countdown
+		// if all players have arrived (and in TDM are ready), start the countdown
 		if ( level.warmupTime < 0 ) {
+			if ( G_MatchMode() && !G_DuelPlayersReady() ) {
+				return;
+			}
 			// fudge by -1 to account for extra delays
 			if ( g_warmup.integer > 1 ) {
 				level.warmupTime = level.time + ( g_warmup.integer - 1 ) * 1000;

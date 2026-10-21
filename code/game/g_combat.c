@@ -639,8 +639,8 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 
 	// don't allow respawn until the death anim is done
 	// g_forcerespawn may force spawning at some later time
-	// duel: attack respawns from 2.1 s, and it happens anyway at 2.4 s
-	self->client->respawnTime = level.time + ( g_gametype.integer == GT_TOURNAMENT ? 2100 : 1700 );
+	// duel and TDM: attack respawns from 2.1 s, and it happens anyway at 2.4 s
+	self->client->respawnTime = level.time + ( G_MatchMode() ? 2100 : 1700 );
 
 	// remove powerups
 	memset( self->client->ps.powerups, 0, sizeof(self->client->ps.powerups) );
@@ -869,6 +869,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	int			take;
 	int			asave;
 	int			knockback;
+	qboolean	teamArmorOnly = qfalse;
 	int			max;
 #ifdef MISSIONPACK
 	vec3_t		bouncedir, impactpoint;
@@ -953,6 +954,11 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		knockback = 0;
 	}
 
+	// teammates never push each other (the attack still lands with friendly fire 1)
+	if ( targ != attacker && OnSameTeam( targ, attacker ) && !( dflags & DAMAGE_NO_PROTECTION ) ) {
+		knockback = 0;
+	}
+
 	// figure momentum add, even if the damage won't be taken
 	if ( knockback && targ->client ) {
 		vec3_t	kvel;
@@ -992,6 +998,10 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 #endif
 			if ( !g_friendlyFire.integer ) {
 				return;
+			}
+			// 2: a teammate's hits take armour, never health
+			if ( g_friendlyFire.integer == 2 ) {
+				teamArmorOnly = qtrue;
 			}
 		}
 #ifdef MISSIONPACK
@@ -1083,8 +1093,23 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	take = damage;
 
 	// save some from armor
-	asave = CheckArmor (targ, take, dflags);
-	take -= asave;
+	if ( teamArmorOnly ) {
+		// only what the armour can hold, and none of it to health
+		asave = client ? client->ps.stats[STAT_ARMOR] : 0;
+		if ( asave > take ) {
+			asave = take;
+		}
+		if ( client ) {
+			client->ps.stats[STAT_ARMOR] -= asave;
+		}
+		take = 0;
+		if ( !asave ) {
+			return;
+		}
+	} else {
+		asave = CheckArmor (targ, take, dflags);
+		take -= asave;
+	}
 
 	if ( g_debugDamage.integer ) {
 		G_Printf( "%i: client:%i health:%i damage:%i armor:%i\n", level.time, targ->s.number,

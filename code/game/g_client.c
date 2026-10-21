@@ -1142,8 +1142,8 @@ void ClientSpawn(gentity_t *ent) {
 	}
 	else
 	{
-		// duel: rated against the opponent; the match's first spawn at an initial spot
-		if ( g_gametype.integer == GT_TOURNAMENT )
+		// duel and TDM: rated against the other players; the match's first spawn at an initial spot
+		if ( G_MatchMode() )
 		{
 			spawnPoint = G_SelectDuelSpawnPoint( ent, !client->pers.initialSpawn && !level.warmupTime,
 				spawn_origin, spawn_angles, !!(ent->r.svFlags & SVF_BOT) );
