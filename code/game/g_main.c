@@ -125,6 +125,7 @@ vmCvar_t	g_stroyentLife;
 vmCvar_t	g_lagHaxMs;
 vmCvar_t	g_cylinderScale;
 vmCvar_t	g_rewindDebug;
+vmCvar_t	g_championModels;
 vmCvar_t	g_hookSpeed;
 vmCvar_t	g_hookRange;
 vmCvar_t	g_hookDamage;
@@ -303,6 +304,8 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_lagHaxMs, "g_lagHaxMs", "80", CVAR_ARCHIVE | CVAR_LATCH, 0, qtrue },
 	{ &g_cylinderScale, "g_cylinderScale", "1.1", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_rewindDebug, "g_rewindDebug", "0", 0, 0, qtrue },
+	// local test models: "champion=model champion=model/skin ..."; set outside the repo
+	{ &g_championModels, "g_championModels", "", 0, 0, qtrue },
 	{ &g_hookSpeed, "g_hookSpeed", "3000", 0, 0, qtrue },
 	{ &g_hookRange, "g_hookRange", "4000", 0, 0, qtrue },
 	{ &g_hookDamage, "g_hookDamage", "25", 0, 0, qtrue },

@@ -4,7 +4,7 @@
 # only; original-game files and reference binaries must never enter the repo.
 # Enable once per clone with: git config core.hooksPath misc/git-hooks
 
-blocked_ext='pk3|pk4|pak|exe|dll|so|dylib|lib|a|bin|bsp|aas|md3|md5mesh|mdr|iqm|tga|jpg|jpeg|png|dds|wav|ogg|opus|mp3|roq|ttf|otf|dm_[0-9]+'
+blocked_ext='pk3|pk4|pak|zip|7z|rar|exe|dll|so|dylib|lib|a|bin|bsp|aas|md3|md5mesh|mdr|iqm|tga|jpg|jpeg|png|dds|wav|ogg|opus|mp3|roq|ttf|otf|dm_[0-9]+'
 # Binaries that upstream ioquake3 already tracks (SDL libraries, icons) may be
 # updated; no new ones may be added.
 upstream_base=87a99d18

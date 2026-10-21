@@ -91,6 +91,10 @@ start)
 	for f in cgame.dylib qagame.dylib ui.dylib vm; do
 		ln -sfn "$RELEASE/baseq3/$f" "$HOME_DIR/baseq3/$f"
 	done
+	# local test assets from outside the repo (see scripts/local-assets.sh)
+	. "$ROOT/scripts/local-assets.sh"
+	LOCAL_ARGS=$(link_local_assets "$HOME_DIR/baseq3")
+
 	# no stale "game is running" marker, so no safe-mode dialog
 	rm -f "$HOME_DIR"/baseq3/*.pid "$HOME_DIR/baseq3/qconsole.log"
 	echo "$port" > "$HOME_DIR/port"
@@ -106,7 +110,7 @@ start)
 		+set r_customwidth 1280 +set r_customheight 720 \
 		+set net_port "$port" +set net_enabled 1 +set rconpassword "$(cat "$HOME_DIR/rcon")" \
 		+set logfile 2 +set com_introplayed 1 +set cl_allowDownload 0 \
-		"$@" > "$HOME_DIR/stdout.log" 2>&1 &
+		$LOCAL_ARGS "$@" > "$HOME_DIR/stdout.log" 2>&1 &
 	echo $! > "$HOME_DIR/pid"
 	echo "started '$name' (pid $!, port $port, home $HOME_DIR)"
 	;;

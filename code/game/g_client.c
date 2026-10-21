@@ -691,6 +691,40 @@ static void ClientCleanName(const char *in, char *out, int outSize)
 
 /*
 ===========
+G_ChampionModel
+
+The champion's player model, unless g_championModels names another one
+for it ("champion=model" pairs separated by spaces), which is how local
+test models are tried without changing the table
+============
+*/
+static void G_ChampionModel( int champion, char *model, int size ) {
+	const char	*name = BG_Champion( champion )->name;
+	char		*s, *token, *eq;
+	char		pair[MAX_QPATH * 2];
+
+	Q_strncpyz( model, BG_Champion( champion )->model, size );
+
+	s = g_championModels.string;
+	while ( 1 ) {
+		token = COM_Parse( &s );
+		if ( !token[0] ) {
+			break;
+		}
+		Q_strncpyz( pair, token, sizeof( pair ) );
+		eq = strchr( pair, '=' );
+		if ( !eq ) {
+			continue;
+		}
+		*eq = 0;
+		if ( !Q_stricmp( pair, name ) && eq[1] ) {
+			Q_strncpyz( model, eq + 1, size );
+		}
+	}
+}
+
+/*
+===========
 ClientUserInfoChanged
 
 Called from ClientConnect when the player first connects and
@@ -793,7 +827,7 @@ void ClientUserinfoChanged( int clientNum ) {
 	}
 
 	// the champion being played decides the model; a new pick shows on respawn
-	Q_strncpyz( model, BG_Champion( client->ps.stats[STAT_CHAMPION] )->model, sizeof( model ) );
+	G_ChampionModel( client->ps.stats[STAT_CHAMPION], model, sizeof( model ) );
 	Q_strncpyz( headModel, model, sizeof( headModel ) );
 
 /*	NOTE: all client side now

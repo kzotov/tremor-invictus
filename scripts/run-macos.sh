@@ -21,6 +21,10 @@ for f in cgame.dylib qagame.dylib ui.dylib vm; do
 	ln -sfn "$RELEASE/baseq3/$f" "$HOME_DIR/baseq3/$f"
 done
 
+# local test assets from outside the repo (see scripts/local-assets.sh)
+. "$ROOT/scripts/local-assets.sh"
+LOCAL_ARGS=$(link_local_assets "$HOME_DIR/baseq3")
+
 exec "$RELEASE/ioquake3.app/Contents/MacOS/ioquake3" \
 	+set fs_basepath "$Q3" +set fs_homepath "$HOME_DIR" \
-	+set vm_game 0 +set vm_cgame 0 +set vm_ui 0 +set sv_pure 0 "$@"
+	+set vm_game 0 +set vm_cgame 0 +set vm_ui 0 +set sv_pure 0 $LOCAL_ARGS "$@"

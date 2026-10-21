@@ -52,6 +52,20 @@ The script loads this build's game code and leaves the Quake III Arena folder
 untouched; configs and logs go to `build-macos/home`. On other platforms, run
 the built binary with `+set fs_basepath "/path/to/Quake 3 Arena"`.
 
+## Local test assets
+
+Community models and other assets may be tried locally but never go into
+this repository. Put them in `~/projects/quake/local` (or set
+`TREMOR_LOCAL`): every `.pk3` or `.zip` there is loaded by
+`scripts/run-macos.sh` and `scripts/test-run.sh`, and `local.cfg` there runs
+on start. Point a champion at a local model with `g_championModels`, for
+example in `local.cfg`:
+
+    set g_championModels "deathknight=dark_knight galena=galena"
+
+The commit guard refuses archives and model files, and `.gitignore` skips
+them.
+
 ## Test runs
 
 `scripts/test-run.sh` runs the game for automated tests without disturbing

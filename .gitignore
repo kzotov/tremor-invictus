@@ -45,5 +45,6 @@ profile
 # tremor-invictus: never commit game data, reference binaries or demos
 ####################
 *.pk3
+*.zip
 *.pak
 *.dm_*
