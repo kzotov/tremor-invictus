@@ -51,7 +51,95 @@ CG_FillRect
 Coordinates are 640*480 virtual values
 =================
 */
+/*
+================
+Layout debug
+
+cg_layoutDebug 1 outlines every box the 2D pass draws (pictures green,
+text yellow, fills red); cg_layoutDump 1 writes one frame's boxes to
+layout.txt, marking any that leave the 640x480 screen
+================
+*/
+#define MAX_LAYOUT_BOXES	1024
+
+typedef struct {
+	char	kind;		// 'p' picture, 's' string, 'f' fill
+	float	x, y, w, h;
+	char	text[24];
+} layoutBox_t;
+
+static layoutBox_t	layoutBoxes[MAX_LAYOUT_BOXES];
+static int			numLayoutBoxes;
+
+static void CG_LayoutRecord( char kind, float x, float y, float w, float h, const char *text ) {
+	layoutBox_t	*b;
+
+	if ( !cg_layoutDebug.integer && !cg_layoutDump.integer ) {
+		return;
+	}
+	if ( numLayoutBoxes >= MAX_LAYOUT_BOXES ) {
+		return;
+	}
+	b = &layoutBoxes[numLayoutBoxes++];
+	b->kind = kind;
+	b->x = x;
+	b->y = y;
+	b->w = w;
+	b->h = h;
+	Q_strncpyz( b->text, text ? text : "", sizeof( b->text ) );
+}
+
+static void CG_LayoutLine( float x, float y, float w, float h, const float *color ) {
+	CG_AdjustFrom640( &x, &y, &w, &h );
+	trap_R_SetColor( color );
+	trap_R_DrawStretchPic( x, y, w < 1 ? 1 : w, h < 1 ? 1 : h, 0, 0, 0, 0, cgs.media.whiteShader );
+}
+
+/*
+================
+CG_LayoutFrameEnd
+
+After the 2D pass: outlines, the dump, and a fresh list for the next frame
+================
+*/
+void CG_LayoutFrameEnd( void ) {
+	static const vec4_t	colors[3] = { { 0, 1, 0, 0.8f }, { 1, 1, 0, 0.8f }, { 1, 0, 0, 0.8f } };
+	layoutBox_t	*b;
+	const float	*c;
+	int			i;
+
+	if ( cg_layoutDebug.integer ) {
+		for ( i = 0, b = layoutBoxes ; i < numLayoutBoxes ; i++, b++ ) {
+			c = colors[b->kind == 'p' ? 0 : b->kind == 's' ? 1 : 2];
+			CG_LayoutLine( b->x, b->y, b->w, 0.5f, c );
+			CG_LayoutLine( b->x, b->y + b->h, b->w, 0.5f, c );
+			CG_LayoutLine( b->x, b->y, 0.5f, b->h, c );
+			CG_LayoutLine( b->x + b->w, b->y, 0.5f, b->h, c );
+		}
+		trap_R_SetColor( NULL );
+	}
+
+	if ( cg_layoutDump.integer ) {
+		fileHandle_t	f;
+		char			*line;
+
+		trap_FS_FOpenFile( "layout.txt", &f, FS_WRITE );
+		if ( f ) {
+			for ( i = 0, b = layoutBoxes ; i < numLayoutBoxes ; i++, b++ ) {
+				line = va( "%c %7.1f %7.1f %7.1f %7.1f%s %s\n", b->kind, b->x, b->y, b->w, b->h,
+					b->x < 0 || b->y < 0 || b->x + b->w > 640 || b->y + b->h > 480 ? " OUTSIDE" : "", b->text );
+				trap_FS_Write( line, strlen( line ), f );
+			}
+			trap_FS_FCloseFile( f );
+			CG_Printf( "layout: %i boxes written to layout.txt\n", numLayoutBoxes );
+		}
+		trap_Cvar_Set( "cg_layoutDump", "0" );
+	}
+	numLayoutBoxes = 0;
+}
+
 void CG_FillRect( float x, float y, float width, float height, const float *color ) {
+	CG_LayoutRecord( 'f', x, y, width, height, NULL );
 	trap_R_SetColor( color );
 
 	CG_AdjustFrom640( &x, &y, &width, &height );
@@ -106,6 +194,7 @@ Coordinates are 640*480 virtual values
 =================
 */
 void CG_DrawPic( float x, float y, float width, float height, qhandle_t hShader ) {
+	CG_LayoutRecord( 'p', x, y, width, height, NULL );
 	CG_AdjustFrom640( &x, &y, &width, &height );
 	trap_R_DrawStretchPic( x, y, width, height, 0, 0, 1, 1, hShader );
 }
@@ -170,6 +259,12 @@ void CG_DrawStringExt( int x, int y, const char *string, const float *setColor,
 
 	if (maxChars <= 0)
 		maxChars = 32767; // do them all!
+
+	{
+		int		len = CG_DrawStrlen( string );
+
+		CG_LayoutRecord( 's', x, y, ( len < maxChars ? len : maxChars ) * charWidth, charHeight, string );
+	}
 
 	// draw the drop shadow
 	if (shadow) {

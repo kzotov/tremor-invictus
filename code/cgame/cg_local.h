@@ -1249,6 +1249,8 @@ extern	vmCvar_t		cg_followKiller;
 extern	vmCvar_t		cg_zoomSensitivity;
 extern	vmCvar_t		cg_crosshairColor;
 extern	vmCvar_t		cg_drawSpeed;
+extern	vmCvar_t		cg_layoutDebug;
+extern	vmCvar_t		cg_layoutDump;
 #ifdef MISSIONPACK
 extern	vmCvar_t		cg_redTeamName;
 extern	vmCvar_t		cg_blueTeamName;
@@ -1788,3 +1790,4 @@ void CG_DemoFrame( void );
 void CG_AddKillFeed( const char *killer, const char *victim, int weapon );
 void CG_AddChat( const char *text );
 void CG_DrawDuelBoard( void );
+void CG_LayoutFrameEnd( void );

@@ -218,6 +218,8 @@ vmCvar_t	cg_followKiller;
 vmCvar_t	cg_zoomSensitivity;
 vmCvar_t	cg_crosshairColor;
 vmCvar_t	cg_drawSpeed;
+vmCvar_t	cg_layoutDebug;
+vmCvar_t	cg_layoutDump;
 
 #ifdef MISSIONPACK
 vmCvar_t 	cg_redTeamName;
@@ -390,7 +392,9 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_followKiller, "cg_followKiller", "0", CVAR_ARCHIVE},
 	{ &cg_zoomSensitivity, "cg_zoomSensitivity", "0", CVAR_ARCHIVE},
 	{ &cg_crosshairColor, "cg_crosshairColor", "0", CVAR_ARCHIVE},
-	{ &cg_drawSpeed, "cg_drawSpeed", "0", CVAR_ARCHIVE}
+	{ &cg_drawSpeed, "cg_drawSpeed", "0", CVAR_ARCHIVE},
+	{ &cg_layoutDebug, "cg_layoutDebug", "0", CVAR_CHEAT},
+	{ &cg_layoutDump, "cg_layoutDump", "0", 0}
 //	{ &cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR_USERINFO | CVAR_ARCHIVE }
 };
 
