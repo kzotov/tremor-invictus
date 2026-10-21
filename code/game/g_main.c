@@ -195,6 +195,7 @@ vmCvar_t	g_knockback;
 vmCvar_t	g_quadfactor;
 vmCvar_t	g_forcerespawn;
 vmCvar_t	g_inactivity;
+vmCvar_t	g_maxSpectators;
 vmCvar_t	g_debugMove;
 vmCvar_t	g_debugDamage;
 vmCvar_t	g_debugAlloc;
@@ -492,7 +493,8 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_weaponRespawn, "g_weaponrespawn", "5", 0, 0, qtrue  },
 	{ &g_weaponTeamRespawn, "g_weaponTeamRespawn", "5", 0, 0, qtrue },
 	{ &g_forcerespawn, "g_forcerespawn", "20", 0, 0, qtrue },
-	{ &g_inactivity, "g_inactivity", "0", 0, 0, qtrue },
+	{ &g_inactivity, "g_inactivity", "90", 0, 0, qtrue },		// idle players in a live match go to spectators
+	{ &g_maxSpectators, "g_maxSpectators", "0", CVAR_ARCHIVE, 0, qtrue },	// 0 = no limit
 	{ &g_debugMove, "g_debugMove", "0", 0, 0, qfalse },
 	{ &g_debugDamage, "g_debugDamage", "0", 0, 0, qfalse },
 	{ &g_debugAlloc, "g_debugAlloc", "0", 0, 0, qfalse },
@@ -1546,6 +1548,23 @@ void LogExit( const char *string ) {
 	if ( g_gametype.integer >= GT_TEAM ) {
 		G_LogPrintf( "red:%i  blue:%i\n",
 			level.teamScores[TEAM_RED], level.teamScores[TEAM_BLUE] );
+	}
+
+	// one line with the whole result: mode, map, the winner and the score
+	{
+		char	map[MAX_QPATH];
+
+		trap_Cvar_VariableStringBuffer( "mapname", map, sizeof( map ) );
+		if ( g_gametype.integer >= GT_TEAM ) {
+			G_LogPrintf( "Result: %s %s %s %i:%i\n", G_ModeName(), map,
+				level.teamScores[TEAM_RED] > level.teamScores[TEAM_BLUE] ? "red"
+				: level.teamScores[TEAM_BLUE] > level.teamScores[TEAM_RED] ? "blue" : "tie",
+				level.teamScores[TEAM_RED], level.teamScores[TEAM_BLUE] );
+		} else if ( level.numConnectedClients > 0 ) {
+			cl = &level.clients[level.sortedClients[0]];
+			G_LogPrintf( "Result: %s %s %i %s %i\n", G_ModeName(), map,
+				level.sortedClients[0], cl->pers.netname, cl->ps.persistant[PERS_SCORE] );
+		}
 	}
 
 	for (i=0 ; i < numSorted ; i++) {

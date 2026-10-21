@@ -271,6 +271,7 @@ typedef struct {
 	playerTeamState_t teamState;	// status in teamplay games
 	int			voteCount;			// to prevent people from constantly calling votes
 	int			lastVoteTime;		// level.time this player last called a vote
+	qboolean	motdShown;
 	int			teamVoteCount;		// to prevent people from constantly calling votes
 	qboolean	teamInfo;			// send team overlay updates?
 } clientPersistant_t;
@@ -736,6 +737,7 @@ void		G_ArcadeDamageDealt( gentity_t *attacker, gentity_t *targ, int damage );
 void		G_LoadAccess( void );
 qboolean	G_TempBanned( const char *ipPort );
 qboolean	G_AdminConsoleCommand( void );
+qboolean	G_PresetName( const char *name );
 void		Cmd_Admin_f( gentity_t *ent );
 
 //
@@ -1176,6 +1178,7 @@ extern	vmCvar_t	g_knockback;
 extern	vmCvar_t	g_quadfactor;
 extern	vmCvar_t	g_forcerespawn;
 extern	vmCvar_t	g_inactivity;
+extern	vmCvar_t	g_maxSpectators;
 extern	vmCvar_t	g_debugMove;
 extern	vmCvar_t	g_debugAlloc;
 extern	vmCvar_t	g_debugDamage;

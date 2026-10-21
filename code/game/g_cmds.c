@@ -1367,8 +1367,6 @@ The command a vote runs and the line players see; qfalse if the vote is bad
 ==================
 */
 static qboolean G_VoteBuild( gentity_t *ent, const char *type, const char *arg ) {
-	static const char	*modes[] = { "ffa", "duel", "tdm", "ctf", "ca", "sacrifice", "roundduel" };
-	static const int	modeTypes[] = { GT_FFA, GT_TOURNAMENT, GT_TEAM, GT_CTF, GT_TEAM, GT_CTF, GT_TOURNAMENT };
 	char		s[MAX_STRING_CHARS];
 	int			i;
 	fileHandle_t	f;
@@ -1417,20 +1415,13 @@ static qboolean G_VoteBuild( gentity_t *ent, const char *type, const char *arg )
 		Q_strncpyz( level.voteString, "forceshuffle", sizeof( level.voteString ) );
 		Q_strncpyz( level.voteDisplayString, "shuffle teams", sizeof( level.voteDisplayString ) );
 	} else if ( !Q_stricmp( type, "mode" ) ) {
-		for ( i = 0 ; i < ARRAY_LEN( modes ) ; i++ ) {
-			if ( !Q_stricmp( arg, modes[i] ) ) {
-				break;
-			}
-		}
-		if ( i == ARRAY_LEN( modes ) ) {
+		if ( !G_PresetName( arg ) ) {
 			trap_SendServerCommand( ent-g_entities, va( "print \"%s\n\"", BG_String( STR_VOTE_MODES ) ) );
 			return qfalse;
 		}
 		trap_Cvar_VariableStringBuffer( "mapname", s, sizeof( s ) );
-		Com_sprintf( level.voteString, sizeof( level.voteString ),
-			"g_gametype %i; g_clanArena %i; g_sacrifice %i; g_roundDuel %i; map %s", modeTypes[i],
-			!Q_stricmp( modes[i], "ca" ), !Q_stricmp( modes[i], "sacrifice" ), !Q_stricmp( modes[i], "roundduel" ), s );
-		Com_sprintf( level.voteDisplayString, sizeof( level.voteDisplayString ), "mode %s", modes[i] );
+		Com_sprintf( level.voteString, sizeof( level.voteString ), "exec presets/%s.cfg; map %s", arg, s );
+		Com_sprintf( level.voteDisplayString, sizeof( level.voteDisplayString ), "mode %s", arg );
 	} else if ( !Q_stricmp( type, "cointoss" ) ) {
 		Q_strncpyz( level.voteString, "cointoss", sizeof( level.voteString ) );
 		Q_strncpyz( level.voteDisplayString, "coin toss", sizeof( level.voteDisplayString ) );

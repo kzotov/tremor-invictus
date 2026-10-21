@@ -975,6 +975,13 @@ char *ClientConnect( int clientNum, qboolean firstTime, qboolean isBot ) {
 		return "You are banned from this server.";
 	}
 
+	// a full game with full spectator seats
+	if ( firstTime && !isBot && g_maxSpectators.integer > 0 && G_MaxPlayers() > 0
+		&& level.numNonSpectatorClients >= G_MaxPlayers()
+		&& level.numConnectedClients - level.numNonSpectatorClients >= g_maxSpectators.integer ) {
+		return (char *)BG_String( STR_SPECTATORS_FULL );
+	}
+
   // we don't check password for bots and local client
   // NOTE: local client <-> "ip" "localhost"
   //   this means this client is not running in our current process
@@ -1095,6 +1102,13 @@ void ClientBegin( int clientNum ) {
 		}
 	}
 	G_LogPrintf( "ClientBegin: %i\n", clientNum );
+
+	// the message of the day, once per connection
+	if ( g_motd.string[0] && !client->pers.motdShown && !( ent->r.svFlags & SVF_BOT ) ) {
+		client->pers.motdShown = qtrue;
+		trap_SendServerCommand( clientNum, va( "cp \"%s\"", g_motd.string ) );
+		trap_SendServerCommand( clientNum, va( "print \"%s\n\"", g_motd.string ) );
+	}
 
 	// count current clients and rank for scoreboard
 	CalculateRanks();

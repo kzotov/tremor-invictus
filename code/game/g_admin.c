@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // g_admin.c -- administration: console commands, and players with rights
 //
 // From the server console or rcon: put, lock, unlock, mute, unmute, ban,
-// mapmode, players (forceshuffle, allready, abort and the engine's kick are
+// mapmode, preset, players (forceshuffle, allready, abort and the engine's kick are
 // elsewhere). Players listed in the access file use them through "admin
 // <command>"; moderators may put, mute, unmute and abort.
 
@@ -325,20 +325,43 @@ static qboolean G_AdminRun( int first, int who ) {
 		return qtrue;
 	}
 
-	if ( !Q_stricmp( cmd, "mapmode" ) ) {
-		static const char	*modes[] = { "ffa", "duel", "tdm", "ctf", "ca", "sacrifice", "roundduel" };
-		static const int	types[] = { GT_FFA, GT_TOURNAMENT, GT_TEAM, GT_CTF, GT_TEAM, GT_CTF, GT_TOURNAMENT };
+	if ( !Q_stricmp( cmd, "preset" ) ) {
+		if ( !G_PresetName( arg1 ) ) {
+			G_Printf( "preset: ffa, duel, tdm, tdm2v2, ctf, ca, sacrifice, roundduel, instagib, unholytrinity\n" );
+			return qtrue;
+		}
+		trap_Cvar_VariableStringBuffer( "mapname", userinfo, sizeof( userinfo ) );
+		trap_SendConsoleCommand( EXEC_APPEND, va( "exec presets/%s.cfg\nmap %s\n", arg1, userinfo ) );
+		return qtrue;
+	}
 
-		for ( i = 0 ; i < ARRAY_LEN( modes ) ; i++ ) {
-			if ( !Q_stricmp( arg2, modes[i] ) ) {
-				trap_SendConsoleCommand( EXEC_APPEND, va( "g_gametype %i; g_clanArena %i; g_sacrifice %i; g_roundDuel %i; map %s\n",
-					types[i], !Q_stricmp( modes[i], "ca" ), !Q_stricmp( modes[i], "sacrifice" ),
-					!Q_stricmp( modes[i], "roundduel" ), arg1 ) );
-				return qtrue;
-			}
+	if ( !Q_stricmp( cmd, "mapmode" ) ) {
+		if ( G_PresetName( arg2 ) ) {
+			trap_SendConsoleCommand( EXEC_APPEND, va( "exec presets/%s.cfg\nmap %s\n", arg2, arg1 ) );
+			return qtrue;
 		}
 		trap_SendConsoleCommand( EXEC_APPEND, va( "map %s\n", arg1 ) );
 		return qtrue;
+	}
+	return qfalse;
+}
+
+/*
+=================
+G_PresetName
+
+True for the name of a mode preset (presets/<name>.cfg)
+=================
+*/
+qboolean G_PresetName( const char *name ) {
+	static const char	*presets[] = { "ffa", "duel", "tdm", "tdm2v2", "ctf", "ca", "sacrifice", "roundduel",
+		"instagib", "unholytrinity" };
+	int		i;
+
+	for ( i = 0 ; i < ARRAY_LEN( presets ) ; i++ ) {
+		if ( !Q_stricmp( name, presets[i] ) ) {
+			return qtrue;
+		}
 	}
 	return qfalse;
 }

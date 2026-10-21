@@ -108,6 +108,22 @@ void G_MapVoteStart( void ) {
 	trap_Cvar_VariableStringBuffer( "mapname", current, sizeof( current ) );
 
 	trap_Cvar_VariableStringBuffer( "g_mapPool", list, sizeof( list ) );
+	if ( !list[0] ) {
+		// the mode's pool file, mappools/<mode>.txt
+		fileHandle_t	f;
+		int				len = trap_FS_FOpenFile( va( "mappools/%s.txt", G_ModeName() ), &f, FS_READ );
+
+		if ( len > 0 ) {
+			if ( len >= sizeof( list ) ) {
+				len = sizeof( list ) - 1;
+			}
+			trap_FS_Read( list, len, f );
+			list[len] = 0;
+		}
+		if ( len >= 0 ) {
+			trap_FS_FCloseFile( f );
+		}
+	}
 	p = list;
 	if ( list[0] ) {
 		while ( numPool < 64 ) {
