@@ -3468,7 +3468,7 @@ static void CG_DrawLineup( void ) {
 	if ( count < 2 ) {
 		return;
 	}
-	CG_FillRect( -200, 0, 1040, 480, dim );
+	CG_FillRect( -1000, 0, 3000, 480, dim );
 	CG_DrawPillars( clients, NULL, teams, count, NULL );
 }
 
@@ -3505,7 +3505,7 @@ static void CG_DrawPodium( void ) {
 		labels[count] = scoreText[count];
 		count++;
 	}
-	CG_FillRect( -200, 0, 1040, 480, dim );
+	CG_FillRect( -1000, 0, 3000, 480, dim );
 	CG_DrawPillars( clients, heights, teams, count, labels );
 }
 

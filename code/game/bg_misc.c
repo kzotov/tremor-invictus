@@ -1534,6 +1534,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"%i of %i servers",
 	"No master server is set (sv_master1).",
 	"No servers found.",
+	"Retina",
+	"Draws at the display's full resolution; sharper, slower. Applies after a restart.",
 	"Zoom sensitivity",
 	"Sensitivity while zoomed; Auto scales with the zoom.",
 	"Auto",

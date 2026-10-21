@@ -196,7 +196,7 @@ static void InGame_Draw( void ) {
 	float	left = -uis.bias / uis.xscale;		// the screen's left edge in 640x480 units
 
 	// the whole screen, not just the 4:3 area
-	UI_FillRect( left, 0, 640 - 2 * left, 480, dim );
+	UI_FillRect( left, 0, 2000, 480, dim );		// past any right edge
 	UI_FillRect( left, 0, 220 - left, 480, panel );
 	UI_FillRect( 220, 0, 1, 480, hairline );
 

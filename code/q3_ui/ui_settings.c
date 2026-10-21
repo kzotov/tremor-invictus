@@ -75,6 +75,7 @@ static const settingRow_t videoRows[] = {
 	{ ROW_SPIN, STR_SET_RENDERER, STR_SET_RENDERER_HELP, "cl_renderer", 3, { "metal", "opengl1", "opengl2" }, { STR_SET_METAL, STR_SET_OPENGL1, STR_SET_OPENGL2 }, 0, 0, qtrue },
 	{ ROW_RESOLUTION, STR_SET_RESOLUTION, STR_SET_RESOLUTION_HELP, "r_mode", 0, { NULL }, { 0 }, 0, 0, qtrue },
 	{ ROW_DISPLAY, STR_SET_DISPLAY, STR_SET_DISPLAY_HELP, "r_fullscreen", 3, { NULL }, { STR_SET_FULLSCREEN, STR_SET_WINDOWED, STR_SET_BORDERLESS }, 0, 0, qtrue },
+	{ ROW_SPIN, STR_SET_RETINA, STR_SET_RETINA_HELP, "r_retina", OFF_ON, 0, 0, qtrue },
 	{ ROW_SPIN, STR_SET_VSYNC, STR_SET_VSYNC_HELP, "r_swapInterval", OFF_ON, 0, 0, qtrue },
 	{ ROW_SPIN, STR_SET_FPSCAP, STR_SET_FPSCAP_HELP, "com_maxfps", 9, { "60", "120", "125", "144", "165", "240", "250", "360", "0" },
 		{ 0, 0, 0, 0, 0, 0, 0, 0, STR_SET_UNLIMITED } },

@@ -954,7 +954,10 @@ static void MTL_Flush( qboolean wait ) {
 	}
 }
 
-static void APIENTRY mglFinish( void ) { MTL_Flush( qtrue ); }
+// glFinish only submits: the frame pacing waits for the GPU where it must,
+// and read-backs wait for themselves. Waiting here every frame stalled the
+// CPU behind the GPU (and could hang for good on an off-screen window).
+static void APIENTRY mglFinish( void ) { MTL_Flush( qfalse ); }
 static void APIENTRY mglFlush( void ) {}
 
 static void APIENTRY mglGenTextures( GLsizei n, GLuint *textures ) {
@@ -1519,8 +1522,9 @@ void *MTL_CreateContext( SDL_Window *window ) {
 		}
 	}
 
-	// draw at the window's size in points, as the OpenGL path does
-	SDL_GetWindowSize( window, &w, &h );
+	// the drawable's size in pixels: the window's size in points, or more
+	// with Retina on (a high-DPI window)
+	SDL_Metal_GetDrawableSize( window, &w, &h );
 	mtl.layer.drawableSize = CGSizeMake( w, h );
 	MTL_CreateTargets( w, h );
 
@@ -1672,7 +1676,7 @@ void MTL_SwapWindow( SDL_Window *window ) {
 	}
 
 	// follow a window that changed size
-	SDL_GetWindowSize( window, &w, &h );
+	SDL_Metal_GetDrawableSize( window, &w, &h );
 	if ( w != mtl.width || h != mtl.height ) {
 		mtl.layer.drawableSize = CGSizeMake( w, h );
 		MTL_CreateTargets( w, h );
