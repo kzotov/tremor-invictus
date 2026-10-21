@@ -1507,7 +1507,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Mega health",
 	"Heavy armour",
 	"Light armour",
-	"Accuracy"
+	"Accuracy",
+	"SLIDE %.1f"
 };
 
 /*

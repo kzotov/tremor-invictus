@@ -963,6 +963,79 @@ static void CG_DrawWeaponBar( void ) {
 CG_DrawHud
 =================
 */
+/*
+=================
+CG_DrawHudPowerups
+
+Held power-ups above the health number, each with its seconds left
+=================
+*/
+static void CG_DrawHudPowerups( void ) {
+	playerState_t	*ps = &cg.snap->ps;
+	gitem_t			*item;
+	int				i, left, x = 296 - 8 - CHAR_WIDTH * 3 - 32;
+
+	for ( i = PW_QUAD ; i <= PW_FLIGHT ; i++ ) {
+		if ( !ps->powerups[i] || ps->powerups[i] == INT_MAX || ps->powerups[i] < cg.time ) {
+			continue;
+		}
+		item = BG_FindItemForPowerup( i );
+		if ( !item ) {
+			continue;
+		}
+		left = ( ps->powerups[i] - cg.time + 999 ) / 1000;
+		CG_DrawPic( x, 400, 24, 24, trap_R_RegisterShader( item->icon ) );
+		CG_DrawStringExt( x + 28, 404, va( "%i", left ), left <= 5 ? colorRed : colorWhite,
+			qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+		x += 64;
+	}
+}
+
+/*
+=================
+CG_DrawHudPickup
+
+What was just picked up: icon and name, low and left of the centre
+=================
+*/
+static void CG_DrawHudPickup( void ) {
+	float	*fadeColor;
+	int		value = cg.itemPickup;
+
+	if ( !value || cg.snap->ps.stats[STAT_HEALTH] <= 0 ) {
+		return;
+	}
+	fadeColor = CG_FadeColor( cg.itemPickupTime, 3000 );
+	if ( !fadeColor ) {
+		return;
+	}
+	CG_RegisterItemVisuals( value );
+	trap_R_SetColor( fadeColor );
+	CG_DrawPic( 120, 372, 20, 20, cg_items[value].icon );
+	trap_R_SetColor( NULL );
+	CG_DrawStringExt( 144, 374, bg_itemlist[value].pickup_name, fadeColor, qfalse, qtrue,
+		SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+}
+
+/*
+=================
+CG_DrawPassiveState
+
+A passive with a state of its own, above the portrait: Slash's and
+Strogg's slide charge
+=================
+*/
+static void CG_DrawPassiveState( void ) {
+	playerState_t	*ps = &cg.snap->ps;
+	char			*s;
+
+	if ( BG_Champion( ps->stats[STAT_CHAMPION] )->moveStyle == MOVE_SLIDE ) {
+		s = va( (char *)BG_String( STR_HUD_SLIDE ), BG_SlideCharge( ps ) / 1000.0f );
+		CG_DrawStringExt( 320 - CG_DrawStrlen( s ) * TINYCHAR_WIDTH / 2, 410, s, colorWhite,
+			qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+	}
+}
+
 static void CG_DrawHud( void ) {
 	playerState_t	*ps = &cg.snap->ps;
 	centity_t		*cent = &cg_entities[ps->clientNum];
@@ -1027,6 +1100,9 @@ static void CG_DrawHud( void ) {
 	}
 
 	CG_DrawWeaponBar();
+	CG_DrawHudPowerups();
+	CG_DrawHudPickup();
+	CG_DrawPassiveState();
 }
 #endif
 
@@ -2001,8 +2077,9 @@ static void CG_DrawLowerLeft( void ) {
 		y = CG_DrawTeamOverlay( y, qfalse, qfalse );
 	} 
 
-
-	CG_DrawPickupItem( y );
+	if ( !cg_hudStyle.integer ) {
+		CG_DrawPickupItem( y );
+	}
 }
 #endif // MISSIONPACK
 
@@ -2295,7 +2372,8 @@ static void CG_DrawReward( void ) {
 	count = cg.rewardCount[0] - count*10;		// number of small rewards to draw
 	*/
 
-	if ( cg.rewardCount[0] >= 10 ) {
+	if ( cg.rewardCount[0] >= 2 ) {
+		// one medal with its count, QL style
 		y = 56;
 		x = 320 - ICON_SIZE/2;
 		CG_DrawPic( x, y, ICON_SIZE-4, ICON_SIZE-4, cg.rewardShader[0] );

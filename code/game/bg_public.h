@@ -658,6 +658,7 @@ typedef enum {
 	STR_DB_HEAVY,
 	STR_DB_LIGHT,
 	STR_DB_ACCURACY,
+	STR_HUD_SLIDE,
 
 	STR_NUM_STRINGS
 } stringId_t;
