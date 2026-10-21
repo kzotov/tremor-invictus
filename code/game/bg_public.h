@@ -567,8 +567,11 @@ typedef struct {
 	float	acBrakeAccel;
 	float	acAirControl;
 
-	float	chainTime;				// air-control and slide styles
-	float	chainVelocity;
+	float	chainTime;				// msec after a jump that a new jump goes higher
+	float	chainVelocity;			// air-control style: added upward speed
+	float	chainScale;				// others: up to this share more, fading over the chain time
+	float	crouchJumpScale;		// a jump from a crouch (sliders jump fully)
+	float	crouchWalkScale;		// crouch walking, times run speed (sliders: pm_slideCrouchScale)
 
 	float	slideFriction;
 	float	slideStopSpeed;
@@ -576,6 +579,8 @@ typedef struct {
 	float	slideChargeMax;
 	float	slideDrain;
 	float	slideAirGrace;			// msec in the air that don't end a slide or count as a landing
+	float	slideChargeMaxStrogg;	// Strogg's shorter slide
+	float	slideAirGraceStrogg;
 	float	slideCrouchScale;		// crouch walking without charge, times run speed
 
 	float	wallJumpVelocity;
@@ -654,12 +659,12 @@ typedef enum {
 } statIndex_t;
 
 // crouch slide state in STAT_MOVE_STATE (stats travel as 16 bits): the charge
-// in 4 ms units in the low 11 bits, time in the air in 16 ms units above
-#define BG_SLIDE_CHARGE_UNIT	4
-#define BG_SLIDE_AIR_UNIT		16
-#define BG_SLIDE_CHARGE_BITS	11
+// in 8 ms units in the low 10 bits, time in the air in 64 ms units above
+#define BG_SLIDE_CHARGE_UNIT	8
+#define BG_SLIDE_AIR_UNIT		64
+#define BG_SLIDE_CHARGE_BITS	10
 #define BG_SlideCharge( ps )	( ( (ps)->stats[STAT_MOVE_STATE] & ( ( 1 << BG_SLIDE_CHARGE_BITS ) - 1 ) ) * BG_SLIDE_CHARGE_UNIT )
-#define BG_SlideAirTime( ps )	( ( ( (ps)->stats[STAT_MOVE_STATE] >> BG_SLIDE_CHARGE_BITS ) & 15 ) * BG_SLIDE_AIR_UNIT )
+#define BG_SlideAirTime( ps )	( ( ( (ps)->stats[STAT_MOVE_STATE] >> BG_SLIDE_CHARGE_BITS ) & 31 ) * BG_SLIDE_AIR_UNIT )
 #define BG_SlideState( charge, air )	( ( (charge) / BG_SLIDE_CHARGE_UNIT ) | ( ( (air) / BG_SLIDE_AIR_UNIT ) << BG_SLIDE_CHARGE_BITS ) )
 
 

@@ -59,13 +59,13 @@ typedef struct {
 
 // the server sends these to clients as systeminfo so prediction matches
 static pmoveCvar_t pmoveCvars[] = {
-	{ {0}, "pm_jumpVelocity",		"270",	&bg_pmoveSettings.jumpVelocity },
+	{ {0}, "pm_jumpVelocity",		"275",	&bg_pmoveSettings.jumpVelocity },
 	{ {0}, "pm_accelerate",			"10",	&bg_pmoveSettings.accelerate },
 	{ {0}, "pm_airAccelerate",		"1",	&bg_pmoveSettings.airAccelerate },
 	{ {0}, "pm_friction",			"6",	&bg_pmoveSettings.friction },
 	{ {0}, "pm_stopSpeed",			"100",	&bg_pmoveSettings.stopSpeed },
 	{ {0}, "pm_crouchSpeed",		"160",	&bg_pmoveSettings.crouchSpeed },
-	{ {0}, "pm_speedLimit",			"0",	&bg_pmoveSettings.speedLimit },
+	{ {0}, "pm_speedLimit",			"1",	&bg_pmoveSettings.speedLimit },
 	{ {0}, "pm_jumpSilentTime",		"100",	&bg_pmoveSettings.jumpSilentTime },
 
 	{ {0}, "pm_acFriction",			"8",	&bg_pmoveSettings.acFriction },
@@ -74,15 +74,20 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_acBrakeAccel",		"1.5",	&bg_pmoveSettings.acBrakeAccel },
 	{ {0}, "pm_acAirControl",		"50",	&bg_pmoveSettings.acAirControl },
 
-	{ {0}, "pm_chainTime",			"400",	&bg_pmoveSettings.chainTime },
-	{ {0}, "pm_chainVelocity",		"50",	&bg_pmoveSettings.chainVelocity },
+	{ {0}, "pm_chainTime",			"500",	&bg_pmoveSettings.chainTime },
+	{ {0}, "pm_chainVelocity",		"110",	&bg_pmoveSettings.chainVelocity },
+	{ {0}, "pm_chainScale",			"0.4",	&bg_pmoveSettings.chainScale },
+	{ {0}, "pm_crouchJumpScale",	"0.6",	&bg_pmoveSettings.crouchJumpScale },
+	{ {0}, "pm_crouchWalkScale",	"0.5",	&bg_pmoveSettings.crouchWalkScale },
 
 	{ {0}, "pm_slideFriction",		"1.2",	&bg_pmoveSettings.slideFriction },
 	{ {0}, "pm_slideStopSpeed",		"1",	&bg_pmoveSettings.slideStopSpeed },
 	{ {0}, "pm_slideChargeRate",	"5",	&bg_pmoveSettings.slideChargeRate },
 	{ {0}, "pm_slideChargeMax",		"6000",	&bg_pmoveSettings.slideChargeMax },
 	{ {0}, "pm_slideDrain",			"1",	&bg_pmoveSettings.slideDrain },
-	{ {0}, "pm_slideAirGrace",		"200",	&bg_pmoveSettings.slideAirGrace },
+	{ {0}, "pm_slideAirGrace",		"1200",	&bg_pmoveSettings.slideAirGrace },
+	{ {0}, "pm_slideChargeMaxStrogg",	"1000",	&bg_pmoveSettings.slideChargeMaxStrogg },
+	{ {0}, "pm_slideAirGraceStrogg",	"2000",	&bg_pmoveSettings.slideAirGraceStrogg },
 	{ {0}, "pm_slideCrouchScale",	"0.85",	&bg_pmoveSettings.slideCrouchScale },
 
 	{ {0}, "pm_wallJumpVelocity",	"350",	&bg_pmoveSettings.wallJumpVelocity },
@@ -387,6 +392,25 @@ void PM_ClipVelocity( vec3_t in, vec3_t normal, vec3_t out, float overbounce ) {
 
 /*
 ==================
+PM_IsSlash
+
+Slash's slide differs from Strogg's
+==================
+*/
+static qboolean PM_IsSlash( void ) {
+	return !Q_stricmp( pml.champion->name, "slash" );
+}
+
+static float PM_SlideChargeMax( void ) {
+	return PM_IsSlash() ? bg_pmoveSettings.slideChargeMax : bg_pmoveSettings.slideChargeMaxStrogg;
+}
+
+static float PM_SlideAirGrace( void ) {
+	return PM_IsSlash() ? bg_pmoveSettings.slideAirGrace : bg_pmoveSettings.slideAirGraceStrogg;
+}
+
+/*
+==================
 PM_IsSliding
 
 Slide style: crouching on the ground with slide charge left
@@ -661,10 +685,20 @@ static qboolean PM_CheckJump( void ) {
 	}
 
 	style = pml.champion->moveStyle;
-	if ( style == MOVE_AIRCONTROL || style == MOVE_SLIDE ) {
-		// chained jumps go higher
-		if ( pm->ps->stats[STAT_JUMP_TIME] < bg_pmoveSettings.chainTime ) {
+
+	// a jump from a crouch is lower, except for sliders
+	if ( ( pm->ps->pm_flags & PMF_DUCKED ) && style != MOVE_SLIDE ) {
+		pm->ps->velocity[2] *= bg_pmoveSettings.crouchJumpScale;
+	}
+
+	// chained jumps go higher: air control adds a fixed boost, everyone else
+	// a share that fades over the chain time
+	if ( pm->ps->stats[STAT_JUMP_TIME] < bg_pmoveSettings.chainTime ) {
+		if ( style == MOVE_AIRCONTROL ) {
 			pm->ps->velocity[2] += bg_pmoveSettings.chainVelocity;
+		} else {
+			pm->ps->velocity[2] *= 1.0f + bg_pmoveSettings.chainScale
+				* ( bg_pmoveSettings.chainTime - pm->ps->stats[STAT_JUMP_TIME] ) / bg_pmoveSettings.chainTime;
 		}
 	}
 	if ( style == MOVE_SLIDE ) {
@@ -1243,8 +1277,8 @@ static void PM_WalkMove( void ) {
 
 	// crouching is a fixed speed (for sliders a share of run speed), except while sliding
 	if ( ( pm->ps->pm_flags & PMF_DUCKED ) && !PM_IsSliding() ) {
-		float	crouch = pml.champion->moveStyle == MOVE_SLIDE
-			? pml.runSpeed * bg_pmoveSettings.slideCrouchScale : bg_pmoveSettings.crouchSpeed;
+		float	crouch = pml.runSpeed * ( pml.champion->moveStyle == MOVE_SLIDE && PM_IsSlash()
+			? bg_pmoveSettings.slideCrouchScale : bg_pmoveSettings.crouchWalkScale );
 
 		if ( wishspeed > crouch ) {
 			wishspeed = crouch;
@@ -2403,26 +2437,26 @@ static void PM_MoveTimers( void ) {
 		}
 		air += pml.msec;
 		// a slide that stays in the air too long is over (a bump or small drop isn't)
-		if ( air > bg_pmoveSettings.slideAirGrace && air - pml.msec <= bg_pmoveSettings.slideAirGrace
+		if ( air > PM_SlideAirGrace() && air - pml.msec <= PM_SlideAirGrace()
 			&& pm->cmd.upmove < 0 ) {
 			charge = 0;
 		}
 	} else {
 		// landing after real air time: crouch held starts the slide, otherwise the charge is gone
-		if ( air > bg_pmoveSettings.slideAirGrace && pm->cmd.upmove >= 0 ) {
+		if ( air > PM_SlideAirGrace() && pm->cmd.upmove >= 0 ) {
 			charge = 0;
 		}
 		air = 0;
 		charge -= bg_pmoveSettings.slideDrain * pml.msec;
 	}
-	if ( charge > bg_pmoveSettings.slideChargeMax ) {
-		charge = bg_pmoveSettings.slideChargeMax;
+	if ( charge > PM_SlideChargeMax() ) {
+		charge = PM_SlideChargeMax();
 	}
 	if ( charge < 0 ) {
 		charge = 0;
 	}
-	if ( air > 15 * BG_SLIDE_AIR_UNIT ) {
-		air = 15 * BG_SLIDE_AIR_UNIT;
+	if ( air > 31 * BG_SLIDE_AIR_UNIT ) {
+		air = 31 * BG_SLIDE_AIR_UNIT;
 	}
 	pm->ps->stats[STAT_MOVE_STATE] = BG_SlideState( charge, air );
 }

@@ -63,7 +63,7 @@ void G_CALoadout( gentity_t *ent ) {
 	}
 
 	ent->health = client->ps.stats[STAT_HEALTH] = client->ps.stats[STAT_MAX_HEALTH] + ci->maxHealthBonus;
-	client->ps.stats[STAT_ARMOR] = ci->maxArmor;
+	client->ps.stats[STAT_ARMOR] = G_MaxArmor( client );
 
 	for ( item = bg_itemlist + 1 ; item->classname ; item++ ) {
 		if ( item->giType != IT_WEAPON || item->giTag == WP_GRAPPLING_HOOK ) {

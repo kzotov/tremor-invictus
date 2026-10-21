@@ -361,7 +361,7 @@ int Pickup_Armor( gentity_t *ent, gentity_t *other ) {
 	{
 		// heavy armor and shards may go over the class base armor, light armor not
 		int		amount = ent->item->quantity;
-		int		cap = G_ClassInfo( other->client )->maxArmor;
+		int		cap = G_MaxArmor( other->client );
 
 		if ( amount < 25 ) {
 			amount = g_shardArmor.integer;

@@ -40,14 +40,15 @@ vmCvar_t	g_shockReverseCap;
 =================
 G_RegisterChampionCvars
 
-Shell Shock's numbers, kept as settings until checked against the game
+Shell Shock's numbers, as settings
 =================
 */
 void G_RegisterChampionCvars( void ) {
-	trap_Cvar_Register( &g_shockRadius, "g_shockRadius", "250", 0 );
-	trap_Cvar_Register( &g_shockZoneTime, "g_shockZoneTime", "4000", 0 );
-	trap_Cvar_Register( &g_shockTime, "g_shockTime", "3000", 0 );
-	trap_Cvar_Register( &g_shockReverseCap, "g_shockReverseCap", "6000", 0 );
+	// QC's own values: a 6.5 m zone for 8 s, shocked 8 s, up to 60 s of cooldown back
+	trap_Cvar_Register( &g_shockRadius, "g_shockRadius", "260", 0 );
+	trap_Cvar_Register( &g_shockZoneTime, "g_shockZoneTime", "8000", 0 );
+	trap_Cvar_Register( &g_shockTime, "g_shockTime", "8000", 0 );
+	trap_Cvar_Register( &g_shockReverseCap, "g_shockReverseCap", "60000", 0 );
 }
 
 void G_UpdateChampionCvars( void ) {
@@ -248,8 +249,8 @@ static void G_CrateThink( gentity_t *crate ) {
 		G_AbilityMark( crate, i );
 		cl = other->client;
 		cl->ps.stats[STAT_ARMOR] += 50;
-		if ( cl->ps.stats[STAT_ARMOR] > G_ClassInfo( cl )->maxArmor ) {
-			cl->ps.stats[STAT_ARMOR] = G_ClassInfo( cl )->maxArmor;
+		if ( cl->ps.stats[STAT_ARMOR] > G_MaxArmor( cl ) ) {
+			cl->ps.stats[STAT_ARMOR] = G_MaxArmor( cl );
 		}
 		for ( w = WP_MACHINEGUN ; w < WP_NUM_WEAPONS ; w++ ) {
 			if ( !( cl->ps.stats[STAT_WEAPONS] & ( 1 << w ) ) || !BG_WeaponTuned( w ) ) {
@@ -743,4 +744,18 @@ int G_UndyingSave( gentity_t *targ, int take, int mod ) {
 	client->undyingUsed = qtrue;
 	client->invulnEndTime = level.time + 1000;
 	return targ->health - 1;
+}
+
+/*
+=================
+G_MaxArmor
+
+The class limit, except Eisen's lower one
+=================
+*/
+int G_MaxArmor( gclient_t *client ) {
+	if ( !Q_stricmp( BG_Champion( client->ps.stats[STAT_CHAMPION] )->name, "eisen" ) ) {
+		return 150;
+	}
+	return G_ClassInfo( client )->maxArmor;
 }

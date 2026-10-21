@@ -746,6 +746,7 @@ void G_DropStroyentCell( gentity_t *victim, gentity_t *attacker );
 qboolean G_AbilityActive( gentity_t *ent, int active );
 
 #define	G_ClassInfo( client )	( &bg_classInfo[BG_Champion( (client)->ps.stats[STAT_CHAMPION] )->bodyClass] )
+int G_MaxArmor( gclient_t *client );
 void Weapon_HookThink (gentity_t *ent);
 
 

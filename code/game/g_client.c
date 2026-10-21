@@ -1275,6 +1275,10 @@ void ClientSpawn(gentity_t *ent) {
 	// class spawn armor
 	if ( g_gametype.integer == GT_TOURNAMENT ) {
 		client->ps.stats[STAT_ARMOR] = G_ClassInfo( client )->spawnArmorDuel;
+		// Clutch keeps his full spawn armour in duel
+		if ( !Q_stricmp( BG_Champion( client->ps.stats[STAT_CHAMPION] )->name, "clutch" ) ) {
+			client->ps.stats[STAT_ARMOR] = G_ClassInfo( client )->spawnArmor;
+		}
 	} else {
 		client->ps.stats[STAT_ARMOR] = G_ClassInfo( client )->spawnArmor;
 	}
