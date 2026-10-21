@@ -82,8 +82,8 @@ void TossClientItems( gentity_t *self ) {
 	gitem_t		*shard;
 	vec3_t		velocity;
 
-	// clan arena: nothing is dropped
-	if ( G_ClanArena() ) {
+	// clan arena and the arcade modes: nothing is dropped
+	if ( G_ClanArena() || G_Instagib() || G_UnholyTrinity() ) {
 		return;
 	}
 
@@ -1149,6 +1149,9 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if ( damage <= 0 ) {
 		return;
 	}
+	// instagib: a rail hit kills
+	damage = G_ArcadeDamage( targ, attacker, damage, mod );
+
 	// just spawned: less damage until the protection runs out or the player fires
 	if ( client && level.time < client->spawnProtectEnd && attacker && attacker->client && attacker != targ && mod != MOD_TELEFRAG ) {
 		take = damage * g_spawnProtectionScale.value;
@@ -1202,6 +1205,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
 	if ( G_ClanArena() ) {
 		G_CADamageDealt( attacker, targ, take + asave );
+		G_ArcadeDamageDealt( attacker, targ, take + asave );
 	}
 
 	// add to the damage inflicted on a player this frame

@@ -1220,6 +1220,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Sacrifice",
 	"Round Duel",
 	"Free for All",
+	"Instagib",
+	"Unholy Trinity",
 	"Loading",
 	"VOTE FOR THE NEXT MAP",
 	"Press 1, 2 or 3 to vote; you can change your vote",

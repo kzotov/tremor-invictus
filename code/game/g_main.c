@@ -209,6 +209,8 @@ vmCvar_t	g_overtime;
 vmCvar_t	g_duelReadyUp;
 vmCvar_t	g_duelFraglimit;
 vmCvar_t	g_tdmFraglimit;
+vmCvar_t	g_instagib;
+vmCvar_t	g_unholyTrinity;
 vmCvar_t	g_spawnProtection;
 vmCvar_t	g_spawnProtectionScale;
 vmCvar_t	g_teamSize;
@@ -276,6 +278,8 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_duelReadyUp, "g_duelReadyUp", "1", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_duelFraglimit, "g_duelFraglimit", "0", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_tdmFraglimit, "g_tdmFraglimit", "75", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_instagib, "g_instagib", "0", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse },		// arcade: free-for-all or TDM with one-hit rails
+	{ &g_unholyTrinity, "g_unholyTrinity", "0", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse },	// arcade: RL, LG and RG for everyone
 	{ &g_spawnProtection, "g_spawnProtection", "1000", 0, 0, qtrue },		// msec after spawning
 	{ &g_spawnProtectionScale, "g_spawnProtectionScale", "0.5", 0, 0, qtrue },
 	{ &g_teamSize, "g_teamSize", "0", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue },		// players per team, 0 = no limit

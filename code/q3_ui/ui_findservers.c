@@ -38,7 +38,7 @@ shows server, map, mode, players and ping, best ping first.
 #define VISIBLE_ROWS		12
 #define ROW_HEIGHT			18
 #define LIST_Y				196
-#define NUM_MODES			8		// all, the six modes, free-for-all
+#define NUM_MODES			10		// all, the six modes, free-for-all, the arcade modes
 
 #define SRC_INTERNET		0
 #define SRC_LAN				1
@@ -63,9 +63,9 @@ shows server, map, mode, players and ping, best ping first.
 #define COL_PLAYERS			480
 #define COL_PING			560
 
-static const char *fsModeKeys[NUM_MODES] = { "", "duel", "tdm", "ctf", "ca", "sacrifice", "roundduel", "ffa" };
+static const char *fsModeKeys[NUM_MODES] = { "", "duel", "tdm", "ctf", "ca", "sacrifice", "roundduel", "ffa", "instagib", "unholytrinity" };
 static const int fsModeNames[NUM_MODES] = {
-	STR_FS_ALL, STR_MODE_DUEL, STR_MODE_TDM, STR_MODE_CTF, STR_MODE_CA, STR_MODE_SACRIFICE, STR_MODE_ROUNDDUEL, STR_MODE_FFA
+	STR_FS_ALL, STR_MODE_DUEL, STR_MODE_TDM, STR_MODE_CTF, STR_MODE_CA, STR_MODE_SACRIFICE, STR_MODE_ROUNDDUEL, STR_MODE_FFA, STR_MODE_INSTAGIB, STR_MODE_TRINITY
 };
 static const int fsPingLimits[] = { 0, 50, 100, 150, 200 };
 static const char *fsPingNames[] = { NULL, "50", "100", "150", "200", NULL };

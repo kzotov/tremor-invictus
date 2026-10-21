@@ -1351,6 +1351,9 @@ void ClientSpawn(gentity_t *ent) {
 	if ( G_ClanArena() && client->sess.sessionTeam != TEAM_SPECTATOR && !level.intermissiontime ) {
 		G_CALoadout( ent );
 	}
+	if ( client->sess.sessionTeam != TEAM_SPECTATOR && !level.intermissiontime ) {
+		G_ArcadeLoadout( ent );
+	}
 
 	// run a client frame to drop exactly to the floor,
 	// initialize animations and other things

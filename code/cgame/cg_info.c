@@ -104,6 +104,8 @@ const char *CG_ModeString( void ) {
 	if ( !Q_stricmp( mode, "ca" ) )			return BG_String( STR_MODE_CA );
 	if ( !Q_stricmp( mode, "sacrifice" ) )	return BG_String( STR_MODE_SACRIFICE );
 	if ( !Q_stricmp( mode, "roundduel" ) )	return BG_String( STR_MODE_ROUNDDUEL );
+	if ( !Q_stricmp( mode, "instagib" ) )	return BG_String( STR_MODE_INSTAGIB );
+	if ( !Q_stricmp( mode, "unholytrinity" ) )	return BG_String( STR_MODE_TRINITY );
 	return BG_String( STR_MODE_FFA );
 }
 

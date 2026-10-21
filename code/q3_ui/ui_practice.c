@@ -33,7 +33,7 @@ choices are remembered.
 
 #include "ui_local.h"
 
-#define NUM_MODES			7
+#define NUM_MODES			9
 #define MAX_PRACTICE_MAPS	128
 #define MAP_COLUMNS			4
 #define MAP_ROWS			2
@@ -85,7 +85,11 @@ static const practiceMode_t practiceModes[NUM_MODES] = {
 	{ STR_MODE_ROUNDDUEL, GT_TOURNAMENT, "g_roundDuel", qfalse,
 		{ { STR_PR_ROUNDS, "g_rdRounds", 2 } } },
 	{ STR_MODE_FFA, GT_FFA, NULL, qfalse,
-		{ { STR_PR_TIMELIMIT, "timelimit", 10 }, { STR_PR_FRAGLIMIT, "fraglimit", 50 } } }
+		{ { STR_PR_TIMELIMIT, "timelimit", 10 }, { STR_PR_FRAGLIMIT, "fraglimit", 50 } } },
+	{ STR_MODE_INSTAGIB, GT_FFA, "g_instagib", qfalse,
+		{ { STR_PR_TIMELIMIT, "timelimit", 10 }, { STR_PR_FRAGLIMIT, "fraglimit", 50 } } },
+	{ STR_MODE_TRINITY, GT_FFA, "g_unholyTrinity", qfalse,
+		{ { STR_PR_TIMELIMIT, "timelimit", 10 }, { STR_PR_FRAGLIMIT, "fraglimit", 0 } } }
 };
 
 static const char *practiceCountNames[] = { "0", "1", "2", "3", "4", "5", "6", "7", NULL };
@@ -315,6 +319,8 @@ static void Practice_Start( void ) {
 	trap_Cvar_Set( "g_clanArena", "0" );
 	trap_Cvar_Set( "g_sacrifice", "0" );
 	trap_Cvar_Set( "g_roundDuel", "0" );
+	trap_Cvar_Set( "g_instagib", "0" );
+	trap_Cvar_Set( "g_unholyTrinity", "0" );
 	if ( m->variant ) {
 		trap_Cvar_Set( m->variant, "1" );
 	}

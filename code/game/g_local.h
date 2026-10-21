@@ -721,6 +721,16 @@ void		G_MedalsSpawn( gentity_t *ent );
 void		G_Announce( int clientNum, const char *key );
 
 //
+// g_arcade.c
+//
+qboolean	G_Instagib( void );
+qboolean	G_UnholyTrinity( void );
+qboolean	G_ArcadeKeepsItem( const gitem_t *item );
+void		G_ArcadeLoadout( gentity_t *ent );
+int			G_ArcadeDamage( gentity_t *targ, gentity_t *attacker, int damage, int mod );
+void		G_ArcadeDamageDealt( gentity_t *attacker, gentity_t *targ, int damage );
+
+//
 // g_admin.c
 //
 void		G_LoadAccess( void );
@@ -979,6 +989,8 @@ extern	vmCvar_t	g_overtime;
 extern	vmCvar_t	g_duelReadyUp;
 extern	vmCvar_t	g_duelFraglimit;
 extern	vmCvar_t	g_tdmFraglimit;
+extern	vmCvar_t	g_instagib;
+extern	vmCvar_t	g_unholyTrinity;
 extern	vmCvar_t	g_spawnProtection;
 extern	vmCvar_t	g_spawnProtectionScale;
 extern	vmCvar_t	g_teamSize;

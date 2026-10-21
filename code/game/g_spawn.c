@@ -308,6 +308,9 @@ qboolean G_CallSpawn( gentity_t *ent ) {
 	// check item spawn functions
 	for ( item=bg_itemlist+1 ; item->classname ; item++ ) {
 		if ( !strcmp(item->classname, ent->classname) ) {
+			if ( !G_ArcadeKeepsItem( item ) ) {
+				return qfalse;		// not in this arcade mode
+			}
 			G_SpawnItem( ent, item );
 			return qtrue;
 		}
@@ -425,6 +428,12 @@ This game's name for the running mode, as map keys use it
 ===================
 */
 const char *G_ModeName( void ) {
+	if ( G_Instagib() ) {
+		return "instagib";
+	}
+	if ( G_UnholyTrinity() ) {
+		return "unholytrinity";
+	}
 	switch ( g_gametype.integer ) {
 	case GT_TOURNAMENT:	return G_RoundDuel() ? "roundduel" : "duel";
 	case GT_TEAM:		return G_ClanArena() ? "ca" : "tdm";
