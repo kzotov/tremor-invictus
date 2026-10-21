@@ -3252,6 +3252,263 @@ static void CG_DrawProxWarning( void ) {
 CG_DrawWarmup
 =================
 */
+/*
+==============================================================================
+
+PILLARS: the pre-match lineup and the post-match podium
+
+Champions standing on hexagonal columns drawn from polygons, in a scene of
+their own in front of the darkened screen
+
+==============================================================================
+*/
+
+#define PILLAR_RADIUS	24
+#define PILLAR_DIST		300		// how far in front of the camera the row stands
+
+/*
+=================
+CG_PillarPoly
+=================
+*/
+static void CG_PillarPoly( vec3_t a, vec3_t b, vec3_t c, vec3_t d, const byte *rgba ) {
+	polyVert_t	v[4];
+	int			i;
+
+	VectorCopy( a, v[0].xyz );
+	VectorCopy( b, v[1].xyz );
+	VectorCopy( c, v[2].xyz );
+	VectorCopy( d, v[3].xyz );
+	for ( i = 0 ; i < 4 ; i++ ) {
+		v[i].st[0] = v[i].st[1] = 0;
+		v[i].modulate[0] = rgba[0];
+		v[i].modulate[1] = rgba[1];
+		v[i].modulate[2] = rgba[2];
+		v[i].modulate[3] = rgba[3];
+	}
+	trap_R_AddPolyToScene( cgs.media.whiteShader, 4, v );
+}
+
+/*
+=================
+CG_AddPillar
+
+A hexagonal column from the floor up to `top`, with a coloured strip
+around its top edge
+=================
+*/
+static void CG_AddPillar( const vec3_t base, float top, const byte *strip ) {
+	static const byte	side[4] = { 18, 18, 22, 255 };
+	static const byte	cap[4] = { 34, 34, 40, 255 };
+	vec3_t	lo[6], hi[6], st[6], center;
+	int		i, j;
+
+	for ( i = 0 ; i < 6 ; i++ ) {
+		float	a = DEG2RAD( 30 + i * 60 );
+
+		VectorSet( lo[i], base[0] + cos( a ) * PILLAR_RADIUS, base[1] + sin( a ) * PILLAR_RADIUS, base[2] - 400 );
+		VectorSet( hi[i], lo[i][0], lo[i][1], base[2] + top );
+		VectorSet( st[i], lo[i][0], lo[i][1], base[2] + top - 4 );
+	}
+	for ( i = 0 ; i < 6 ; i++ ) {
+		j = ( i + 1 ) % 6;
+		CG_PillarPoly( lo[i], lo[j], st[j], st[i], side );
+		CG_PillarPoly( st[i], st[j], hi[j], hi[i], strip );
+	}
+	VectorSet( center, base[0], base[1], base[2] + top );
+	for ( i = 0 ; i < 6 ; i++ ) {
+		j = ( i + 1 ) % 6;
+		CG_PillarPoly( center, hi[j], hi[i], center, cap );
+	}
+}
+
+/*
+=================
+CG_AddPillarPlayer
+
+The player's champion standing still on top of a pillar, facing the camera
+=================
+*/
+static void CG_AddPillarPlayer( int clientNum, const vec3_t feet ) {
+	clientInfo_t	*ci = &cgs.clientinfo[clientNum];
+	refEntity_t		legs, torso, head;
+	vec3_t			angles;
+
+	if ( !ci->infoValid || !ci->legsModel ) {
+		return;
+	}
+	VectorSet( angles, 0, 180, 0 );
+
+	memset( &legs, 0, sizeof( legs ) );
+	AnglesToAxis( angles, legs.axis );
+	VectorCopy( feet, legs.origin );
+	legs.origin[2] += 24;		// model origins are at the waist
+	VectorCopy( legs.origin, legs.oldorigin );
+	VectorCopy( legs.origin, legs.lightingOrigin );
+	legs.hModel = ci->legsModel;
+	legs.customSkin = ci->legsSkin;
+	legs.frame = legs.oldframe = ci->animations[LEGS_IDLE].firstFrame;
+	legs.renderfx = RF_LIGHTING_ORIGIN | RF_NOSHADOW;
+	trap_R_AddRefEntityToScene( &legs );
+
+	memset( &torso, 0, sizeof( torso ) );
+	AxisClear( torso.axis );
+	torso.hModel = ci->torsoModel;
+	torso.customSkin = ci->torsoSkin;
+	torso.frame = torso.oldframe = ci->animations[TORSO_STAND].firstFrame;
+	VectorCopy( legs.origin, torso.lightingOrigin );
+	torso.renderfx = legs.renderfx;
+	CG_PositionRotatedEntityOnTag( &torso, &legs, ci->legsModel, "tag_torso" );
+	trap_R_AddRefEntityToScene( &torso );
+
+	memset( &head, 0, sizeof( head ) );
+	AxisClear( head.axis );
+	head.hModel = ci->headModel;
+	head.customSkin = ci->headSkin;
+	VectorCopy( legs.origin, head.lightingOrigin );
+	head.renderfx = legs.renderfx;
+	CG_PositionRotatedEntityOnTag( &head, &torso, ci->torsoModel, "tag_head" );
+	trap_R_AddRefEntityToScene( &head );
+}
+
+/*
+=================
+CG_DrawPillars
+
+Up to 16 players on pillars across the screen: `height` per slot (0 for
+the same height), names under them. Positions are spread from left to right.
+=================
+*/
+static void CG_DrawPillars( const int *clients, const int *heights, const int *teams, int count, const char **labels ) {
+	static const byte	strips[3][4] = { { 179, 178, 173, 255 }, { 208, 26, 26, 255 }, { 40, 90, 220, 255 } };
+	refdef_t	refdef;
+	vec3_t		base;
+	float		spacing, y, sx;
+	int			i;
+	clientInfo_t	*ci;
+
+	if ( count <= 0 ) {
+		return;
+	}
+	memset( &refdef, 0, sizeof( refdef ) );
+	refdef.rdflags = RDF_NOWORLDMODEL;
+	AxisClear( refdef.viewaxis );
+	refdef.fov_x = 60;
+	refdef.fov_y = 60 * cgs.glconfig.vidHeight / (float)cgs.glconfig.vidWidth;
+	refdef.x = 0;
+	refdef.y = 0;
+	refdef.width = cgs.glconfig.vidWidth;
+	refdef.height = cgs.glconfig.vidHeight;
+	refdef.time = cg.time;
+
+	trap_R_ClearScene();
+	spacing = count > 1 ? 2 * PILLAR_DIST * tan( DEG2RAD( 25 ) ) / ( count - 1 ) : 0;
+	if ( spacing > 110 ) {
+		spacing = 110;
+	}
+	for ( i = 0 ; i < count ; i++ ) {
+		y = ( ( count - 1 ) / 2.0f - i ) * spacing;
+		VectorSet( base, PILLAR_DIST, y, -60 + ( heights ? heights[i] : 0 ) );
+		CG_AddPillar( base, 0, strips[teams ? teams[i] : 0] );
+		CG_AddPillarPlayer( clients[i], base );
+	}
+	trap_R_AddLightToScene( vec3_origin, 600, 1, 1, 1 );
+	trap_R_RenderScene( &refdef );
+
+	// names under the pillars' tops
+	for ( i = 0 ; i < count ; i++ ) {
+		y = ( ( count - 1 ) / 2.0f - i ) * spacing;
+		// the pillar's place on screen, in 640x480 units (the scene spans the whole width)
+		sx = 320 - y / ( PILLAR_DIST * tan( DEG2RAD( 30 ) ) ) * 0.5f * cgs.glconfig.vidWidth * 480 / cgs.glconfig.vidHeight;
+		ci = &cgs.clientinfo[clients[i]];
+		CG_DrawStringExt( sx - CG_DrawStrlen( ci->name ) * SMALLCHAR_WIDTH / 2, 404, ci->name, colorWhite,
+			qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 16 );
+		if ( labels && labels[i] ) {
+			CG_DrawStringExt( sx - CG_DrawStrlen( labels[i] ) * TINYCHAR_WIDTH / 2, 424, labels[i], colorLtGrey,
+				qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+		}
+	}
+}
+
+/*
+=================
+CG_DrawLineup
+
+During the countdown: everyone in the match on a pillar, red team left,
+blue right; in duel the local player is on the left
+=================
+*/
+static void CG_DrawLineup( void ) {
+	static const vec4_t	dim = { 0.05f, 0.05f, 0.06f, 0.85f };
+	int		clients[16], teams[16], count = 0, i, t, local = cg.snap->ps.clientNum;
+
+	if ( cg.warmup <= 0 || cg.warmup < cg.time ) {
+		return;
+	}
+	// the local player first in duel; in team modes red, then blue
+	for ( t = 0 ; t < 3 ; t++ ) {
+		for ( i = 0 ; i < MAX_CLIENTS && count < 16 ; i++ ) {
+			clientInfo_t	*ci = &cgs.clientinfo[i];
+
+			if ( !ci->infoValid || ci->team == TEAM_SPECTATOR ) {
+				continue;
+			}
+			if ( cgs.gametype >= GT_TEAM ) {
+				if ( ci->team != ( t == 0 ? TEAM_RED : TEAM_BLUE ) || t == 2 ) {
+					continue;
+				}
+			} else if ( t == 0 ? i != local : t == 1 ? i == local : qtrue ) {
+				continue;
+			}
+			clients[count] = i;
+			teams[count] = ci->team == TEAM_RED ? 1 : ci->team == TEAM_BLUE ? 2 : 0;
+			count++;
+		}
+	}
+	if ( count < 2 ) {
+		return;
+	}
+	CG_FillRect( -200, 0, 1040, 480, dim );
+	CG_DrawPillars( clients, NULL, teams, count, NULL );
+}
+
+/*
+=================
+CG_DrawPodium
+
+The first seconds of the intermission: the top three on pillars of
+heights 3, 2 and 1, the winner in the middle
+=================
+*/
+static void CG_DrawPodium( void ) {
+	static const vec4_t	dim = { 0.05f, 0.05f, 0.06f, 0.85f };
+	int		clients[3], heights[3], teams[3], count = 0, order[3] = { 1, 0, 2 }, i, n;
+	const char	*labels[3];
+
+	static char	scoreText[3][16];
+
+	n = cg.numScores < 3 ? cg.numScores : 3;
+	if ( n < 1 ) {
+		return;
+	}
+	// left: second, middle: first, right: third
+	for ( i = 0 ; i < 3 ; i++ ) {
+		int		rank = order[i];
+
+		if ( rank >= n ) {
+			continue;
+		}
+		clients[count] = cg.scores[rank].client;
+		heights[count] = ( 3 - rank ) * 20;
+		teams[count] = cg.scores[rank].team == TEAM_RED ? 1 : cg.scores[rank].team == TEAM_BLUE ? 2 : 0;
+		Com_sprintf( scoreText[count], sizeof( scoreText[count] ), "%i", cg.scores[rank].score );
+		labels[count] = scoreText[count];
+		count++;
+	}
+	CG_FillRect( -200, 0, 1040, 480, dim );
+	CG_DrawPillars( clients, heights, teams, count, labels );
+}
+
 static void CG_DrawWarmup( void ) {
 	int			w;
 	int			sec;
@@ -3448,7 +3705,22 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	}
 
 	if ( cg.snap->ps.pm_type == PM_INTERMISSION ) {
+		if ( !cg.podiumTime ) {
+			cg.podiumTime = cg.time;
+		}
+		if ( cg.time - cg.podiumTime < 6000 && cg_drawLineup.integer ) {
+			CG_DrawPodium();
+			return;
+		}
 		CG_DrawIntermission();
+		return;
+	}
+	cg.podiumTime = 0;
+
+	// the countdown: everyone on pillars
+	if ( cg.warmup > cg.time && cg_drawLineup.integer ) {
+		CG_DrawLineup();
+		CG_DrawWarmup();
 		return;
 	}
 

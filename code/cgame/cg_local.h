@@ -550,6 +550,7 @@ typedef struct {
 	qboolean	showScores;
 	qboolean	showChatHistory;	// +chathistory held
 	qboolean	showAcc;			// +acc held
+	int			podiumTime;			// cg.time the intermission's podium began
 	int			accRequestTime;
 	int			accShots[WP_NUM_WEAPONS];
 	int			accHits[WP_NUM_WEAPONS];
@@ -1250,6 +1251,7 @@ extern	vmCvar_t		cg_zoomSensitivity;
 extern	vmCvar_t		cg_crosshairColor;
 extern	vmCvar_t		cg_drawSpeed;
 extern	vmCvar_t		cg_layoutDebug;
+extern	vmCvar_t		cg_drawLineup;
 extern	vmCvar_t		cg_layoutDump;
 #ifdef MISSIONPACK
 extern	vmCvar_t		cg_redTeamName;
