@@ -645,6 +645,10 @@ typedef struct {
 	// blend blobs
 	float		damageTime;
 	float		damageX, damageY, damageValue;
+	float		damageArcYaw;		// degrees, 0 = ahead, positive = left
+	int			damageArcTime;
+	int			damageArcValue;
+	int			lowHealthBeat;		// cg.time of the last low-health heartbeat
 
 	// status bar head
 	float		headYaw;
@@ -1255,6 +1259,8 @@ extern	vmCvar_t		cg_crosshairColor;
 extern	vmCvar_t		cg_drawSpeed;
 extern	vmCvar_t		cg_layoutDebug;
 extern	vmCvar_t		cg_showLoading;
+extern	vmCvar_t		cg_damageArc;
+extern	vmCvar_t		cg_lowHealthWarning;
 extern	vmCvar_t		cg_drawLineup;
 extern	vmCvar_t		cg_layoutDump;
 #ifdef MISSIONPACK

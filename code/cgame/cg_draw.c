@@ -3014,7 +3014,86 @@ static void CG_DrawCrosshairNames( void ) {
 	w = CG_DrawStrlen( name ) * BIGCHAR_WIDTH;
 	CG_DrawBigString( 320 - w / 2, 170, name, color[3] * 0.5f );
 #endif
+
+	// a teammate: their health and armour (from the team overlay info)
+	if ( cgs.gametype >= GT_TEAM && cgs.clientinfo[cg.crosshairClientNum].team == cg.snap->ps.persistant[PERS_TEAM]
+		&& cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
+		const char	*s = va( "%i / %i", cgs.clientinfo[cg.crosshairClientNum].health,
+			cgs.clientinfo[cg.crosshairClientNum].armor );
+
+		CG_DrawSmallStringColor( 320 - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH / 2, 170 + BIGCHAR_HEIGHT + 2, s, color );
+	}
 	trap_R_SetColor( NULL );
+}
+
+/*
+=================
+CG_DrawDamageArc
+
+A red arc around the crosshair toward where damage came from, fading over
+a second, brighter for bigger hits
+=================
+*/
+#define DAMAGE_ARC_TIME		1000
+#define DAMAGE_ARC_RADIUS	56
+#define DAMAGE_ARC_SPAN		40		// degrees
+static void CG_DrawDamageArc( void ) {
+	vec4_t	color = { 0.9f, 0.08f, 0.05f, 1 };
+	float	t, a, rad, x, y;
+	int		i;
+
+	if ( !cg_damageArc.integer || !cg.damageArcTime ) {
+		return;
+	}
+	t = cg.time - cg.damageArcTime;
+	if ( t < 0 || t >= DAMAGE_ARC_TIME ) {
+		return;
+	}
+	color[3] = ( 1.0f - t / DAMAGE_ARC_TIME ) * ( 0.4f + 0.6f * ( cg.damageArcValue > 50 ? 1.0f : cg.damageArcValue / 50.0f ) );
+	for ( i = 0 ; i <= 10 ; i++ ) {
+		a = cg.damageArcYaw + DAMAGE_ARC_SPAN * ( i / 10.0f - 0.5f );
+		rad = DEG2RAD( a );
+		x = 320 - sin( rad ) * DAMAGE_ARC_RADIUS;
+		y = 240 - cos( rad ) * DAMAGE_ARC_RADIUS;
+		CG_FillRect( x - 2, y - 2, 4, 4, color );
+	}
+}
+
+/*
+=================
+CG_DrawLowHealth
+
+Below 25 health: a pulsing red edge and a heartbeat each second, when the
+install has a heartbeat sound
+=================
+*/
+#define LOW_HEALTH			25
+static void CG_DrawLowHealth( void ) {
+	static qboolean		loaded;
+	static sfxHandle_t	beat;
+	vec4_t	color = { 0.8f, 0.0f, 0.0f, 0 };
+	int		health = cg.snap->ps.stats[STAT_HEALTH];
+
+	if ( !cg_lowHealthWarning.integer || health <= 0 || health >= LOW_HEALTH ) {
+		return;
+	}
+	color[3] = 0.2f + 0.15f * sin( cg.time * 0.00628f );
+	CG_FillRect( 0, 0, SCREEN_WIDTH, 10, color );
+	CG_FillRect( 0, SCREEN_HEIGHT - 10, SCREEN_WIDTH, 10, color );
+	cg_hudAnchor = ANCHOR_LEFT;
+	CG_FillRect( 0, 10, 10, SCREEN_HEIGHT - 20, color );
+	cg_hudAnchor = ANCHOR_RIGHT;
+	CG_FillRect( SCREEN_WIDTH - 10, 10, 10, SCREEN_HEIGHT - 20, color );
+	cg_hudAnchor = ANCHOR_CENTER;
+
+	if ( !loaded ) {
+		loaded = qtrue;
+		beat = trap_S_RegisterSound( "sound/feedback/heartbeat.wav", qfalse );
+	}
+	if ( beat && cg.time - cg.lowHealthBeat >= 1000 ) {
+		cg.lowHealthBeat = cg.time;
+		trap_S_StartLocalSound( beat, CHAN_LOCAL_SOUND );
+	}
 }
 
 
@@ -3887,6 +3966,8 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 			if(stereoFrame == STEREO_CENTER)
 				CG_DrawCrosshair();
 			CG_DrawCrosshairNames();
+			CG_DrawDamageArc();
+			CG_DrawLowHealth();
 			CG_DrawWeaponSelect();
 
 #ifndef MISSIONPACK
