@@ -600,6 +600,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 		}
 	}
 
+	G_SacrificeKill( self, attacker );
 	TossClientItems( self );
 #ifdef MISSIONPACK
 	TossClientPersistantPowerups( self );
@@ -645,7 +646,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	// don't allow respawn until the death anim is done
 	// g_forcerespawn may force spawning at some later time
 	// duel and TDM: attack respawns from 2.1 s, and it happens anyway at 2.4 s
-	self->client->respawnTime = level.time + ( G_MatchMode() ? 2100 : 1700 );
+	self->client->respawnTime = level.time + ( G_Sacrifice() ? 5000 : G_MatchMode() ? 2100 : 1700 );
 
 	// remove powerups
 	memset( self->client->ps.powerups, 0, sizeof(self->client->ps.powerups) );

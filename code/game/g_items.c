@@ -1006,6 +1006,12 @@ void G_SpawnItem (gentity_t *ent, gitem_t *item) {
 	if ( G_ItemDisabled(item) )
 		return;
 
+	// sacrifice: the flags' stands become the obelisks
+	if ( G_Sacrifice() && item->giType == IT_TEAM ) {
+		G_SacrificeObeliskSpot( ent, item );
+		return;
+	}
+
 	// clan arena: no map items at all
 	if ( G_ClanArena() ) {
 		return;

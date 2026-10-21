@@ -85,6 +85,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define CS_FLAGSTATUS			23		// string indicating flag status in CTF
 #define CS_SHADERSTATE			24
 #define CS_BOTINFO				25
+#define CS_SACRIFICE			26		// "red blue soulState carrier extract meterTime": sacrifice HUD
 
 #define	CS_ITEMS				27		// string of 0's and 1's that tell which items are present
 
@@ -308,6 +309,22 @@ typedef enum {
 	STR_CA_RED_WINS,
 	STR_CA_BLUE_WINS,
 	STR_CA_DRAW,
+	STR_SAC_SOUL_SOON,				// "The soul appears in %i seconds"
+	STR_SAC_SOUL_SPAWNED,
+	STR_SAC_PLANTED,				// "%s planted the soul"
+	STR_SAC_EXTRACTED,				// "%s extracted the soul"
+	STR_SAC_DROPPED,
+	STR_SAC_RETURNED,
+	STR_SAC_RED_WINS,
+	STR_SAC_BLUE_WINS,
+	STR_SAC_SUDDEN_DEATH,
+	STR_SAC_HUD,					// "Red %i%%   Blue %i%%"
+	STR_SAC_SOUL_AT_SPAWN,
+	STR_SAC_SOUL_CARRIED,			// "Soul: %s"
+	STR_SAC_SOUL_GROUND,
+	STR_SAC_SOUL_RED,
+	STR_SAC_SOUL_BLUE,
+	STR_SAC_EXTRACTING,				// "Extracting %i%%"
 
 	STR_NUM_STRINGS
 } stringId_t;

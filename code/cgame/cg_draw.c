@@ -987,11 +987,70 @@ CG_DrawUpperRight
 
 =====================
 */
+/*
+=================
+CG_DrawSacrifice
+
+Sacrifice: both meters, where the soul is, and extraction progress
+=================
+*/
+static float CG_DrawSacrifice( float y ) {
+	const char	*cs = CG_ConfigString( CS_SACRIFICE );
+	int			v[6], i, w;
+	const char	*s;
+
+	if ( cgs.gametype != GT_CTF || !cs[0] ) {
+		return y;
+	}
+	for ( i = 0 ; i < 6 ; i++ ) {
+		v[i] = atoi( cs );
+		while ( *cs && *cs != ' ' ) {
+			cs++;
+		}
+		while ( *cs == ' ' ) {
+			cs++;
+		}
+	}
+	if ( v[5] <= 0 ) {
+		v[5] = 1;
+	}
+
+	s = va( (char *)BG_String( STR_SAC_HUD ), v[0] * 100 / v[5], v[1] * 100 / v[5] );
+	w = CG_DrawStrlen( s ) * SMALLCHAR_WIDTH;
+	CG_DrawSmallString( 635 - w, y + 2, s, 1.0F );
+	y += SMALLCHAR_HEIGHT + 4;
+
+	switch ( v[2] ) {
+	case 0:		s = BG_String( STR_SAC_SOUL_AT_SPAWN ); break;
+	case 1:		s = BG_String( STR_SAC_SOUL_GROUND ); break;
+	case 2:
+		s = va( (char *)BG_String( STR_SAC_SOUL_CARRIED ),
+			( v[3] >= 0 && v[3] < MAX_CLIENTS ) ? cgs.clientinfo[v[3]].name : "?" );
+		break;
+	default:
+		s = BG_String( v[2] - 10 == TEAM_RED ? STR_SAC_SOUL_RED : STR_SAC_SOUL_BLUE );
+		break;
+	}
+	w = CG_DrawStrlen( s ) * SMALLCHAR_WIDTH;
+	CG_DrawSmallString( 635 - w, y + 2, s, 1.0F );
+	y += SMALLCHAR_HEIGHT + 4;
+
+	if ( v[4] > 0 ) {
+		s = va( (char *)BG_String( STR_SAC_EXTRACTING ), v[4] * 100 / 2500 );
+		w = CG_DrawStrlen( s ) * SMALLCHAR_WIDTH;
+		CG_DrawSmallString( 635 - w, y + 2, s, 1.0F );
+		y += SMALLCHAR_HEIGHT + 4;
+	}
+	return y;
+}
+
 static void CG_DrawUpperRight(stereoFrame_t stereoFrame)
 {
 	float	y;
 
 	y = 0;
+
+	y = CG_DrawSacrifice( y );
 
 	if ( cgs.gametype >= GT_TEAM && cg_drawTeamOverlay.integer == 1 ) {
 		y = CG_DrawTeamOverlay( y, qtrue, qtrue );

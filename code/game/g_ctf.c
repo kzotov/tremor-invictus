@@ -46,6 +46,11 @@ void G_DropCarriedFlag( gentity_t *ent, qboolean thrown ) {
 	vec3_t		velocity, forward, origin;
 	int			pw;
 
+	if ( G_Sacrifice() ) {
+		G_SacrificeDropSoul( ent, thrown );
+		return;
+	}
+
 	if ( !cl || g_gametype.integer != GT_CTF ) {
 		return;
 	}
@@ -91,13 +96,13 @@ void Cmd_DropFlag_f( gentity_t *ent ) {
 
 /*
 =================
-G_CTFResetItems
+G_ResetMapItems
 
-Half time: every item back as at the start of the match, power-ups
-counting down to their first appearance again
+Every item back as at the start of the match, power-ups counting down to
+their first appearance again (CTF half time, sacrifice rounds)
 =================
 */
-static void G_CTFResetItems( void ) {
+void G_ResetMapItems( void ) {
 	gentity_t	*ent;
 	int			i;
 
@@ -134,7 +139,7 @@ static void G_CTFSwapHalves( void ) {
 	int			i, score;
 
 	Team_ResetFlags();
-	G_CTFResetItems();
+	G_ResetMapItems();
 
 	score = level.teamScores[TEAM_RED];
 	level.teamScores[TEAM_RED] = level.teamScores[TEAM_BLUE];

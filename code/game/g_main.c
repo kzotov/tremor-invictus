@@ -192,6 +192,12 @@ vmCvar_t	g_ctfCapturelimit;
 vmCvar_t	g_clanArena;
 vmCvar_t	g_caRounds;
 vmCvar_t	g_caRoundTime;
+vmCvar_t	g_sacrifice;
+vmCvar_t	g_sacRounds;
+vmCvar_t	g_sacMeterTime;
+vmCvar_t	g_sacExtractTime;
+vmCvar_t	g_sacObeliskRadius;
+vmCvar_t	g_sacSoulReturn;
 vmCvar_t	g_logfile;
 vmCvar_t	g_logfileSync;
 vmCvar_t	g_blood;
@@ -243,6 +249,13 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_clanArena, "g_clanArena", "0", CVAR_SERVERINFO | CVAR_LATCH, 0, qtrue },
 	{ &g_caRounds, "g_caRounds", "7", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_caRoundTime, "g_caRoundTime", "180", CVAR_ARCHIVE, 0, qtrue },
+	// sacrifice: capture the flag maps played for the soul (g_gametype 4 with g_sacrifice 1)
+	{ &g_sacrifice, "g_sacrifice", "0", CVAR_SERVERINFO | CVAR_LATCH, 0, qtrue },
+	{ &g_sacRounds, "g_sacRounds", "2", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_sacMeterTime, "g_sacMeterTime", "120", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_sacExtractTime, "g_sacExtractTime", "2500", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_sacObeliskRadius, "g_sacObeliskRadius", "192", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_sacSoulReturn, "g_sacSoulReturn", "20", CVAR_ARCHIVE, 0, qtrue },
 
 	// latched vars
 	{ &g_gametype, "g_gametype", "0", CVAR_SERVERINFO | CVAR_USERINFO | CVAR_LATCH, 0, qfalse  },
@@ -753,7 +766,9 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	ClearRegisteredItems();
 
 	// parse the key/value pairs and spawn gentities
+	G_SacrificeClear();
 	G_SpawnEntitiesFromString();
+	G_SacrificeInit();
 
 	// general initialization
 	G_FindTeams();
@@ -1628,6 +1643,11 @@ void CheckExitRules( void ) {
 			BeginIntermission();
 		}
 #endif
+		return;
+	}
+
+	if ( G_Sacrifice() ) {
+		G_SacrificeCheckRules();
 		return;
 	}
 

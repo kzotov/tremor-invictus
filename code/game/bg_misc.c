@@ -1129,7 +1129,23 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Fight!",
 	"Red wins the round",
 	"Blue wins the round",
-	"The round is a draw"
+	"The round is a draw",
+	"The soul appears in %i seconds",
+	"The soul has appeared",
+	"%s planted the soul",
+	"%s extracted the soul",
+	"The soul was dropped",
+	"The soul returned",
+	"Red completes the sacrifice",
+	"Blue completes the sacrifice",
+	"Sudden death: the next team to sacrifice wins",
+	"Red %i%%   Blue %i%%",
+	"Soul: not yet",
+	"Soul: %s",
+	"Soul: on the ground",
+	"Soul: at red's obelisk",
+	"Soul: at blue's obelisk",
+	"Extracting %i%%"
 };
 
 /*

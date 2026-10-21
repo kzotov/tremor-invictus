@@ -1742,7 +1742,7 @@ void ClientCommand( int clientNum ) {
 		Cmd_ReadyUp_f( ent );
 		return;
 	}
-	if (Q_stricmp (cmd, "dropflag") == 0) {
+	if (Q_stricmp (cmd, "dropflag") == 0 || Q_stricmp (cmd, "dropsoul") == 0) {
 		Cmd_DropFlag_f( ent );
 		return;
 	}

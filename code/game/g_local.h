@@ -667,6 +667,18 @@ void		G_CACheckRules( void );
 void		G_CALoadout( gentity_t *ent );
 void		G_CADamageDealt( gentity_t *attacker, gentity_t *targ, int damage );
 
+void		G_ResetMapItems( void );
+
+// g_sacrifice.c
+qboolean	G_Sacrifice( void );
+void		G_SacrificeObeliskSpot( gentity_t *ent, gitem_t *item );
+void		G_SacrificeClear( void );
+void		G_SacrificeInit( void );
+void		G_SacrificeCheckRules( void );
+void		G_SacrificeDropSoul( gentity_t *ent, qboolean thrown );
+void		G_SacrificeKill( gentity_t *victim, gentity_t *attacker );
+gentity_t	*G_SacrificeSpawnPoint( gentity_t *ent, vec3_t origin, vec3_t angles, qboolean isbot );
+
 // g_rewind.c
 //
 void G_RewindInit( void );
@@ -840,6 +852,12 @@ extern	vmCvar_t	g_ctfCapturelimit;
 extern	vmCvar_t	g_clanArena;
 extern	vmCvar_t	g_caRounds;
 extern	vmCvar_t	g_caRoundTime;
+extern	vmCvar_t	g_sacrifice;
+extern	vmCvar_t	g_sacRounds;
+extern	vmCvar_t	g_sacMeterTime;
+extern	vmCvar_t	g_sacExtractTime;
+extern	vmCvar_t	g_sacObeliskRadius;
+extern	vmCvar_t	g_sacSoulReturn;
 
 extern	vmCvar_t	g_dmflags;
 extern	vmCvar_t	g_fraglimit;
