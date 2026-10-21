@@ -135,3 +135,11 @@ button.small {
 	font-size: 38dp;
 	margin-bottom: 6dp;
 }
+
+.panel .where {
+	position: absolute;
+	left: 40dp;
+	top: 140dp;
+	font-size: 26dp;
+	color: #8a8780;
+}

@@ -214,6 +214,25 @@ static void InGame_Draw( void ) {
 	// the RmlUi menu (ui_rmlMenu) draws itself over the dimmed game
 	if ( trap_Cvar_VariableValue( "ui_rmlMenu" ) && trap_Cvar_VariableValue( "rml_ok" ) ) {
 		if ( !trap_Cvar_VariableValue( "rml_active" ) ) {
+			static const char	*keys[] = { "duel", "tdm", "ctf", "ca", "sacrifice", "roundduel", "ffa", "instagib", "unholytrinity" };
+			static const int	names[] = { STR_MODE_DUEL, STR_MODE_TDM, STR_MODE_CTF, STR_MODE_CA, STR_MODE_SACRIFICE,
+				STR_MODE_ROUNDDUEL, STR_MODE_FFA, STR_MODE_INSTAGIB, STR_MODE_TRINITY };
+			const char	*mode;
+			int			i;
+
+			// the header: map and mode, for the document's [$ui_ingame...]
+			trap_GetConfigString( CS_SERVERINFO, info, sizeof( info ) );
+			Q_strncpyz( map, Info_ValueForKey( info, "mapname" ), sizeof( map ) );
+			Q_strupr( map );
+			trap_Cvar_Set( "ui_ingameMap", map );
+			mode = Info_ValueForKey( info, "g_mode" );
+			for ( i = 0 ; i < ARRAY_LEN( keys ) ; i++ ) {
+				if ( !Q_stricmp( mode, keys[i] ) ) {
+					mode = BG_String( names[i] );
+					break;
+				}
+			}
+			trap_Cvar_Set( "ui_ingameMode", mode );
 			trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/ingame.rml\n" );
 		}
 		return;

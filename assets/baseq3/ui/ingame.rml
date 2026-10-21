@@ -6,6 +6,7 @@
 <body data-escape="rml_hide; ui_close">
 	<div class="panel">
 		<div class="logo"/>
+		<div class="where">[$ui_ingameMode] · [$ui_ingameMap]</div>
 		<div class="menu">
 			<button onclick="rml_hide; ui_close">[menu_resume]</button>
 			<button data-when="g_gametype!=1" onclick="rml_hide; ui_champions">[menu_champion]</button>
