@@ -9,15 +9,23 @@ blocked_ext='pk3|pk4|pak|exe|dll|so|dylib|lib|a|bin|bsp|aas|md3|md5mesh|mdr|iqm|
 # updated; no new ones may be added.
 upstream_base=87a99d18
 max_bytes=1048576
+# Path globs that must never be committed, kept outside version control.
+denylist="$(git rev-parse --git-dir)/info/commit-denylist"
 
 status=0
 git diff --cached --name-only --diff-filter=ACMR -z | while IFS= read -r -d '' f; do
-	case "$f" in
-	*qc-reference*|*bloodrun*|*quakelive*|*quakechampions*|*QuakeChampions*)
-		echo "pre-commit: refusing reference material: $f" >&2
-		exit 1
-		;;
-	esac
+	# local, untracked denylist: one shell glob per line, # for comments
+	if [ -f "$denylist" ]; then
+		while IFS= read -r pattern; do
+			case "$pattern" in ''|'#'*) continue ;; esac
+			case "$f" in
+			$pattern)
+				echo "pre-commit: refusing denylisted path: $f" >&2
+				exit 1
+				;;
+			esac
+		done < "$denylist"
+	fi
 	if printf '%s\n' "$f" | grep -qiE "\\.($blocked_ext)\$" &&
 		! git cat-file -e "$upstream_base:$f" 2>/dev/null; then
 		echo "pre-commit: refusing binary or game data file: $f" >&2
