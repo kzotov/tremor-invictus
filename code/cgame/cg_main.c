@@ -215,6 +215,7 @@ vmCvar_t	cg_obituaryRowSize;
 vmCvar_t	cg_chatHistoryLength;
 vmCvar_t	cg_specItemTimers;
 vmCvar_t	cg_followKiller;
+vmCvar_t	cg_followPowerup;
 vmCvar_t	cg_zoomSensitivity;
 vmCvar_t	cg_crosshairColor;
 vmCvar_t	cg_drawSpeed;
@@ -402,6 +403,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_chatHistoryLength, "cg_chatHistoryLength", "6", CVAR_ARCHIVE},
 	{ &cg_specItemTimers, "cg_specItemTimers", "7", CVAR_ARCHIVE},
 	{ &cg_followKiller, "cg_followKiller", "0", CVAR_ARCHIVE},
+	{ &cg_followPowerup, "cg_followPowerup", "0", CVAR_ARCHIVE},		// spectators follow whoever takes a power-up
 	{ &cg_zoomSensitivity, "cg_zoomSensitivity", "0", CVAR_ARCHIVE},
 	{ &cg_crosshairColor, "cg_crosshairColor", "0", CVAR_ARCHIVE},
 	{ &cg_drawSpeed, "cg_drawSpeed", "0", CVAR_ARCHIVE},

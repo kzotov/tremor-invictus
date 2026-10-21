@@ -870,6 +870,13 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			if ( es->number == cg.snap->ps.clientNum ) {
 				CG_ItemPickup( index );
 			}
+
+			// spectating: go to whoever took the power-up
+			if ( cg_followPowerup.integer && !cg.demoPlayback && item->giType == IT_POWERUP
+				&& cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR && es->number != cg.snap->ps.clientNum
+				&& es->number < MAX_CLIENTS ) {
+				trap_SendClientCommand( va( "follow %i", es->number ) );
+			}
 		}
 		break;
 

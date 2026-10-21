@@ -1266,6 +1266,7 @@ extern	vmCvar_t		cg_obituaryRowSize;
 extern	vmCvar_t		cg_chatHistoryLength;
 extern	vmCvar_t		cg_specItemTimers;
 extern	vmCvar_t		cg_followKiller;
+extern	vmCvar_t		cg_followPowerup;
 extern	vmCvar_t		cg_zoomSensitivity;
 extern	vmCvar_t		cg_crosshairColor;
 extern	vmCvar_t		cg_drawSpeed;
