@@ -1082,6 +1082,27 @@ static void CG_ServerCommand( void ) {
 		return;
 	}
 
+	if ( !strcmp( cmd, "dstats" ) ) {
+		int		p, w, a = 1;
+
+		cg.numDuelStats = 0;
+		for ( p = 0 ; p < 2 && *CG_Argv( a ) ; p++ ) {
+			cg.duelStats[p].client = atoi( CG_Argv( a++ ) );
+			cg.duelStats[p].score = atoi( CG_Argv( a++ ) );
+			cg.duelStats[p].given = atoi( CG_Argv( a++ ) );
+			cg.duelStats[p].taken = atoi( CG_Argv( a++ ) );
+			cg.duelStats[p].mega = atoi( CG_Argv( a++ ) );
+			cg.duelStats[p].heavy = atoi( CG_Argv( a++ ) );
+			cg.duelStats[p].light = atoi( CG_Argv( a++ ) );
+			for ( w = WP_GAUNTLET + 1 ; w < WP_NUM_WEAPONS ; w++ ) {
+				cg.duelStats[p].shots[w] = atoi( CG_Argv( a++ ) );
+				cg.duelStats[p].hits[w] = atoi( CG_Argv( a++ ) );
+			}
+			cg.numDuelStats++;
+		}
+		return;
+	}
+
 	if ( !strcmp( cmd, "acc" ) ) {
 		int		w;
 

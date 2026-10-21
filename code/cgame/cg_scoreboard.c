@@ -226,6 +226,83 @@ static void CG_DrawClientScore( int y, score_t *score, float *color, float fade,
 
 /*
 =================
+CG_DrawDuelBoard
+
+Both duel players: frags, damage given and taken, major pickups, and
+accuracy for every weapon either fired
+=================
+*/
+void CG_DrawDuelBoard( void ) {
+	static const vec4_t	back = { 0, 0, 0, 0.6f };
+	static const int	rowLabels[] = { STR_DB_DAMAGE, STR_DB_TAKEN, STR_DB_MEGA, STR_DB_HEAVY, STR_DB_LIGHT };
+	int			p, w, y, i, value, col[2] = { 300, 460 };
+	clientInfo_t	*ci;
+
+	if ( cg.time - cg.duelStatsTime > 1000 || cg.duelStatsTime > cg.time ) {
+		cg.duelStatsTime = cg.time;
+		trap_SendClientCommand( "dstats" );
+	}
+
+	CG_FillRect( 60, 60, 520, 360, back );
+	if ( cg.numDuelStats < 1 ) {
+		return;
+	}
+
+	// names, champions and frags
+	for ( p = 0 ; p < cg.numDuelStats ; p++ ) {
+		ci = &cgs.clientinfo[cg.duelStats[p].client];
+		if ( ci->modelIcon ) {
+			CG_DrawPic( col[p] + 24, 70, 32, 32, ci->modelIcon );
+		}
+		CG_DrawStringExt( col[p] + 40 - CG_DrawStrlen( ci->name ) * SMALLCHAR_WIDTH / 2, 106, ci->name,
+			colorWhite, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 15 );
+		CG_DrawBigString( col[p] + 40 - CG_DrawStrlen( va( "%i", cg.duelStats[p].score ) ) * BIGCHAR_WIDTH / 2,
+			126, va( "%i", cg.duelStats[p].score ), 1.0f );
+	}
+
+	// totals
+	y = 160;
+	for ( i = 0 ; i < ARRAY_LEN( rowLabels ) ; i++ ) {
+		CG_DrawSmallString( 80, y, BG_String( rowLabels[i] ), 1.0f );
+		for ( p = 0 ; p < cg.numDuelStats ; p++ ) {
+			switch ( i ) {
+			case 0:		value = cg.duelStats[p].given; break;
+			case 1:		value = cg.duelStats[p].taken; break;
+			case 2:		value = cg.duelStats[p].mega; break;
+			case 3:		value = cg.duelStats[p].heavy; break;
+			default:	value = cg.duelStats[p].light; break;
+			}
+			CG_DrawSmallString( col[p] + 40 - CG_DrawStrlen( va( "%i", value ) ) * SMALLCHAR_WIDTH / 2, y, va( "%i", value ), 1.0f );
+		}
+		y += 18;
+	}
+
+	// accuracy per weapon
+	y += 8;
+	CG_DrawSmallString( 80, y, BG_String( STR_DB_ACCURACY ), 1.0f );
+	y += 20;
+	for ( w = WP_GAUNTLET + 1 ; w < WP_NUM_WEAPONS && y < 404 ; w++ ) {
+		if ( !cg.duelStats[0].shots[w] && ( cg.numDuelStats < 2 || !cg.duelStats[1].shots[w] ) ) {
+			continue;
+		}
+		CG_RegisterWeapon( w );
+		if ( cg_weapons[w].weaponIcon ) {
+			CG_DrawPic( 80, y, 16, 16, cg_weapons[w].weaponIcon );
+		}
+		for ( p = 0 ; p < cg.numDuelStats ; p++ ) {
+			const char	*s = cg.duelStats[p].shots[w]
+				? va( "%i%% %i/%i", cg.duelStats[p].hits[w] * 100 / cg.duelStats[p].shots[w], cg.duelStats[p].hits[w], cg.duelStats[p].shots[w] )
+				: "-";
+
+			CG_DrawStringExt( col[p] + 40 - CG_DrawStrlen( s ) * TINYCHAR_WIDTH / 2, y + 4, s,
+				colorWhite, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+		}
+		y += 18;
+	}
+}
+
+/*
+=================
 CG_TeamScoreboard
 =================
 */
@@ -286,6 +363,13 @@ qboolean CG_DrawOldScoreboard( void ) {
 	// don't draw scoreboard during death while warmup up
 	if ( cg.warmup && !cg.showScores ) {
 		return qfalse;
+	}
+
+	// duel: the two players side by side
+	if ( cgs.gametype == GT_TOURNAMENT && ( cg.showScores || cg.predictedPlayerState.pm_type == PM_DEAD
+		|| cg.predictedPlayerState.pm_type == PM_INTERMISSION ) ) {
+		CG_DrawDuelBoard();
+		return qtrue;
 	}
 
 	if ( cg.showScores || cg.predictedPlayerState.pm_type == PM_DEAD ||

@@ -1501,7 +1501,13 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"No timeout now",
 	"Your timeout is used",
 	"Timeouts are for duel and team deathmatch",
-	"TIMEOUT %i"
+	"TIMEOUT %i",
+	"Damage given",
+	"Damage taken",
+	"Mega health",
+	"Heavy armour",
+	"Light armour",
+	"Accuracy"
 };
 
 /*

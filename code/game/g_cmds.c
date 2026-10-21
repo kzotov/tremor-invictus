@@ -110,6 +110,34 @@ void Cmd_Score_f( gentity_t *ent ) {
 
 /*
 ==================
+Cmd_DuelStats_f
+
+For the duel board: per player "client score given taken mega heavy light
+shots hits ..." for the players in the match
+==================
+*/
+void Cmd_DuelStats_f( gentity_t *ent ) {
+	char		string[1000];
+	gclient_t	*cl;
+	int			i, w;
+
+	string[0] = 0;
+	for ( i = 0 ; i < level.maxclients ; i++ ) {
+		cl = &level.clients[i];
+		if ( cl->pers.connected != CON_CONNECTED || cl->sess.sessionTeam == TEAM_SPECTATOR ) {
+			continue;
+		}
+		Q_strcat( string, sizeof( string ), va( " %i %i %i %i %i %i %i", i, cl->ps.persistant[PERS_SCORE],
+			cl->pers.damageGiven, cl->pers.damageTaken, cl->pers.pickups[0], cl->pers.pickups[1], cl->pers.pickups[2] ) );
+		for ( w = WP_GAUNTLET + 1 ; w < WP_NUM_WEAPONS ; w++ ) {
+			Q_strcat( string, sizeof( string ), va( " %i %i", cl->pers.accShots[w], cl->pers.accHits[w] ) );
+		}
+	}
+	trap_SendServerCommand( ent - g_entities, va( "dstats%s", string ) );
+}
+
+/*
+==================
 Cmd_Acc_f
 
 Shots and hits per weapon for the +acc panel: "acc s1 h1 s2 h2 ..."
@@ -1810,6 +1838,10 @@ void ClientCommand( int clientNum ) {
 	}
 	if (Q_stricmp (cmd, "acc") == 0) {
 		Cmd_Acc_f (ent);
+		return;
+	}
+	if (Q_stricmp (cmd, "dstats") == 0) {
+		Cmd_DuelStats_f (ent);
 		return;
 	}
 	if (Q_stricmp (cmd, "timeout") == 0) {

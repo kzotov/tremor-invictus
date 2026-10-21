@@ -589,6 +589,14 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
 
 	G_LogPrintf( "Item: %i %s\n", other->s.number, ent->item->classname );
 
+	// match stats: major pickups
+	switch ( BG_ItemTimerClass( ent->item ) ) {
+	case 2:	other->client->pers.pickups[0]++; break;
+	case 4:	other->client->pers.pickups[1]++; break;
+	case 8:	other->client->pers.pickups[2]++; break;
+	case 1:	other->client->pers.pickups[3]++; break;
+	}
+
 	predict = other->client->pers.predictItemPickup;
 
 	// call the item-specific pickup function

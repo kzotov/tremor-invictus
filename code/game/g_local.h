@@ -263,6 +263,7 @@ typedef struct {
 	int			accHits[WP_NUM_WEAPONS];
 	int			damageGiven;		// to enemies, health and armour
 	int			damageTaken;
+	int			pickups[4];			// mega health, heavy armour, light armour, power-ups
 	int			enterTime;			// level.time the client entered the game
 	playerTeamState_t teamState;	// status in teamplay games
 	int			voteCount;			// to prevent people from constantly calling votes

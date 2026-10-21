@@ -553,6 +553,14 @@ typedef struct {
 	int			accRequestTime;
 	int			accShots[WP_NUM_WEAPONS];
 	int			accHits[WP_NUM_WEAPONS];
+
+	// duel board
+	int			duelStatsTime;		// when they were last asked for
+	int			numDuelStats;
+	struct {
+		int		client, score, given, taken, mega, heavy, light;
+		int		shots[WP_NUM_WEAPONS], hits[WP_NUM_WEAPONS];
+	} duelStats[2];
 	qboolean	scoreBoardShowing;
 	int			scoreFadeTime;
 	char		killerName[MAX_NAME_LENGTH];
@@ -1768,3 +1776,4 @@ void CG_AddOwnMissiles( void );
 void CG_DemoFrame( void );
 void CG_AddKillFeed( const char *killer, const char *victim, int weapon );
 void CG_AddChat( const char *text );
+void CG_DrawDuelBoard( void );
