@@ -100,6 +100,7 @@ set(UI_SOURCES
     ${SOURCE_DIR}/q3_ui/ui_colors.c
     ${SOURCE_DIR}/q3_ui/ui_loadconfig.c
     ${SOURCE_DIR}/q3_ui/ui_menu.c
+    ${SOURCE_DIR}/q3_ui/ui_play.c
     ${SOURCE_DIR}/q3_ui/ui_mfield.c
     ${SOURCE_DIR}/q3_ui/ui_mods.c
     ${SOURCE_DIR}/q3_ui/ui_network.c

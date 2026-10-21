@@ -88,16 +88,44 @@ typedef struct {
 
 static startserver_t s_startserver;
 
-static const char *gametype_items[] = {
-	"Free For All",
-	"Team Deathmatch",
-	"Tournament",
-	"Capture the Flag",
-	NULL
-};
+// the six modes, in the player-facing order; three are variants of a
+// classic game type turned on by a setting
+#define NUM_MODES	6
 
-static int gametype_remap[] = {GT_FFA, GT_TEAM, GT_TOURNAMENT, GT_CTF};
-static int gametype_remap2[] = {0, 2, 0, 1, 3};
+static const char *gametype_items[NUM_MODES + 1];
+
+static const int gametype_names[NUM_MODES] = {
+	STR_MODE_DUEL, STR_MODE_TDM, STR_MODE_CTF, STR_MODE_CA, STR_MODE_SACRIFICE, STR_MODE_ROUNDDUEL
+};
+static int gametype_remap[NUM_MODES] = {GT_TOURNAMENT, GT_TEAM, GT_CTF, GT_TEAM, GT_CTF, GT_TOURNAMENT};
+static const char *gametype_variant[NUM_MODES] = {NULL, NULL, NULL, "g_clanArena", "g_sacrifice", "g_roundDuel"};
+
+static void StartServer_InitModeNames( void ) {
+	int		i;
+
+	for ( i = 0 ; i < NUM_MODES ; i++ ) {
+		gametype_items[i] = BG_String( gametype_names[i] );
+	}
+	gametype_items[NUM_MODES] = NULL;
+}
+
+/*
+=================
+StartServer_SetMode
+
+The game type and its variant setting for a mode
+=================
+*/
+static void StartServer_SetMode( int mode ) {
+	trap_Cvar_SetValue( "g_gameType", gametype_remap[mode] );
+	trap_Cvar_Set( "g_clanArena", "0" );
+	trap_Cvar_Set( "g_sacrifice", "0" );
+	trap_Cvar_Set( "g_roundDuel", "0" );
+	if ( gametype_variant[mode] ) {
+		trap_Cvar_Set( gametype_variant[mode], "1" );
+	}
+	trap_Cvar_SetValue( "ui_mode", mode );
+}
 
 // use ui_servers2.c definition
 extern const char* punkbuster_items[];
@@ -259,9 +287,6 @@ static void StartServer_GametypeEvent( void* ptr, int event ) {
 	count = UI_GetNumArenas();
 	s_startserver.nummaps = 0;
 	matchbits = 1 << gametype_remap[s_startserver.gametype.curvalue];
-	if( gametype_remap[s_startserver.gametype.curvalue] == GT_FFA ) {
-		matchbits |= ( 1 << GT_SINGLE_PLAYER );
-	}
 	for( i = 0; i < count; i++ ) {
 		info = UI_GetArenaInfoByNumber( i );
 	
@@ -307,7 +332,7 @@ static void StartServer_MenuEvent( void* ptr, int event ) {
 		break;
 
 	case ID_STARTSERVERNEXT:
-		trap_Cvar_SetValue( "g_gameType", gametype_remap[s_startserver.gametype.curvalue] );
+		StartServer_SetMode( s_startserver.gametype.curvalue );
 		UI_ServerOptionsMenu( s_startserver.multiplayer );
 		break;
 
@@ -430,6 +455,7 @@ static void StartServer_MenuInit( void ) {
 	s_startserver.gametype.generic.id		= ID_GAMETYPE;
 	s_startserver.gametype.generic.x		= 320 - 24;
 	s_startserver.gametype.generic.y		= 368;
+	StartServer_InitModeNames();
 	s_startserver.gametype.itemnames		= gametype_items;
 
 	for (i=0; i<MAX_MAPSPERPAGE; i++)
@@ -1030,7 +1056,7 @@ static void ServerOptions_LevelshotDraw( void *self ) {
 	UI_DrawString( x, y, s_serveroptions.mapnamebuffer, UI_CENTER|UI_SMALLFONT, color_orange );
 
 	y += SMALLCHAR_HEIGHT;
-	UI_DrawString( x, y, gametype_items[gametype_remap2[s_serveroptions.gametype]], UI_CENTER|UI_SMALLFONT, color_orange );
+	UI_DrawString( x, y, gametype_items[(int)Com_Clamp( 0, NUM_MODES - 1, trap_Cvar_VariableValue( "ui_mode" ) )], UI_CENTER|UI_SMALLFONT, color_orange );
 }
 
 
@@ -1246,7 +1272,7 @@ static void ServerOptions_MenuInit( qboolean multiplayer ) {
 
 	memset( &s_serveroptions, 0 ,sizeof(serveroptions_t) );
 	s_serveroptions.multiplayer = multiplayer;
-	s_serveroptions.gametype = (int) Com_Clamp(0, ARRAY_LEN(gametype_remap2) - 1,
+	s_serveroptions.gametype = (int) Com_Clamp(0, GT_MAX_GAME_TYPE - 1,
 						trap_Cvar_VariableValue("g_gametype"));
 	s_serveroptions.punkbuster.curvalue = Com_Clamp( 0, 1, trap_Cvar_VariableValue( "sv_punkbuster" ) );
 
@@ -1482,7 +1508,7 @@ static void ServerOptions_MenuInit( qboolean multiplayer ) {
 	Menu_AddItem( &s_serveroptions.menu, &s_serveroptions.next );
 	Menu_AddItem( &s_serveroptions.menu, &s_serveroptions.go );
 
-	Menu_AddItem( &s_serveroptions.menu, (void*) &s_serveroptions.punkbuster );
+
 	
 	ServerOptions_SetMenuItems();
 }

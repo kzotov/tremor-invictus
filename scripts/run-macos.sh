@@ -22,6 +22,9 @@ for f in cgame.dylib qagame.dylib ui.dylib vm; do
 done
 # our own data files (shaders), never game data
 ln -sfn "$ROOT/assets/baseq3/scripts" "$HOME_DIR/baseq3/scripts"
+# images made at build time (the menu logo)
+mkdir -p "$HOME_DIR/baseq3/gfx"
+ln -sfn "$ROOT/build-macos/generated/gfx/tremor" "$HOME_DIR/baseq3/gfx/tremor"
 
 # local test assets from outside the repo (see scripts/local-assets.sh)
 . "$ROOT/scripts/local-assets.sh"

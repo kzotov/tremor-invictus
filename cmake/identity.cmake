@@ -25,6 +25,13 @@ if(CMAKE_HOST_APPLE)
     if(EXISTS ${TREMOR_ICON_ICNS})
         set(MACOS_ICON_PATH ${TREMOR_ICON_ICNS})
     endif()
+
+    # the menu logo, linked into the game's home folder by the run scripts
+    set(TREMOR_LOGO_PNG ${CMAKE_BINARY_DIR}/generated/gfx/tremor/logo.png)
+    if(NOT EXISTS ${TREMOR_LOGO_PNG} OR ${TREMOR_ICON_SVG} IS_NEWER_THAN ${TREMOR_LOGO_PNG})
+        execute_process(COMMAND ${CMAKE_SOURCE_DIR}/scripts/make-logo-images.sh
+            ${CMAKE_SOURCE_DIR}/misc/logo ${CMAKE_BINARY_DIR}/generated)
+    endif()
 endif()
 set(MACOS_BUNDLE_ID org.ioquake.${CLIENT_NAME})
 

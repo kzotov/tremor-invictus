@@ -1151,7 +1151,32 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Round %i",
 	"%s wins the round",
 	"Sudden death: the next frag wins the round",
-	"Your next champion: type next 1, 2 or 3"
+	"Your next champion: type next 1, 2 or 3",
+
+	"PLAY",
+	"CHAMPIONS",
+	"PLAYER COLORS",
+	"SETTINGS",
+	"DEMOS",
+	"QUIT",
+	"QUIT THE GAME?",
+	"Name:",
+	"Free software under the GPL. Game data loads from your Quake III install.",
+	"PRACTICE",
+	"FIND SERVERS",
+	"CREATE SERVER",
+	"RESUME",
+	"TEAM",
+	"VOTE",
+	"ADD BOTS",
+	"REMOVE BOTS",
+	"LEAVE MATCH",
+	"Duel",
+	"Team Deathmatch",
+	"Capture the Flag",
+	"Clan Arena",
+	"Sacrifice",
+	"Round Duel"
 };
 
 /*

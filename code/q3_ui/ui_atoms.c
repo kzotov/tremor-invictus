@@ -1013,11 +1013,6 @@ qboolean UI_ConsoleCommand( int realTime ) {
 	// ensure minimum menu data is available
 	Menu_Cache();
 
-	if ( Q_stricmp (cmd, "levelselect") == 0 ) {
-		UI_SPLevelMenu_f();
-		return qtrue;
-	}
-
 	if ( Q_stricmp (cmd, "postgame") == 0 ) {
 		UI_SPPostgameMenu_f();
 		return qtrue;
@@ -1028,28 +1023,8 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
-	if ( Q_stricmp (cmd, "ui_cinematics") == 0 ) {
-		UI_CinematicsMenu_f();
-		return qtrue;
-	}
-
 	if ( Q_stricmp (cmd, "ui_teamOrders") == 0 ) {
 		UI_TeamOrdersMenu_f();
-		return qtrue;
-	}
-
-	if ( Q_stricmp (cmd, "iamacheater") == 0 ) {
-		UI_SPUnlock_f();
-		return qtrue;
-	}
-
-	if ( Q_stricmp (cmd, "iamamonkey") == 0 ) {
-		UI_SPUnlockMedals_f();
-		return qtrue;
-	}
-
-	if ( Q_stricmp (cmd, "ui_cdkey") == 0 ) {
-		UI_CDKeyMenu_f();
 		return qtrue;
 	}
 
@@ -1214,12 +1189,17 @@ void UI_Refresh( int realtime )
 	{
 		if (uis.activemenu->fullscreen)
 		{
-			// draw the background
-			if( uis.activemenu->showlogo ) {
-				UI_DrawHandlePic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, uis.menuBackShader );
+			// our own plain background over the whole screen, not just the 4:3 area
+			{
+				static const vec4_t	back = { 0.06f, 0.06f, 0.07f, 1.0f };
+
+				trap_R_SetColor( back );
+				trap_R_DrawStretchPic( 0, 0, uis.glconfig.vidWidth, uis.glconfig.vidHeight, 0, 0, 1, 1, uis.whiteShader );
+				trap_R_SetColor( NULL );
 			}
-			else {
-				UI_DrawHandlePic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, uis.menuBackNoLogoShader );
+			if( uis.activemenu->showlogo && uis.logoShader ) {
+				// the logo top left, keeping its 760 x 200 shape
+				UI_DrawHandlePic( 24, 20, 266, 70, uis.logoShader );
 			}
 		}
 

@@ -1760,6 +1760,7 @@ void Menu_Cache( void )
 		uis.menuBackShader	= trap_R_RegisterShaderNoMip( "menuback" );
 	}
 	uis.menuBackNoLogoShader = trap_R_RegisterShaderNoMip( "menubacknologo" );
+	uis.logoShader = trap_R_RegisterShaderNoMip( "gfx/tremor/logo" );
 
 	menu_in_sound	= trap_S_RegisterSound( "sound/misc/menu1.wav", qfalse );
 	menu_move_sound	= trap_S_RegisterSound( "sound/misc/menu2.wav", qfalse );

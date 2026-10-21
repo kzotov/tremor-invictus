@@ -335,6 +335,7 @@ extern void UI_InGameMenu(void);
 //
 extern void Champion_Cache( void );
 extern void UI_ChampionMenu( void );
+extern void UI_PlayMenu( void );
 
 //
 // ui_colors.c
@@ -559,6 +560,7 @@ typedef struct {
 	qhandle_t			whiteShader;
 	qhandle_t			menuBackShader;
 	qhandle_t			menuBackNoLogoShader;
+	qhandle_t			logoShader;			// our logo, rendered from misc/logo at build time
 	qhandle_t			charset;
 	qhandle_t			charsetProp;
 	qhandle_t			charsetPropGlow;

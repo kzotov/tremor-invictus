@@ -123,10 +123,6 @@ static void UI_SetupMenu_Event( void *ptr, int event ) {
 		UI_PreferencesMenu();
 		break;
 
-	case ID_CDKEY:
-		UI_CDKeyMenu();
-		break;
-
 //	case ID_LOAD:
 //		UI_LoadConfigMenu();
 //		break;
@@ -163,7 +159,7 @@ static void UI_SetupMenu_Init( void ) {
 	setupMenuInfo.banner.generic.type				= MTYPE_BTEXT;
 	setupMenuInfo.banner.generic.x					= 320;
 	setupMenuInfo.banner.generic.y					= 16;
-	setupMenuInfo.banner.string						= "SETUP";
+	setupMenuInfo.banner.string						= (char *)BG_String( STR_MENU_SETTINGS );
 	setupMenuInfo.banner.color						= color_white;
 	setupMenuInfo.banner.style						= UI_CENTER;
 
@@ -287,13 +283,12 @@ static void UI_SetupMenu_Init( void ) {
 	setupMenuInfo.back.focuspic						= ART_BACK1;
 
 	Menu_AddItem( &setupMenuInfo.menu, &setupMenuInfo.banner );
+	// the name is on the main menu and champions replace player models
 	Menu_AddItem( &setupMenuInfo.menu, &setupMenuInfo.framel );
 	Menu_AddItem( &setupMenuInfo.menu, &setupMenuInfo.framer );
-	Menu_AddItem( &setupMenuInfo.menu, &setupMenuInfo.setupplayer );
 	Menu_AddItem( &setupMenuInfo.menu, &setupMenuInfo.setupcontrols );
 	Menu_AddItem( &setupMenuInfo.menu, &setupMenuInfo.setupsystem );
 	Menu_AddItem( &setupMenuInfo.menu, &setupMenuInfo.game );
-	Menu_AddItem( &setupMenuInfo.menu, &setupMenuInfo.cdkey );
 //	Menu_AddItem( &setupMenuInfo.menu, &setupMenuInfo.load );
 //	Menu_AddItem( &setupMenuInfo.menu, &setupMenuInfo.save );
 	if( !trap_Cvar_VariableValue( "cl_paused" ) ) {
