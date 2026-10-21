@@ -940,33 +940,94 @@ them as stand-ins.
 ==============================================================================
 */
 
-const float bg_classHalfWidth[CLASS_NUM_CLASSES] = {
-	13,		// CLASS_LIGHT
-	15,		// CLASS_MEDIUM
-	17		// CLASS_HEAVY
+// health counts down to max health (100 with no handicap) for every class
+const classInfo_t bg_classInfo[CLASS_NUM_CLASSES] = {
+	// half-width, base armor, mega health bonus, max armor, spawn armor, spawn armor in duel
+	{ 13, 75, 75, 150, 25, 0 },		// CLASS_LIGHT
+	{ 15, 100, 75, 175, 50, 50 },	// CLASS_MEDIUM
+	{ 17, 125, 75, 200, 75, 75 }	// CLASS_HEAVY
 };
 
 const champion_t bg_championList[] = {
-	// name, body class, run speed, jump speed cap, style, passive abilities, active ability, player model
-	{ "ranger", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "ranger" },	// default, must stay first
-	{ "anarki", CLASS_LIGHT, 315, 640, MOVE_AIRCONTROL, 0, ACTIVE_NONE, "anarki" },
-	{ "athena", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, MOVEABIL_RAMPJUMP, ACTIVE_HOOK, "crash" },
-	{ "nyx", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, MOVEABIL_WALLJUMP, ACTIVE_NONE, "mynx" },
-	{ "slash", CLASS_LIGHT, 320, 750, MOVE_SLIDE, 0, ACTIVE_NONE, "slash" },
-	{ "bj", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "bitterman" },
-	{ "deathknight", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "bones" },
-	{ "doomslayer", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, MOVEABIL_DOUBLEJUMP, ACTIVE_NONE, "doom" },
-	{ "eisen", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "biker" },
-	{ "galena", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "lucy" },
-	{ "strogg", CLASS_MEDIUM, 310, 750, MOVE_SLIDE, 0, ACTIVE_NONE, "grunt" },
-	{ "visor", CLASS_MEDIUM, 320, 0, MOVE_STANDARD, 0, ACTIVE_NONE, "visor" },
-	{ "clutch", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_AIRDODGE | MOVEABIL_ACCELERATION, ACTIVE_NONE, "tankjr" },
-	{ "keel", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "keel" },
-	{ "scalebearer", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_HEAVYWEIGHT, ACTIVE_BULLRUSH, "razor" },
-	{ "sorlag", CLASS_HEAVY, 300, 600, MOVE_AIRCONTROL, 0, ACTIVE_NONE, "sorlag" }
+	// name, body class, run speed, jump speed cap, style, passive abilities, active ability, player model, display name
+	{ "ranger", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "ranger", STR_CHAMPION_RANGER },	// default, must stay first
+	{ "anarki", CLASS_LIGHT, 315, 640, MOVE_AIRCONTROL, 0, ACTIVE_NONE, "anarki", STR_CHAMPION_ANARKI },
+	{ "athena", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, MOVEABIL_RAMPJUMP, ACTIVE_HOOK, "crash", STR_CHAMPION_ATHENA },
+	{ "nyx", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, MOVEABIL_WALLJUMP, ACTIVE_NONE, "mynx", STR_CHAMPION_NYX },
+	{ "slash", CLASS_LIGHT, 320, 750, MOVE_SLIDE, 0, ACTIVE_NONE, "slash", STR_CHAMPION_SLASH },
+	{ "bj", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "bitterman", STR_CHAMPION_BJ },
+	{ "deathknight", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "bones", STR_CHAMPION_DEATHKNIGHT },
+	{ "doomslayer", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, MOVEABIL_DOUBLEJUMP, ACTIVE_NONE, "doom", STR_CHAMPION_DOOMSLAYER },
+	{ "eisen", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "biker", STR_CHAMPION_EISEN },
+	{ "galena", CLASS_MEDIUM, 310, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "lucy", STR_CHAMPION_GALENA },
+	{ "strogg", CLASS_MEDIUM, 310, 750, MOVE_SLIDE, 0, ACTIVE_NONE, "grunt", STR_CHAMPION_STROGG },
+	{ "visor", CLASS_MEDIUM, 320, 0, MOVE_STANDARD, 0, ACTIVE_NONE, "visor", STR_CHAMPION_VISOR },
+	{ "clutch", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_AIRDODGE | MOVEABIL_ACCELERATION, ACTIVE_NONE, "tankjr", STR_CHAMPION_CLUTCH },
+	{ "keel", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, 0, ACTIVE_NONE, "keel", STR_CHAMPION_KEEL },
+	{ "scalebearer", CLASS_HEAVY, 300, 1000, MOVE_STANDARD, MOVEABIL_HEAVYWEIGHT, ACTIVE_BULLRUSH, "razor", STR_CHAMPION_SCALEBEARER },
+	{ "sorlag", CLASS_HEAVY, 300, 600, MOVE_AIRCONTROL, 0, ACTIVE_NONE, "sorlag", STR_CHAMPION_SORLAG }
 };
 
 const int bg_numChampions = ARRAY_LEN( bg_championList );
+
+/*
+==============================================================================
+
+STRINGS
+
+English is the only language for now. A translation is another table in
+the same order, chosen by a language cvar.
+
+==============================================================================
+*/
+
+static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
+	"",
+
+	"Ranger",
+	"Anarki",
+	"Athena",
+	"Nyx",
+	"Slash",
+	"B.J. Blazkowicz",
+	"Death Knight",
+	"Doom Slayer",
+	"Eisen",
+	"Galena",
+	"Strogg & Peeker",
+	"Visor",
+	"Clutch",
+	"Keel",
+	"Scalebearer",
+	"Sorlag",
+
+	"Light",
+	"Medium",
+	"Heavy",
+
+	"HOOK",
+	"BULL RUSH",
+	"next in %i s",
+
+	"CHAMPION",
+	"CHAMPION",
+	"Takes effect when you next spawn",
+	"BACK",
+
+	"was trampled by"
+};
+
+/*
+==============
+BG_String
+==============
+*/
+const char *BG_String( int id ) {
+	if ( id <= STR_NONE || id >= STR_NUM_STRINGS ) {
+		return "";
+	}
+	return bg_stringsEnglish[id];
+}
 
 /*
 ==============

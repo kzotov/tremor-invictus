@@ -331,6 +331,12 @@ extern void InGame_Cache( void );
 extern void UI_InGameMenu(void);
 
 //
+// ui_champion.c
+//
+extern void Champion_Cache( void );
+extern void UI_ChampionMenu( void );
+
+//
 // ui_confirm.c
 //
 extern void ConfirmMenu_Cache( void );

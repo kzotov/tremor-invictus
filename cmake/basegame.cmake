@@ -87,6 +87,7 @@ set(UI_SOURCES
     ${SOURCE_DIR}/q3_ui/ui_display.c
     ${SOURCE_DIR}/q3_ui/ui_gameinfo.c
     ${SOURCE_DIR}/q3_ui/ui_ingame.c
+    ${SOURCE_DIR}/q3_ui/ui_champion.c
     ${SOURCE_DIR}/q3_ui/ui_loadconfig.c
     ${SOURCE_DIR}/q3_ui/ui_menu.c
     ${SOURCE_DIR}/q3_ui/ui_mfield.c

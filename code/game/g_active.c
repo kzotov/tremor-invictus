@@ -359,6 +359,11 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 	}
 
 	BG_SetAbility( &client->ps, state, charges );
+	if ( charges < maxCharges ) {
+		client->ps.stats[STAT_ABILITY_RECHARGE] = ( recharge - client->abilityRecharge + 99 ) / 100;
+	} else {
+		client->ps.stats[STAT_ABILITY_RECHARGE] = 0;
+	}
 }
 
 /*
@@ -610,8 +615,8 @@ void ClientTimerActions( gentity_t *ent, int msec ) {
 			}
 		}
 
-		// count down armor when over max
-		if ( client->ps.stats[STAT_ARMOR] > client->ps.stats[STAT_MAX_HEALTH] ) {
+		// count down armor when over the class base armor
+		if ( client->ps.stats[STAT_ARMOR] > G_ClassInfo( client )->baseArmor ) {
 			client->ps.stats[STAT_ARMOR]--;
 		}
 	}

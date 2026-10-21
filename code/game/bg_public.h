@@ -46,7 +46,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define	VOTE_TIME			30000	// 30 seconds before vote times out
 
-#define PLAYER_WIDTH		15		// medium body; see bg_classHalfWidth
+#define PLAYER_WIDTH		15		// medium body; see bg_classInfo
 #define	MINS_Z				-24
 #define DEFAULT_HEIGHT		45		// 69 units standing
 #define	DEFAULT_VIEWHEIGHT	39
@@ -207,6 +207,49 @@ void Pmove (pmove_t *pmove);
 
 //===================================================================================
 
+// user-facing text goes through BG_String so other languages can be added;
+// only English exists for now
+
+typedef enum {
+	STR_NONE,
+
+	STR_CHAMPION_RANGER,
+	STR_CHAMPION_ANARKI,
+	STR_CHAMPION_ATHENA,
+	STR_CHAMPION_NYX,
+	STR_CHAMPION_SLASH,
+	STR_CHAMPION_BJ,
+	STR_CHAMPION_DEATHKNIGHT,
+	STR_CHAMPION_DOOMSLAYER,
+	STR_CHAMPION_EISEN,
+	STR_CHAMPION_GALENA,
+	STR_CHAMPION_STROGG,
+	STR_CHAMPION_VISOR,
+	STR_CHAMPION_CLUTCH,
+	STR_CHAMPION_KEEL,
+	STR_CHAMPION_SCALEBEARER,
+	STR_CHAMPION_SORLAG,
+
+	STR_CLASS_LIGHT,
+	STR_CLASS_MEDIUM,
+	STR_CLASS_HEAVY,
+
+	STR_ABILITY_HOOK,
+	STR_ABILITY_BULLRUSH,
+	STR_ABILITY_RECHARGE,			// "next in %i s"
+
+	STR_MENU_CHAMPION,
+	STR_MENU_CHAMPION_TITLE,
+	STR_MENU_CHAMPION_NEXT_SPAWN,
+	STR_MENU_BACK,
+
+	STR_OBIT_HEAVYWEIGHT,
+
+	STR_NUM_STRINGS
+} stringId_t;
+
+const char	*BG_String( int id );
+
 // champions
 
 typedef enum {
@@ -219,7 +262,7 @@ typedef enum {
 
 typedef enum {
 	MOVE_STANDARD,					// plain VQ3
-	MOVE_AIRCONTROL,				// CPM-like air control
+	MOVE_AIRCONTROL,				// strafe turning and forward-key air control
 	MOVE_SLIDE,						// crouch slide charged by falling
 
 	MOVE_NUM_STYLES
@@ -251,11 +294,21 @@ typedef struct {
 	int			abilities;			// MOVEABIL_* bits
 	int			active;				// activeAbility_t
 	char		*model;				// player model, "name" or "name/skin"
+	int			nameString;			// stringId_t of the display name
 } champion_t;
 
 extern	const champion_t	bg_championList[];
 extern	const int			bg_numChampions;
-extern	const float			bg_classHalfWidth[CLASS_NUM_CLASSES];
+typedef struct {
+	float		halfWidth;
+	int			baseArmor;			// armor above this counts down
+	int			maxHealthBonus;		// mega health may go this far over max health
+	int			maxArmor;			// armor pickups stop here
+	int			spawnArmor;
+	int			spawnArmorDuel;
+} classInfo_t;
+
+extern	const classInfo_t	bg_classInfo[CLASS_NUM_CLASSES];
 
 #define	DEFAULT_CHAMPION	"ranger"
 
@@ -348,7 +401,8 @@ typedef enum {
 	STAT_LAND_TIME,					// msec since the last landing, capped
 	STAT_TAPS,						// air-dodge double-tap tracking, TAP_* fields
 	STAT_ABILITY,					// active ability: charges | state << ABILITY_STATE_SHIFT
-	STAT_ABILITY_TIME				// msec, meaning depends on the ability state
+	STAT_ABILITY_TIME,				// msec, meaning depends on the ability state
+	STAT_ABILITY_RECHARGE			// tenths of a second until the next charge, 0 when full
 } statIndex_t;
 
 // STAT_MOVE_STATE holds one champion-specific value:

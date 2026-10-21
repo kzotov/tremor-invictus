@@ -1426,6 +1426,43 @@ static void CG_DrawHoldableItem( void ) {
 }
 #endif // MISSIONPACK
 
+#ifndef MISSIONPACK
+/*
+===================
+CG_DrawAbility
+
+Active ability name, charges left and time to the next charge
+===================
+*/
+static void CG_DrawAbility( void ) {
+	const champion_t	*champ;
+	playerState_t		*ps;
+	const char			*s;
+	int					y, tenths;
+	float				*color;
+
+	ps = &cg.snap->ps;
+	champ = BG_Champion( ps->stats[STAT_CHAMPION] );
+	if ( champ->active == ACTIVE_NONE ) {
+		return;
+	}
+
+	color = BG_AbilityCharges( ps ) > 0 ? colorWhite : colorMdGrey;
+	s = va( "%s %i", BG_String( champ->active == ACTIVE_HOOK ? STR_ABILITY_HOOK : STR_ABILITY_BULLRUSH ),
+		BG_AbilityCharges( ps ) );
+	y = ( SCREEN_HEIGHT + ICON_SIZE ) / 2 + 8;
+	CG_DrawStringExt( 640 - 8 - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH, y, s, color, qfalse, qtrue,
+		SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+
+	tenths = ps->stats[STAT_ABILITY_RECHARGE];
+	if ( tenths > 0 ) {
+		s = va( (char *)BG_String( STR_ABILITY_RECHARGE ), ( tenths + 9 ) / 10 );
+		CG_DrawStringExt( 640 - 8 - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH, y + SMALLCHAR_HEIGHT + 2, s,
+			colorMdGrey, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+	}
+}
+#endif // MISSIONPACK
+
 #ifdef MISSIONPACK
 /*
 ===================
@@ -2577,6 +2614,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 
 #ifndef MISSIONPACK
 			CG_DrawHoldableItem();
+			CG_DrawAbility();
 #else
 			//CG_DrawPersistantPowerup();
 #endif

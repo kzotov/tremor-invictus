@@ -1180,8 +1180,8 @@ void ClientSpawn(gentity_t *ent) {
 	
 	VectorCopy (playerMins, ent->r.mins);
 	VectorCopy (playerMaxs, ent->r.maxs);
-	ent->r.mins[0] = ent->r.mins[1] = -bg_classHalfWidth[BG_Champion( client->pers.champion )->bodyClass];
-	ent->r.maxs[0] = ent->r.maxs[1] = bg_classHalfWidth[BG_Champion( client->pers.champion )->bodyClass];
+	ent->r.mins[0] = ent->r.mins[1] = -bg_classInfo[BG_Champion( client->pers.champion )->bodyClass].halfWidth;
+	ent->r.maxs[0] = ent->r.maxs[1] = bg_classInfo[BG_Champion( client->pers.champion )->bodyClass].halfWidth;
 
 	client->ps.clientNum = index;
 
@@ -1214,6 +1214,13 @@ void ClientSpawn(gentity_t *ent) {
 
 	// health will count down towards max_health
 	ent->health = client->ps.stats[STAT_HEALTH] = client->ps.stats[STAT_MAX_HEALTH] + 25;
+
+	// class spawn armor
+	if ( g_gametype.integer == GT_TOURNAMENT ) {
+		client->ps.stats[STAT_ARMOR] = G_ClassInfo( client )->spawnArmorDuel;
+	} else {
+		client->ps.stats[STAT_ARMOR] = G_ClassInfo( client )->spawnArmor;
+	}
 
 	G_SetOrigin( ent, spawn_origin );
 	VectorCopy( spawn_origin, client->ps.origin );

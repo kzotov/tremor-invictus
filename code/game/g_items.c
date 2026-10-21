@@ -289,7 +289,7 @@ int Pickup_Health (gentity_t *ent, gentity_t *other) {
 	if ( ent->item->quantity != 5 && ent->item->quantity != 100 ) {
 		max = other->client->ps.stats[STAT_MAX_HEALTH];
 	} else {
-		max = other->client->ps.stats[STAT_MAX_HEALTH] * 2;
+		max = other->client->ps.stats[STAT_MAX_HEALTH] + G_ClassInfo( other->client )->maxHealthBonus;
 	}
 
 	if ( ent->count ) {
@@ -332,8 +332,8 @@ int Pickup_Armor( gentity_t *ent, gentity_t *other ) {
 	}
 #else
 	other->client->ps.stats[STAT_ARMOR] += ent->item->quantity;
-	if ( other->client->ps.stats[STAT_ARMOR] > other->client->ps.stats[STAT_MAX_HEALTH] * 2 ) {
-		other->client->ps.stats[STAT_ARMOR] = other->client->ps.stats[STAT_MAX_HEALTH] * 2;
+	if ( other->client->ps.stats[STAT_ARMOR] > G_ClassInfo( other->client )->maxArmor ) {
+		other->client->ps.stats[STAT_ARMOR] = G_ClassInfo( other->client )->maxArmor;
 	}
 #endif
 

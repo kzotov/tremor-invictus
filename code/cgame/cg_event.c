@@ -251,7 +251,7 @@ static void CG_Obituary( entityState_t *ent ) {
 			message = "was caught by";
 			break;
 		case MOD_HEAVYWEIGHT:
-			message = "was trampled by";
+			message = (char *)BG_String( STR_OBIT_HEAVYWEIGHT );
 			break;
 		case MOD_GAUNTLET:
 			message = "was pummeled by";

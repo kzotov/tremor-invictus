@@ -1678,7 +1678,7 @@ static void PM_CheckDuck (void)
 	}
 	pm->ps->pm_flags &= ~PMF_INVULEXPAND;
 
-	width = bg_classHalfWidth[pml.champion->bodyClass];
+	width = bg_classInfo[pml.champion->bodyClass].halfWidth;
 	pm->mins[0] = -width;
 	pm->mins[1] = -width;
 

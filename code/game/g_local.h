@@ -560,6 +560,8 @@ qboolean CheckGauntletAttack( gentity_t *ent );
 void Weapon_HookFree (gentity_t *ent);
 void Ability_HookFire( gentity_t *ent );
 void G_EndRush( gentity_t *ent );
+
+#define	G_ClassInfo( client )	( &bg_classInfo[BG_Champion( (client)->ps.stats[STAT_CHAMPION] )->bodyClass] )
 void Weapon_HookThink (gentity_t *ent);
 
 
