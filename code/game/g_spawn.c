@@ -660,6 +660,17 @@ void SP_worldspawn( void ) {
 	G_SpawnString( "message", "", &s );
 	trap_SetConfigstring( CS_MESSAGE, s );				// map specific message
 
+	{
+		char	authors[MAX_INFO_STRING];
+
+		authors[0] = 0;
+		G_SpawnString( "author", "", &s );
+		Info_SetValueForKey( authors, "a1", s );
+		G_SpawnString( "author2", "", &s );
+		Info_SetValueForKey( authors, "a2", s );
+		trap_SetConfigstring( CS_MAPAUTHORS, authors );
+	}
+
 	trap_SetConfigstring( CS_MOTD, g_motd.string );		// message of the day
 
 	G_SpawnString( "gravity", "800", &s );

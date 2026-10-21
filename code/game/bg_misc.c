@@ -1220,6 +1220,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Sacrifice",
 	"Round Duel",
 	"Free for All",
+	"Loading",
 	"PAUSED",
 	"Space play   Up/Down speed   Left/Right 10 s   PgUp/PgDn 1 min   Home restart   H hide HUD   Esc leave",
 	"REC",

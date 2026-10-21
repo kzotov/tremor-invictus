@@ -24,40 +24,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "cg_local.h"
 
-#define MAX_LOADING_PLAYER_ICONS	16
-#define MAX_LOADING_ITEM_ICONS		26
-
-static int			loadingPlayerIconCount;
-static int			loadingItemIconCount;
-static qhandle_t	loadingPlayerIcons[MAX_LOADING_PLAYER_ICONS];
-static qhandle_t	loadingItemIcons[MAX_LOADING_ITEM_ICONS];
-
-
-/*
-===================
-CG_DrawLoadingIcons
-===================
-*/
-static void CG_DrawLoadingIcons( void ) {
-	int		n;
-	int		x, y;
-
-	for( n = 0; n < loadingPlayerIconCount; n++ ) {
-		x = 16 + n * 78;
-		y = 324-40;
-		CG_DrawPic( x, y, 64, 64, loadingPlayerIcons[n] );
-	}
-
-	for( n = 0; n < loadingItemIconCount; n++ ) {
-		y = 400-40;
-		if( n >= 13 ) {
-			y += 40;
-		}
-		x = 16 + n % 13 * 48;
-		CG_DrawPic( x, y, 32, 32, loadingItemIcons[n] );
-	}
-}
-
+// how far loading has got, 0 to 1, from the stages CG_Init reports
+static float		loadingFraction;
 
 /*
 ======================
@@ -66,7 +34,24 @@ CG_LoadingString
 ======================
 */
 void CG_LoadingString( const char *s ) {
+	float	stage = loadingFraction;
+
 	Q_strncpyz( cg.infoScreenText, s, sizeof( cg.infoScreenText ) );
+
+	if ( !Q_stricmp( s, "collision map" ) ) {
+		stage = 0.1f;
+	} else if ( !Q_stricmp( s, "sounds" ) ) {
+		stage = 0.2f;
+	} else if ( !Q_stricmp( s, "graphics" ) || !Q_stricmp( s, "game media" ) ) {
+		stage = 0.4f;
+	} else if ( !Q_stricmp( s, "clients" ) ) {
+		stage = 0.8f;
+	} else if ( !s[0] ) {
+		stage = 1.0f;
+	}
+	if ( stage > loadingFraction ) {
+		loadingFraction = stage;
+	}
 
 	trap_UpdateScreen();
 }
@@ -77,15 +62,14 @@ CG_LoadingItem
 ===================
 */
 void CG_LoadingItem( int itemNum ) {
-	gitem_t		*item;
+	float	stage;
 
-	item = &bg_itemlist[itemNum];
-	
-	if ( item->icon && loadingItemIconCount < MAX_LOADING_ITEM_ICONS ) {
-		loadingItemIcons[loadingItemIconCount++] = trap_R_RegisterShaderNoMip( item->icon );
+	// items load during the graphics stage
+	stage = 0.4f + 0.35f * itemNum / ( bg_numItems > 0 ? bg_numItems : 1 );
+	if ( stage > loadingFraction ) {
+		loadingFraction = stage;
 	}
-
-	CG_LoadingString( item->pickup_name );
+	CG_LoadingString( bg_itemlist[itemNum].pickup_name );
 }
 
 /*
@@ -94,69 +78,74 @@ CG_LoadingClient
 ===================
 */
 void CG_LoadingClient( int clientNum ) {
-	const char		*info;
-	char			*skin;
-	char			personality[MAX_QPATH];
-	char			model[MAX_QPATH];
-	char			iconName[MAX_QPATH];
+	char	name[MAX_QPATH];
 
-	info = CG_ConfigString( CS_PLAYERS + clientNum );
-
-	if ( loadingPlayerIconCount < MAX_LOADING_PLAYER_ICONS ) {
-		Q_strncpyz( model, Info_ValueForKey( info, "model" ), sizeof( model ) );
-		skin = strrchr( model, '/' );
-		if ( skin ) {
-			*skin++ = '\0';
-		} else {
-			skin = "default";
-		}
-
-		Com_sprintf( iconName, MAX_QPATH, "models/players/%s/icon_%s.tga", model, skin );
-		
-		loadingPlayerIcons[loadingPlayerIconCount] = trap_R_RegisterShaderNoMip( iconName );
-		if ( !loadingPlayerIcons[loadingPlayerIconCount] ) {
-			Com_sprintf( iconName, MAX_QPATH, "models/players/characters/%s/icon_%s.tga", model, skin );
-			loadingPlayerIcons[loadingPlayerIconCount] = trap_R_RegisterShaderNoMip( iconName );
-		}
-		if ( !loadingPlayerIcons[loadingPlayerIconCount] ) {
-			Com_sprintf( iconName, MAX_QPATH, "models/players/%s/icon_%s.tga", DEFAULT_MODEL, "default" );
-			loadingPlayerIcons[loadingPlayerIconCount] = trap_R_RegisterShaderNoMip( iconName );
-		}
-		if ( loadingPlayerIcons[loadingPlayerIconCount] ) {
-			loadingPlayerIconCount++;
-		}
+	if ( loadingFraction >= 0.8f && loadingFraction < 0.98f ) {
+		loadingFraction += 0.01f;
 	}
-
-	Q_strncpyz( personality, Info_ValueForKey( info, "n" ), sizeof(personality) );
-	Q_CleanStr( personality );
-
-	if( cgs.gametype == GT_SINGLE_PLAYER ) {
-		trap_S_RegisterSound( va( "sound/player/announce/%s.wav", personality ), qtrue );
-	}
-
-	CG_LoadingString( personality );
+	Q_strncpyz( name, Info_ValueForKey( CG_ConfigString( CS_PLAYERS + clientNum ), "n" ), sizeof( name ) );
+	Q_CleanStr( name );
+	CG_LoadingString( name );
 }
 
+/*
+===================
+CG_ModeString
+
+The running mode's name, from the server's mode key
+===================
+*/
+const char *CG_ModeString( void ) {
+	const char	*mode = Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_mode" );
+
+	if ( !Q_stricmp( mode, "duel" ) )		return BG_String( STR_MODE_DUEL );
+	if ( !Q_stricmp( mode, "tdm" ) )		return BG_String( STR_MODE_TDM );
+	if ( !Q_stricmp( mode, "ctf" ) )		return BG_String( STR_MODE_CTF );
+	if ( !Q_stricmp( mode, "ca" ) )			return BG_String( STR_MODE_CA );
+	if ( !Q_stricmp( mode, "sacrifice" ) )	return BG_String( STR_MODE_SACRIFICE );
+	if ( !Q_stricmp( mode, "roundduel" ) )	return BG_String( STR_MODE_ROUNDDUEL );
+	return BG_String( STR_MODE_FFA );
+}
+
+/*
+====================
+CG_DrawLevelshot
+
+The map's picture over the whole screen, cropped to keep its shape
+====================
+*/
+static void CG_DrawLevelshot( qhandle_t shader ) {
+	float	screen = (float)cgs.glconfig.vidWidth / cgs.glconfig.vidHeight;
+	float	picture = 4.0f / 3.0f;		// levelshots are made 4:3
+	float	s0 = 0, s1 = 1, t0 = 0, t1 = 1;
+
+	if ( screen > picture ) {
+		t0 = 0.5f - 0.5f * picture / screen;
+		t1 = 1.0f - t0;
+	} else {
+		s0 = 0.5f - 0.5f * screen / picture;
+		s1 = 1.0f - s0;
+	}
+	trap_R_DrawStretchPic( 0, 0, cgs.glconfig.vidWidth, cgs.glconfig.vidHeight, s0, t0, s1, t1, shader );
+}
 
 /*
 ====================
 CG_DrawInformation
 
-Draw all the status / pacifier stuff during level loading
+The loading screen: the levelshot, our logo and the mode on a bar at the top,
+the map's title and authors at the bottom left, and a progress bar
 ====================
 */
 void CG_DrawInformation( void ) {
-	const char	*s;
-	const char	*info;
-	const char	*sysInfo;
+	static vec4_t	barColor = { 0.06f, 0.06f, 0.08f, 0.75f };
+	static vec4_t	trackColor = { 1, 1, 1, 0.2f };
+	static vec4_t	fillColor = { 0.85f, 0.12f, 0.1f, 1 };
+	const char	*info = CG_ConfigString( CS_SERVERINFO );
+	const char	*authors = CG_ConfigString( CS_MAPAUTHORS );
+	const char	*title, *s;
+	qhandle_t	levelshot, logo;
 	int			y;
-	int			value;
-	qhandle_t	levelshot;
-	qhandle_t	detail;
-	char		buf[1024];
-
-	info = CG_ConfigString( CS_SERVERINFO );
-	sysInfo = CG_ConfigString( CS_SYSTEMINFO );
 
 	s = Info_ValueForKey( info, "mapname" );
 	levelshot = trap_R_RegisterShaderNoMip( va( "levelshots/%s.tga", s ) );
@@ -164,133 +153,38 @@ void CG_DrawInformation( void ) {
 		levelshot = trap_R_RegisterShaderNoMip( "menu/art/unknownmap" );
 	}
 	trap_R_SetColor( NULL );
-	CG_DrawPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, levelshot );
+	CG_DrawLevelshot( levelshot );
 
-	// blend a detail texture over it
-	detail = trap_R_RegisterShader( "levelShotDetail" );
-	trap_R_DrawStretchPic( 0, 0, cgs.glconfig.vidWidth, cgs.glconfig.vidHeight, 0, 0, 2.5, 2, detail );
-
-	// draw the icons of things as they are loaded
-	CG_DrawLoadingIcons();
-
-	// the first 150 rows are reserved for the client connection
-	// screen to write into
-	if ( cg.infoScreenText[0] ) {
-		UI_DrawProportionalString( 320, 128-32, va("Loading... %s", cg.infoScreenText),
-			UI_CENTER|UI_SMALLFONT|UI_DROPSHADOW, colorWhite );
-	} else {
-		UI_DrawProportionalString( 320, 128-32, "Awaiting snapshot...",
-			UI_CENTER|UI_SMALLFONT|UI_DROPSHADOW, colorWhite );
+	// top: logo left, mode right, on a dark bar across the screen
+	CG_FillRect( 0, 0, SCREEN_WIDTH, 48, barColor );
+	logo = trap_R_RegisterShaderNoMip( "gfx/tremor/logo" );
+	cg_hudAnchor = ANCHOR_LEFT;
+	if ( logo ) {
+		CG_DrawPic( 12, 6, 137, 36, logo );
 	}
+	cg_hudAnchor = ANCHOR_RIGHT;
+	UI_DrawProportionalString( SCREEN_WIDTH - 16, 14, CG_ModeString(), UI_RIGHT | UI_SMALLFONT | UI_DROPSHADOW, colorWhite );
 
-	// draw info string information
-
-	y = 180-32;
-
-	// don't print server lines if playing a local game
-	trap_Cvar_VariableStringBuffer( "sv_running", buf, sizeof( buf ) );
-	if ( !atoi( buf ) ) {
-		// server hostname
-		Q_strncpyz(buf, Info_ValueForKey( info, "sv_hostname" ), 1024);
-		Q_CleanStr(buf);
-		UI_DrawProportionalString( 320, y, buf,
-			UI_CENTER|UI_SMALLFONT|UI_DROPSHADOW, colorWhite );
-		y += PROP_HEIGHT;
-
-		// pure server
-		s = Info_ValueForKey( sysInfo, "sv_pure" );
-		if ( s[0] == '1' ) {
-			UI_DrawProportionalString( 320, y, "Pure Server",
-				UI_CENTER|UI_SMALLFONT|UI_DROPSHADOW, colorWhite );
-			y += PROP_HEIGHT;
-		}
-
-		// server-specific message of the day
-		s = CG_ConfigString( CS_MOTD );
-		if ( s[0] ) {
-			UI_DrawProportionalString( 320, y, s,
-				UI_CENTER|UI_SMALLFONT|UI_DROPSHADOW, colorWhite );
-			y += PROP_HEIGHT;
-		}
-
-		// some extra space after hostname and motd
-		y += 10;
+	// bottom left: the map's title and up to two authors
+	cg_hudAnchor = ANCHOR_LEFT;
+	title = CG_ConfigString( CS_MESSAGE );
+	if ( !title[0] ) {
+		title = s;
 	}
+	y = SCREEN_HEIGHT - 32;
+	if ( Info_ValueForKey( authors, "a2" )[0] ) {
+		UI_DrawProportionalString( 16, y, Info_ValueForKey( authors, "a2" ), UI_LEFT | UI_SMALLFONT | UI_DROPSHADOW, colorLtGrey );
+		y -= 18;
+	}
+	if ( Info_ValueForKey( authors, "a1" )[0] ) {
+		UI_DrawProportionalString( 16, y, Info_ValueForKey( authors, "a1" ), UI_LEFT | UI_SMALLFONT | UI_DROPSHADOW, colorLtGrey );
+		y -= 18;
+	}
+	UI_DrawProportionalString( 16, y - 10, title, UI_LEFT | UI_DROPSHADOW, colorWhite );
+	cg_hudAnchor = ANCHOR_CENTER;
 
-	// map-specific message (long map name)
-	s = CG_ConfigString( CS_MESSAGE );
-	if ( s[0] ) {
-		UI_DrawProportionalString( 320, y, s,
-			UI_CENTER|UI_SMALLFONT|UI_DROPSHADOW, colorWhite );
-		y += PROP_HEIGHT;
-	}
-
-	// cheats warning
-	s = Info_ValueForKey( sysInfo, "sv_cheats" );
-	if ( s[0] == '1' ) {
-		UI_DrawProportionalString( 320, y, "CHEATS ARE ENABLED",
-			UI_CENTER|UI_SMALLFONT|UI_DROPSHADOW, colorWhite );
-		y += PROP_HEIGHT;
-	}
-
-	// game type
-	switch ( cgs.gametype ) {
-	case GT_FFA:
-		s = "Free For All";
-		break;
-	case GT_SINGLE_PLAYER:
-		s = "Single Player";
-		break;
-	case GT_TOURNAMENT:
-		s = "Tournament";
-		break;
-	case GT_TEAM:
-		s = "Team Deathmatch";
-		break;
-	case GT_CTF:
-		s = "Capture The Flag";
-		break;
-#ifdef MISSIONPACK
-	case GT_1FCTF:
-		s = "One Flag CTF";
-		break;
-	case GT_OBELISK:
-		s = "Overload";
-		break;
-	case GT_HARVESTER:
-		s = "Harvester";
-		break;
-#endif
-	default:
-		s = "Unknown Gametype";
-		break;
-	}
-	UI_DrawProportionalString( 320, y, s,
-		UI_CENTER|UI_SMALLFONT|UI_DROPSHADOW, colorWhite );
-	y += PROP_HEIGHT;
-		
-	value = atoi( Info_ValueForKey( info, "timelimit" ) );
-	if ( value ) {
-		UI_DrawProportionalString( 320, y, va( "timelimit %i", value ),
-			UI_CENTER|UI_SMALLFONT|UI_DROPSHADOW, colorWhite );
-		y += PROP_HEIGHT;
-	}
-
-	if (cgs.gametype < GT_CTF ) {
-		value = atoi( Info_ValueForKey( info, "fraglimit" ) );
-		if ( value ) {
-			UI_DrawProportionalString( 320, y, va( "fraglimit %i", value ),
-				UI_CENTER|UI_SMALLFONT|UI_DROPSHADOW, colorWhite );
-			y += PROP_HEIGHT;
-		}
-	}
-
-	if (cgs.gametype >= GT_CTF) {
-		value = atoi( Info_ValueForKey( info, "capturelimit" ) );
-		if ( value ) {
-			UI_DrawProportionalString( 320, y, va( "capturelimit %i", value ),
-				UI_CENTER|UI_SMALLFONT|UI_DROPSHADOW, colorWhite );
-		}
-	}
+	// centre: "Loading" and the bar
+	UI_DrawProportionalString( SCREEN_WIDTH / 2, 300, BG_String( STR_LOADING ), UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite );
+	CG_FillRect( 220, 324, 200, 4, trackColor );
+	CG_FillRect( 220, 324, 200 * loadingFraction, 4, fillColor );
 }
-

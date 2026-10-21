@@ -219,6 +219,7 @@ vmCvar_t	cg_zoomSensitivity;
 vmCvar_t	cg_crosshairColor;
 vmCvar_t	cg_drawSpeed;
 vmCvar_t	cg_layoutDebug;
+vmCvar_t	cg_showLoading;
 vmCvar_t	cg_drawLineup;
 vmCvar_t	cg_layoutDump;
 
@@ -395,6 +396,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_crosshairColor, "cg_crosshairColor", "0", CVAR_ARCHIVE},
 	{ &cg_drawSpeed, "cg_drawSpeed", "0", CVAR_ARCHIVE},
 	{ &cg_layoutDebug, "cg_layoutDebug", "0", CVAR_CHEAT},
+	{ &cg_showLoading, "cg_showLoading", "0", CVAR_CHEAT},		// show the loading screen, to check its layout
 	{ &cg_drawLineup, "cg_drawLineup", "1", CVAR_ARCHIVE},
 	{ &cg_layoutDump, "cg_layoutDump", "0", 0}
 //	{ &cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR_USERINFO | CVAR_ARCHIVE }

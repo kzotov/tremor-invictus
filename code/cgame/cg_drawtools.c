@@ -707,7 +707,8 @@ static void UI_DrawBannerString2( int x, int y, const char* str, vec4_t color )
 	// draw the colored text
 	trap_R_SetColor( color );
 	
-	ax = x * cgs.screenXScale + cgs.screenXBias;
+	ax = x * cgs.screenXScale + ( cg_hudAnchor == ANCHOR_LEFT ? 0
+		: cg_hudAnchor == ANCHOR_RIGHT ? 2 * cgs.screenXBias : cgs.screenXBias );
 	ay = y * cgs.screenYScale;
 
 	s = str;
@@ -817,7 +818,8 @@ static void UI_DrawProportionalString2( int x, int y, const char* str, vec4_t co
 	// draw the colored text
 	trap_R_SetColor( color );
 	
-	ax = x * cgs.screenXScale + cgs.screenXBias;
+	ax = x * cgs.screenXScale + ( cg_hudAnchor == ANCHOR_LEFT ? 0
+		: cg_hudAnchor == ANCHOR_RIGHT ? 2 * cgs.screenXBias : cgs.screenXBias );
 	ay = y * cgs.screenYScale;
 
 	s = str;

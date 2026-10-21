@@ -777,7 +777,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 
 	// if we are only updating the screen as a loading
 	// pacifier, don't even try to read snapshots
-	if ( cg.infoScreenText[0] != 0 ) {
+	if ( cg.infoScreenText[0] != 0 || cg_showLoading.integer ) {
 		CG_DrawInformation();
 		return;
 	}

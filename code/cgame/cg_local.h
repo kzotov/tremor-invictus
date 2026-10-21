@@ -1251,6 +1251,7 @@ extern	vmCvar_t		cg_zoomSensitivity;
 extern	vmCvar_t		cg_crosshairColor;
 extern	vmCvar_t		cg_drawSpeed;
 extern	vmCvar_t		cg_layoutDebug;
+extern	vmCvar_t		cg_showLoading;
 extern	vmCvar_t		cg_drawLineup;
 extern	vmCvar_t		cg_layoutDump;
 #ifdef MISSIONPACK
@@ -1529,6 +1530,7 @@ void CG_LoadingString( const char *s );
 void CG_LoadingItem( int itemNum );
 void CG_LoadingClient( int clientNum );
 void CG_DrawInformation( void );
+const char *CG_ModeString( void );
 
 //
 // cg_scoreboard.c

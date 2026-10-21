@@ -90,6 +90,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define	CS_ITEMS				27		// string of 0's and 1's that tell which items are present
 #define	CS_ITEM_TIMERS			28		// "item respawnTime ..." for major items, time 0 = up
 #define	CS_TIMEOUT				29		// level.time a timeout ends, 0 when none
+#define	CS_MAPAUTHORS			30		// "\a1\<author>\a2\<author2>" from the map's worldspawn
 
 // entityState generic1 of ability entities: which placeholder look to draw
 typedef enum {
@@ -370,6 +371,7 @@ typedef enum {
 	STR_MODE_SACRIFICE,
 	STR_MODE_ROUNDDUEL,
 	STR_MODE_FFA,
+	STR_LOADING,
 	STR_DEMO_PAUSED,
 	STR_DEMO_HELP,
 	STR_DEMO_REC,
