@@ -1435,7 +1435,23 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"DELETE THIS DEMO?",
 	"New name",
 	"Letters, digits and _-() only; Enter renames, Esc cancels.",
-	"%i demos"
+	"%i demos",
+	"CREDITS",
+	"Tremor Invictus",
+	"Made by the Tremor Invictus contributors",
+	"github.com/kzotov/tremor-invictus",
+	"Built on ioquake3 and the Quake III Arena source code",
+	"Quake III Arena source code (c) 1999-2005 id Software, Inc.",
+	"This program is free software under the GNU General Public",
+	"License, version 2 or any later version, with NO WARRANTY.",
+	"Logo lettering: Cinzel by Natanael Gama, SIL Open Font License 1.1",
+	"Third-party libraries and their licences",
+	"SDL2 and zlib: zlib licence      libjpeg: IJG licence",
+	"libcurl: curl licence      OpenAL Soft: GNU LGPL",
+	"Ogg, Vorbis, Opus and opusfile: BSD licence",
+	"ioquake3 contributors",
+	"any key: next page",
+	"any key: back"
 };
 
 /*

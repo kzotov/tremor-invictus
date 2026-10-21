@@ -1023,6 +1023,11 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	if ( Q_stricmp (cmd, "ui_credits") == 0 ) {
+		UI_CreditMenu();
+		return qtrue;
+	}
+
 	if ( Q_stricmp (cmd, "ui_demos") == 0 ) {
 		UI_DemosMenu();
 		return qtrue;
