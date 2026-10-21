@@ -426,6 +426,39 @@ void CG_ScorePlum( int client, vec3_t org, int score ) {
 
 
 /*
+==================
+CG_DamagePlum
+
+The damage just dealt, floating up from the target for a second
+(cg_damagePlum)
+==================
+*/
+void CG_DamagePlum( int client, vec3_t org, int damage ) {
+	localEntity_t	*le;
+	vec3_t			angles;
+
+	if ( client != cg.predictedPlayerState.clientNum || !cg_damagePlum.integer ) {
+		return;
+	}
+	le = CG_AllocLocalEntity();
+	le->leFlags = 0;
+	le->leType = LE_SCOREPLUM;
+	le->startTime = cg.time;
+	le->endTime = cg.time + 1000;
+	le->lifeRate = 1.0 / ( le->endTime - le->startTime );
+	le->color[0] = 1.0f;
+	le->color[1] = 0.85f;
+	le->color[2] = 0.2f;
+	le->color[3] = 1.0f;
+	le->radius = damage;
+	VectorCopy( org, le->pos.trBase );
+	le->refEntity.reType = RT_SPRITE;
+	le->refEntity.radius = 12;
+	VectorClear( angles );
+	AnglesToAxis( angles, le->refEntity.axis );
+}
+
+/*
 ====================
 CG_MakeExplosion
 ====================

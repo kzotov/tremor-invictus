@@ -1230,6 +1230,18 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			}
 			attacker->client->pers.damageGiven += dealt;
 			client->pers.damageTaken += dealt;
+
+			// the number over the target, for the attacker alone
+			if ( dealt > 0 ) {
+				gentity_t	*plum = G_TempEntity( targ->r.currentOrigin, EV_DAMAGEPLUM );
+
+				plum->s.origin[2] += 40;
+				plum->s.pos.trBase[2] += 40;
+				plum->s.time = dealt;
+				plum->s.otherEntityNum = attacker->s.number;
+				plum->r.svFlags |= SVF_SINGLECLIENT;
+				plum->r.singleClient = attacker->s.number;
+			}
 		}
 
 		// enough damage while on the hook breaks the rope

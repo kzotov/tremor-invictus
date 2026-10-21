@@ -82,6 +82,7 @@ static const settingRow_t videoRows[] = {
 	{ ROW_SLIDER, STR_SET_FOV, STR_SET_FOV_HELP, "cg_fov", 0, { NULL }, { 0 }, 80, 130 },
 	{ ROW_SLIDER, STR_SET_ZOOMFOV, STR_SET_ZOOMFOV_HELP, "cg_zoomfov", 0, { NULL }, { 0 }, 20, 80 },
 	{ ROW_SLIDER, STR_SET_BRIGHTNESS, STR_SET_BRIGHTNESS_HELP, "r_gamma", 0, { NULL }, { 0 }, 0.5f, 2.0f },
+	{ ROW_SLIDER, STR_SET_CONTRAST, STR_SET_CONTRAST_HELP, "r_contrast", 0, { NULL }, { 0 }, 0.5f, 2.0f },
 	{ ROW_SPIN, STR_SET_PICMIP, STR_SET_PICMIP_HELP, "r_picmip", 4, { "0", "1", "2", "3" },
 		{ STR_SET_HIGH, STR_SET_MEDIUM, STR_SET_LOW, STR_SET_LOWEST }, 0, 0, qtrue },
 	{ ROW_SPIN, STR_SET_TEXFILTER, STR_SET_TEXFILTER_HELP, "r_textureMode", 2, { "GL_LINEAR_MIPMAP_NEAREST", "GL_LINEAR_MIPMAP_LINEAR" },
@@ -143,6 +144,14 @@ static const settingRow_t gameRows[] = {
 	{ ROW_SPIN, STR_SET_ARC, STR_SET_ARC_HELP, "cg_drawCooldownArc", 5, { "0", "2", "3", "4", "5" },
 		{ STR_SET_OFF, STR_SET_TOP, STR_SET_BOTTOM, STR_SET_LEFTSIDE, STR_SET_RIGHTSIDE } },
 	{ ROW_SPIN, STR_SET_KILLFEED, STR_SET_KILLFEED_HELP, "cg_obituaryRowSize", 6, { "0", "1", "2", "3", "4", "5" }, { STR_SET_OFF } },
+	{ ROW_SPIN, STR_SET_HITBEEP, STR_SET_HITBEEP_HELP, "cg_hitBeep", OFF_ON },
+	{ ROW_SPIN, STR_SET_KILLBEEP, STR_SET_KILLBEEP_HELP, "cg_killBeep", OFF_ON },
+	{ ROW_SPIN, STR_SET_DMGNUM, STR_SET_DMGNUM_HELP, "cg_damagePlum", OFF_ON },
+	{ ROW_SPIN, STR_SET_DMGARC, STR_SET_DMGARC_HELP, "cg_damageArc", OFF_ON },
+	{ ROW_SPIN, STR_SET_LOWHEALTH, STR_SET_LOWHEALTH_HELP, "cg_lowHealthWarning", OFF_ON },
+	{ ROW_SPIN, STR_SET_ITEMTIMERS, STR_SET_ITEMTIMERS_HELP, "cg_worldItemTimers", OFF_ON },
+	{ ROW_SPIN, STR_SET_ZOOMTOGGLE, STR_SET_ZOOMTOGGLE_HELP, "cg_zoomToggle", 2, { "0", "1" }, { STR_SET_HOLD, STR_SET_TOGGLE } },
+	{ ROW_SPIN, STR_SET_TIPS, STR_SET_TIPS_HELP, "cg_loadingTips", OFF_ON },
 	{ ROW_SPIN, STR_SET_TEAMOVERLAY, STR_SET_TEAMOVERLAY_HELP, "cg_drawTeamOverlay", OFF_ON },
 	{ ROW_SPIN, STR_SET_FPS, STR_SET_FPS_HELP, "cg_drawFPS", OFF_ON },
 	{ ROW_SPIN, STR_SET_LAGOMETER, STR_SET_LAGOMETER_HELP, "cg_lagometer", OFF_ON },
@@ -156,6 +165,7 @@ static const settingRow_t gameRows[] = {
 static const settingRow_t soundRows[] = {
 	{ ROW_SLIDER, STR_SET_VOLUME, STR_SET_VOLUME_HELP, "s_volume", 0, { NULL }, { 0 }, 0, 1 },
 	{ ROW_SLIDER, STR_SET_MUSIC, STR_SET_MUSIC_HELP, "s_musicvolume", 0, { NULL }, { 0 }, 0, 1 },
+	{ ROW_SLIDER, STR_SET_ANNOUNCER, STR_SET_ANNOUNCER_HELP, "s_announcerVolume", 0, { NULL }, { 0 }, 0, 1 },
 	{ ROW_SPIN, STR_SET_VOIP, STR_SET_VOIP_HELP, "cl_voip", OFF_ON }
 };
 
@@ -821,7 +831,29 @@ void UI_SettingsTab( int tab ) {
 UI_SettingsMenu
 =================
 */
+/*
+=================
+Settings_RegisterGameCvars
+
+The game's own settings exist only once a game has run; register them with
+their defaults so the menu shows the right values before that
+=================
+*/
+static void Settings_RegisterGameCvars( void ) {
+	static const char	*defaults[][2] = {
+		{ "cg_hitBeep", "1" }, { "cg_killBeep", "1" }, { "cg_damagePlum", "1" }, { "cg_damageArc", "1" },
+		{ "cg_lowHealthWarning", "1" }, { "cg_worldItemTimers", "1" }, { "cg_zoomToggle", "0" },
+		{ "cg_loadingTips", "1" }, { "r_contrast", "1" }, { "s_announcerVolume", "1" }
+	};
+	int		i;
+
+	for ( i = 0 ; i < ARRAY_LEN( defaults ) ; i++ ) {
+		trap_Cvar_Register( NULL, defaults[i][0], defaults[i][1], CVAR_ARCHIVE );
+	}
+}
+
 void UI_SettingsMenu( void ) {
+	Settings_RegisterGameCvars();
 	memset( &s_settings, 0, sizeof( s_settings ) );
 	s_settings.menu.wrapAround = qtrue;
 	s_settings.menu.fullscreen = qtrue;

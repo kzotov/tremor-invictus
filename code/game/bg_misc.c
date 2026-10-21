@@ -1252,6 +1252,28 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Best net damage",
 	"Perfect match",
 	"Most %s frags",
+	"Contrast",
+	"Contrast around middle grey; 1 is the picture as made.",
+	"Hit sound",
+	"A short sound each time you hit an enemy.",
+	"Kill sound",
+	"A sound when you frag someone.",
+	"Damage numbers",
+	"The damage you deal floats up from the enemy you hit.",
+	"Item timers in the world",
+	"Away items show a marker and the seconds until they return (not for players in duel).",
+	"Damage direction",
+	"A red arc around the crosshair toward whoever hit you.",
+	"Low health warning",
+	"Below 25 health the screen edge pulses red.",
+	"Zoom",
+	"Hold the zoom key, or press it once to zoom and again to stop.",
+	"Hold",
+	"Toggle",
+	"Loading tips",
+	"A gameplay tip while a map loads.",
+	"Announcer volume",
+	"The announcer's voice, as a share of the effects volume.",
 	"TIP",
 	"Major items come back on a fixed timer: count from the moment someone takes them.",
 	"Heavy Armor and Mega Health can take you over your maximum; the extra slowly drains away.",
@@ -2561,7 +2583,8 @@ char *eventnames[] = {
 	"EV_TAUNT_PATROL",
 
 	"EV_USE_ABILITY",
-	"EV_ABILITY_REPRESS"
+	"EV_ABILITY_REPRESS",
+	"EV_DAMAGEPLUM"
 };
 
 /*

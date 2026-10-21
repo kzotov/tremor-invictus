@@ -1025,6 +1025,7 @@ extern	cvar_t	*r_nocurves;
 extern	cvar_t	*r_showcluster;
 
 extern cvar_t	*r_gamma;
+extern cvar_t	*r_contrast;		// around middle grey, through the gamma table
 extern cvar_t	*r_displayRefresh;		// optional display refresh option
 
 extern	cvar_t	*r_nobind;						// turns off binding to appropriate textures

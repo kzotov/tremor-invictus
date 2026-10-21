@@ -119,6 +119,19 @@ static void CG_Obituary( entityState_t *ent ) {
 
 	target = ent->otherEntityNum;
 	attacker = ent->otherEntityNum2;
+
+	// the kill beep, for our own frags
+	if ( cg_killBeep.integer && attacker == cg.snap->ps.clientNum && target != attacker && target >= 0 && target < MAX_CLIENTS ) {
+		static sfxHandle_t	beep;
+
+		if ( !beep ) {
+			beep = trap_S_RegisterSound( "sound/feedback/killbeep.wav", qfalse );
+			if ( !beep ) {
+				beep = cgs.media.hitSound;
+			}
+		}
+		trap_S_StartLocalSound( beep, CHAN_LOCAL_SOUND );
+	}
 	mod = ent->eventParm;
 
 	// following the victim: go on with whoever killed them
@@ -1037,6 +1050,11 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		CG_LightningBoltBeam(es->origin2, es->pos.trBase);
 		break;
 #endif
+	case EV_DAMAGEPLUM:
+		DEBUGNAME("EV_DAMAGEPLUM");
+		CG_DamagePlum( cent->currentState.otherEntityNum, cent->lerpOrigin, cent->currentState.time );
+		break;
+
 	case EV_SCOREPLUM:
 		DEBUGNAME("EV_SCOREPLUM");
 		CG_ScorePlum( cent->currentState.otherEntityNum, cent->lerpOrigin, cent->currentState.time );

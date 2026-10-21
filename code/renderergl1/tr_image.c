@@ -1320,6 +1320,10 @@ void R_SetColorMappings( void ) {
 		} else {
 			inf = 255 * pow ( i/255.0f, 1.0f / g ) + 0.5f;
 		}
+		// contrast around the middle grey
+		if ( r_contrast->value != 1.0f ) {
+			inf = ( inf - 128 ) * r_contrast->value + 128;
+		}
 		inf <<= shift;
 		if (inf < 0) {
 			inf = 0;

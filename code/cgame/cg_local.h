@@ -1274,6 +1274,9 @@ extern	vmCvar_t		cg_showLineup;
 extern	vmCvar_t		cg_loadingTips;
 extern	vmCvar_t		cg_damageArc;
 extern	vmCvar_t		cg_zoomToggle;
+extern	vmCvar_t		cg_damagePlum;
+extern	vmCvar_t		cg_hitBeep;
+extern	vmCvar_t		cg_killBeep;
 extern	vmCvar_t		cg_worldItemTimers;
 extern	vmCvar_t		cg_lowHealthWarning;
 extern	vmCvar_t		cg_drawLineup;
@@ -1531,6 +1534,7 @@ void CG_InvulnerabilityImpact( vec3_t org, vec3_t angles );
 void CG_InvulnerabilityJuiced( vec3_t org );
 void CG_LightningBoltBeam( vec3_t start, vec3_t end );
 #endif
+void CG_DamagePlum( int client, vec3_t org, int damage );
 void CG_ScorePlum( int client, vec3_t org, int score );
 
 void CG_GibPlayer( vec3_t playerOrigin );
