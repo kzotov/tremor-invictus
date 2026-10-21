@@ -2178,7 +2178,7 @@ void CG_AddRefEntityWithPowerups( refEntity_t *ent, entityState_t *state, int te
 		CG_ColorAfterDraw( ent );
 
 		if ( state->eFlags & EF_BARRIER ) {
-			ent->customShader = cgs.media.battleSuitShader;
+			ent->customShader = cgs.media.barrierShader;
 			trap_R_AddRefEntityToScene( ent );
 		}
 		if ( state->powerups & ( 1 << PW_QUAD ) )

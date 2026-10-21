@@ -334,6 +334,7 @@ static void G_FireOrb( gentity_t *ent ) {
 	}
 	G_AbilityEyes( ent, start, forward, right );
 	orb = G_AbilityMissile( ent, "dire_orb", start, forward, g_orbSpeed.value, TR_LINEAR, WP_BFG );
+	orb->s.generic1 = AV_ORB;
 	orb->clipmask = MASK_SOLID;			// flies through players
 	orb->abilityImpact = G_OrbImpact;
 	orb->think = G_OrbThink;
@@ -551,6 +552,7 @@ static void G_FireFlameStrike( gentity_t *ent ) {
 		VectorMA( forward, ( i - 1 ) * spread, right, dir );
 		VectorNormalize( dir );
 		ball = G_AbilityMissile( ent, "fireball", start, dir, g_fireballSpeed.value, TR_LINEAR, WP_ROCKET_LAUNCHER );
+		ball->s.generic1 = AV_FIREBALL;
 		ball->abilityImpact = G_FireballImpact;
 		ball->think = G_FireballExpire;
 		ball->nextthink = level.time + 10000;
@@ -666,6 +668,7 @@ static void G_SpitAcid( gentity_t *ent ) {
 
 	G_AbilityEyes( ent, start, forward, right );
 	blob = G_AbilityMissile( ent, "acid", start, forward, g_acidSpeed.value, TR_GRAVITY, WP_PLASMAGUN );
+	blob->s.generic1 = AV_ACID;
 	blob->abilityImpact = G_AcidImpact;
 	blob->think = G_FreeEntity;
 	blob->nextthink = level.time + 10000;
@@ -1111,6 +1114,8 @@ static void G_DropTrail( gentity_t *ent ) {
 	VectorCopy( ent->client->ps.origin, point );
 	point[2] += MINS_Z + 8;
 	seg = G_AbilityMissile( ent, "plasma_trail", point, dir, 0, TR_STATIONARY, WP_PLASMAGUN );
+	seg->s.generic1 = AV_TRAIL;
+	seg->s.otherEntityNum = ent->s.number;
 	seg->clipmask = 0;
 	VectorSet( seg->r.mins, -16, -16, -8 );
 	VectorSet( seg->r.maxs, 16, 16, 24 );

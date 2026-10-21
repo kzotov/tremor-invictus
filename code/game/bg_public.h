@@ -141,7 +141,7 @@ typedef enum {
 
 typedef struct {
 	int			name;			// string table
-	const char	*key;			// sound/feedback/<key>.wav and icon medal_<key>, when the install has them
+	const char	*key;			// sound/feedback/<key>.wav when the install has it, icon gfx/tremor/medals/<key>
 } medalInfo_t;
 
 extern const medalInfo_t	bg_medalInfo[MEDAL_NUM];
@@ -162,7 +162,7 @@ typedef struct {
 extern const tipInfo_t	bg_tips[];
 extern const int		bg_numTips;
 
-// entityState generic1 of ability entities: which placeholder look to draw
+// entityState generic1 of ability entities: which look to draw
 typedef enum {
 	AV_NONE,
 	AV_SHOCKZONE,		// Wrack's Shell Shock zone
@@ -170,7 +170,12 @@ typedef enum {
 	AV_SUPPLYDROP,		// Sarge's crate
 	AV_STORM,			// Raine's Downpour
 	AV_HOUND,			// the Beastmaster's hound
-	AV_ANCHOR			// Unumrey's Rift Anchor
+	AV_ANCHOR,			// Unumrey's Rift Anchor
+	AV_ORB,				// the dire orb
+	AV_FIREBALL,		// Flame Strike's fireballs
+	AV_ACID,			// Acid Spit's blob
+	AV_TRAIL,			// a piece of the plasma trail; otherEntityNum is its owner
+	AV_NUM
 } abilityVisual_t;
 
 #define	CS_MODELS				32

@@ -2376,14 +2376,16 @@ static void CG_DrawRevealedModels( void ) {
 ===================
 CG_DrawAbility
 
-Active ability name, charges left and time to the next charge
+Active ability icon, name, charges left and time to the next charge
 ===================
 */
 static void CG_DrawAbility( void ) {
+	static qhandle_t	icons[ACTIVE_NUM_ABILITIES];
+	static const vec4_t	spent = { 1, 1, 1, 0.45f };
 	const champion_t	*champ;
 	playerState_t		*ps;
 	const char			*s;
-	int					y, tenths;
+	int					y, tenths, w;
 	float				*color;
 
 	ps = &cg.snap->ps;
@@ -2398,8 +2400,19 @@ static void CG_DrawAbility( void ) {
 	}
 	s = va( "%s %i", BG_String( bg_abilityInfo[champ->active].nameString ), BG_AbilityCharges( ps ) );
 	y = ( SCREEN_HEIGHT + ICON_SIZE ) / 2 + 8;
-	CG_DrawStringExt( 640 - 8 - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH, y, s, color, qfalse, qtrue,
+	w = CG_DrawStrlen( s ) * SMALLCHAR_WIDTH;
+	CG_DrawStringExt( 640 - 8 - w, y, s, color, qfalse, qtrue,
 		SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+
+	// the icon left of the name, faded while there is no charge
+	if ( !icons[champ->active] ) {
+		icons[champ->active] = trap_R_RegisterShaderNoMip( va( "gfx/tremor/abilities/%s", bg_abilityInfo[champ->active].cvarName ) );
+	}
+	if ( icons[champ->active] ) {
+		trap_R_SetColor( BG_AbilityCharges( ps ) > 0 ? NULL : spent );
+		CG_DrawPic( 640 - 8 - w - 6 - 34, y - 1, 34, 34, icons[champ->active] );
+		trap_R_SetColor( NULL );
+	}
 
 	tenths = ps->stats[STAT_ABILITY_RECHARGE];
 	if ( tenths > 0 ) {
@@ -3441,7 +3454,7 @@ static void CG_DrawMapVote( void ) {
 		}
 		shot = trap_R_RegisterShaderNoMip( va( "levelshots/%s.tga", maps[i] ) );
 		if ( !shot ) {
-			shot = trap_R_RegisterShaderNoMip( "menu/art/unknownmap" );
+			shot = trap_R_RegisterShaderNoMip( "gfx/tremor/splash/nomap" );
 		}
 		CG_DrawPic( x, 362, 120, 66, shot );
 		CG_DrawSmallStringColor( x, 430, va( "%i %s", i + 1, maps[i] ), colorWhite );

@@ -454,10 +454,64 @@ static void CG_VfxCircle( const vec3_t center, float radius, int segments, float
 
 /*
 ==================
+CG_VfxSprite
+
+A camera-facing ball of light in the given colour
+==================
+*/
+static void CG_VfxSprite( const vec3_t origin, float radius, qhandle_t shader, byte r, byte g, byte b, float rotation ) {
+	refEntity_t	re;
+
+	memset( &re, 0, sizeof( re ) );
+	re.reType = RT_SPRITE;
+	re.customShader = shader;
+	re.radius = radius;
+	re.rotation = rotation;
+	VectorCopy( origin, re.origin );
+	VectorCopy( origin, re.oldorigin );
+	re.shaderRGBA[0] = r;
+	re.shaderRGBA[1] = g;
+	re.shaderRGBA[2] = b;
+	re.shaderRGBA[3] = 255;
+	trap_R_AddRefEntityToScene( &re );
+}
+
+/*
+==================
+CG_VfxGroundRing
+
+A ring of light lying flat, `radius` out from `center`, turned by `phase`
+degrees
+==================
+*/
+static void CG_VfxGroundRing( const vec3_t center, float radius, float phase, byte r, byte g, byte b ) {
+	polyVert_t	v[4];
+	float		c = cos( DEG2RAD( phase ) ) * radius, s = sin( DEG2RAD( phase ) ) * radius;
+	int			i;
+
+	VectorSet( v[0].xyz, center[0] - c + s, center[1] - s - c, center[2] );
+	VectorSet( v[1].xyz, center[0] + c + s, center[1] + s - c, center[2] );
+	VectorSet( v[2].xyz, center[0] + c - s, center[1] + s + c, center[2] );
+	VectorSet( v[3].xyz, center[0] - c - s, center[1] - s + c, center[2] );
+	v[0].st[0] = 0; v[0].st[1] = 0;
+	v[1].st[0] = 1; v[1].st[1] = 0;
+	v[2].st[0] = 1; v[2].st[1] = 1;
+	v[3].st[0] = 0; v[3].st[1] = 1;
+	for ( i = 0 ; i < 4 ; i++ ) {
+		v[i].modulate[0] = r;
+		v[i].modulate[1] = g;
+		v[i].modulate[2] = b;
+		v[i].modulate[3] = 255;
+	}
+	trap_R_AddPolyToScene( cgs.media.ringShader, 4, v );
+}
+
+/*
+==================
 CG_AbilityVisual
 
-Placeholder looks for the newer champions' abilities, made of lines and
-models every install has
+How the champions' ability entities look: generated sprites and rings
+(misc/art/make-abilities.py), lines, and models every install has
 ==================
 */
 static void CG_AbilityVisual( centity_t *cent ) {
@@ -471,8 +525,9 @@ static void CG_AbilityVisual( centity_t *cent ) {
 		// the zone's edge and a ripple moving out
 		VectorCopy( cent->lerpOrigin, a );
 		a[2] -= 20;
-		CG_VfxCircle( a, 260, 40, cg.time * 0.01f, 140, 120, 200 );
-		CG_VfxCircle( a, 260 * ( ( cg.time % 1500 ) / 1500.0f ), 32, 0, 90, 80, 140 );
+		CG_VfxGroundRing( a, 260, cg.time * 0.01f, 140, 120, 200 );
+		t = cg.time % 1500;
+		CG_VfxGroundRing( a, 260 * t / 1500.0f, 0, 90 * ( 1500 - t ) / 1500, 80 * ( 1500 - t ) / 1500, 140 * ( 1500 - t ) / 1500 );
 		break;
 
 	case AV_SPINE:
@@ -544,8 +599,35 @@ static void CG_AbilityVisual( centity_t *cent ) {
 		// two purple rings turning opposite ways on the floor
 		VectorCopy( cent->lerpOrigin, a );
 		a[2] -= 22;
-		CG_VfxCircle( a, 28, 12, cg.time * 0.12f, 170, 60, 220 );
-		CG_VfxCircle( a, 20, 8, -cg.time * 0.2f, 200, 120, 255 );
+		CG_VfxGroundRing( a, 28, cg.time * 0.12f, 170, 60, 220 );
+		CG_VfxGroundRing( a, 20, -cg.time * 0.2f, 200, 120, 255 );
+		break;
+
+	case AV_ORB:
+		CG_VfxSprite( cent->lerpOrigin, 22, cgs.media.orbShader, 255, 255, 255, 0 );
+		trap_R_AddLightToScene( cent->lerpOrigin, 160, 0.83f, 0.1f, 0.12f );
+		break;
+
+	case AV_FIREBALL:
+		CG_VfxSprite( cent->lerpOrigin, 14, cgs.media.glowBallShader, 255, 140, 40, 0 );
+		CG_VfxSprite( cent->lerpOrigin, 28, cgs.media.glowBallShader, 160, 50, 10, cg.time * 0.2f );
+		trap_R_AddLightToScene( cent->lerpOrigin, 140, 1.0f, 0.5f, 0.15f );
+		break;
+
+	case AV_ACID:
+		CG_VfxSprite( cent->lerpOrigin, 10, cgs.media.glowBallShader, 120, 255, 60, 0 );
+		CG_VfxSprite( cent->lerpOrigin, 18, cgs.media.glowBallShader, 40, 120, 20, 0 );
+		break;
+
+	case AV_TRAIL:
+		// the owner's team colour, or the logo red
+		t = s1->otherEntityNum >= 0 && s1->otherEntityNum < MAX_CLIENTS ? cgs.clientinfo[s1->otherEntityNum].team : TEAM_FREE;
+		VectorCopy( cent->lerpOrigin, a );
+		if ( t == TEAM_BLUE && cgs.gametype >= GT_TEAM ) {
+			CG_VfxSprite( a, 18, cgs.media.glowBallShader, 40, 90, 220, 0 );
+		} else {
+			CG_VfxSprite( a, 18, cgs.media.glowBallShader, 211, 25, 31, 0 );
+		}
 		break;
 	}
 }
@@ -557,7 +639,7 @@ static void CG_Missile( centity_t *cent ) {
 //	int	col;
 
 	s1 = &cent->currentState;
-	if ( s1->generic1 > AV_NONE && s1->generic1 <= AV_ANCHOR ) {
+	if ( s1->generic1 > AV_NONE && s1->generic1 < AV_NUM ) {
 		CG_AbilityVisual( cent );
 		return;
 	}

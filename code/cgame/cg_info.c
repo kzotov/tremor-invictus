@@ -263,7 +263,7 @@ void CG_DrawInformation( void ) {
 	s = Info_ValueForKey( info, "mapname" );
 	levelshot = trap_R_RegisterShaderNoMip( va( "levelshots/%s.tga", s ) );
 	if ( !levelshot ) {
-		levelshot = trap_R_RegisterShaderNoMip( "menu/art/unknownmap" );
+		levelshot = trap_R_RegisterShaderNoMip( "gfx/tremor/splash/nomap" );
 	}
 	trap_R_SetColor( NULL );
 	CG_DrawLevelshot( levelshot );

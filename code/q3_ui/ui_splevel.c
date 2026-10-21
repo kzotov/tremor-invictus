@@ -35,7 +35,7 @@ SINGLE PLAYER LEVEL SELECT MENU
 #define ART_LEVELFRAME_SELECTED		"menu/art/maps_selected"
 #define ART_ARROW					"menu/art/narrow_0"
 #define ART_ARROW_FOCUS				"menu/art/narrow_1"
-#define ART_MAP_UNKNOWN				"menu/art/unknownmap"
+#define ART_MAP_UNKNOWN				"gfx/tremor/splash/nomap"
 #define ART_MAP_COMPLETE1			"menu/art/level_complete1"
 #define ART_MAP_COMPLETE2			"menu/art/level_complete2"
 #define ART_MAP_COMPLETE3			"menu/art/level_complete3"

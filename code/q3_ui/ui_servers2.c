@@ -56,7 +56,7 @@ MULTIPLAYER MENU (SERVER BROWSER)
 #define ART_ARROWS0				"menu/art/arrows_vert_0"
 #define ART_ARROWS_UP			"menu/art/arrows_vert_top"
 #define ART_ARROWS_DOWN			"menu/art/arrows_vert_bot"
-#define ART_UNKNOWNMAP			"menu/art/unknownmap"
+#define ART_UNKNOWNMAP			"gfx/tremor/splash/nomap"
 #define ART_REMOVE0				"menu/art/delete_0"
 #define ART_REMOVE1				"menu/art/delete_1"
 #define ART_PUNKBUSTER		"menu/art/pblogo"

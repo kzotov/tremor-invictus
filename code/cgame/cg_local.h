@@ -817,6 +817,11 @@ typedef struct {
 	qhandle_t	quadWeaponShader;
 	qhandle_t	invisShader;
 	qhandle_t	revealShader;		// enemies seen through walls
+	qhandle_t	hookLineShader;		// the ability effects drawn by misc/art/make-abilities.py
+	qhandle_t	glowBallShader;
+	qhandle_t	orbShader;
+	qhandle_t	barrierShader;
+	qhandle_t	ringShader;
 	qhandle_t	droneModel;
 	qhandle_t	brightShader;			// player colours
 	qhandle_t	sportShader;

@@ -1070,8 +1070,8 @@ static void CG_ParseAwards( void ) {
 =================
 CG_Medal
 
-A medal earned: its icon and announcer line from the install when it has
-them (loaded the first time each is earned)
+A medal earned: our own icon (misc/art/make-medals.py) and the announcer
+line from the install when it has one, loaded the first time each is earned
 =================
 */
 static void CG_Medal( int medal, int count ) {
@@ -1085,7 +1085,7 @@ static void CG_Medal( int medal, int count ) {
 	if ( !loaded[medal] ) {
 		loaded[medal] = qtrue;
 		sounds[medal] = trap_S_RegisterSound( va( "sound/feedback/%s.wav", bg_medalInfo[medal].key ), qtrue );
-		icons[medal] = trap_R_RegisterShaderNoMip( va( "medal_%s", bg_medalInfo[medal].key ) );
+		icons[medal] = trap_R_RegisterShaderNoMip( va( "gfx/tremor/medals/%s", bg_medalInfo[medal].key ) );
 	}
 	CG_PushReward( sounds[medal], icons[medal], count, bg_medalInfo[medal].name );
 }

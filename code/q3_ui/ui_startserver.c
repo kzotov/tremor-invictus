@@ -42,7 +42,7 @@ START SERVER MENU *****
 #define GAMESERVER_SELECTED		"menu/art/maps_selected"
 #define GAMESERVER_FIGHT0		"menu/art/fight_0"
 #define GAMESERVER_FIGHT1		"menu/art/fight_1"
-#define GAMESERVER_UNKNOWNMAP	"menu/art/unknownmap"
+#define GAMESERVER_UNKNOWNMAP	"gfx/tremor/splash/nomap"
 #define GAMESERVER_ARROWS		"menu/art/gs_arrows_0"
 #define GAMESERVER_ARROWSL		"menu/art/gs_arrows_l"
 #define GAMESERVER_ARROWSR		"menu/art/gs_arrows_r"

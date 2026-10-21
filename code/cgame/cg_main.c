@@ -992,6 +992,11 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.battleWeaponShader = trap_R_RegisterShader("powerups/battleWeapon" );
 	cgs.media.invisShader = trap_R_RegisterShader("powerups/invisibility" );
 	cgs.media.revealShader = trap_R_RegisterShader( "tremor/reveal" );
+	cgs.media.hookLineShader = trap_R_RegisterShader( "tremor/fx/hookline" );
+	cgs.media.glowBallShader = trap_R_RegisterShader( "tremor/fx/glowball" );
+	cgs.media.orbShader = trap_R_RegisterShader( "tremor/fx/orb" );
+	cgs.media.barrierShader = trap_R_RegisterShader( "tremor/fx/barrier" );
+	cgs.media.ringShader = trap_R_RegisterShader( "tremor/fx/ring" );
 	cgs.media.droneModel = trap_R_RegisterModel( "models/powerups/holdable/teleporter.md3" );
 	cgs.media.brightShader = trap_R_RegisterShader( "tremor/bright" );
 	cgs.media.sportShader = trap_R_RegisterShader( "tremor/sport" );
@@ -1118,12 +1123,12 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.invulnerabilityPowerupModel = trap_R_RegisterModel( "models/powerups/shield/shield.md3" );
 #endif
 
-	cgs.media.medalImpressive = trap_R_RegisterShaderNoMip( "medal_impressive" );
-	cgs.media.medalExcellent = trap_R_RegisterShaderNoMip( "medal_excellent" );
-	cgs.media.medalGauntlet = trap_R_RegisterShaderNoMip( "medal_gauntlet" );
-	cgs.media.medalDefend = trap_R_RegisterShaderNoMip( "medal_defend" );
-	cgs.media.medalAssist = trap_R_RegisterShaderNoMip( "medal_assist" );
-	cgs.media.medalCapture = trap_R_RegisterShaderNoMip( "medal_capture" );
+	cgs.media.medalImpressive = trap_R_RegisterShaderNoMip( "gfx/tremor/medals/impressive" );
+	cgs.media.medalExcellent = trap_R_RegisterShaderNoMip( "gfx/tremor/medals/excellent" );
+	cgs.media.medalGauntlet = trap_R_RegisterShaderNoMip( "gfx/tremor/medals/gauntlet" );
+	cgs.media.medalDefend = trap_R_RegisterShaderNoMip( "gfx/tremor/medals/defend" );
+	cgs.media.medalAssist = trap_R_RegisterShaderNoMip( "gfx/tremor/medals/assist" );
+	cgs.media.medalCapture = trap_R_RegisterShaderNoMip( "gfx/tremor/medals/capture" );
 
 
 	memset( cg_items, 0, sizeof( cg_items ) );

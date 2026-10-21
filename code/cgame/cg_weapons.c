@@ -576,7 +576,7 @@ void CG_GrappleTrail( centity_t *ent, const weaponInfo_t *wi ) {
 		return; // Don't draw if close
 
 	beam.reType = RT_LIGHTNING;
-	beam.customShader = cgs.media.lightningShader;
+	beam.customShader = cgs.media.hookLineShader;
 
 	AxisClear( beam.axis );
 	beam.shaderRGBA[0] = 0xff;

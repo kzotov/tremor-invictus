@@ -48,3 +48,6 @@ profile
 *.zip
 *.pak
 *.dm_*
+
+# generator scripts
+__pycache__/
