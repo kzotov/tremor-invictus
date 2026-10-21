@@ -259,6 +259,10 @@ typedef struct {
 	qboolean	autoHop;			// userinfo cg_autoHop
 	char		netname[MAX_NETNAME];
 	int			maxHealth;			// for handicapping
+	int			accShots[WP_NUM_WEAPONS];	// this match, per weapon
+	int			accHits[WP_NUM_WEAPONS];
+	int			damageGiven;		// to enemies, health and armour
+	int			damageTaken;
 	int			enterTime;			// level.time the client entered the game
 	playerTeamState_t teamState;	// status in teamplay games
 	int			voteCount;			// to prevent people from constantly calling votes
@@ -1048,6 +1052,7 @@ extern	vmCvar_t	g_injectionMaxGainCap;
 extern	vmCvar_t	g_berserkHitCooldown;
 void G_BreakHook( gentity_t *ent );
 void G_UpdateItemTimers( void );
+void G_LogAccuracyHit( gclient_t *client, int weapon );
 void G_BounceMissile( gentity_t *ent, trace_t *trace );
 void G_MissileImpact( gentity_t *ent, trace_t *trace );
 extern	vmCvar_t	g_hookBreakDamage;

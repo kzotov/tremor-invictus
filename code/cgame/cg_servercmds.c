@@ -78,20 +78,22 @@ static void CG_ParseScores( void ) {
 	memset( cg.scores, 0, sizeof( cg.scores ) );
 	for ( i = 0 ; i < cg.numScores ; i++ ) {
 		//
-		cg.scores[i].client = atoi( CG_Argv( i * 14 + 4 ) );
-		cg.scores[i].score = atoi( CG_Argv( i * 14 + 5 ) );
-		cg.scores[i].ping = atoi( CG_Argv( i * 14 + 6 ) );
-		cg.scores[i].time = atoi( CG_Argv( i * 14 + 7 ) );
-		cg.scores[i].scoreFlags = atoi( CG_Argv( i * 14 + 8 ) );
-		powerups = atoi( CG_Argv( i * 14 + 9 ) );
-		cg.scores[i].accuracy = atoi(CG_Argv(i * 14 + 10));
-		cg.scores[i].impressiveCount = atoi(CG_Argv(i * 14 + 11));
-		cg.scores[i].excellentCount = atoi(CG_Argv(i * 14 + 12));
-		cg.scores[i].guantletCount = atoi(CG_Argv(i * 14 + 13));
-		cg.scores[i].defendCount = atoi(CG_Argv(i * 14 + 14));
-		cg.scores[i].assistCount = atoi(CG_Argv(i * 14 + 15));
-		cg.scores[i].perfect = atoi(CG_Argv(i * 14 + 16));
-		cg.scores[i].captures = atoi(CG_Argv(i * 14 + 17));
+		cg.scores[i].client = atoi( CG_Argv( i * 16 + 4 ) );
+		cg.scores[i].score = atoi( CG_Argv( i * 16 + 5 ) );
+		cg.scores[i].ping = atoi( CG_Argv( i * 16 + 6 ) );
+		cg.scores[i].time = atoi( CG_Argv( i * 16 + 7 ) );
+		cg.scores[i].scoreFlags = atoi( CG_Argv( i * 16 + 8 ) );
+		powerups = atoi( CG_Argv( i * 16 + 9 ) );
+		cg.scores[i].accuracy = atoi(CG_Argv(i * 16 + 10));
+		cg.scores[i].impressiveCount = atoi(CG_Argv(i * 16 + 11));
+		cg.scores[i].excellentCount = atoi(CG_Argv(i * 16 + 12));
+		cg.scores[i].guantletCount = atoi(CG_Argv(i * 16 + 13));
+		cg.scores[i].defendCount = atoi(CG_Argv(i * 16 + 14));
+		cg.scores[i].assistCount = atoi(CG_Argv(i * 16 + 15));
+		cg.scores[i].perfect = atoi(CG_Argv(i * 16 + 16));
+		cg.scores[i].captures = atoi(CG_Argv(i * 16 + 17));
+		cg.scores[i].deaths = atoi(CG_Argv(i * 16 + 18));
+		cg.scores[i].damage = atoi(CG_Argv(i * 16 + 19));
 
 		if ( cg.scores[i].client < 0 || cg.scores[i].client >= MAX_CLIENTS ) {
 			cg.scores[i].client = 0;
@@ -1077,6 +1079,16 @@ static void CG_ServerCommand( void ) {
 
 	if ( !strcmp( cmd, "scores" ) ) {
 		CG_ParseScores();
+		return;
+	}
+
+	if ( !strcmp( cmd, "acc" ) ) {
+		int		w;
+
+		for ( w = WP_GAUNTLET + 1 ; w < WP_NUM_WEAPONS ; w++ ) {
+			cg.accShots[w] = atoi( CG_Argv( 1 + ( w - WP_GAUNTLET - 1 ) * 2 ) );
+			cg.accHits[w] = atoi( CG_Argv( 2 + ( w - WP_GAUNTLET - 1 ) * 2 ) );
+		}
 		return;
 	}
 

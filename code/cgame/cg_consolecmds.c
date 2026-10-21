@@ -84,6 +84,15 @@ static void CG_Viewpos_f (void) {
 }
 
 
+static void CG_AccDown_f( void ) {
+	cg.showAcc = qtrue;
+	cg.accRequestTime = 0;		// ask for fresh numbers now
+}
+
+static void CG_AccUp_f( void ) {
+	cg.showAcc = qfalse;
+}
+
 static void CG_ChatHistoryDown_f( void ) {
 	cg.showChatHistory = qtrue;
 }
@@ -468,6 +477,8 @@ static consoleCommand_t	commands[] = {
 	{ "viewpos", CG_Viewpos_f },
 	{ "+scores", CG_ScoresDown_f },
 	{ "+chathistory", CG_ChatHistoryDown_f },
+	{ "+acc", CG_AccDown_f },
+	{ "-acc", CG_AccUp_f },
 	{ "-chathistory", CG_ChatHistoryUp_f },
 	{ "-scores", CG_ScoresUp_f },
 	{ "+zoom", CG_ZoomDown_f },

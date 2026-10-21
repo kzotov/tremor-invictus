@@ -305,6 +305,8 @@ typedef struct {
 	int				defendCount;
 	int				assistCount;
 	int				captures;
+	int				deaths;
+	int				damage;			// given to enemies
 	qboolean	perfect;
 	int				team;
 } score_t;
@@ -547,6 +549,10 @@ typedef struct {
 	score_t		scores[MAX_CLIENTS];
 	qboolean	showScores;
 	qboolean	showChatHistory;	// +chathistory held
+	qboolean	showAcc;			// +acc held
+	int			accRequestTime;
+	int			accShots[WP_NUM_WEAPONS];
+	int			accHits[WP_NUM_WEAPONS];
 	qboolean	scoreBoardShowing;
 	int			scoreFadeTime;
 	char		killerName[MAX_NAME_LENGTH];

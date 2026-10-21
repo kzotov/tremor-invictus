@@ -712,6 +712,50 @@ static void CG_DrawSpecItemTimers( void ) {
 
 /*
 =================
+CG_DrawAccuracy
+
+While +acc is held: shots, hits and accuracy for each weapon fired this
+match, asked from the server twice a second
+=================
+*/
+static void CG_DrawAccuracy( void ) {
+	int		w, y, rows = 0;
+	vec4_t	back = { 0, 0, 0, 0.6f };
+	char	*s;
+
+	if ( !cg.showAcc ) {
+		return;
+	}
+	if ( cg.time - cg.accRequestTime > 500 || cg.accRequestTime > cg.time ) {
+		cg.accRequestTime = cg.time;
+		trap_SendClientCommand( "acc" );
+	}
+	for ( w = WP_GAUNTLET + 1 ; w < WP_NUM_WEAPONS ; w++ ) {
+		if ( cg.accShots[w] ) {
+			rows++;
+		}
+	}
+	y = 240 - ( rows * 20 + 24 ) / 2;
+	CG_FillRect( 200, y - 4, 240, rows * 20 + 32, back );
+	CG_DrawStringExt( 320 - CG_DrawStrlen( BG_String( STR_ACC_TITLE ) ) * SMALLCHAR_WIDTH / 2, y,
+		BG_String( STR_ACC_TITLE ), colorWhite, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+	y += 24;
+	for ( w = WP_GAUNTLET + 1 ; w < WP_NUM_WEAPONS ; w++ ) {
+		if ( !cg.accShots[w] ) {
+			continue;
+		}
+		CG_RegisterWeapon( w );
+		if ( cg_weapons[w].weaponIcon ) {
+			CG_DrawPic( 210, y, 16, 16, cg_weapons[w].weaponIcon );
+		}
+		s = va( "%3i%%  %i / %i", cg.accHits[w] * 100 / cg.accShots[w], cg.accHits[w], cg.accShots[w] );
+		CG_DrawStringExt( 236, y, s, colorWhite, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+		y += 20;
+	}
+}
+
+/*
+=================
 CG_HudNumberColor
 
 White normally, yellow at 50 and below, red at 25 and below
@@ -3311,6 +3355,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	}
 	CG_DrawChat();
 	CG_DrawSpecItemTimers();
+	CG_DrawAccuracy();
 #endif
 
 	if ( !CG_DrawFollow() ) {

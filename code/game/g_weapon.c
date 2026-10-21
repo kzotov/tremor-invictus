@@ -190,6 +190,23 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 
 
 /*
+===============
+G_LogAccuracyHit
+
+A hit counted for accuracy, overall and for the weapon
+===============
+*/
+void G_LogAccuracyHit( gclient_t *client, int weapon ) {
+	if ( !client ) {
+		return;
+	}
+	client->accuracy_hits++;
+	if ( weapon > WP_NONE && weapon < WP_NUM_WEAPONS ) {
+		client->pers.accHits[weapon]++;
+	}
+}
+
+/*
 ======================================================================
 
 MACHINEGUN
@@ -269,7 +286,7 @@ void Bullet_Fire (gentity_t *ent, float spread, int damage, int mod ) {
 			tent = G_TempEntity( tr.endpos, EV_BULLET_HIT_FLESH );
 			tent->s.eventParm = traceEnt->s.number;
 			if( LogAccuracyHit( traceEnt, ent ) ) {
-				ent->client->accuracy_hits++;
+				G_LogAccuracyHit( ent->client, ent->s.weapon );
 			}
 		} else {
 			tent = G_TempEntity( tr.endpos, EV_BULLET_HIT_WALL );
@@ -442,7 +459,7 @@ void ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, gentity_t *ent, in
 		VectorMA (end, u * range, localUp, end);
 		if( ShotgunPellet( origin, end, ent, weapon ) && !hitClient ) {
 			hitClient = qtrue;
-			ent->client->accuracy_hits++;
+			G_LogAccuracyHit( ent->client, ent->s.weapon );
 		}
 	}
 }
@@ -745,7 +762,7 @@ void weapon_railgun_fire (gentity_t *ent) {
 			ent->client->ps.eFlags |= EF_AWARD_IMPRESSIVE;
 			ent->client->rewardTime = level.time + REWARD_SPRITE_TIME;
 		}
-		ent->client->accuracy_hits++;
+		G_LogAccuracyHit( ent->client, ent->s.weapon );
 	}
 
 }
@@ -853,7 +870,7 @@ void Weapon_LightningFire( gentity_t *ent ) {
 			}
 #endif
 			if( LogAccuracyHit( traceEnt, ent ) ) {
-				ent->client->accuracy_hits++;
+				G_LogAccuracyHit( ent->client, ent->s.weapon );
 			}
 			G_WeaponKnock( WP_LIGHTNING, traceEnt, ent );
 			G_Damage( traceEnt, ent, ent, forward, tr.endpos, damage, 0, MOD_LIGHTNING);
@@ -1038,11 +1055,14 @@ void FireWeapon( gentity_t *ent ) {
 #ifdef MISSIONPACK
 		if( ent->s.weapon == WP_NAILGUN ) {
 			ent->client->accuracy_shots += NUM_NAILSHOTS;
+			ent->client->pers.accShots[ent->s.weapon] += NUM_NAILSHOTS;
 		} else {
 			ent->client->accuracy_shots++;
+			ent->client->pers.accShots[ent->s.weapon]++;
 		}
 #else
 		ent->client->accuracy_shots++;
+		ent->client->pers.accShots[ent->s.weapon]++;
 #endif
 	}
 

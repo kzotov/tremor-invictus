@@ -177,7 +177,7 @@ static void CG_DrawClientScore( int y, score_t *score, float *color, float fade,
 			" SPECT %3i %4i %s", score->ping, score->time, ci->name);
 	} else {
 		Com_sprintf(string, sizeof(string),
-			"%5i %4i %4i %s", score->score, score->ping, score->time, ci->name);
+			"%4i %3i %5i %3i %s", score->score, score->deaths, score->damage, score->ping, ci->name);
 	}
 
 	// highlight your position
@@ -343,10 +343,16 @@ qboolean CG_DrawOldScoreboard( void ) {
 	// scoreboard
 	y = SB_HEADER;
 
-	CG_DrawPic( SB_SCORE_X + (SB_RATING_WIDTH / 2), y, 64, 32, cgs.media.scoreboardScore );
-	CG_DrawPic( SB_PING_X - (SB_RATING_WIDTH / 2), y, 64, 32, cgs.media.scoreboardPing );
-	CG_DrawPic( SB_TIME_X - (SB_RATING_WIDTH / 2), y, 64, 32, cgs.media.scoreboardTime );
-	CG_DrawPic( SB_NAME_X - (SB_RATING_WIDTH / 2), y, 64, 32, cgs.media.scoreboardName );
+	// column titles over the score line's fields (see CG_DrawClientScore)
+	{
+		static const int	titles[] = { STR_SB_SCORE, STR_SB_DEATHS, STR_SB_DAMAGE, STR_SB_PING, STR_SB_NAME };
+		static const int	columns[] = { 0, 5, 9, 15, 19 };		// in big characters
+		int					i, x0 = SB_SCORELINE_X + ( SB_RATING_WIDTH / 2 );
+
+		for ( i = 0 ; i < ARRAY_LEN( titles ) ; i++ ) {
+			CG_DrawSmallString( x0 + columns[i] * BIGCHAR_WIDTH, y + 12, BG_String( titles[i] ), fade );
+		}
+	}
 
 	y = SB_TOP;
 

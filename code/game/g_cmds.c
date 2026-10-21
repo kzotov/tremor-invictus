@@ -72,7 +72,7 @@ void DeathmatchScoreboardMessage( gentity_t *ent ) {
 		perfect = ( cl->ps.persistant[PERS_RANK] == 0 && cl->ps.persistant[PERS_KILLED] == 0 ) ? 1 : 0;
 
 		Com_sprintf (entry, sizeof(entry),
-			" %i %i %i %i %i %i %i %i %i %i %i %i %i %i", level.sortedClients[i],
+			" %i %i %i %i %i %i %i %i %i %i %i %i %i %i %i %i", level.sortedClients[i],
 			cl->ps.persistant[PERS_SCORE], ping, (level.time - cl->pers.enterTime)/60000,
 			scoreFlags, g_entities[level.sortedClients[i]].s.powerups, accuracy, 
 			cl->ps.persistant[PERS_IMPRESSIVE_COUNT],
@@ -81,7 +81,9 @@ void DeathmatchScoreboardMessage( gentity_t *ent ) {
 			cl->ps.persistant[PERS_DEFEND_COUNT], 
 			cl->ps.persistant[PERS_ASSIST_COUNT], 
 			perfect,
-			cl->ps.persistant[PERS_CAPTURES]);
+			cl->ps.persistant[PERS_CAPTURES],
+			cl->ps.persistant[PERS_KILLED],
+			cl->pers.damageGiven);
 		j = strlen(entry);
 		if (stringlength + j >= sizeof(string))
 			break;
@@ -104,6 +106,24 @@ Request current scoreboard information
 */
 void Cmd_Score_f( gentity_t *ent ) {
 	DeathmatchScoreboardMessage( ent );
+}
+
+/*
+==================
+Cmd_Acc_f
+
+Shots and hits per weapon for the +acc panel: "acc s1 h1 s2 h2 ..."
+==================
+*/
+void Cmd_Acc_f( gentity_t *ent ) {
+	char	string[512];
+	int		w;
+
+	string[0] = 0;
+	for ( w = WP_GAUNTLET + 1 ; w < WP_NUM_WEAPONS ; w++ ) {
+		Q_strcat( string, sizeof( string ), va( " %i %i", ent->client->pers.accShots[w], ent->client->pers.accHits[w] ) );
+	}
+	trap_SendServerCommand( ent - g_entities, va( "acc%s", string ) );
 }
 
 
@@ -1786,6 +1806,10 @@ void ClientCommand( int clientNum ) {
 #endif
 	if (Q_stricmp (cmd, "score") == 0) {
 		Cmd_Score_f (ent);
+		return;
+	}
+	if (Q_stricmp (cmd, "acc") == 0) {
+		Cmd_Acc_f (ent);
 		return;
 	}
 

@@ -1489,7 +1489,13 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Ogg, Vorbis, Opus and opusfile: BSD licence",
 	"ioquake3 contributors",
 	"any key: next page",
-	"any key: back"
+	"any key: back",
+	"SCORE",
+	"DEATHS",
+	"DAMAGE",
+	"PING",
+	"NAME",
+	"ACCURACY"
 };
 
 /*

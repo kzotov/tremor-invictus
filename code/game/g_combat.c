@@ -1197,6 +1197,12 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		client->damage_armor += asave;
 		client->damage_blood += take;
 
+		// match stats: damage between enemies
+		if ( attacker && attacker->client && attacker != targ && !OnSameTeam( targ, attacker ) ) {
+			attacker->client->pers.damageGiven += take + asave;
+			client->pers.damageTaken += take + asave;
+		}
+
 		// enough damage while on the hook breaks the rope
 		if ( client->hook && targ != attacker ) {
 			client->hookDamageTaken += take + asave;
