@@ -320,6 +320,14 @@ struct gclient_s {
 	int			abilityShots;		// acid blobs spat so far
 	int			abilityShotTime;	// level.time of the next blob
 
+	int			barrierMode;		// 1 shield, 2 laser
+	int			laserTime;			// level.time of the next laser shot
+	int			trailTime;			// level.time of the next plasma trail segment
+	gentity_t	*droneBody;			// the body left behind while flying the drone
+	int			droneStartTime;
+	vec3_t		droneBodyAngles;
+	int			droneArmor;
+
 	int			burnEndTime, burnNextTime, burnAttacker;
 	int			poisonEndTime, poisonNextTime, poisonAttacker;
 	int			collisionTime[MAX_CLIENTS];	// level.time of the last collision hit per victim
@@ -591,6 +599,12 @@ void G_Ignite( gentity_t *target, gentity_t *attacker );
 void G_Poison( gentity_t *target, gentity_t *attacker );
 void G_ClearDamageOverTime( gentity_t *ent );
 void G_ExplodeMissile( gentity_t *ent );
+void G_AbilityStarted( gentity_t *ent );
+void G_AbilityEnded( gentity_t *ent );
+void G_DroneEnd( gentity_t *ent, qboolean launch );
+float G_BarrierScale( gentity_t *targ, int mod );
+qboolean G_DroneAbsorbDamage( gentity_t *ent, int take );
+void G_DropStroyentCell( gentity_t *victim, gentity_t *attacker );
 qboolean G_AbilityActive( gentity_t *ent, int active );
 
 #define	G_ClassInfo( client )	( &bg_classInfo[BG_Champion( (client)->ps.stats[STAT_CHAMPION] )->bodyClass] )
@@ -805,6 +819,23 @@ extern	vmCvar_t	g_turretDamage;
 extern	vmCvar_t	g_turretInterval;
 extern	vmCvar_t	g_turretRange;
 extern	vmCvar_t	g_turretBoltSpeed;
+extern	vmCvar_t	g_barrierScale;
+extern	vmCvar_t	g_laserDelay;
+extern	vmCvar_t	g_laserInterval;
+extern	vmCvar_t	g_laserDamage;
+extern	vmCvar_t	g_laserRange;
+extern	vmCvar_t	g_trailInterval;
+extern	vmCvar_t	g_trailLife;
+extern	vmCvar_t	g_trailDamage;
+extern	vmCvar_t	g_trailBlast;
+extern	vmCvar_t	g_trailRadius;
+extern	vmCvar_t	g_droneHealth;
+extern	vmCvar_t	g_droneDamage;
+extern	vmCvar_t	g_droneLaunchDelay;
+extern	vmCvar_t	g_droneRocketDamage;
+extern	vmCvar_t	g_droneRocketRadius;
+extern	vmCvar_t	g_stroyentHeal;
+extern	vmCvar_t	g_stroyentLife;
 extern	vmCvar_t	g_hookSpeed;
 extern	vmCvar_t	g_hookRange;
 extern	vmCvar_t	g_hookDamage;

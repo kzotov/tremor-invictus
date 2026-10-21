@@ -29,6 +29,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define	ABILITY_FRAME		50		// think interval for live ability entities
 #define	ABILITY_PRESTEP		50		// move a bit on the very first frame, as missiles do
 
+void G_DroneEnd( gentity_t *ent, qboolean launch );
+
 /*
 ==============================================================================
 
@@ -904,6 +906,351 @@ refund:
 /*
 ==============================================================================
 
+BARRIER AND MINING LASER
+
+The shield halves incoming weapon damage. Pressing again turns the time
+left into a laser that hits what the player looks at.
+
+==============================================================================
+*/
+
+static void G_StartBarrier( gentity_t *ent ) {
+	ent->client->barrierMode = 1;
+	ent->client->ps.eFlags |= EF_BARRIER;
+}
+
+static void G_BarrierToLaser( gentity_t *ent ) {
+	if ( ent->client->barrierMode != 1 ) {
+		return;
+	}
+	ent->client->barrierMode = 2;
+	ent->client->ps.eFlags &= ~EF_BARRIER;
+	ent->client->laserTime = level.time + g_laserDelay.integer;
+}
+
+static void G_FireLaser( gentity_t *ent ) {
+	vec3_t		start, forward, right, end;
+	trace_t		tr;
+	gentity_t	*tent, *other;
+
+	G_AbilityEyes( ent, start, forward, right );
+	VectorMA( start, g_laserRange.value, forward, end );
+	trap_Trace( &tr, start, NULL, NULL, end, ent->s.number, MASK_SHOT );
+
+	tent = G_TempEntity( tr.endpos, EV_RAILTRAIL );
+	VectorCopy( start, tent->s.origin2 );
+	tent->s.clientNum = ent->s.clientNum;
+
+	other = &g_entities[tr.entityNum];
+	if ( other->takedamage ) {
+		G_Damage( other, ent, ent, forward, tr.endpos, g_laserDamage.integer, DAMAGE_NO_KNOCKBACK, MOD_LASER );
+	}
+}
+
+/*
+================
+G_BarrierScale
+
+Damage multiplier while the shield is up; only weapon and ability damage
+================
+*/
+float G_BarrierScale( gentity_t *targ, int mod ) {
+	if ( !targ->client || targ->client->barrierMode != 1 || !G_AbilityActive( targ, ACTIVE_BARRIER ) ) {
+		return 1.0f;
+	}
+	switch ( mod ) {
+	case MOD_WATER: case MOD_SLIME: case MOD_LAVA: case MOD_CRUSH: case MOD_TELEFRAG:
+	case MOD_FALLING: case MOD_SUICIDE: case MOD_TARGET_LASER: case MOD_TRIGGER_HURT:
+		return 1.0f;
+	default:
+		return g_barrierScale.value;
+	}
+}
+
+/*
+==============================================================================
+
+PLASMA TRAIL
+
+While active, glowing segments are left behind; each hurts every enemy
+once. Pressing again detonates them all.
+
+==============================================================================
+*/
+
+static void G_TrailThink( gentity_t *seg ) {
+	int			touch[MAX_GENTITIES];
+	vec3_t		mins, maxs;
+	gentity_t	*other;
+	int			i, num;
+
+	if ( level.time >= seg->abilityTime ) {
+		G_FreeEntity( seg );
+		return;
+	}
+	VectorAdd( seg->r.currentOrigin, seg->r.mins, mins );
+	VectorAdd( seg->r.currentOrigin, seg->r.maxs, maxs );
+	num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
+	for ( i = 0 ; i < num ; i++ ) {
+		other = &g_entities[touch[i]];
+		if ( !G_AbilityEnemy( seg->parent, other ) || G_AbilityMarked( seg, other->s.number ) ) {
+			continue;
+		}
+		G_AbilityMark( seg, other->s.number );
+		G_Damage( other, seg, seg->parent, NULL, NULL, g_trailDamage.integer, DAMAGE_NO_KNOCKBACK, MOD_PLASMATRAIL );
+	}
+	seg->nextthink = level.time + ABILITY_FRAME * 2;
+}
+
+static void G_DropTrail( gentity_t *ent ) {
+	vec3_t		point, dir = { 0, 0, 0 };
+	gentity_t	*seg;
+
+	VectorCopy( ent->client->ps.origin, point );
+	point[2] += MINS_Z + 8;
+	seg = G_AbilityMissile( ent, "plasma_trail", point, dir, 0, TR_STATIONARY, WP_PLASMAGUN );
+	seg->clipmask = 0;
+	VectorSet( seg->r.mins, -16, -16, -8 );
+	VectorSet( seg->r.maxs, 16, 16, 24 );
+	seg->abilityTime = level.time + g_trailLife.integer;
+	seg->think = G_TrailThink;
+	seg->nextthink = level.time + ABILITY_FRAME;
+	trap_LinkEntity( seg );
+}
+
+static void G_DetonateTrail( gentity_t *ent ) {
+	gentity_t	*seg;
+	vec3_t		dir = { 0, 0, 1 };
+	int			i;
+
+	for ( i = MAX_CLIENTS, seg = &g_entities[MAX_CLIENTS] ; i < level.num_entities ; i++, seg++ ) {
+		if ( !seg->inuse || seg->parent != ent || !seg->classname || strcmp( seg->classname, "plasma_trail" ) ) {
+			continue;
+		}
+		G_RadiusDamage( seg->r.currentOrigin, ent, g_trailBlast.integer, g_trailRadius.integer, NULL, MOD_PLASMATRAIL );
+		seg->s.eType = ET_GENERAL;
+		G_AddEvent( seg, EV_MISSILE_MISS, DirToByte( dir ) );
+		seg->freeAfterEvent = qtrue;
+		seg->think = NULL;
+		trap_LinkEntity( seg );
+	}
+	G_AbilityDone( ent );
+}
+
+/*
+==============================================================================
+
+DRONE STRIKE
+
+The player flies the drone while the body stays behind, unseen but
+vulnerable. The drone has its own health; losing it, or the time running
+out, brings the player back. Pressing again launches the drone as a
+rocket. Killing the body kills the player.
+
+==============================================================================
+*/
+
+static void G_DroneBodyDie( gentity_t *body, gentity_t *inflictor, gentity_t *attacker, int damage, int mod ) {
+	gentity_t	*owner = body->parent;
+
+	body->takedamage = qfalse;
+	if ( !owner || !owner->client || owner->client->droneBody != body ) {
+		G_FreeEntity( body );
+		return;
+	}
+	G_DroneEnd( owner, qfalse );
+	G_Damage( owner, inflictor, attacker, NULL, NULL, 100000, DAMAGE_NO_PROTECTION, mod );
+}
+
+static void G_StartDrone( gentity_t *ent ) {
+	gclient_t	*client = ent->client;
+	gentity_t	*body;
+	vec3_t		origin;
+
+	body = G_Spawn();
+	body->classname = "drone_body";
+	body->s.eType = ET_GENERAL;
+	body->parent = ent;
+	body->r.ownerNum = ent->s.number;
+	body->r.contents = CONTENTS_CORPSE;
+	VectorCopy( ent->r.mins, body->r.mins );
+	VectorCopy( ent->r.maxs, body->r.maxs );
+	body->takedamage = qtrue;
+	body->health = ent->health;
+	body->die = G_DroneBodyDie;
+	VectorCopy( client->ps.origin, origin );
+	origin[2] -= DEFAULT_VIEWHEIGHT;		// pmove lifted the player to eye height
+	G_SetOrigin( body, origin );
+	trap_LinkEntity( body );
+
+	client->droneBody = body;
+	client->droneStartTime = level.time;
+	client->droneArmor = client->ps.stats[STAT_ARMOR];
+	VectorCopy( client->ps.viewangles, client->droneBodyAngles );
+
+	// the drone has its own health
+	ent->health = client->ps.stats[STAT_HEALTH] = g_droneHealth.integer;
+	client->ps.stats[STAT_ARMOR] = 0;
+}
+
+/*
+================
+G_DroneEnd
+
+Back to the body; launch fires the drone off as a rocket first
+================
+*/
+void G_DroneEnd( gentity_t *ent, qboolean launch ) {
+	gclient_t	*client = ent->client;
+	gentity_t	*body = client->droneBody;
+	gentity_t	*rocket;
+	vec3_t		forward;
+
+	if ( !body ) {
+		return;
+	}
+	if ( launch ) {
+		AngleVectors( client->ps.viewangles, forward, NULL, NULL );
+		rocket = fire_rocket( ent, client->ps.origin, forward );
+		rocket->damage = g_droneRocketDamage.integer;
+		rocket->splashDamage = g_droneRocketDamage.integer;
+		rocket->splashRadius = g_droneRocketRadius.integer;
+		rocket->methodOfDeath = MOD_DRONE;
+		rocket->splashMethodOfDeath = MOD_DRONE;
+	}
+
+	client->droneBody = NULL;
+	VectorCopy( body->r.currentOrigin, client->ps.origin );
+	VectorClear( client->ps.velocity );
+	client->ps.eFlags ^= EF_TELEPORT_BIT;
+	client->ps.eFlags &= ~EF_DRONE;
+	if ( body->health > 0 ) {
+		ent->health = client->ps.stats[STAT_HEALTH] = body->health;
+	}
+	client->ps.stats[STAT_ARMOR] = client->droneArmor;
+	SetClientViewAngle( ent, client->droneBodyAngles );
+	G_FreeEntity( body );
+
+	BG_PlayerStateToEntityState( &client->ps, &ent->s, qtrue );
+	VectorCopy( client->ps.origin, ent->r.currentOrigin );
+	trap_LinkEntity( ent );
+	G_AbilityDone( ent );
+}
+
+/*
+================
+G_DroneAbsorbDamage
+
+Damage to a flying drone that would bring it down ends the flight instead
+of killing the player. Returns qtrue if the damage was handled.
+================
+*/
+qboolean G_DroneAbsorbDamage( gentity_t *ent, int take ) {
+	if ( !ent->client || !ent->client->droneBody ) {
+		return qfalse;
+	}
+	if ( ent->health - take > 0 ) {
+		return qfalse;
+	}
+	G_DroneEnd( ent, qfalse );
+	return qtrue;
+}
+
+/*
+==============================================================================
+
+STROYENT CELLS
+
+A kill by a champion with this passive drops a cell; only such champions
+can pick it up, for health that may go over the maximum.
+
+==============================================================================
+*/
+
+static void G_CellThink( gentity_t *cell ) {
+	gentity_t	*other;
+	int			i, max;
+
+	if ( level.time >= cell->abilityTime ) {
+		G_FreeEntity( cell );
+		return;
+	}
+	for ( i = 0 ; i < level.maxclients ; i++ ) {
+		other = &g_entities[i];
+		if ( !other->inuse || !other->client || other->health <= 0 ) {
+			continue;
+		}
+		if ( !( BG_Champion( other->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_STROYENT ) ) {
+			continue;
+		}
+		if ( Distance( other->r.currentOrigin, cell->r.currentOrigin ) > 40 ) {
+			continue;
+		}
+		max = other->client->ps.stats[STAT_MAX_HEALTH] + G_ClassInfo( other->client )->maxHealthBonus;
+		other->health += g_stroyentHeal.integer;
+		if ( other->health > max ) {
+			other->health = max;
+		}
+		other->client->ps.stats[STAT_HEALTH] = other->health;
+		G_AddEvent( other, EV_ITEM_PICKUP, 0 );
+		G_FreeEntity( cell );
+		return;
+	}
+	cell->nextthink = level.time + ABILITY_FRAME * 2;
+}
+
+void G_DropStroyentCell( gentity_t *victim, gentity_t *attacker ) {
+	gentity_t	*cell;
+
+	if ( !attacker || !attacker->client || attacker == victim ) {
+		return;
+	}
+	if ( !( BG_Champion( attacker->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_STROYENT ) ) {
+		return;
+	}
+	cell = G_Spawn();
+	cell->classname = "stroyent_cell";
+	cell->s.eType = ET_GENERAL;
+	cell->s.modelindex = G_ModelIndex( "models/powerups/health/small_cross.md3" );
+	cell->abilityTime = level.time + g_stroyentLife.integer;
+	cell->think = G_CellThink;
+	cell->nextthink = level.time + ABILITY_FRAME;
+	G_SetOrigin( cell, victim->r.currentOrigin );
+	trap_LinkEntity( cell );
+}
+
+/*
+==============================================================================
+
+STATE CHANGES
+
+==============================================================================
+*/
+
+/*
+================
+G_AbilityStarted / G_AbilityEnded
+
+Called by the upkeep when a timed ability starts or stops running
+================
+*/
+void G_AbilityStarted( gentity_t *ent ) {
+	ent->client->trailTime = level.time;
+}
+
+void G_AbilityEnded( gentity_t *ent ) {
+	gclient_t	*client = ent->client;
+
+	client->barrierMode = 0;
+	client->ps.eFlags &= ~EF_BARRIER;
+	if ( client->droneBody ) {
+		G_DroneEnd( ent, qfalse );
+	}
+}
+
+/*
+==============================================================================
+
 ENTRY POINTS
 
 ==============================================================================
@@ -927,6 +1274,8 @@ void G_AbilityFire( gentity_t *ent ) {
 		ent->client->abilityShots = 0;
 		ent->client->abilityShotTime = level.time;
 		break;
+	case ACTIVE_BARRIER:		G_StartBarrier( ent ); break;
+	case ACTIVE_DRONE:			G_StartDrone( ent ); break;
 	default:
 		break;
 	}
@@ -943,6 +1292,13 @@ void G_AbilityRepress( gentity_t *ent ) {
 	switch ( BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->active ) {
 	case ACTIVE_ORB:			G_OrbTeleport( ent ); break;
 	case ACTIVE_FLAMESTRIKE:	G_FlameConverge( ent ); break;
+	case ACTIVE_BARRIER:		G_BarrierToLaser( ent ); break;
+	case ACTIVE_PLASMATRAIL:	G_DetonateTrail( ent ); break;
+	case ACTIVE_DRONE:
+		if ( level.time - ent->client->droneStartTime >= g_droneLaunchDelay.integer ) {
+			G_DroneEnd( ent, qtrue );
+		}
+		break;
 	default:
 		break;
 	}
@@ -966,6 +1322,19 @@ void G_AbilityClientThink( gentity_t *ent ) {
 		}
 	}
 
+	if ( G_AbilityActive( ent, ACTIVE_BARRIER ) && client->barrierMode == 2 ) {
+		while ( level.time >= client->laserTime ) {
+			G_FireLaser( ent );
+			client->laserTime += g_laserInterval.integer;
+		}
+	}
+	if ( G_AbilityActive( ent, ACTIVE_PLASMATRAIL ) ) {
+		while ( level.time >= client->trailTime ) {
+			G_DropTrail( ent );
+			client->trailTime += g_trailInterval.integer;
+		}
+	}
+
 	G_DamageOverTimeTick( ent, &client->burnEndTime, &client->burnNextTime, client->burnAttacker,
 		g_burnDamage.integer, g_burnTime.integer, MOD_BURN );
 	G_DamageOverTimeTick( ent, &client->poisonEndTime, &client->poisonNextTime, client->poisonAttacker,
@@ -984,6 +1353,7 @@ void G_AbilityClientDied( gentity_t *ent ) {
 	int			i;
 
 	G_ClearDamageOverTime( ent );
+	G_AbilityEnded( ent );
 	if ( client->abilityEnt ) {
 		G_FreeEntity( client->abilityEnt );
 		client->abilityEnt = NULL;

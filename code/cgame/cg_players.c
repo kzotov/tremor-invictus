@@ -2165,6 +2165,10 @@ void CG_AddRefEntityWithPowerups( refEntity_t *ent, entityState_t *state, int te
 			trap_R_AddRefEntityToScene( ent );
 		//}
 
+		if ( state->eFlags & EF_BARRIER ) {
+			ent->customShader = cgs.media.battleSuitShader;
+			trap_R_AddRefEntityToScene( ent );
+		}
 		if ( state->powerups & ( 1 << PW_QUAD ) )
 		{
 			if (team == TEAM_RED)
@@ -2269,6 +2273,20 @@ void CG_Player( centity_t *cent ) {
 	// it is possible to see corpses from disconnected players that may
 	// not have valid clientinfo
 	if ( !ci->infoValid ) {
+		return;
+	}
+
+	// a player flying the drone is drawn as the drone
+	if ( cent->currentState.eFlags & EF_DRONE ) {
+		if ( cent->currentState.number == cg.snap->ps.clientNum && !cg.renderingThirdPerson ) {
+			return;
+		}
+		memset( &legs, 0, sizeof( legs ) );
+		legs.hModel = cgs.media.droneModel;
+		VectorCopy( cent->lerpOrigin, legs.origin );
+		VectorCopy( cent->lerpOrigin, legs.oldorigin );
+		AnglesToAxis( cent->lerpAngles, legs.axis );
+		trap_R_AddRefEntityToScene( &legs );
 		return;
 	}
 

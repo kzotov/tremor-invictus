@@ -1365,6 +1365,10 @@ void CG_AddViewWeapon( playerState_t *ps ) {
 		return;
 	}
 
+	if ( ps->eFlags & EF_DRONE ) {
+		return;		// flying the drone, no hands
+	}
+
 	if ( ps->pm_type == PM_INTERMISSION ) {
 		return;
 	}

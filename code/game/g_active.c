@@ -512,11 +512,15 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 		}
 	}
 
-	// timed abilities ending
+	// timed abilities starting and ending
+	if ( client->abilityPrevState != ABILITY_ACTIVE && state == ABILITY_ACTIVE ) {
+		G_AbilityStarted( ent );
+	}
 	if ( client->abilityPrevState == ABILITY_ACTIVE && state != ABILITY_ACTIVE ) {
 		if ( champ->active == ACTIVE_GHOSTWALK ) {
 			G_GhostWalkEnd( ent );
 		}
+		G_AbilityEnded( ent );
 	}
 	client->abilityPrevState = state;
 

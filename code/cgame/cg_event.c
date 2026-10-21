@@ -271,6 +271,15 @@ static void CG_Obituary( entityState_t *ent ) {
 		case MOD_TURRET:
 			message = (char *)BG_String( STR_OBIT_TURRET );
 			break;
+		case MOD_LASER:
+			message = (char *)BG_String( STR_OBIT_LASER );
+			break;
+		case MOD_PLASMATRAIL:
+			message = (char *)BG_String( STR_OBIT_PLASMATRAIL );
+			break;
+		case MOD_DRONE:
+			message = (char *)BG_String( STR_OBIT_DRONE );
+			break;
 		case MOD_GAUNTLET:
 			message = "was pummeled by";
 			break;

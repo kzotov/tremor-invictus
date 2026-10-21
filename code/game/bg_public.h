@@ -265,6 +265,9 @@ typedef enum {
 	STR_OBIT_ACID,
 	STR_OBIT_TOTEM,
 	STR_OBIT_TURRET,
+	STR_OBIT_LASER,
+	STR_OBIT_PLASMATRAIL,
+	STR_OBIT_DRONE,
 
 	STR_NUM_STRINGS
 } stringId_t;
@@ -353,6 +356,7 @@ float	BG_AbilityParam( int active, int param );
 #define	PASSIVE_AMMOCOOLDOWN	128		// ammo pickups cut the cooldown
 #define	PASSIVE_FULLSPRINT		256		// higher air acceleration
 #define	PASSIVE_CHARRING		512		// melee hits set the target burning
+#define	PASSIVE_STROYENT		1024	// kills drop cells that heal this champion
 
 typedef struct {
 	char		*name;				// userinfo "champion" value
@@ -447,6 +451,10 @@ typedef struct {
 	float	injectionSpeed;			// run speed multiplier
 	float	dualWieldRate;			// fire rate multiplier
 	float	berserkSpeed;			// run speed while berserk
+
+	float	droneSpeed;				// drone flying speed
+	float	droneSize;				// drone half-size
+	float	droneFireInterval;		// msec between drone shots
 } pmoveSettings_t;
 
 extern	pmoveSettings_t	bg_pmoveSettings;
@@ -561,6 +569,10 @@ typedef enum {
 #define	EF_AWARD_ASSIST		0x00020000		// draw a assist sprite
 #define EF_AWARD_DENIED		0x00040000		// denied
 #define EF_TEAMVOTED		0x00080000		// already cast a team vote
+
+// player-only reuses of missile and mover bits (the playerstate sends 16 bits)
+#define	EF_BARRIER			EF_BOUNCE_HALF	// shield up around the player
+#define	EF_DRONE			EF_MOVER_STOP	// the player is flying the drone
 
 // NOTE: may not have more than 16
 typedef enum {
@@ -908,7 +920,10 @@ typedef enum {
 	MOD_BURN,
 	MOD_ACID,
 	MOD_TOTEM,
-	MOD_TURRET
+	MOD_TURRET,
+	MOD_LASER,
+	MOD_PLASMATRAIL,
+	MOD_DRONE
 } meansOfDeath_t;
 
 

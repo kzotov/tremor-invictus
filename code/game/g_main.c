@@ -105,6 +105,23 @@ vmCvar_t	g_turretDamage;
 vmCvar_t	g_turretInterval;
 vmCvar_t	g_turretRange;
 vmCvar_t	g_turretBoltSpeed;
+vmCvar_t	g_barrierScale;
+vmCvar_t	g_laserDelay;
+vmCvar_t	g_laserInterval;
+vmCvar_t	g_laserDamage;
+vmCvar_t	g_laserRange;
+vmCvar_t	g_trailInterval;
+vmCvar_t	g_trailLife;
+vmCvar_t	g_trailDamage;
+vmCvar_t	g_trailBlast;
+vmCvar_t	g_trailRadius;
+vmCvar_t	g_droneHealth;
+vmCvar_t	g_droneDamage;
+vmCvar_t	g_droneLaunchDelay;
+vmCvar_t	g_droneRocketDamage;
+vmCvar_t	g_droneRocketRadius;
+vmCvar_t	g_stroyentHeal;
+vmCvar_t	g_stroyentLife;
 vmCvar_t	g_hookSpeed;
 vmCvar_t	g_hookRange;
 vmCvar_t	g_hookDamage;
@@ -263,6 +280,23 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_turretInterval, "g_turretInterval", "200", 0, 0, qtrue },
 	{ &g_turretRange, "g_turretRange", "1500", 0, 0, qtrue },
 	{ &g_turretBoltSpeed, "g_turretBoltSpeed", "2000", 0, 0, qtrue },
+	{ &g_barrierScale, "g_barrierScale", "0.5", 0, 0, qtrue },
+	{ &g_laserDelay, "g_laserDelay", "250", 0, 0, qtrue },
+	{ &g_laserInterval, "g_laserInterval", "125", 0, 0, qtrue },
+	{ &g_laserDamage, "g_laserDamage", "10", 0, 0, qtrue },
+	{ &g_laserRange, "g_laserRange", "2000", 0, 0, qtrue },
+	{ &g_trailInterval, "g_trailInterval", "150", 0, 0, qtrue },
+	{ &g_trailLife, "g_trailLife", "5000", 0, 0, qtrue },
+	{ &g_trailDamage, "g_trailDamage", "5", 0, 0, qtrue },
+	{ &g_trailBlast, "g_trailBlast", "25", 0, 0, qtrue },
+	{ &g_trailRadius, "g_trailRadius", "80", 0, 0, qtrue },
+	{ &g_droneHealth, "g_droneHealth", "90", 0, 0, qtrue },
+	{ &g_droneDamage, "g_droneDamage", "15", 0, 0, qtrue },
+	{ &g_droneLaunchDelay, "g_droneLaunchDelay", "500", 0, 0, qtrue },
+	{ &g_droneRocketDamage, "g_droneRocketDamage", "75", 0, 0, qtrue },
+	{ &g_droneRocketRadius, "g_droneRocketRadius", "120", 0, 0, qtrue },
+	{ &g_stroyentHeal, "g_stroyentHeal", "25", 0, 0, qtrue },
+	{ &g_stroyentLife, "g_stroyentLife", "20000", 0, 0, qtrue },
 	{ &g_hookSpeed, "g_hookSpeed", "3000", 0, 0, qtrue },
 	{ &g_hookRange, "g_hookRange", "4000", 0, 0, qtrue },
 	{ &g_hookDamage, "g_hookDamage", "25", 0, 0, qtrue },

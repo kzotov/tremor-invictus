@@ -316,7 +316,10 @@ char	*modNames[] = {
 	"MOD_BURN",
 	"MOD_ACID",
 	"MOD_TOTEM",
-	"MOD_TURRET"
+	"MOD_TURRET",
+	"MOD_LASER",
+	"MOD_PLASMATRAIL",
+	"MOD_DRONE"
 };
 
 #ifdef MISSIONPACK
@@ -468,6 +471,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	self->client->abilityPrevState = ABILITY_IDLE;
 	self->client->ps.powerups[PW_INVIS] = 0;
 	G_AbilityClientDied( self );
+	G_DropStroyentCell( self, attacker );
 #ifdef MISSIONPACK
 	if ((self->client->ps.eFlags & EF_TICKING) && self->activator) {
 		self->client->ps.eFlags &= ~EF_TICKING;
@@ -1015,6 +1019,12 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if ( damage < 1 ) {
 		damage = 1;
 	}
+	// barrier shield
+	damage *= G_BarrierScale( targ, mod );
+	if ( damage < 1 ) {
+		damage = 1;
+	}
+
 	// bull rush shrugs off part of the damage
 	if ( client && BG_AbilityState( &client->ps ) == ABILITY_RUSH ) {
 		take = damage * g_rushDamageScale.value;
@@ -1066,6 +1076,11 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		// set the last client who damaged the target
 		targ->client->lasthurt_client = attacker->s.number;
 		targ->client->lasthurt_mod = mod;
+	}
+
+	// a drone brought down ends the flight instead of killing the player
+	if ( take && G_DroneAbsorbDamage( targ, take ) ) {
+		return;
 	}
 
 	// do the damage

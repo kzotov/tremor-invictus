@@ -38,6 +38,7 @@ float	pm_flyaccelerate = 8.0f;
 
 float	pm_waterfriction = 1.0f;
 float	pm_flightfriction = 3.0f;
+float	pm_flyfriction = 5.0f;		// drone air brake
 float	pm_spectatorfriction = 5.0f;
 
 int		c_pmove = 0;
@@ -45,6 +46,7 @@ int		c_pmove = 0;
 pmoveSettings_t	bg_pmoveSettings;
 
 static qboolean	PM_AbilityActive( int active );
+static qboolean	PM_DroneActive( void );
 static float	PM_WeaponTimeScale( void );
 static float	PM_ClassAirAccelerate( void );
 
@@ -115,7 +117,11 @@ static pmoveCvar_t pmoveCvars[] = {
 
 	{ {0}, "pm_injectionSpeed",		"1.2",	&bg_pmoveSettings.injectionSpeed },
 	{ {0}, "pm_dualWieldRate",		"1.3",	&bg_pmoveSettings.dualWieldRate },
-	{ {0}, "pm_berserkSpeed",		"500",	&bg_pmoveSettings.berserkSpeed }
+	{ {0}, "pm_berserkSpeed",		"500",	&bg_pmoveSettings.berserkSpeed },
+
+	{ {0}, "pm_droneSpeed",			"400",	&bg_pmoveSettings.droneSpeed },
+	{ {0}, "pm_droneSize",			"10",	&bg_pmoveSettings.droneSize },
+	{ {0}, "pm_droneFireInterval",	"125",	&bg_pmoveSettings.droneFireInterval }
 };
 
 static vmCvar_t	abilityCvars[ACTIVE_NUM_ABILITIES][AP_NUM_PARAMS];
@@ -1716,6 +1722,15 @@ static void PM_CheckDuck (void)
 	}
 	pm->ps->pm_flags &= ~PMF_INVULEXPAND;
 
+	if ( PM_DroneActive() ) {
+		width = bg_pmoveSettings.droneSize;
+		VectorSet( pm->mins, -width, -width, -width );
+		VectorSet( pm->maxs, width, width, width );
+		pm->ps->pm_flags &= ~PMF_DUCKED;
+		pm->ps->viewheight = 0;
+		return;
+	}
+
 	width = bg_classInfo[pml.champion->bodyClass].halfWidth;
 	pm->mins[0] = -width;
 	pm->mins[1] = -width;
@@ -1994,6 +2009,14 @@ static void PM_Weapon( void ) {
 		return;
 	}
 
+	// the drone has its own gun: machinegun rate set by pm_droneFireInterval, no ammo
+	if ( PM_DroneActive() ) {
+		pm->cmd.weapon = WP_MACHINEGUN;
+		if ( pm->ps->ammo[WP_MACHINEGUN] < 1 ) {
+			pm->ps->ammo[WP_MACHINEGUN] = 1;
+		}
+	}
+
 	// berserk is fists only
 	if ( pml.champion->active == ACTIVE_BERSERK
 		&& ( PM_AbilityActive( ACTIVE_BERSERK ) || BG_AbilityState( pm->ps ) == ABILITY_WINDUP ) ) {
@@ -2098,7 +2121,7 @@ static void PM_Weapon( void ) {
 	}
 
 	// take an ammo away if not infinite
-	if ( pm->ps->ammo[ pm->ps->weapon ] != -1 ) {
+	if ( pm->ps->ammo[ pm->ps->weapon ] != -1 && !PM_DroneActive() ) {
 		pm->ps->ammo[ pm->ps->weapon ]--;
 	}
 
@@ -2117,7 +2140,7 @@ static void PM_Weapon( void ) {
 		addTime = 1000;
 		break;
 	case WP_MACHINEGUN:
-		addTime = 100;
+		addTime = PM_DroneActive() ? bg_pmoveSettings.droneFireInterval : 100;
 		break;
 	case WP_GRENADE_LAUNCHER:
 		addTime = 800;
@@ -2434,6 +2457,11 @@ static void PM_StartAbility( int *state, int *time ) {
 		PM_AddEvent( EV_USE_ABILITY );
 		*time = BG_AbilityParam( active, AP_DURATION );
 		*state = *time > 0 ? ABILITY_ACTIVE : ABILITY_IDLE;
+		if ( active == ACTIVE_DRONE ) {
+			// the drone takes off from eye height; the game leaves the body below
+			pm->ps->origin[2] += DEFAULT_VIEWHEIGHT;
+			VectorClear( pm->ps->velocity );
+		}
 		break;
 	}
 }
@@ -2551,6 +2579,52 @@ static void PM_AbilitySpeed( void ) {
 	} else if ( PM_AbilityActive( ACTIVE_BERSERK ) ) {
 		pml.runSpeed = bg_pmoveSettings.berserkSpeed;
 	}
+}
+
+/*
+================
+PM_DroneActive
+================
+*/
+static qboolean PM_DroneActive( void ) {
+	return PM_AbilityActive( ACTIVE_DRONE );
+}
+
+/*
+================
+PM_DroneMove
+
+The drone flies where the player looks, without gravity
+================
+*/
+static void PM_DroneMove( void ) {
+	vec3_t	wishvel, wishdir;
+	float	wishspeed, scale, speed, newspeed;
+	int		i;
+
+	// air brake like a spectator, so it stops when let go
+	speed = VectorLength( pm->ps->velocity );
+	if ( speed > 0 ) {
+		newspeed = speed - speed * pm_flyfriction * pml.frametime;
+		if ( newspeed < 0 ) {
+			newspeed = 0;
+		}
+		VectorScale( pm->ps->velocity, newspeed / speed, pm->ps->velocity );
+	}
+
+	scale = PM_CmdScale( &pm->cmd );
+	if ( scale ) {
+		scale *= bg_pmoveSettings.droneSpeed / pml.runSpeed;
+	}
+	for ( i = 0 ; i < 3 ; i++ ) {
+		wishvel[i] = scale * pml.forward[i] * pm->cmd.forwardmove + scale * pml.right[i] * pm->cmd.rightmove;
+	}
+	wishvel[2] += scale * pm->cmd.upmove;
+
+	VectorCopy( wishvel, wishdir );
+	wishspeed = VectorNormalize( wishdir );
+	PM_Accelerate( wishdir, wishspeed, pm_flyaccelerate );
+	PM_SlideMove( qfalse );
 }
 
 /*
@@ -2982,6 +3056,11 @@ void PmoveSingle (pmove_t *pmove) {
 	PM_Acceleration();
 	PM_Ability();
 	PM_AbilitySpeed();
+	if ( PM_DroneActive() ) {
+		pm->ps->eFlags |= EF_DRONE;
+	} else {
+		pm->ps->eFlags &= ~EF_DRONE;
+	}
 	PM_AirDodge();
 	if ( BG_AbilityState( pm->ps ) == ABILITY_RUSH && pm->ps->pm_type == PM_NORMAL ) {
 		PM_RushMove();
@@ -2996,6 +3075,8 @@ void PmoveSingle (pmove_t *pmove) {
 	if ( pm->ps->powerups[PW_FLIGHT] ) {
 		// flight powerup doesn't allow jump and has different friction
 		PM_FlyMove();
+	} else if ( PM_DroneActive() ) {
+		PM_DroneMove();
 	} else if ( BG_AbilityState( pm->ps ) == ABILITY_HOOK_PULL ) {
 		PM_HookMove();
 		PM_AirMove();
