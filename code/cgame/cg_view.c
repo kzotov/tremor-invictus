@@ -495,6 +495,11 @@ static int CG_CalcFov( void ) {
 			fov_x = 90;
 		} else {
 			fov_x = cg_fov.value;
+			// spectators may watch with their own field of view
+			if ( cg_specFov.value > 0 && ( ( cg.snap->ps.pm_flags & PMF_FOLLOW )
+				|| cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR ) ) {
+				fov_x = cg_specFov.value;
+			}
 			if ( fov_x < 1 ) {
 				fov_x = 1;
 			} else if ( fov_x > 130 ) {
@@ -843,7 +848,8 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 
 	// decide on third person view
 	cg.renderingThirdPerson = cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR
-							&& (cg_thirdPerson.integer || (cg.snap->ps.stats[STAT_HEALTH] <= 0));
+							&& (cg_thirdPerson.integer || (cg.snap->ps.stats[STAT_HEALTH] <= 0)
+								|| ( cg_specThirdPerson.integer && ( cg.snap->ps.pm_flags & PMF_FOLLOW ) ));
 
 	// build cg.refdef
 	inwater = CG_CalcViewValues();

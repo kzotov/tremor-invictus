@@ -215,6 +215,8 @@ vmCvar_t	cg_obituaryRowSize;
 vmCvar_t	cg_chatHistoryLength;
 vmCvar_t	cg_specItemTimers;
 vmCvar_t	cg_followKiller;
+vmCvar_t	cg_specFov;
+vmCvar_t	cg_specThirdPerson;
 vmCvar_t	cg_followPowerup;
 vmCvar_t	cg_zoomSensitivity;
 vmCvar_t	cg_crosshairColor;
@@ -403,6 +405,8 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_chatHistoryLength, "cg_chatHistoryLength", "6", CVAR_ARCHIVE},
 	{ &cg_specItemTimers, "cg_specItemTimers", "7", CVAR_ARCHIVE},
 	{ &cg_followKiller, "cg_followKiller", "0", CVAR_ARCHIVE},
+	{ &cg_specFov, "cg_specFov", "0", CVAR_ARCHIVE},		// spectating: this field of view, 0 = cg_fov
+	{ &cg_specThirdPerson, "cg_specThirdPerson", "0", CVAR_ARCHIVE},	// following: chase from behind
 	{ &cg_followPowerup, "cg_followPowerup", "0", CVAR_ARCHIVE},		// spectators follow whoever takes a power-up
 	{ &cg_zoomSensitivity, "cg_zoomSensitivity", "0", CVAR_ARCHIVE},
 	{ &cg_crosshairColor, "cg_crosshairColor", "0", CVAR_ARCHIVE},
