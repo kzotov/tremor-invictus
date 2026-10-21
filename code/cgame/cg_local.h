@@ -649,6 +649,7 @@ typedef struct {
 	int			damageArcTime;
 	int			damageArcValue;
 	int			lowHealthBeat;		// cg.time of the last low-health heartbeat
+	int			abilityReadyTime;	// cg.time the active ability last became ready
 
 	// status bar head
 	float		headYaw;

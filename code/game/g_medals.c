@@ -138,6 +138,9 @@ void G_MedalsDamage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		return;
 	}
 	client = attacker->client;
+	if ( mod == MOD_TELEFRAG ) {
+		take = ( targ->health > 0 ? targ->health : 0 ) + targ->client->ps.stats[STAT_ARMOR];
+	}
 	targ->client->hurtTime[attacker->s.number] = level.time;
 	if ( mod != MOD_RAILGUN ) {
 		targ->client->comboTime[attacker->s.number] = level.time;

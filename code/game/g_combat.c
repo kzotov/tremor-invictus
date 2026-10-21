@@ -1218,8 +1218,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
 		// match stats: damage between enemies
 		if ( attacker && attacker->client && attacker != targ && !OnSameTeam( targ, attacker ) ) {
-			attacker->client->pers.damageGiven += take + asave;
-			client->pers.damageTaken += take + asave;
+			int		dealt = take + asave;
+
+			// a telefrag counts what the victim had left, not its huge damage
+			if ( mod == MOD_TELEFRAG && dealt > ( targ->health > 0 ? targ->health : 0 ) + asave ) {
+				dealt = ( targ->health > 0 ? targ->health : 0 ) + asave;
+			}
+			attacker->client->pers.damageGiven += dealt;
+			client->pers.damageTaken += dealt;
 		}
 
 		// enough damage while on the hook breaks the rope

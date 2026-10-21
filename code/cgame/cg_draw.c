@@ -865,6 +865,10 @@ static void CG_DrawAbilityRing( float cx, float cy, float radius, float startDeg
 	if ( BG_AbilityState( ps ) == ABILITY_ACTIVE || BG_AbilityState( ps ) == ABILITY_RUSH ) {
 		VectorSet( on, 0.3f, 0.9f, 1.0f );
 	}
+	// just ready: one flash, the dots swelling and fading back
+	if ( cg.abilityReadyTime && cg.time - cg.abilityReadyTime < 400 ) {
+		dotSize *= 1.0f + 0.8f * ( 1.0f - ( cg.time - cg.abilityReadyTime ) / 400.0f );
+	}
 	for ( i = 0 ; i < dots ; i++ ) {
 		a = DEG2RAD( startDeg + spanDeg * ( i + 0.5f ) / dots );
 		CG_FillRect( cx + cos( a ) * radius - dotSize / 2, cy + sin( a ) * radius - dotSize / 2, dotSize, dotSize,

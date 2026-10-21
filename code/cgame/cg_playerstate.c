@@ -532,6 +532,26 @@ void CG_TransitionPlayerState( playerState_t *ps, playerState_t *ops ) {
 		CG_CheckLocalSounds( ps, ops );
 	}
 
+	// the active ability just became ready: a flash on the ring and a chime
+	if ( ps->clientNum == ops->clientNum && ps->stats[STAT_CHAMPION] == ops->stats[STAT_CHAMPION]
+		&& ps->stats[STAT_HEALTH] > 0 && ps->persistant[PERS_SPAWN_COUNT] == ops->persistant[PERS_SPAWN_COUNT]
+		&& BG_AbilityCharges( ps ) > BG_AbilityCharges( ops ) ) {
+		static qboolean		loaded;
+		static sfxHandle_t	chime;
+
+		if ( !loaded ) {
+			loaded = qtrue;
+			chime = trap_S_RegisterSound( "sound/feedback/abilityready.wav", qfalse );
+			if ( !chime ) {
+				chime = trap_S_RegisterSound( "sound/misc/menu1.wav", qfalse );
+			}
+		}
+		cg.abilityReadyTime = cg.time;
+		if ( chime ) {
+			trap_S_StartLocalSound( chime, CHAN_LOCAL_SOUND );
+		}
+	}
+
 	// check for going low on ammo
 	CG_CheckAmmo();
 
