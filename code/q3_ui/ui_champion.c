@@ -352,6 +352,11 @@ static void Champion_Draw( void ) {
 		}
 	}
 
+	// who they are, under the grid
+	if ( s_champion.shown >= 0 && s_champion.shown < STR_BIO_UNUMREY - STR_BIO_RANGER + 1 ) {
+		Champion_DrawWrapped( GRID_X + 4, 384, BG_String( STR_BIO_RANGER + s_champion.shown ), 38, text_color_disabled );
+	}
+
 	UI_DrawString( 320, 458, BG_String( STR_MENU_CHAMPION_NEXT_SPAWN ), UI_CENTER | UI_SMALLFONT, text_color_disabled );
 }
 
