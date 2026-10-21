@@ -541,6 +541,26 @@ void ApplyConditions( Rml::Element *element ) {
 	for ( int i = 0 ; i < element->GetNumChildren() ; i++ ) {
 		Rml::Element	*child = element->GetChild( i );
 		Rml::Variant	*when = child->GetAttribute( "data-when" );
+		Rml::Variant	*src = child->GetAttribute( "data-src-cvar" );
+		Rml::Variant	*cls = child->GetAttribute( "data-class" );
+
+		// data-class="name:condition" sets the class while the condition holds
+		if ( cls ) {
+			Rml::String	value = cls->Get<Rml::String>();
+			size_t		colon = value.find( ':' );
+
+			if ( colon != Rml::String::npos ) {
+				child->SetClass( value.substr( 0, colon ), Condition( value.substr( colon + 1 ) ) );
+			}
+		}
+
+		// an image whose source is a cvar's value (a game path)
+		if ( src ) {
+			char	value[256];
+
+			imp.GetCvar( src->Get<Rml::String>().c_str(), value, sizeof( value ) );
+			child->SetAttribute( "src", Rml::String( "/" ) + value );
+		}
 
 		if ( when ) {
 			if ( Condition( when->Get<Rml::String>() ) ) {
@@ -641,6 +661,10 @@ extern "C" int RML_KeyEvent( int key, int down ) {
 	if ( !RML_Active() ) {
 		return 0;
 	}
+	// a mouse-only document (data-mouse-only) leaves the keys to the game
+	if ( document->GetAttribute( "data-mouse-only" ) && !( key >= K_MOUSE1 && key <= K_MWHEELUP ) ) {
+		return 0;
+	}
 	if ( key >= K_MOUSE1 && key <= K_MOUSE1 + 2 ) {
 		if ( down ) {
 			context->ProcessMouseButtonDown( key - K_MOUSE1, 0 );
@@ -669,7 +693,7 @@ extern "C" int RML_KeyEvent( int key, int down ) {
 }
 
 extern "C" int RML_CharEvent( int ch ) {
-	if ( !RML_Active() ) {
+	if ( !RML_Active() || document->GetAttribute( "data-mouse-only" ) ) {
 		return 0;
 	}
 	if ( ch >= 32 && ch != 127 ) {

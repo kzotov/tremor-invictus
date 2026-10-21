@@ -3368,9 +3368,10 @@ static void CG_DrawMapVote( void ) {
 	qhandle_t	shot;
 	const char	*cs = CG_ConfigString( CS_MAPVOTE );
 
-	if ( !cs[0] ) {
-		return;
-	}
+	static char	shownFor[MAX_STRING_CHARS];		// the vote state the document shows
+	char		rmlOk[8];
+
+	trap_Cvar_VariableStringBuffer( "rml_ok", rmlOk, sizeof( rmlOk ) );
 	p = (char *)cs;
 	endTime = atoi( COM_Parse( &p ) );
 	for ( i = 0 ; i < 3 ; i++ ) {
@@ -3379,12 +3380,47 @@ static void CG_DrawMapVote( void ) {
 	for ( i = 0 ; i < 3 ; i++ ) {
 		votes[i] = atoi( COM_Parse( &p ) );
 	}
-	if ( !maps[0][0] || cg.time >= endTime ) {
+	if ( !cs[0] || !maps[0][0] || cg.time >= endTime ) {
+		if ( shownFor[0] ) {
+			shownFor[0] = 0;
+			trap_SendConsoleCommand( "rml_hide\n" );
+		}
 		return;
 	}
 	if ( cg.mapVoteTime != endTime ) {
 		cg.mapVoteTime = endTime;		// a new vote: nothing chosen yet
 		cg.mapVote = 0;
+		trap_Cvar_Set( "mv_pick", "0" );
+	}
+	{
+		char	pick[8];
+
+		// a map clicked in the document
+		trap_Cvar_VariableStringBuffer( "mv_pick", pick, sizeof( pick ) );
+		if ( atoi( pick ) >= 1 && atoi( pick ) <= 3 ) {
+			cg.mapVote = atoi( pick );
+		}
+	}
+
+	// with RmlUi the vote is a document of clickable maps (ui/mapvote.rml),
+	// shown again whenever the counts or this player's choice change
+	if ( atoi( rmlOk ) ) {
+		const char	*state = va( "%s %i", cs, cg.mapVote );
+
+		if ( strcmp( state, shownFor ) ) {
+			Q_strncpyz( shownFor, state, sizeof( shownFor ) );
+			for ( i = 0 ; i < 3 ; i++ ) {
+				trap_Cvar_Set( va( "mv_name%i", i + 1 ), maps[i][0] == '-' ? "" : maps[i] );
+				trap_Cvar_Set( va( "mv_shot%i", i + 1 ), maps[i][0] == '-' ? "menu/art/unknownmap" : va( "levelshots/%s", maps[i] ) );
+				trap_Cvar_Set( va( "mv_votes%i", i + 1 ), va( "%i", votes[i] ) );
+			}
+			trap_Cvar_Set( "mv_mine", va( "%i", cg.mapVote ) );
+			trap_SendConsoleCommand( "rml_hide\nrml_show ui/mapvote.rml\n" );
+		}
+		left = ( endTime - cg.time + 999 ) / 1000;
+		CG_DrawSmallStringColor( SCREEN_WIDTH / 2 - CG_DrawStrlen( va( (char *)BG_String( STR_MV_ENDS ), left ) ) * SMALLCHAR_WIDTH / 2,
+			24, va( (char *)BG_String( STR_MV_ENDS ), left ), colorWhite );
+		return;
 	}
 
 	CG_FillRect( 0, 318, SCREEN_WIDTH, 162, panel );

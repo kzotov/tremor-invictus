@@ -176,3 +176,60 @@ button.small {
 	margin: 2dp;
 	border-left-width: 4dp;
 }
+
+/* the end-of-match map vote along the bottom of the end board */
+.vote {
+	position: absolute;
+	left: 0dp;
+	bottom: 0dp;
+	width: 100%;
+	height: 33%;
+	background-color: #101114e6;
+	text-align: center;
+}
+
+.vote h1 {
+	display: block;
+	font-family: "Arial Black";
+	font-size: 34dp;
+	color: #f2efe9;
+	margin-top: 16dp;
+}
+
+.vote .maps {
+	display: block;
+	margin-top: 10dp;
+}
+
+.vote .map {
+	display: inline-block;
+	width: 300dp;
+	margin: 0dp 16dp;
+	padding: 6dp;
+	border: 3dp transparent;
+	cursor: pointer;
+	font-size: 26dp;
+	color: #e8e4dc;
+}
+
+.vote .map:hover {
+	border-color: #e8e4dc;
+}
+
+.vote .map.mine {
+	border-color: #d3191f;
+	background-color: #d3191f33;
+}
+
+.vote .map img {
+	display: block;
+	width: 288dp;
+	height: 162dp;
+}
+
+.vote .help {
+	display: block;
+	font-size: 22dp;
+	color: #8a8780;
+	margin-top: 8dp;
+}

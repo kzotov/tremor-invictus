@@ -1,0 +1,17 @@
+<rml>
+<head>
+	<title>Map vote</title>
+	<link type="text/rcss" href="tremor.rcss"/>
+</head>
+<body data-mouse-only="1">
+	<div class="vote">
+		<h1>[mv_title]</h1>
+		<div class="maps">
+			<div class="map" data-class="mine:mv_mine=1" data-when="mv_name1!=" onclick="mapvote 1; set mv_pick 1"><img data-src-cvar="mv_shot1"/>1 [$mv_name1] · [$mv_votes1] [mv_votes]</div>
+			<div class="map" data-class="mine:mv_mine=2" data-when="mv_name2!=" onclick="mapvote 2; set mv_pick 2"><img data-src-cvar="mv_shot2"/>2 [$mv_name2] · [$mv_votes2] [mv_votes]</div>
+			<div class="map" data-class="mine:mv_mine=3" data-when="mv_name3!=" onclick="mapvote 3; set mv_pick 3"><img data-src-cvar="mv_shot3"/>3 [$mv_name3] · [$mv_votes3] [mv_votes]</div>
+		</div>
+		<div class="help">[mv_help]</div>
+	</div>
+</body>
+</rml>

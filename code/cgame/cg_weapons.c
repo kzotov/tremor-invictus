@@ -1639,6 +1639,7 @@ void CG_Weapon_f( void ) {
 	if ( cg.snap->ps.pm_type == PM_INTERMISSION ) {
 		if ( num <= 3 ) {
 			cg.mapVote = num;
+			trap_Cvar_Set( "mv_pick", va( "%i", num ) );
 			trap_SendClientCommand( va( "mapvote %i", num ) );
 		}
 		return;
