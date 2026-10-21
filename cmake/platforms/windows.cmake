@@ -42,8 +42,12 @@ set(CLIENT_EXECUTABLE_OPTIONS WIN32)
 
 # It's only necessary to set this on Windows; elsewhere
 # CMAKE_EXECUTABLE_SUFFIX will be empty anyway, or we want
-# HOST_EXECUTABLE_SUFFIX to be empty for other reasons
-set(HOST_EXECUTABLE_SUFFIX ${CMAKE_EXECUTABLE_SUFFIX})
+# HOST_EXECUTABLE_SUFFIX to be empty for other reasons.
+# When cross-compiling from macOS or Linux the tools run on the host,
+# so they have no suffix.
+if(CMAKE_HOST_WIN32)
+    set(HOST_EXECUTABLE_SUFFIX ${CMAKE_EXECUTABLE_SUFFIX})
+endif()
 
 set(CPACK_GENERATOR NSIS)
 set(CPACK_NSIS_MUI_ICON ${WINDOWS_ICON_PATH})
