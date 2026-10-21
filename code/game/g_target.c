@@ -217,6 +217,24 @@ void SP_target_speaker( gentity_t *ent ) {
 	} else {
 		Q_strncpyz( buffer, s, sizeof(buffer) );
 	}
+
+	// a sound the game doesn't have would loop the engine's placeholder
+	// beep; such a speaker stays silent
+	if ( s[0] != '*' ) {
+		fileHandle_t	f;
+		int				len = trap_FS_FOpenFile( buffer, &f, FS_READ );
+
+		if ( len <= 0 ) {
+			if ( f ) {
+				trap_FS_FCloseFile( f );
+			}
+			G_Printf( "target_speaker at %s: no sound file %s\n", vtos( ent->s.origin ), buffer );
+			G_FreeEntity( ent );
+			return;
+		}
+		trap_FS_FCloseFile( f );
+	}
+
 	ent->noise_index = G_SoundIndex(buffer);
 
 	// a repeating speaker can be done completely client side

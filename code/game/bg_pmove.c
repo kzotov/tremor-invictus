@@ -108,7 +108,7 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_hookSwingMax",		"1000",	&bg_pmoveSettings.hookSwingMax },
 
 	{ {0}, "pm_rampJumpScale",		"1",	&bg_pmoveSettings.rampJumpScale },
-	{ {0}, "pm_rampJumpMax",		"200",	&bg_pmoveSettings.rampJumpMax },
+	{ {0}, "pm_rampJumpMax",		"700",	&bg_pmoveSettings.rampJumpMax },
 
 	{ {0}, "pm_airAccelLight",		"0.85",	&bg_pmoveSettings.airAccelLight },
 	{ {0}, "pm_airAccelMedium",		"0.906",	&bg_pmoveSettings.airAccelMedium },
@@ -635,16 +635,21 @@ static qboolean PM_CheckJump( void ) {
 	pm->ps->pm_flags |= PMF_JUMP_HELD;
 
 	pm->ps->groundEntityNum = ENTITYNUM_NONE;
-	pm->ps->velocity[2] = bg_pmoveSettings.jumpVelocity;
 
-	// jumping off a climb adds the climbing speed
+	// ramp jump: jumping while climbing (up a ramp, or just after a step up)
+	// keeps the upward speed and adds the jump, up to a cap
+	speed = 0;
 	if ( pml.champion->abilities & MOVEABIL_RAMPJUMP ) {
 		speed = pm->ps->stats[STAT_MOVE_STATE];
-		if ( speed > bg_pmoveSettings.rampJumpMax ) {
-			speed = bg_pmoveSettings.rampJumpMax;
+		if ( pm->ps->velocity[2] > speed ) {
+			speed = pm->ps->velocity[2];
 		}
-		if ( speed > 0 ) {
-			pm->ps->velocity[2] += bg_pmoveSettings.rampJumpScale * speed;
+	}
+	pm->ps->velocity[2] = bg_pmoveSettings.jumpVelocity;
+	if ( speed > 0 ) {
+		pm->ps->velocity[2] += bg_pmoveSettings.rampJumpScale * speed;
+		if ( pm->ps->velocity[2] > bg_pmoveSettings.rampJumpMax ) {
+			pm->ps->velocity[2] = bg_pmoveSettings.rampJumpMax;
 		}
 	}
 
@@ -2521,6 +2526,12 @@ static void PM_EndAbility( void ) {
 	}
 }
 
+// the hook counts as blocked at a surface near its point when, after this
+// long, Athena is this close and moving toward it slower than this
+#define HOOK_BLOCKED_MSEC		200
+#define HOOK_BLOCKED_RANGE		128
+#define HOOK_BLOCKED_SPEED		50
+
 /*
 ================
 PM_StartAbility
@@ -2622,7 +2633,22 @@ static void PM_Ability( void ) {
 			state = ABILITY_IDLE;
 		}
 	} else if ( state == ABILITY_HOOK_PULL ) {
-		if ( pressed || !( pm->ps->pm_flags & PMF_GRAPPLE_PULL ) ) {
+		qboolean	arrived = qfalse;
+
+		// pulled in (not swinging): let go at the dead zone, or when a surface
+		// near the point stops the pull, so no second press is needed
+		if ( !pml.abilityHeld ) {
+			float	dist, radial;
+
+			VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
+			dist = VectorNormalize( dir );
+			radial = DotProduct( pm->ps->velocity, dir );
+			if ( dist <= bg_pmoveSettings.hookDeadZone
+				|| ( time > HOOK_BLOCKED_MSEC && dist < HOOK_BLOCKED_RANGE && radial < HOOK_BLOCKED_SPEED ) ) {
+				arrived = qtrue;
+			}
+		}
+		if ( pressed || arrived || !( pm->ps->pm_flags & PMF_GRAPPLE_PULL ) ) {
 			// let go and keep the momentum
 			BG_SetAbility( pm->ps, ABILITY_IDLE, charges );
 			PM_EndAbility();
@@ -2880,6 +2906,8 @@ static void PM_HookMove( void ) {
 	pml.groundPlane = qfalse;
 }
 
+#define RAMP_CLIMB_FADE		4000	// u/s of remembered climb lost per second
+
 /*
 ================
 PM_TrackClimb
@@ -2901,9 +2929,18 @@ static void PM_TrackClimb( qboolean wasWalking ) {
 		climb = ( pm->ps->origin[2] - pml.previous_origin[2] ) / pml.frametime;
 		if ( climb < 0 ) {
 			climb = 0;
-		} else if ( climb > STAT_TIME_CAP ) {
-			climb = STAT_TIME_CAP;
+		} else if ( climb > bg_pmoveSettings.rampJumpMax - bg_pmoveSettings.jumpVelocity ) {
+			// no more than can count toward the cap
+			climb = bg_pmoveSettings.rampJumpMax - bg_pmoveSettings.jumpVelocity;
 		}
+	}
+	// a step up is one frame of climbing; let it fade over a short while so a
+	// jump just after it still counts
+	if ( climb < pm->ps->stats[STAT_MOVE_STATE] - RAMP_CLIMB_FADE * pml.frametime ) {
+		climb = pm->ps->stats[STAT_MOVE_STATE] - RAMP_CLIMB_FADE * pml.frametime;
+	}
+	if ( !pml.walking && !wasWalking ) {
+		climb = 0;		// in the air: no climb to keep
 	}
 	pm->ps->stats[STAT_MOVE_STATE] = climb;
 }
