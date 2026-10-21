@@ -517,6 +517,7 @@ void SaveRegisteredItems( void );
 //
 int G_ModelIndex( char *name );
 int		G_SoundIndex( char *name );
+int		G_MapSoundIndex( const char *name, const vec3_t origin );
 void	G_TeamCommand( team_t team, char *cmd );
 void	G_KillBox (gentity_t *ent);
 gentity_t *G_Find (gentity_t *from, int fieldofs, const char *match);

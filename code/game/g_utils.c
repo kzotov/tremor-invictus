@@ -668,3 +668,40 @@ int DebugLine(vec3_t start, vec3_t end, int color) {
 
 	return trap_DebugPolygonCreate(color, 4, points);
 }
+
+/*
+================
+G_MapSoundIndex
+
+A sound named by a map: stray spaces around the name are dropped, and a
+sound file the game doesn't have gives 0 (silence) instead of the engine's
+looping placeholder beep
+================
+*/
+int G_MapSoundIndex( const char *name, const vec3_t origin ) {
+	char			buffer[MAX_QPATH];
+	fileHandle_t	f;
+	int				len;
+
+	while ( *name == ' ' || *name == '\t' ) {
+		name++;
+	}
+	Q_strncpyz( buffer, name, sizeof( buffer ) );
+	len = strlen( buffer );
+	while ( len > 0 && ( buffer[len - 1] == ' ' || buffer[len - 1] == '\t' ) ) {
+		buffer[--len] = 0;
+	}
+	if ( !buffer[0] ) {
+		return 0;
+	}
+
+	len = trap_FS_FOpenFile( buffer, &f, FS_READ );
+	if ( f ) {
+		trap_FS_FCloseFile( f );
+	}
+	if ( len <= 0 ) {
+		G_Printf( "map sound at %s: no sound file %s\n", vtos( origin ), buffer );
+		return 0;
+	}
+	return G_SoundIndex( buffer );
+}

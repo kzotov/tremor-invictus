@@ -712,9 +712,17 @@ static void CG_LoadClientInfo( int clientNum, clientInfo_t *ci ) {
 			break;
 		}
 		ci->sounds[i] = 0;
-		// if the model didn't load use the sounds of the default model
+		// if the model didn't load, or has no such sound, use the sounds of the default model
 		if (modelloaded) {
-			ci->sounds[i] = trap_S_RegisterSound( va("sound/player/%s/%s", dir, s + 1), qfalse );
+			fileHandle_t	f;
+			const char		*path = va("sound/player/%s/%s", dir, s + 1);
+
+			if ( trap_FS_FOpenFile( path, &f, FS_READ ) > 0 ) {
+				ci->sounds[i] = trap_S_RegisterSound( path, qfalse );
+			}
+			if ( f ) {
+				trap_FS_FCloseFile( f );
+			}
 		}
 		if ( !ci->sounds[i] ) {
 			ci->sounds[i] = trap_S_RegisterSound( va("sound/player/%s/%s", fallback, s + 1), qfalse );

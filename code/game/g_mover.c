@@ -726,7 +726,7 @@ void InitMover( gentity_t *ent ) {
 
 	// if the "loopsound" key is set, use a constant looping sound when moving
 	if ( G_SpawnString( "noise", "100", &sound ) ) {
-		ent->s.loopSound = G_SoundIndex( sound );
+		ent->s.loopSound = G_MapSoundIndex( sound, ent->s.origin );
 	}
 
 	// if the "color" or "light" keys are set, setup constantLight
