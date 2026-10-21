@@ -1419,7 +1419,23 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"START",
 	"page %i of %i",
 	"No maps support this mode",
-	"0 is no limit"
+	"0 is no limit",
+	"DEMOS",
+	"PLAY",
+	"RENAME",
+	"DELETE",
+	"OK",
+	"Date",
+	"Map",
+	"Mode",
+	"Length",
+	"Players",
+	"No demos yet. Matches are recorded to demos/ when Record every match is on.",
+	"made with an older version",
+	"DELETE THIS DEMO?",
+	"New name",
+	"Letters, digits and _-() only; Enter renames, Esc cancels.",
+	"%i demos"
 };
 
 /*

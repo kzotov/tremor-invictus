@@ -31,85 +31,474 @@ DEMOS MENU
 
 #include "ui_local.h"
 
+#define MAX_DEMOS			256
+#define NAMEBUFSIZE			( MAX_DEMOS * 64 )
+#define VISIBLE_ROWS		16
+#define ROW_HEIGHT			18
+#define LIST_Y				80
+#define HEADER_MAX			2048
 
-#define ART_BACK0			"menu/art/back_0"
-#define ART_BACK1			"menu/art/back_1"	
-#define ART_GO0				"menu/art/play_0"
-#define ART_GO1				"menu/art/play_1"
-#define ART_FRAMEL			"menu/art/frame2_l"
-#define ART_FRAMER			"menu/art/frame1_r"
-#define ART_ARROWS			"menu/art/arrows_horz_0"
-#define ART_ARROWLEFT		"menu/art/arrows_horz_left"
-#define ART_ARROWRIGHT		"menu/art/arrows_horz_right"
+#define DEMO_BLOCK_HEADER	-2
+#define DEMO_TRAILER_MAGIC	0x58444d54
 
-#define MAX_DEMOS			1024
-#define NAMEBUFSIZE			(MAX_DEMOS * 32)
+#define ID_PLAY				10
+#define ID_RENAME			11
+#define ID_DELETE			12
+#define ID_BACK				13
+#define ID_UP				14
+#define ID_DOWN				15
+#define ID_ROW				100		// + visible row
 
-#define ID_BACK				10
-#define ID_GO				11
-#define ID_LIST				12
-#define ID_RIGHT			13
-#define ID_LEFT				14
+// column positions
+#define COL_DATE			16
+#define COL_MAP				156
+#define COL_MODE			262
+#define COL_LENGTH			360
+#define COL_PLAYERS			416
 
-#define ARROWS_WIDTH		128
-#define ARROWS_HEIGHT		48
-
+typedef struct {
+	char		file[64];
+	char		date[20];			// "YYYY-MM-DD HH:MM", empty without a header
+	char		map[16];
+	int			modeString;			// STR_ id, or 0
+	char		players[48];
+	int			duration;			// msec, 0 unknown
+	qboolean	old;				// another protocol
+} demoEntry_t;
 
 typedef struct {
 	menuframework_s	menu;
 
 	menutext_s		banner;
-	menubitmap_s	framel;
-	menubitmap_s	framer;
+	menuaction_s	rows[VISIBLE_ROWS];
+	menutext_s		up;
+	menutext_s		down;
+	menutext_s		play;
+	menutext_s		rename;
+	menutext_s		del;
+	menutext_s		back;
+	menufield_s		newName;
 
-	menulist_s		list;
-
-	menubitmap_s	arrows;
-	menubitmap_s	left;
-	menubitmap_s	right;
-	menubitmap_s	back;
-	menubitmap_s	go;
-
+	demoEntry_t		demos[MAX_DEMOS];
 	int				numDemos;
-	char			names[NAMEBUFSIZE];
-	
-	char			*demolist[MAX_DEMOS];
-} demos_t;
+	int				top;			// first visible demo
+	int				selected;
+	qboolean		renaming;
+	int				protocol;
+} demosMenu_t;
 
-static demos_t	s_demos;
+static demosMenu_t	s_demos;
+static char			demoNames[NAMEBUFSIZE];
 
+static void Demos_Refresh( void );
 
 /*
 ===============
-Demos_MenuEvent
+Demos_ReadInt
+
+Little-endian, whatever the machine
 ===============
 */
-static void Demos_MenuEvent( void *ptr, int event ) {
-	if( event != QM_ACTIVATED ) {
+static int Demos_ReadInt( const unsigned char *b ) {
+	return b[0] | ( b[1] << 8 ) | ( b[2] << 16 ) | ( b[3] << 24 );
+}
+
+/*
+===============
+Demos_ModeString
+===============
+*/
+static int Demos_ModeString( const char *gametype, const char *variant ) {
+	switch ( atoi( gametype ) ) {
+	case GT_TOURNAMENT:	return strstr( variant, "roundduel" ) ? STR_MODE_ROUNDDUEL : STR_MODE_DUEL;
+	case GT_TEAM:		return strstr( variant, "ca" ) ? STR_MODE_CA : STR_MODE_TDM;
+	case GT_CTF:		return strstr( variant, "sacrifice" ) ? STR_MODE_SACRIFICE : STR_MODE_CTF;
+	default:			return 0;
+	}
+}
+
+/*
+===============
+Demos_ReadHeader
+
+The info block at the start and the length from the trailer at the end
+===============
+*/
+static void Demos_ReadHeader( demoEntry_t *d ) {
+	fileHandle_t	f;
+	unsigned char	b[16];
+	static char		info[HEADER_MAX];
+	int				len, blockLen;
+	const char		*players;
+
+	len = trap_FS_FOpenFile( va( "demos/%s", d->file ), &f, FS_READ );
+	if ( !f ) {
+		return;
+	}
+	if ( len >= 8 ) {
+		trap_FS_Read( b, 8, f );
+		blockLen = Demos_ReadInt( b + 4 );
+		if ( Demos_ReadInt( b ) == DEMO_BLOCK_HEADER && blockLen > 0 && blockLen < HEADER_MAX ) {
+			trap_FS_Read( info, blockLen, f );
+			info[blockLen] = 0;
+			Q_strncpyz( d->date, Info_ValueForKey( info, "date" ), sizeof( d->date ) );
+			Q_strncpyz( d->map, Info_ValueForKey( info, "map" ), sizeof( d->map ) );
+			d->modeString = Demos_ModeString( Info_ValueForKey( info, "gametype" ), Info_ValueForKey( info, "variant" ) );
+
+			// names only, without the champion after each slash
+			players = Info_ValueForKey( info, "players" );
+			{
+				int		n = 0;
+				qboolean	skip = qfalse;
+
+				for ( ; *players && n < (int)sizeof( d->players ) - 1; players++ ) {
+					if ( *players == '/' ) {
+						skip = qtrue;
+					} else if ( *players == ',' ) {
+						skip = qfalse;
+						if ( n < (int)sizeof( d->players ) - 3 ) {
+							d->players[n++] = ',';
+							d->players[n++] = ' ';
+						}
+					} else if ( !skip && *players != '^' ) {
+						d->players[n++] = *players;
+					}
+				}
+				d->players[n] = 0;
+			}
+		}
+	}
+	if ( len >= 24 ) {
+		trap_FS_Seek( f, len - 16, FS_SEEK_SET );
+		trap_FS_Read( b, 16, f );
+		if ( Demos_ReadInt( b + 12 ) == DEMO_TRAILER_MAGIC ) {
+			d->duration = Demos_ReadInt( b + 8 );
+		}
+	}
+	trap_FS_FCloseFile( f );
+}
+
+/*
+===============
+Demos_Newer
+
+Newest first; demos without a date go last, by name
+===============
+*/
+static int Demos_Newer( const demoEntry_t *a, const demoEntry_t *b ) {
+	if ( a->date[0] && b->date[0] ) {
+		return strcmp( a->date, b->date ) > 0;
+	}
+	if ( a->date[0] != b->date[0] ) {
+		return a->date[0] != 0;
+	}
+	return Q_stricmp( a->file, b->file ) < 0;
+}
+
+/*
+===============
+Demos_Refresh
+===============
+*/
+static void Demos_Refresh( void ) {
+	char		*name;
+	int			i, j, count, len;
+	const char	*ext;
+	static demoEntry_t	swap;
+
+	s_demos.numDemos = 0;
+	count = trap_FS_GetFileList( "demos", "", demoNames, sizeof( demoNames ) );
+	name = demoNames;
+	for ( i = 0; i < count && s_demos.numDemos < MAX_DEMOS; i++, name += len + 1 ) {
+		demoEntry_t	*d;
+
+		len = strlen( name );
+		ext = strstr( name, "." DEMOEXT );
+		if ( !ext || len >= (int)sizeof( d->file ) ) {
+			continue;
+		}
+		d = &s_demos.demos[s_demos.numDemos++];
+		memset( d, 0, sizeof( *d ) );
+		Q_strncpyz( d->file, name, sizeof( d->file ) );
+		d->old = atoi( ext + strlen( "." DEMOEXT ) ) != s_demos.protocol;
+		if ( !d->old ) {
+			Demos_ReadHeader( d );
+		}
+	}
+
+	// insertion sort, newest first
+	for ( i = 1; i < s_demos.numDemos; i++ ) {
+		swap = s_demos.demos[i];
+		for ( j = i; j > 0 && Demos_Newer( &swap, &s_demos.demos[j - 1] ); j-- ) {
+			s_demos.demos[j] = s_demos.demos[j - 1];
+		}
+		s_demos.demos[j] = swap;
+	}
+
+	if ( s_demos.selected >= s_demos.numDemos ) {
+		s_demos.selected = s_demos.numDemos - 1;
+	}
+	if ( s_demos.selected < 0 ) {
+		s_demos.selected = 0;
+	}
+	if ( s_demos.top > s_demos.selected ) {
+		s_demos.top = s_demos.selected;
+	}
+}
+
+/*
+===============
+Demos_Scroll
+===============
+*/
+static void Demos_Select( int i ) {
+	if ( i < 0 ) {
+		i = 0;
+	}
+	if ( i >= s_demos.numDemos ) {
+		i = s_demos.numDemos - 1;
+	}
+	if ( i < 0 ) {
+		return;
+	}
+	s_demos.selected = i;
+	if ( i < s_demos.top ) {
+		s_demos.top = i;
+	}
+	if ( i >= s_demos.top + VISIBLE_ROWS ) {
+		s_demos.top = i - VISIBLE_ROWS + 1;
+	}
+}
+
+/*
+===============
+Demos_DeleteAction
+===============
+*/
+static void Demos_DeleteAction( qboolean result ) {
+	if ( !result || s_demos.selected >= s_demos.numDemos ) {
+		return;
+	}
+	trap_Cmd_ExecuteText( EXEC_APPEND, va( "demo_delete %s\nui_demosRefresh\n", s_demos.demos[s_demos.selected].file ) );
+}
+
+/*
+===============
+Demos_StopRenaming
+===============
+*/
+static void Demos_StopRenaming( void ) {
+	s_demos.renaming = qfalse;
+	s_demos.newName.generic.flags |= QMF_HIDDEN | QMF_INACTIVE;
+	Menu_SetCursorToItem( &s_demos.menu, &s_demos.rows[s_demos.selected - s_demos.top] );
+}
+
+/*
+===============
+Demos_Event
+===============
+*/
+static void Demos_Event( void *ptr, int event ) {
+	int			id = ( (menucommon_s *)ptr )->id;
+	demoEntry_t	*d;
+
+	if ( event != QM_ACTIVATED ) {
+		return;
+	}
+	if ( id >= ID_ROW && id < ID_ROW + VISIBLE_ROWS ) {
+		int		i = s_demos.top + id - ID_ROW;
+
+		if ( i < s_demos.numDemos ) {
+			if ( i == s_demos.selected && !s_demos.demos[i].old ) {
+				UI_ForceMenuOff();
+				trap_Cmd_ExecuteText( EXEC_APPEND, va( "demo %s\n", s_demos.demos[i].file ) );
+				return;
+			}
+			s_demos.selected = i;
+		}
 		return;
 	}
 
-	switch( ((menucommon_s*)ptr)->id ) {
-	case ID_GO:
-		UI_ForceMenuOff ();
-		trap_Cmd_ExecuteText( EXEC_APPEND, va( "demo %s\n",
-								s_demos.list.itemnames[s_demos.list.curvalue]) );
+	d = s_demos.numDemos ? &s_demos.demos[s_demos.selected] : NULL;
+	switch ( id ) {
+	case ID_PLAY:
+		if ( d && !d->old ) {
+			UI_ForceMenuOff();
+			trap_Cmd_ExecuteText( EXEC_APPEND, va( "demo %s\n", d->file ) );
+		}
 		break;
+	case ID_RENAME:
+		if ( d ) {
+			char	*dot;
 
+			s_demos.renaming = qtrue;
+			s_demos.newName.generic.flags &= ~( QMF_HIDDEN | QMF_INACTIVE );
+			Q_strncpyz( s_demos.newName.field.buffer, d->file, sizeof( s_demos.newName.field.buffer ) );
+			dot = strstr( s_demos.newName.field.buffer, "." DEMOEXT );
+			if ( dot ) {
+				*dot = 0;
+			}
+			s_demos.newName.field.cursor = strlen( s_demos.newName.field.buffer );
+			Menu_SetCursorToItem( &s_demos.menu, &s_demos.newName );
+		}
+		break;
+	case ID_DELETE:
+		if ( d ) {
+			UI_ConfirmMenu( BG_String( STR_DM_DELETE_ASK ), NULL, Demos_DeleteAction );
+		}
+		break;
+	case ID_UP:
+		Demos_Select( s_demos.selected - VISIBLE_ROWS );
+		break;
+	case ID_DOWN:
+		Demos_Select( s_demos.selected + VISIBLE_ROWS );
+		break;
 	case ID_BACK:
 		UI_PopMenu();
-		break;
-
-	case ID_LEFT:
-		ScrollList_Key( &s_demos.list, K_LEFTARROW );
-		break;
-
-	case ID_RIGHT:
-		ScrollList_Key( &s_demos.list, K_RIGHTARROW );
 		break;
 	}
 }
 
+/*
+===============
+Demos_DrawRow
+===============
+*/
+static void Demos_DrawRow( void *self ) {
+	menuaction_s	*a = (menuaction_s *)self;
+	int				i = s_demos.top + a->generic.id - ID_ROW;
+	qboolean		focus = ( a->generic.parent->cursor == a->generic.menuPosition );
+	demoEntry_t		*d;
+	float			*color;
+	int				y = a->generic.y;
+	char			text[64];
+
+	if ( i >= s_demos.numDemos ) {
+		return;
+	}
+	d = &s_demos.demos[i];
+	if ( i == s_demos.selected ) {
+		UI_FillRect( a->generic.left, a->generic.top, a->generic.right - a->generic.left,
+			a->generic.bottom - a->generic.top, listbar_color );
+	}
+	color = d->old ? text_color_disabled : ( focus || i == s_demos.selected ) ? color_white : text_color_normal;
+
+	if ( !d->date[0] ) {
+		// no header: the file name, and why it can't play
+		Q_strncpyz( text, d->file, 34 );
+		UI_DrawString( COL_DATE, y, text, UI_LEFT | UI_SMALLFONT, color );
+		if ( d->old ) {
+			UI_DrawString( 624, y, BG_String( STR_DM_OLD ), UI_RIGHT | UI_SMALLFONT, color );
+		}
+		return;
+	}
+	UI_DrawString( COL_DATE, y, d->date, UI_LEFT | UI_SMALLFONT, color );
+	Q_strncpyz( text, d->map, 13 );
+	UI_DrawString( COL_MAP, y, text, UI_LEFT | UI_SMALLFONT, color );
+	if ( d->modeString ) {
+		Q_strncpyz( text, BG_String( d->modeString ), 12 );
+		UI_DrawString( COL_MODE, y, text, UI_LEFT | UI_SMALLFONT, color );
+	}
+	if ( d->duration > 0 ) {
+		UI_DrawString( COL_LENGTH, y, va( "%i:%02i", d->duration / 60000, ( d->duration / 1000 ) % 60 ),
+			UI_LEFT | UI_SMALLFONT, color );
+	}
+	Q_strncpyz( text, d->players, 27 );
+	UI_DrawString( COL_PLAYERS, y, text, UI_LEFT | UI_SMALLFONT, color );
+}
+
+/*
+===============
+Demos_Draw
+===============
+*/
+static void Demos_Draw( void ) {
+	float	*h = text_color_disabled;
+
+	UI_DrawString( COL_DATE, LIST_Y - 20, BG_String( STR_DM_DATE ), UI_LEFT | UI_SMALLFONT, h );
+	UI_DrawString( COL_MAP, LIST_Y - 20, BG_String( STR_DM_MAP ), UI_LEFT | UI_SMALLFONT, h );
+	UI_DrawString( COL_MODE, LIST_Y - 20, BG_String( STR_DM_MODE ), UI_LEFT | UI_SMALLFONT, h );
+	UI_DrawString( COL_LENGTH, LIST_Y - 20, BG_String( STR_DM_LENGTH ), UI_LEFT | UI_SMALLFONT, h );
+	UI_DrawString( COL_PLAYERS, LIST_Y - 20, BG_String( STR_DM_PLAYERS ), UI_LEFT | UI_SMALLFONT, h );
+
+	Menu_Draw( &s_demos.menu );
+
+	if ( !s_demos.numDemos ) {
+		UI_DrawString( 320, LIST_Y + 40, BG_String( STR_DM_NONE ), UI_CENTER | UI_SMALLFONT, text_color_normal );
+	} else {
+		UI_DrawString( 624, LIST_Y + VISIBLE_ROWS * ROW_HEIGHT + 4, va( (char *)BG_String( STR_DM_COUNT ), s_demos.numDemos ),
+			UI_RIGHT | UI_SMALLFONT, text_color_disabled );
+	}
+	if ( s_demos.renaming ) {
+		UI_DrawString( 320, 412, BG_String( STR_DM_RENAME_HINT ), UI_CENTER | UI_SMALLFONT, colorWhite );
+	}
+}
+
+/*
+===============
+Demos_Key
+===============
+*/
+static sfxHandle_t Demos_Key( int key ) {
+	menucommon_s	*item = Menu_ItemAtCursor( &s_demos.menu );
+
+	if ( s_demos.renaming ) {
+		if ( key == K_ESCAPE || key == K_MOUSE2 ) {
+			Demos_StopRenaming();
+			return menu_out_sound;
+		}
+		if ( key == K_ENTER || key == K_KP_ENTER ) {
+			if ( s_demos.newName.field.buffer[0] && s_demos.selected < s_demos.numDemos ) {
+				trap_Cmd_ExecuteText( EXEC_APPEND, va( "demo_rename %s \"%s\"\nui_demosRefresh\n",
+					s_demos.demos[s_demos.selected].file, s_demos.newName.field.buffer ) );
+			}
+			Demos_StopRenaming();
+			return menu_in_sound;
+		}
+		return Menu_DefaultKey( &s_demos.menu, key );
+	}
+
+	if ( item && item->id >= ID_ROW && item->id < ID_ROW + VISIBLE_ROWS ) {
+		switch ( key ) {
+		case K_UPARROW: case K_KP_UPARROW:
+			Demos_Select( s_demos.selected - 1 );
+			Menu_SetCursorToItem( &s_demos.menu, &s_demos.rows[s_demos.selected - s_demos.top] );
+			return menu_move_sound;
+		case K_DOWNARROW: case K_KP_DOWNARROW:
+			Demos_Select( s_demos.selected + 1 );
+			Menu_SetCursorToItem( &s_demos.menu, &s_demos.rows[s_demos.selected - s_demos.top] );
+			return menu_move_sound;
+		case K_PGUP: case K_MWHEELUP:
+			Demos_Select( s_demos.selected - ( key == K_PGUP ? VISIBLE_ROWS : 3 ) );
+			return menu_move_sound;
+		case K_PGDN: case K_MWHEELDOWN:
+			Demos_Select( s_demos.selected + ( key == K_PGDN ? VISIBLE_ROWS : 3 ) );
+			return menu_move_sound;
+		case K_DEL:
+			Demos_Event( &s_demos.del, QM_ACTIVATED );
+			return menu_in_sound;
+		}
+	}
+	return Menu_DefaultKey( &s_demos.menu, key );
+}
+
+/*
+===============
+Demos_InitText
+===============
+*/
+static void Demos_InitText( menutext_s *t, int id, const char *string, int x, int y, int style ) {
+	t->generic.type		= MTYPE_PTEXT;
+	t->generic.flags	= QMF_PULSEIFFOCUS;
+	t->generic.id		= id;
+	t->generic.callback	= Demos_Event;
+	t->generic.x		= x;
+	t->generic.y		= y;
+	t->string			= (char *)string;
+	t->style			= style;
+	t->color			= color_red;
+	Menu_AddItem( &s_demos.menu, t );
+}
 
 /*
 ===============
@@ -117,163 +506,59 @@ Demos_MenuInit
 ===============
 */
 static void Demos_MenuInit( void ) {
-	int		i, j;
-	int		len;
-	char	*demoname, extension[32];
-	int	protocol, protocolLegacy;
+	int		i;
 
-	memset( &s_demos, 0 ,sizeof(demos_t) );
-
-	Demos_Cache();
-
+	memset( &s_demos, 0, sizeof( s_demos ) );
 	s_demos.menu.fullscreen = qtrue;
 	s_demos.menu.wrapAround = qtrue;
+	s_demos.menu.draw = Demos_Draw;
+	s_demos.menu.key = Demos_Key;
+
+	s_demos.protocol = trap_Cvar_VariableValue( "com_protocol" );
+	if ( !s_demos.protocol ) {
+		s_demos.protocol = trap_Cvar_VariableValue( "protocol" );
+	}
 
 	s_demos.banner.generic.type		= MTYPE_BTEXT;
 	s_demos.banner.generic.x		= 320;
 	s_demos.banner.generic.y		= 16;
-	s_demos.banner.string			= "DEMOS";
+	s_demos.banner.string			= (char *)BG_String( STR_DM_TITLE );
 	s_demos.banner.color			= color_white;
 	s_demos.banner.style			= UI_CENTER;
-
-	s_demos.framel.generic.type		= MTYPE_BITMAP;
-	s_demos.framel.generic.name		= ART_FRAMEL;
-	s_demos.framel.generic.flags	= QMF_INACTIVE;
-	s_demos.framel.generic.x		= 0;  
-	s_demos.framel.generic.y		= 78;
-	s_demos.framel.width			= 256;
-	s_demos.framel.height			= 329;
-
-	s_demos.framer.generic.type		= MTYPE_BITMAP;
-	s_demos.framer.generic.name		= ART_FRAMER;
-	s_demos.framer.generic.flags	= QMF_INACTIVE;
-	s_demos.framer.generic.x		= 376;
-	s_demos.framer.generic.y		= 76;
-	s_demos.framer.width			= 256;
-	s_demos.framer.height			= 334;
-
-	s_demos.arrows.generic.type		= MTYPE_BITMAP;
-	s_demos.arrows.generic.name		= ART_ARROWS;
-	s_demos.arrows.generic.flags	= QMF_INACTIVE;
-	s_demos.arrows.generic.x		= 320-ARROWS_WIDTH/2;
-	s_demos.arrows.generic.y		= 400;
-	s_demos.arrows.width			= ARROWS_WIDTH;
-	s_demos.arrows.height			= ARROWS_HEIGHT;
-
-	s_demos.left.generic.type		= MTYPE_BITMAP;
-	s_demos.left.generic.flags		= QMF_LEFT_JUSTIFY|QMF_PULSEIFFOCUS|QMF_MOUSEONLY;
-	s_demos.left.generic.x			= 320-ARROWS_WIDTH/2;
-	s_demos.left.generic.y			= 400;
-	s_demos.left.generic.id			= ID_LEFT;
-	s_demos.left.generic.callback	= Demos_MenuEvent;
-	s_demos.left.width				= ARROWS_WIDTH/2;
-	s_demos.left.height				= ARROWS_HEIGHT;
-	s_demos.left.focuspic			= ART_ARROWLEFT;
-
-	s_demos.right.generic.type		= MTYPE_BITMAP;
-	s_demos.right.generic.flags		= QMF_LEFT_JUSTIFY|QMF_PULSEIFFOCUS|QMF_MOUSEONLY;
-	s_demos.right.generic.x			= 320;
-	s_demos.right.generic.y			= 400;
-	s_demos.right.generic.id		= ID_RIGHT;
-	s_demos.right.generic.callback	= Demos_MenuEvent;
-	s_demos.right.width				= ARROWS_WIDTH/2;
-	s_demos.right.height			= ARROWS_HEIGHT;
-	s_demos.right.focuspic			= ART_ARROWRIGHT;
-
-	s_demos.back.generic.type		= MTYPE_BITMAP;
-	s_demos.back.generic.name		= ART_BACK0;
-	s_demos.back.generic.flags		= QMF_LEFT_JUSTIFY|QMF_PULSEIFFOCUS;
-	s_demos.back.generic.id			= ID_BACK;
-	s_demos.back.generic.callback	= Demos_MenuEvent;
-	s_demos.back.generic.x			= 0;
-	s_demos.back.generic.y			= 480-64;
-	s_demos.back.width				= 128;
-	s_demos.back.height				= 64;
-	s_demos.back.focuspic			= ART_BACK1;
-
-	s_demos.go.generic.type			= MTYPE_BITMAP;
-	s_demos.go.generic.name			= ART_GO0;
-	s_demos.go.generic.flags		= QMF_RIGHT_JUSTIFY|QMF_PULSEIFFOCUS;
-	s_demos.go.generic.id			= ID_GO;
-	s_demos.go.generic.callback		= Demos_MenuEvent;
-	s_demos.go.generic.x			= 640;
-	s_demos.go.generic.y			= 480-64;
-	s_demos.go.width				= 128;
-	s_demos.go.height				= 64;
-	s_demos.go.focuspic				= ART_GO1;
-
-	s_demos.list.generic.type		= MTYPE_SCROLLLIST;
-	s_demos.list.generic.flags		= QMF_PULSEIFFOCUS;
-	s_demos.list.generic.callback	= Demos_MenuEvent;
-	s_demos.list.generic.id			= ID_LIST;
-	s_demos.list.generic.x			= 118;
-	s_demos.list.generic.y			= 130;
-	s_demos.list.width				= 16;
-	s_demos.list.height				= 14;
-	s_demos.list.itemnames			= (const char **)s_demos.demolist;
-	s_demos.list.columns			= 3;
-
-	protocolLegacy = trap_Cvar_VariableValue("com_legacyprotocol");
-	protocol = trap_Cvar_VariableValue("com_protocol");
-
-	if(!protocol)
-		protocol = trap_Cvar_VariableValue("protocol");
-	if(protocolLegacy == protocol)
-		protocolLegacy = 0;
-
-	Com_sprintf(extension, sizeof(extension), ".%s%d", DEMOEXT, protocol);
-	s_demos.numDemos = trap_FS_GetFileList("demos", extension, s_demos.names, ARRAY_LEN(s_demos.names));
-
-	demoname = s_demos.names;
-	i = 0;
-
-	for(j = 0; j < 2; j++)
-	{
-		if(s_demos.numDemos > MAX_DEMOS)
-			s_demos.numDemos = MAX_DEMOS;
-
-		for(; i < s_demos.numDemos; i++)
-		{
-			s_demos.list.itemnames[i] = demoname;
-		
-			len = strlen(demoname);
-
-			demoname += len + 1;
-		}
-
-		if(!j)
-		{
-			if(protocolLegacy > 0 && s_demos.numDemos < MAX_DEMOS)
-			{
-				Com_sprintf(extension, sizeof(extension), ".%s%d", DEMOEXT, protocolLegacy);
-				s_demos.numDemos += trap_FS_GetFileList("demos", extension, demoname,
-									ARRAY_LEN(s_demos.names) - (demoname - s_demos.names));
-			}
-			else
-				break;
-		}
-	}
-
-	s_demos.list.numitems = s_demos.numDemos;
-
-	if(!s_demos.numDemos)
-	{
-		s_demos.list.itemnames[0] = "No Demos Found.";
-		s_demos.list.numitems = 1;
-
-		//degenerate case, not selectable
-		s_demos.go.generic.flags |= (QMF_INACTIVE|QMF_HIDDEN);
-	}
-
 	Menu_AddItem( &s_demos.menu, &s_demos.banner );
-	Menu_AddItem( &s_demos.menu, &s_demos.framel );
-	Menu_AddItem( &s_demos.menu, &s_demos.framer );
-	Menu_AddItem( &s_demos.menu, &s_demos.list );
-	Menu_AddItem( &s_demos.menu, &s_demos.arrows );
-	Menu_AddItem( &s_demos.menu, &s_demos.left );
-	Menu_AddItem( &s_demos.menu, &s_demos.right );
-	Menu_AddItem( &s_demos.menu, &s_demos.back );
-	Menu_AddItem( &s_demos.menu, &s_demos.go );
+
+	for ( i = 0; i < VISIBLE_ROWS; i++ ) {
+		menuaction_s	*a = &s_demos.rows[i];
+
+		a->generic.type			= MTYPE_ACTION;
+		a->generic.flags		= QMF_NODEFAULTINIT;
+		a->generic.id			= ID_ROW + i;
+		a->generic.callback		= Demos_Event;
+		a->generic.ownerdraw	= Demos_DrawRow;
+		a->generic.x			= COL_DATE;
+		a->generic.y			= LIST_Y + i * ROW_HEIGHT;
+		a->generic.left			= 8;
+		a->generic.right		= 632;
+		a->generic.top			= a->generic.y - 1;
+		a->generic.bottom		= a->generic.y + SMALLCHAR_HEIGHT + 1;
+		Menu_AddItem( &s_demos.menu, a );
+	}
+
+	s_demos.newName.generic.type	= MTYPE_FIELD;
+	s_demos.newName.generic.flags	= QMF_SMALLFONT | QMF_PULSEIFFOCUS | QMF_HIDDEN | QMF_INACTIVE;
+	s_demos.newName.generic.name	= BG_String( STR_DM_NEWNAME );
+	s_demos.newName.generic.x		= 240;
+	s_demos.newName.generic.y		= 392;
+	s_demos.newName.field.widthInChars	= 40;
+	s_demos.newName.field.maxchars		= 48;
+	Menu_AddItem( &s_demos.menu, &s_demos.newName );
+
+	Demos_InitText( &s_demos.back, ID_BACK, BG_String( STR_MENU_BACK ), 40, 446, UI_LEFT | UI_SMALLFONT );
+	Demos_InitText( &s_demos.del, ID_DELETE, BG_String( STR_DM_DELETE ), 250, 446, UI_CENTER | UI_SMALLFONT );
+	Demos_InitText( &s_demos.rename, ID_RENAME, BG_String( STR_DM_RENAME ), 390, 446, UI_CENTER | UI_SMALLFONT );
+	Demos_InitText( &s_demos.play, ID_PLAY, BG_String( STR_DM_PLAY ), 600, 440, UI_RIGHT );
+
+	Demos_Refresh();
 }
 
 /*
@@ -282,15 +567,19 @@ Demos_Cache
 =================
 */
 void Demos_Cache( void ) {
-	trap_R_RegisterShaderNoMip( ART_BACK0 );
-	trap_R_RegisterShaderNoMip( ART_BACK1 );
-	trap_R_RegisterShaderNoMip( ART_GO0 );
-	trap_R_RegisterShaderNoMip( ART_GO1 );
-	trap_R_RegisterShaderNoMip( ART_FRAMEL );
-	trap_R_RegisterShaderNoMip( ART_FRAMER );
-	trap_R_RegisterShaderNoMip( ART_ARROWS );
-	trap_R_RegisterShaderNoMip( ART_ARROWLEFT );
-	trap_R_RegisterShaderNoMip( ART_ARROWRIGHT );
+}
+
+/*
+===============
+UI_DemosRefresh
+
+After a rename or delete has run
+===============
+*/
+void UI_DemosRefresh( void ) {
+	if ( uis.activemenu == &s_demos.menu ) {
+		Demos_Refresh();
+	}
 }
 
 /*
@@ -301,4 +590,9 @@ UI_DemosMenu
 void UI_DemosMenu( void ) {
 	Demos_MenuInit();
 	UI_PushMenu( &s_demos.menu );
+	if ( s_demos.numDemos ) {
+		Menu_SetCursorToItem( &s_demos.menu, &s_demos.rows[0] );
+	} else {
+		Menu_SetCursorToItem( &s_demos.menu, &s_demos.back );
+	}
 }

@@ -543,7 +543,93 @@ static void CL_DemoRestart_f( void ) {
 	CL_DemoSeekTo( demo.startTime ? demo.startTime : 0 );
 }
 
+/*
+====================
+CL_DemoFileNameOK
+
+A demo file name from the menu: letters, digits and _-(). only, with a
+demo extension, and no folders
+====================
+*/
+static qboolean CL_DemoFileNameOK( const char *name, qboolean needExtension ) {
+	const char	*p;
+
+	if ( !name[0] || strlen( name ) >= MAX_QPATH - 8 || name[0] == '.' ) {
+		return qfalse;
+	}
+	for ( p = name ; *p ; p++ ) {
+		if ( !isalnum( (unsigned char)*p ) && !strchr( "_-().", *p ) ) {
+			return qfalse;
+		}
+	}
+	if ( strstr( name, ".." ) ) {
+		return qfalse;
+	}
+	if ( needExtension && !strstr( name, "." DEMOEXT ) ) {
+		return qfalse;
+	}
+	return qtrue;
+}
+
+/*
+====================
+CL_DemoDelete_f
+
+demo_delete <file>: removes a demo from demos/ in the home folder
+====================
+*/
+static void CL_DemoDelete_f( void ) {
+	const char	*name = Cmd_Argv( 1 );
+
+	if ( Cmd_Argc() != 2 || !CL_DemoFileNameOK( name, qtrue ) ) {
+		Com_Printf( "usage: demo_delete <file in demos/>\n" );
+		return;
+	}
+	if ( clc.demorecording || clc.demoplaying ) {
+		Com_Printf( "demo_delete: not while a demo is open\n" );
+		return;
+	}
+	FS_Remove_HomeData( va( "demos/%s", name ) );
+}
+
+/*
+====================
+CL_DemoRename_f
+
+demo_rename <file> <new name>: the extension stays
+====================
+*/
+static void CL_DemoRename_f( void ) {
+	char		from[MAX_OSPATH], to[MAX_OSPATH], newName[MAX_QPATH];
+	const char	*name = Cmd_Argv( 1 );
+	const char	*ext;
+
+	if ( Cmd_Argc() != 3 || !CL_DemoFileNameOK( name, qtrue ) ) {
+		Com_Printf( "usage: demo_rename <file in demos/> <new name>\n" );
+		return;
+	}
+	ext = strstr( name, "." DEMOEXT );
+	Com_sprintf( newName, sizeof( newName ), "%s%s", Cmd_Argv( 2 ), ext );
+	if ( !CL_DemoFileNameOK( Cmd_Argv( 2 ), qfalse ) || strchr( Cmd_Argv( 2 ), '.' ) ) {
+		Com_Printf( "demo_rename: use letters, digits and _-() only\n" );
+		return;
+	}
+	if ( clc.demorecording || clc.demoplaying ) {
+		Com_Printf( "demo_rename: not while a demo is open\n" );
+		return;
+	}
+	if ( FS_FileExists_HomeData( va( "demos/%s", newName ) ) ) {
+		Com_Printf( "demo_rename: %s already exists\n", newName );
+		return;
+	}
+	Com_sprintf( from, sizeof( from ), "%s/demos/%s", FS_GetCurrentGameDir(), name );
+	Com_sprintf( to, sizeof( to ), "%s/demos/%s", FS_GetCurrentGameDir(), newName );
+	FS_BaseDir_Rename_HomeData( from, to, qtrue );
+}
+
 void CL_DemoInit( void ) {
+	Cmd_AddCommand( "demo_delete", CL_DemoDelete_f );
+	Cmd_AddCommand( "demo_rename", CL_DemoRename_f );
 	Cmd_AddCommand( "demo_pause", CL_DemoPause_f );
 	Cmd_AddCommand( "demo_speed", CL_DemoSpeed_f );
 	Cmd_AddCommand( "demo_seek", CL_DemoSeek_f );

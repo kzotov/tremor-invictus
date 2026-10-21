@@ -392,6 +392,7 @@ extern void Controls_Cache( void );
 //
 extern void UI_DemosMenu( void );
 extern void Demos_Cache( void );
+extern void UI_DemosRefresh( void );
 
 //
 // ui_cinematics.c
