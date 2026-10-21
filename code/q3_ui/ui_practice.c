@@ -50,6 +50,7 @@ choices are remembered.
 #define ID_OPPONENTS		11
 #define ID_TEAMMATES		12
 #define ID_SKILL			13
+#define ID_BOTCHAMP			18
 #define ID_PREV				14
 #define ID_NEXT				15
 #define ID_START			16
@@ -106,6 +107,8 @@ typedef struct {
 	menulist_s		opponents;
 	menulist_s		teammates;
 	menulist_s		skill;
+	menulist_s		botChampion;	// 0 random, else champion + 1, for every opponent
+	const char		*championNames[64];
 	menufield_s		limits[MAX_LIMITS];
 	menutext_s		start;
 	menutext_s		back;
@@ -286,6 +289,29 @@ static const char *Practice_RandomBot( void ) {
 
 /*
 =================
+Practice_BotFor
+
+A bot that plays the champion (its model is the champion's), or a random
+bot when there is none
+=================
+*/
+static const char *Practice_BotFor( int champion ) {
+	int		i, n = UI_GetNumBots();
+
+	if ( champion >= 0 ) {
+		for ( i = 0 ; i < n ; i++ ) {
+			const char	*info = UI_GetBotInfoByNumber( i );
+
+			if ( BG_ChampionForModel( Info_ValueForKey( info, "model" ) ) == champion ) {
+				return Info_ValueForKey( info, "name" );
+			}
+		}
+	}
+	return Practice_RandomBot();
+}
+
+/*
+=================
 Practice_Start
 =================
 */
@@ -305,6 +331,7 @@ static void Practice_Start( void ) {
 	trap_Cvar_Set( va( "ui_practice_map%i", mode ), map );
 	skill = s_practice.skill.curvalue + 1;
 	Practice_SetCvar( "skill", skill );
+	Practice_SetCvar( "botChampion", s_practice.botChampion.curvalue );
 	opponents = s_practice.opponents.curvalue;
 	teammates = m->teams ? s_practice.teammates.curvalue : 0;
 	if ( m->teams ) {
@@ -354,7 +381,8 @@ static void Practice_Start( void ) {
 	trap_Cmd_ExecuteText( EXEC_APPEND, va( "wait ; wait ; map %s\n", map ) );
 	trap_Cmd_ExecuteText( EXEC_APPEND, "wait 3\n" );
 	for ( i = 0; i < opponents; i++ ) {
-		trap_Cmd_ExecuteText( EXEC_APPEND, va( "addbot %s %i%s\n", (char *)Practice_RandomBot(), skill, m->teams ? " blue" : "" ) );
+		trap_Cmd_ExecuteText( EXEC_APPEND, va( "addbot %s %i%s\n", (char *)Practice_BotFor( s_practice.botChampion.curvalue - 1 ),
+			skill, m->teams ? " blue" : "" ) );
 	}
 	for ( i = 0; i < teammates; i++ ) {
 		trap_Cmd_ExecuteText( EXEC_APPEND, va( "addbot %s %i red\n", (char *)Practice_RandomBot(), skill ) );
@@ -567,6 +595,18 @@ void UI_PracticeMenu( void ) {
 	s_practice.skill.curvalue = Practice_Cvar( "skill", 3 ) - 1;
 	if ( s_practice.skill.curvalue < 0 || s_practice.skill.curvalue > 4 ) {
 		s_practice.skill.curvalue = 2;
+	}
+	// the champion every opponent plays: random, or one to practise against
+	s_practice.championNames[0] = BG_String( STR_PR_RANDOM );
+	for ( i = 0 ; i < bg_numChampions && i < 62 ; i++ ) {
+		s_practice.championNames[i + 1] = BG_String( bg_championList[i].nameString );
+	}
+	s_practice.championNames[i + 1] = NULL;
+	y += 18;
+	Practice_InitSpin( &s_practice.botChampion, ID_BOTCHAMP, STR_PR_BOTCHAMP, s_practice.championNames, y );
+	s_practice.botChampion.curvalue = Practice_Cvar( "botChampion", 0 );
+	if ( s_practice.botChampion.curvalue < 0 || s_practice.botChampion.curvalue > bg_numChampions ) {
+		s_practice.botChampion.curvalue = 0;
 	}
 	for ( i = 0; i < MAX_LIMITS; i++ ) {
 		menufield_s	*f = &s_practice.limits[i];

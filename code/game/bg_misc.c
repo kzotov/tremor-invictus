@@ -1681,6 +1681,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"CAP",
 	"AST",
 	"DEF",
+	"Random",
+	"Opponents play",
 	"NAME",
 	"ACCURACY",
 	"%s called a timeout",
