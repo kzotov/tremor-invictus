@@ -52,7 +52,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define	MODEL_HEIGHT		56		// standing height the player models are built for
 #define	DEFAULT_VIEWHEIGHT	38		// eye height of a player model scaled to the hull
 #define CROUCH_HEIGHT		10.5f	// half the standing height
-#define CROUCH_VIEWHEIGHT	6
+#define CROUCH_VIEWHEIGHT	19		// half the standing eye height
 #define DEAD_HEIGHT			-8
 #define	DEAD_VIEWHEIGHT		-16
 #define INVUL_RADIUS		42
@@ -536,9 +536,12 @@ typedef struct {
 	float	chainVelocity;
 
 	float	slideFriction;
+	float	slideStopSpeed;
 	float	slideChargeRate;
 	float	slideChargeMax;
 	float	slideDrain;
+	float	slideAirGrace;			// msec in the air that don't end a slide or count as a landing
+	float	slideCrouchScale;		// crouch walking without charge, times run speed
 
 	float	wallJumpVelocity;
 	float	wallJumpPush;
@@ -605,7 +608,7 @@ typedef enum {
 	STAT_CLIENTS_READY,				// bit mask of clients wishing to exit the intermission (FIXME: configstring?)
 	STAT_MAX_HEALTH,				// health / armor limit, changeable by handicap
 	STAT_CHAMPION,					// index into bg_championList
-	STAT_MOVE_STATE,				// per-champion movement state, see below
+	STAT_MOVE_STATE,				// per-champion movement state, see below; slide: BG_SLIDE_* packing
 	STAT_JUMP_TIME,					// msec since the last jump, capped
 	STAT_LAND_TIME,					// msec since the last landing, capped
 	STAT_TAPS,						// air-dodge double-tap tracking, TAP_* fields
@@ -613,6 +616,16 @@ typedef enum {
 	STAT_ABILITY_TIME,				// msec, meaning depends on the ability state
 	STAT_ABILITY_RECHARGE			// tenths of a second until the next charge, 0 when full
 } statIndex_t;
+
+// crouch slide state in STAT_MOVE_STATE (stats travel as 16 bits): the charge
+// in 4 ms units in the low 11 bits, time in the air in 16 ms units above
+#define BG_SLIDE_CHARGE_UNIT	4
+#define BG_SLIDE_AIR_UNIT		16
+#define BG_SLIDE_CHARGE_BITS	11
+#define BG_SlideCharge( ps )	( ( (ps)->stats[STAT_MOVE_STATE] & ( ( 1 << BG_SLIDE_CHARGE_BITS ) - 1 ) ) * BG_SLIDE_CHARGE_UNIT )
+#define BG_SlideAirTime( ps )	( ( ( (ps)->stats[STAT_MOVE_STATE] >> BG_SLIDE_CHARGE_BITS ) & 15 ) * BG_SLIDE_AIR_UNIT )
+#define BG_SlideState( charge, air )	( ( (charge) / BG_SLIDE_CHARGE_UNIT ) | ( ( (air) / BG_SLIDE_AIR_UNIT ) << BG_SLIDE_CHARGE_BITS ) )
+
 
 // STAT_MOVE_STATE holds one champion-specific value:
 //   slide style		msec of slide charge left

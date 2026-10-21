@@ -77,10 +77,13 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_chainTime",			"400",	&bg_pmoveSettings.chainTime },
 	{ {0}, "pm_chainVelocity",		"50",	&bg_pmoveSettings.chainVelocity },
 
-	{ {0}, "pm_slideFriction",		"0.5",	&bg_pmoveSettings.slideFriction },
-	{ {0}, "pm_slideChargeRate",	"2",	&bg_pmoveSettings.slideChargeRate },
-	{ {0}, "pm_slideChargeMax",		"2000",	&bg_pmoveSettings.slideChargeMax },
+	{ {0}, "pm_slideFriction",		"1.2",	&bg_pmoveSettings.slideFriction },
+	{ {0}, "pm_slideStopSpeed",		"1",	&bg_pmoveSettings.slideStopSpeed },
+	{ {0}, "pm_slideChargeRate",	"5",	&bg_pmoveSettings.slideChargeRate },
+	{ {0}, "pm_slideChargeMax",		"6000",	&bg_pmoveSettings.slideChargeMax },
 	{ {0}, "pm_slideDrain",			"1",	&bg_pmoveSettings.slideDrain },
+	{ {0}, "pm_slideAirGrace",		"200",	&bg_pmoveSettings.slideAirGrace },
+	{ {0}, "pm_slideCrouchScale",	"0.85",	&bg_pmoveSettings.slideCrouchScale },
 
 	{ {0}, "pm_wallJumpVelocity",	"350",	&bg_pmoveSettings.wallJumpVelocity },
 	{ {0}, "pm_wallJumpPush",		"200",	&bg_pmoveSettings.wallJumpPush },
@@ -391,7 +394,7 @@ Slide style: crouching on the ground with slide charge left
 static qboolean PM_IsSliding( void ) {
 	return pml.champion->moveStyle == MOVE_SLIDE && pml.walking
 		&& ( pm->ps->pm_flags & PMF_DUCKED )
-		&& pm->ps->stats[STAT_MOVE_STATE] > 0;
+		&& BG_SlideCharge( pm->ps ) > 0;
 }
 
 /*
@@ -445,7 +448,10 @@ static void PM_Friction( void ) {
 		if ( pml.walking && !(pml.groundTrace.surfaceFlags & SURF_SLICK) ) {
 			// if getting knocked back, no friction
 			if ( ! (pm->ps->pm_flags & PMF_TIME_KNOCKBACK) ) {
-				control = speed < bg_pmoveSettings.stopSpeed ? bg_pmoveSettings.stopSpeed : speed;
+				// sliding slows smoothly all the way down, with no sudden stop
+				float	stop = PM_IsSliding() ? bg_pmoveSettings.slideStopSpeed : bg_pmoveSettings.stopSpeed;
+
+				control = speed < stop ? stop : speed;
 				drop += control*PM_GroundFriction()*pml.frametime;
 			}
 		}
@@ -665,9 +671,9 @@ static qboolean PM_CheckJump( void ) {
 	}
 	pm->ps->stats[STAT_JUMP_TIME] = 0;
 
-	// optional per-champion horizontal speed cap
+	// optional per-champion horizontal speed cap; sliders always have theirs
 	cap = pml.champion->jumpSpeedCap;
-	if ( bg_pmoveSettings.speedLimit && cap > 0 ) {
+	if ( ( bg_pmoveSettings.speedLimit || style == MOVE_SLIDE ) && cap > 0 ) {
 		speed = sqrt( pm->ps->velocity[0] * pm->ps->velocity[0]
 			+ pm->ps->velocity[1] * pm->ps->velocity[1] );
 		if ( speed > cap ) {
@@ -1234,10 +1240,13 @@ static void PM_WalkMove( void ) {
 	wishspeed = VectorNormalize(wishdir);
 	wishspeed *= scale;
 
-	// crouching is a fixed speed, except while sliding
+	// crouching is a fixed speed (for sliders a share of run speed), except while sliding
 	if ( ( pm->ps->pm_flags & PMF_DUCKED ) && !PM_IsSliding() ) {
-		if ( wishspeed > bg_pmoveSettings.crouchSpeed ) {
-			wishspeed = bg_pmoveSettings.crouchSpeed;
+		float	crouch = pml.champion->moveStyle == MOVE_SLIDE
+			? pml.runSpeed * bg_pmoveSettings.slideCrouchScale : bg_pmoveSettings.crouchSpeed;
+
+		if ( wishspeed > crouch ) {
+			wishspeed = crouch;
 		}
 	}
 
@@ -1849,6 +1858,21 @@ static void PM_CheckDuck (void)
 	{
 		pm->maxs[2] = CROUCH_HEIGHT;
 		pm->ps->viewheight = CROUCH_VIEWHEIGHT;
+
+		// the eye sits above the crouched hull: keep it under a low ceiling
+		{
+			vec3_t	eye, small = { -4, -4, 0 }, smallMax = { 4, 4, 4 };
+
+			VectorCopy( pm->ps->origin, eye );
+			eye[2] += CROUCH_VIEWHEIGHT;
+			pm->trace( &trace, pm->ps->origin, small, smallMax, eye, pm->ps->clientNum, MASK_SOLID );
+			if ( trace.fraction < 1.0f ) {
+				pm->ps->viewheight = (int)( trace.endpos[2] - pm->ps->origin[2] );
+				if ( pm->ps->viewheight < 0 ) {
+					pm->ps->viewheight = 0;
+				}
+			}
+		}
 	}
 	else
 	{
@@ -2340,7 +2364,7 @@ Jump, landing and slide charge timers kept in stats
 ================
 */
 static void PM_MoveTimers( void ) {
-	int		charge;
+	int		charge, air;
 
 	pm->ps->stats[STAT_JUMP_TIME] += pml.msec;
 	if ( pm->ps->stats[STAT_JUMP_TIME] > STAT_TIME_CAP ) {
@@ -2355,13 +2379,26 @@ static void PM_MoveTimers( void ) {
 		return;		// STAT_MOVE_STATE belongs to another mechanic
 	}
 
-	charge = pm->ps->stats[STAT_MOVE_STATE];
-	if ( pml.walking ) {
+	charge = BG_SlideCharge( pm->ps );
+	air = BG_SlideAirTime( pm->ps );
+	if ( pm->ps->groundEntityNum == ENTITYNUM_NONE ) {
+		// in the air: falling without holding crouch charges the slide
+		if ( pm->ps->velocity[2] < 0 && pm->cmd.upmove >= 0 ) {
+			charge += bg_pmoveSettings.slideChargeRate * pml.msec;
+		}
+		air += pml.msec;
+		// a slide that stays in the air too long is over (a bump or small drop isn't)
+		if ( air > bg_pmoveSettings.slideAirGrace && air - pml.msec <= bg_pmoveSettings.slideAirGrace
+			&& pm->cmd.upmove < 0 ) {
+			charge = 0;
+		}
+	} else {
+		// landing after real air time: crouch held starts the slide, otherwise the charge is gone
+		if ( air > bg_pmoveSettings.slideAirGrace && pm->cmd.upmove >= 0 ) {
+			charge = 0;
+		}
+		air = 0;
 		charge -= bg_pmoveSettings.slideDrain * pml.msec;
-	} else if ( pm->ps->groundEntityNum == ENTITYNUM_NONE
-		&& pm->ps->velocity[2] < 0 && pm->cmd.upmove >= 0 ) {
-		// falling without holding crouch charges the slide
-		charge += bg_pmoveSettings.slideChargeRate * pml.msec;
 	}
 	if ( charge > bg_pmoveSettings.slideChargeMax ) {
 		charge = bg_pmoveSettings.slideChargeMax;
@@ -2369,7 +2406,10 @@ static void PM_MoveTimers( void ) {
 	if ( charge < 0 ) {
 		charge = 0;
 	}
-	pm->ps->stats[STAT_MOVE_STATE] = charge;
+	if ( air > 15 * BG_SLIDE_AIR_UNIT ) {
+		air = 15 * BG_SLIDE_AIR_UNIT;
+	}
+	pm->ps->stats[STAT_MOVE_STATE] = BG_SlideState( charge, air );
 }
 
 /*
