@@ -165,6 +165,18 @@ static void UI_LoadArenasFromFile( char *filename ) {
 UI_LoadArenas
 ===============
 */
+/*
+===============
+UI_StockMap
+
+One of the maps that came with Quake III
+===============
+*/
+static qboolean UI_StockMap( const char *map ) {
+	return !Q_stricmpn( map, "q3dm", 4 ) || !Q_stricmpn( map, "q3tourney", 9 )
+		|| !Q_stricmpn( map, "q3ctf", 5 ) || !Q_stricmpn( map, "pro-q3", 6 );
+}
+
 static void UI_LoadArenas( void ) {
 	int			numdirs;
 	vmCvar_t	arenasFile;
@@ -198,6 +210,20 @@ static void UI_LoadArenas( void ) {
 	}
 	trap_Print( va( "%i arenas parsed\n", ui_numArenas ) );
 	if (outOfMemory) trap_Print(S_COLOR_YELLOW"WARNING: not enough memory in pool to load all arenas\n");
+
+	// Quake III's own maps stay out of the lists (they still load by name,
+	// for tests); ui_showStockMaps 1 brings them back
+	if ( !trap_Cvar_VariableValue( "ui_showStockMaps" ) ) {
+		int		kept = 0;
+
+		for ( n = 0; n < ui_numArenas; n++ ) {
+			if ( UI_StockMap( Info_ValueForKey( ui_arenaInfos[n], "map" ) ) ) {
+				continue;
+			}
+			ui_arenaInfos[kept++] = ui_arenaInfos[n];
+		}
+		ui_numArenas = kept;
+	}
 
 	// set initial numbers
 	for( n = 0; n < ui_numArenas; n++ ) {
