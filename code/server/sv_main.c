@@ -664,6 +664,8 @@ void SVC_Info( netadr_t from ) {
 	Info_SetValueForKey( infostring, "sv_maxclients", 
 		va("%i", sv_maxclients->integer - sv_privateClients->integer ) );
 	Info_SetValueForKey( infostring, "gametype", va("%i", sv_gametype->integer ) );
+	// this game's mode name (duel, tdm, ctf, ca, sacrifice, roundduel, ffa), set by the game
+	Info_SetValueForKey( infostring, "mode", Cvar_VariableString( "g_mode" ) );
 	Info_SetValueForKey( infostring, "pure", va("%i", sv_pure->integer ) );
 	Info_SetValueForKey(infostring, "g_needpass", va("%d", Cvar_VariableIntegerValue("g_needpass")));
 

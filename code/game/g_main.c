@@ -807,6 +807,10 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 
 	// parse the key/value pairs and spawn gentities
 	G_SacrificeClear();
+
+	// the mode's name for server lists
+	trap_Cvar_Register( NULL, "g_mode", "", CVAR_SERVERINFO | CVAR_ROM );
+	trap_Cvar_Set( "g_mode", G_ModeName() );
 	G_SpawnEntitiesFromString();
 	G_SacrificeInit();
 

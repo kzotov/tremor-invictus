@@ -99,12 +99,14 @@ MULTIPLAYER MENU (SERVER BROWSER)
 #define SORT_PING			4
 #define SORT_NUM_SORTS		5
 
+// the filter: all, or one of this game's six modes (as servers report them)
 #define GAMES_ALL			0
-#define GAMES_FFA			1
-#define GAMES_TEAMPLAY		2
-#define GAMES_TOURNEY		3
-#define GAMES_CTF			4
-#define GAMES_NUM_GAMES		5
+#define GAMES_NUM_GAMES		7
+
+static const char *modeKeys[GAMES_NUM_GAMES] = { "", "duel", "tdm", "ctf", "ca", "sacrifice", "roundduel" };
+static const int modeNames[GAMES_NUM_GAMES] = {
+	STR_FS_ALL, STR_MODE_DUEL, STR_MODE_TDM, STR_MODE_CTF, STR_MODE_CA, STR_MODE_SACRIFICE, STR_MODE_ROUNDDUEL
+};
 
 static const char *master_items[] = {
 	"Local",
@@ -118,14 +120,7 @@ static const char *master_items[] = {
 	NULL
 };
 
-static const char *servertype_items[] = {
-	"All",
-	"Free For All",
-	"Team Deathmatch",
-	"Tournament",
-	"Capture the Flag",
-	NULL
-};
+static const char *servertype_items[GAMES_NUM_GAMES + 1];
 
 static const char *sortkey_items[] = {
 	"Server Name",
@@ -190,6 +185,7 @@ typedef struct servernode_s {
 	int		pingtime;
 	int		gametype;
 	char	gamename[12];
+	char	mode[16];		// this game's mode name, from the server's info
 	int		nettype;
 	int		minPing;
 	int		maxPing;
@@ -517,33 +513,9 @@ static void ArenaServers_UpdateMenu( void ) {
 			continue;
 		}
 
-		switch( g_gametype ) {
-		case GAMES_ALL:
-			break;
-
-		case GAMES_FFA:
-			if( servernodeptr->gametype != GT_FFA ) {
-				continue;
-			}
-			break;
-
-		case GAMES_TEAMPLAY:
-			if( servernodeptr->gametype != GT_TEAM ) {
-				continue;
-			}
-			break;
-
-		case GAMES_TOURNEY:
-			if( servernodeptr->gametype != GT_TOURNAMENT ) {
-				continue;
-			}
-			break;
-
-		case GAMES_CTF:
-			if( servernodeptr->gametype != GT_CTF ) {
-				continue;
-			}
-			break;
+		if ( g_gametype > GAMES_ALL && g_gametype < GAMES_NUM_GAMES
+			&& Q_stricmp( servernodeptr->mode, modeKeys[g_gametype] ) ) {
+			continue;
 		}
 
 		if( servernodeptr->pingtime < servernodeptr->minPing ) {
@@ -719,6 +691,14 @@ static void ArenaServers_Insert( char* adrstr, char* info, int pingtime )
 	else {
 		servernodeptr->gametype = i;
 		Q_strncpyz( servernodeptr->gamename, gamenames[i], sizeof(servernodeptr->gamename) );
+	}
+
+	// this game's mode, shown in the list in place of the game type
+	Q_strncpyz( servernodeptr->mode, Info_ValueForKey( info, "mode" ), sizeof( servernodeptr->mode ) );
+	for ( i = 1 ; i < GAMES_NUM_GAMES ; i++ ) {
+		if ( !Q_stricmp( servernodeptr->mode, modeKeys[i] ) ) {
+			Q_strncpyz( servernodeptr->gamename, BG_String( modeNames[i] ), sizeof( servernodeptr->gamename ) );
+		}
 	}
 }
 
@@ -1017,29 +997,8 @@ static void ArenaServers_StartRefresh( void )
 	}
 
 	if( g_servertype >= UIAS_GLOBAL0 && g_servertype <= UIAS_GLOBAL5 ) {
-		switch( g_arenaservers.gametype.curvalue ) {
-		default:
-		case GAMES_ALL:
-			myargs[0] = 0;
-			break;
-
-		case GAMES_FFA:
-			strcpy( myargs, " ffa" );
-			break;
-
-		case GAMES_TEAMPLAY:
-			strcpy( myargs, " team" );
-			break;
-
-		case GAMES_TOURNEY:
-			strcpy( myargs, " tourney" );
-			break;
-
-		case GAMES_CTF:
-			strcpy( myargs, " ctf" );
-			break;
-		}
-
+		// the master lists every server; the mode filter works on the replies
+		myargs[0] = 0;
 
 		if (g_emptyservers) {
 			strcat(myargs, " empty");
@@ -1055,7 +1014,7 @@ static void ArenaServers_StartRefresh( void )
 			trap_Cmd_ExecuteText( EXEC_APPEND, va( "globalservers %d %s%s\n", g_servertype - UIAS_GLOBAL0, protocol, myargs ));
 		}
 		else {
-			trap_Cmd_ExecuteText( EXEC_APPEND, va( "globalservers %d %d%s\n", g_servertype - UIAS_GLOBAL0, (int)trap_Cvar_VariableValue( "protocol" ), myargs ) );
+			trap_Cmd_ExecuteText( EXEC_APPEND, va( "globalservers %d %d%s\n", g_servertype - UIAS_GLOBAL0, (int)trap_Cvar_VariableValue( "com_protocol" ), myargs ) );
 		}
 	}
 }
@@ -1379,6 +1338,10 @@ static void ArenaServers_MenuInit( void ) {
 	g_arenaservers.gametype.generic.id			= ID_GAMETYPE;
 	g_arenaservers.gametype.generic.x			= 320;
 	g_arenaservers.gametype.generic.y			= y;
+	for ( i = 0 ; i < GAMES_NUM_GAMES ; i++ ) {
+		servertype_items[i] = BG_String( modeNames[i] );
+	}
+	servertype_items[GAMES_NUM_GAMES] = NULL;
 	g_arenaservers.gametype.itemnames			= servertype_items;
 
 	y += SMALLCHAR_HEIGHT;

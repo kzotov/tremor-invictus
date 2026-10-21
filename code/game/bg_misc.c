@@ -1509,6 +1509,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Light armour",
 	"Accuracy",
 	"SLIDE %.1f",
+	"All",
 	"Zoom sensitivity",
 	"Sensitivity while zoomed; Auto scales with the zoom.",
 	"Auto",

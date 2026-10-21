@@ -2801,7 +2801,8 @@ void Com_Init( char *commandLine ) {
 	com_gamename = Cvar_Get("com_gamename", GAMENAME_FOR_MASTER, CVAR_SERVERINFO | CVAR_INIT);
 	com_protocol = Cvar_Get("com_protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO | CVAR_INIT);
 #ifdef LEGACY_PROTOCOL
-	com_legacyprotocol = Cvar_Get("com_legacyprotocol", va("%i", PROTOCOL_LEGACY_VERSION), CVAR_INIT);
+	// off: Quake III's own clients can't play this game, so servers don't speak to them
+	com_legacyprotocol = Cvar_Get("com_legacyprotocol", "0", CVAR_INIT);
 
 	// Keep for compatibility with old mods / mods that haven't updated yet.
 	if(com_legacyprotocol->integer > 0)
