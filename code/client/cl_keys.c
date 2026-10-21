@@ -1265,6 +1265,14 @@ void CL_KeyDownEvent( int key, unsigned time )
 		return;
 	}
 
+	// a key bound to toggleconsole also closes the open console
+	if ( ( Key_GetCatcher() & KEYCATCH_CONSOLE ) && keys[key].binding
+		&& !Q_stricmp( keys[key].binding, "toggleconsole" ) ) {
+		Con_ToggleConsole_f ();
+		Key_ClearStates ();
+		return;
+	}
+
 
 	// demo playback controls; other keys keep their binds
 	if ( clc.demoplaying && Key_GetCatcher( ) == 0 && CL_DemoKey( key ) ) {

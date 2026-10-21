@@ -408,7 +408,21 @@ void CL_SystemInfoChanged( void ) {
 			gameSet = qtrue;
 		}
 
-		if((cvar_flags = Cvar_Flags(key)) == CVAR_NONEXISTENT)
+		cvar_flags = Cvar_Flags(key);
+
+		// client settings belong to the player: a server may not create them
+		// before the game registers them, nor change what the player saved
+		if(!Q_stricmpn(key, "cg_", 3) || !Q_stricmpn(key, "ui_", 3) || !Q_stricmpn(key, "cl_", 3))
+		{
+			if(cvar_flags == CVAR_NONEXISTENT
+				|| (!(cvar_flags & CVAR_SYSTEMINFO) && (cvar_flags & (CVAR_ARCHIVE | CVAR_USER_CREATED))))
+			{
+				Com_Printf(S_COLOR_YELLOW "WARNING: server is not allowed to set %s=%s\n", key, value);
+				continue;
+			}
+		}
+
+		if(cvar_flags == CVAR_NONEXISTENT)
 			Cvar_Get(key, value, CVAR_SERVER_CREATED | CVAR_ROM);
 		else
 		{

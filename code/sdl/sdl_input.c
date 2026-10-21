@@ -199,6 +199,35 @@ static qboolean IN_IsConsoleKey( keyNum_t key, int character )
 IN_TranslateSDLToQ3Key
 ===============
 */
+/*
+===============
+IN_PhysicalKey
+
+The US key at a scan code's place, so binds work the same with any
+keyboard layout; 0 when the place has no letter or symbol
+===============
+*/
+static keyNum_t IN_PhysicalKey( SDL_Scancode scancode )
+{
+	if( scancode >= SDL_SCANCODE_A && scancode <= SDL_SCANCODE_Z )
+		return 'a' + scancode - SDL_SCANCODE_A;
+
+	switch( scancode )
+	{
+		case SDL_SCANCODE_MINUS:        return '-';
+		case SDL_SCANCODE_EQUALS:       return '=';
+		case SDL_SCANCODE_LEFTBRACKET:  return '[';
+		case SDL_SCANCODE_RIGHTBRACKET: return ']';
+		case SDL_SCANCODE_BACKSLASH:    return '\\';
+		case SDL_SCANCODE_SEMICOLON:    return ';';
+		case SDL_SCANCODE_APOSTROPHE:   return '\'';
+		case SDL_SCANCODE_COMMA:        return ',';
+		case SDL_SCANCODE_PERIOD:       return '.';
+		case SDL_SCANCODE_SLASH:        return '/';
+		default:                        return 0;
+	}
+}
+
 static keyNum_t IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, qboolean down )
 {
 	keyNum_t key = 0;
@@ -302,7 +331,12 @@ static keyNum_t IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, qboolean down )
 			case SDLK_CAPSLOCK:     key = K_CAPSLOCK;      break;
 
 			default:
-				if( !( keysym->sym & SDLK_SCANCODE_MASK ) && keysym->scancode <= 95 )
+				// a letter or symbol of another layout: the US key in that place
+				if( !( keysym->sym & SDLK_SCANCODE_MASK ) && IN_PhysicalKey( keysym->scancode ) )
+				{
+					key = IN_PhysicalKey( keysym->scancode );
+				}
+				else if( !( keysym->sym & SDLK_SCANCODE_MASK ) && keysym->scancode <= 95 )
 				{
 					// Map Unicode characters to 95 world keys using the key's scan code.
 					// FIXME: There aren't enough world keys to cover all the scancodes.
