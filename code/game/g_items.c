@@ -646,6 +646,10 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
 		return;
 	}
 	G_MedalsPickup( other, ent );
+	if ( ent->item->giType == IT_POWERUP ) {
+		// after the item's own pickup sound, the announcer
+		G_Announce( -1, ent->item->giTag == PW_QUAD ? "quaddamagetaken" : "protectiontaken" );
+	}
 
 	// play the normal pickup sound
 	if (predict) {
