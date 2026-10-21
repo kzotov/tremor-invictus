@@ -33,6 +33,17 @@ if(CMAKE_HOST_APPLE)
             ${CMAKE_SOURCE_DIR}/misc/logo ${CMAKE_BINARY_DIR}/generated)
     endif()
 endif()
+
+# the lineup and podium pillar textures, drawn by a script at configure time
+# and linked into the game's home folder with the menu logo
+find_program(TREMOR_PYTHON3 python3)
+if(TREMOR_PYTHON3)
+    set(TREMOR_PILLAR_SCRIPT ${CMAKE_SOURCE_DIR}/misc/textures/make-pillar-textures.py)
+    set(TREMOR_PILLAR_TGA ${CMAKE_BINARY_DIR}/generated/gfx/tremor/pillar/side.tga)
+    if(NOT EXISTS ${TREMOR_PILLAR_TGA} OR ${TREMOR_PILLAR_SCRIPT} IS_NEWER_THAN ${TREMOR_PILLAR_TGA})
+        execute_process(COMMAND ${TREMOR_PYTHON3} -I ${TREMOR_PILLAR_SCRIPT} ${CMAKE_BINARY_DIR}/generated)
+    endif()
+endif()
 set(MACOS_BUNDLE_ID org.tremor-invictus.game)
 set(MACOS_APP_DISPLAY_NAME "Tremor Invictus")
 
