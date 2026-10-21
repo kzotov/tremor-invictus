@@ -642,8 +642,16 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	case EV_FOOTSTEP:
 		DEBUGNAME("EV_FOOTSTEP");
 		if (cg_footsteps.integer) {
-			trap_S_StartSound (NULL, es->number, CHAN_BODY, 
-				cgs.media.footsteps[ ci->footsteps ][rand()&3] );
+			int		champ = BG_ChampionForModel( ci->modelName );
+
+			// heavy champions: heavier, louder steps (the step set and a second voice)
+			if ( champ >= 0 && BG_Champion( champ )->bodyClass == CLASS_HEAVY ) {
+				trap_S_StartSound( NULL, es->number, CHAN_BODY, cgs.media.footsteps[FOOTSTEP_MECH][rand()&3] );
+				trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.footsteps[ci->footsteps][rand()&3] );
+			} else {
+				trap_S_StartSound (NULL, es->number, CHAN_BODY, 
+					cgs.media.footsteps[ ci->footsteps ][rand()&3] );
+			}
 		}
 		break;
 	case EV_FOOTSTEP_METAL:

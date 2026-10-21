@@ -154,6 +154,8 @@ static const settingRow_t gameRows[] = {
 	{ ROW_SPIN, STR_SET_ITEMTIMERS, STR_SET_ITEMTIMERS_HELP, "cg_worldItemTimers", OFF_ON },
 	{ ROW_SPIN, STR_SET_ZOOMTOGGLE, STR_SET_ZOOMTOGGLE_HELP, "cg_zoomToggle", 2, { "0", "1" }, { STR_SET_HOLD, STR_SET_TOGGLE } },
 	{ ROW_SPIN, STR_SET_TIPS, STR_SET_TIPS_HELP, "cg_loadingTips", OFF_ON },
+	{ ROW_SPIN, STR_SET_GORE, STR_SET_GORE_HELP, "cg_gibs", OFF_ON },
+	{ ROW_SPIN, STR_SET_RAILRINGS, STR_SET_RAILRINGS_HELP, "cg_oldRail", 2, { "1", "0" }, { STR_SET_OFF, STR_SET_ON } },
 	{ ROW_SPIN, STR_SET_TEAMOVERLAY, STR_SET_TEAMOVERLAY_HELP, "cg_drawTeamOverlay", OFF_ON },
 	{ ROW_SPIN, STR_SET_FPS, STR_SET_FPS_HELP, "cg_drawFPS", OFF_ON },
 	{ ROW_SPIN, STR_SET_LAGOMETER, STR_SET_LAGOMETER_HELP, "cg_lagometer", OFF_ON },
@@ -850,7 +852,8 @@ static void Settings_RegisterGameCvars( void ) {
 	static const char	*defaults[][2] = {
 		{ "cg_hitBeep", "1" }, { "cg_killBeep", "1" }, { "cg_damagePlum", "1" }, { "cg_damageArc", "1" },
 		{ "cg_lowHealthWarning", "1" }, { "cg_worldItemTimers", "1" }, { "cg_zoomToggle", "0" },
-		{ "cg_loadingTips", "1" }, { "r_contrast", "1" }, { "s_announcerVolume", "1" }
+		{ "cg_loadingTips", "1" }, { "r_contrast", "1" }, { "s_announcerVolume", "1" }, { "cg_gibs", "1" },
+		{ "cg_oldRail", "0" }
 	};
 	int		i;
 

@@ -385,7 +385,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_noTaunt, "cg_noTaunt", "0", CVAR_ARCHIVE},
 #endif
 	{ &cg_noProjectileTrail, "cg_noProjectileTrail", "0", CVAR_ARCHIVE},
-	{ &cg_oldRail, "cg_oldRail", "1", CVAR_ARCHIVE},
+	{ &cg_oldRail, "cg_oldRail", "0", CVAR_ARCHIVE},		// 0: the rail core with rings for the trail time
 	{ &cg_oldRocket, "cg_oldRocket", "1", CVAR_ARCHIVE},
 	{ &cg_oldPlasma, "cg_oldPlasma", "1", CVAR_ARCHIVE},
 	{ &cg_trueLightning, "cg_trueLightning", "1", CVAR_ARCHIVE},
