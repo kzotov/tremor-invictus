@@ -254,6 +254,7 @@ typedef struct {
 	qboolean	ready;				// duel warmup: readyup typed
 	qboolean	championLocked;		// duel: the match's champion is fixed
 	int			lockedChampion;
+	int			caDamage;			// clan arena: damage to enemies not yet turned into points
 	int			startWeapon;		// weapon_t chosen to spawn with
 	qboolean	autoHop;			// userinfo cg_autoHop
 	char		netname[MAX_NETNAME];
@@ -447,6 +448,13 @@ typedef struct {
 	// capture the flag
 	int			ctfHalf;				// 0 or 1 the first half, 2 the second
 	int			halfTimeEnd;			// level.time the half-time break ends, while in it
+
+	// clan arena
+	int			caState;				// CA_*
+	int			caStateTime;			// when the countdown or the result ends
+	int			caRoundStart;			// level.time the round's fighting began
+	int			caRound;				// rounds played, this one included
+	qboolean	caSpawning;				// the round start is spawning everyone
 	int			exitTime;
 	vec3_t		intermission_origin;	// also used for spectator spawns
 	vec3_t		intermission_angle;
@@ -649,6 +657,16 @@ void		G_DropCarriedFlag( gentity_t *ent, qboolean thrown );
 void		Cmd_DropFlag_f( gentity_t *ent );
 void		G_CTFCheckRules( void );
 
+// g_ca.c
+#define CA_WAITING		0		// match not started yet
+#define CA_COUNTDOWN	1		// everyone at their spawn, held in place
+#define CA_FIGHTING		2
+#define CA_RESULT		3		// round over, showing who won
+qboolean	G_ClanArena( void );
+void		G_CACheckRules( void );
+void		G_CALoadout( gentity_t *ent );
+void		G_CADamageDealt( gentity_t *attacker, gentity_t *targ, int damage );
+
 // g_rewind.c
 //
 void G_RewindInit( void );
@@ -819,6 +837,9 @@ extern	vmCvar_t	g_duelFraglimit;
 extern	vmCvar_t	g_tdmFraglimit;
 extern	vmCvar_t	g_ctfHalfLength;
 extern	vmCvar_t	g_ctfCapturelimit;
+extern	vmCvar_t	g_clanArena;
+extern	vmCvar_t	g_caRounds;
+extern	vmCvar_t	g_caRoundTime;
 
 extern	vmCvar_t	g_dmflags;
 extern	vmCvar_t	g_fraglimit;

@@ -1006,6 +1006,11 @@ void G_SpawnItem (gentity_t *ent, gitem_t *item) {
 	if ( G_ItemDisabled(item) )
 		return;
 
+	// clan arena: no map items at all
+	if ( G_ClanArena() ) {
+		return;
+	}
+
 	// no power-ups in duel: their spots stay empty
 	if ( g_gametype.integer == GT_TOURNAMENT && item->giType == IT_POWERUP ) {
 		return;

@@ -1321,6 +1321,11 @@ void ClientSpawn(gentity_t *ent) {
 		// move players to intermission
 		MoveClientToIntermission(ent);
 	}
+
+	if ( G_ClanArena() && client->sess.sessionTeam != TEAM_SPECTATOR && !level.intermissiontime ) {
+		G_CALoadout( ent );
+	}
+
 	// run a client frame to drop exactly to the floor,
 	// initialize animations and other things
 	client->ps.commandTime = level.time - 100;

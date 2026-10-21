@@ -61,7 +61,7 @@ void AddScore( gentity_t *ent, vec3_t origin, int score ) {
 	ScorePlum(ent, origin, score);
 	//
 	ent->client->ps.persistant[PERS_SCORE] += score;
-	if ( g_gametype.integer == GT_TEAM )
+	if ( g_gametype.integer == GT_TEAM && !G_ClanArena() )
 		level.teamScores[ ent->client->ps.persistant[PERS_TEAM] ] += score;
 	CalculateRanks();
 }
@@ -81,6 +81,11 @@ void TossClientItems( gentity_t *self ) {
 	gentity_t	*drop;
 	gitem_t		*shard;
 	vec3_t		velocity;
+
+	// clan arena: nothing is dropped
+	if ( G_ClanArena() ) {
+		return;
+	}
 
 	// every death drops a few armor shards close together, gone after a while
 	shard = BG_FindItem( "Armor Shard" );
@@ -986,6 +991,11 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		}
 	}
 
+	// clan arena: rocket and nail jumps and falls cost nothing
+	if ( G_ClanArena() && ( targ == attacker || mod == MOD_FALLING ) ) {
+		return;
+	}
+
 	// check for completely getting out of the damage
 	if ( !(dflags & DAMAGE_NO_PROTECTION) ) {
 
@@ -1114,6 +1124,10 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if ( g_debugDamage.integer ) {
 		G_Printf( "%i: client:%i health:%i damage:%i armor:%i\n", level.time, targ->s.number,
 			targ->health, take, asave );
+	}
+
+	if ( G_ClanArena() ) {
+		G_CADamageDealt( attacker, targ, take + asave );
 	}
 
 	// add to the damage inflicted on a player this frame

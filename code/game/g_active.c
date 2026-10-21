@@ -525,6 +525,11 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 	}
 	client->abilityPrevState = state;
 
+	// clan arena: active abilities are off
+	if ( G_ClanArena() ) {
+		charges = maxCharges = 0;
+	}
+
 	// one charge recharges at a time
 	if ( charges < maxCharges ) {
 		client->abilityRecharge += msec;
@@ -789,15 +794,15 @@ void ClientTimerActions( gentity_t *ent, int msec ) {
 				G_AddEvent( ent, EV_POWERUP_REGEN, 0 );
 			}
 #endif
-		} else {
+		} else if ( !G_ClanArena() ) {
 			// count down health when over max
 			if ( ent->health > client->ps.stats[STAT_MAX_HEALTH] ) {
 				ent->health--;
 			}
 		}
 
-		// count down armor when over the class base armor
-		if ( client->ps.stats[STAT_ARMOR] > G_ClassInfo( client )->baseArmor ) {
+		// count down armor when over the class base armor (the clan arena stack stays)
+		if ( client->ps.stats[STAT_ARMOR] > G_ClassInfo( client )->baseArmor && !G_ClanArena() ) {
 			client->ps.stats[STAT_ARMOR]--;
 		}
 	}
@@ -1178,7 +1183,8 @@ void ClientThink_real( gentity_t *ent ) {
 		client->ps.pm_type = PM_NOCLIP;
 	} else if ( client->ps.stats[STAT_HEALTH] <= 0 ) {
 		client->ps.pm_type = PM_DEAD;
-	} else if ( G_MatchMode() && ( level.warmupTime > 0 || level.halfTimeEnd ) ) {
+	} else if ( G_MatchMode() && ( level.warmupTime > 0 || level.halfTimeEnd
+		|| ( G_ClanArena() && level.caState == CA_COUNTDOWN ) ) ) {
 		// countdown or half time: held in place, no firing
 		client->ps.pm_type = PM_FREEZE;
 	} else {
@@ -1354,6 +1360,10 @@ void ClientThink_real( gentity_t *ent ) {
 
 	// check for respawning
 	if ( client->ps.stats[STAT_HEALTH] <= 0 ) {
+		// clan arena: the dead wait for the next round
+		if ( G_ClanArena() && !level.warmupTime ) {
+			return;
+		}
 		// wait for the attack button to be pressed
 		if ( level.time > client->respawnTime ) {
 			// forcerespawn is to prevent users from waiting out powerups
