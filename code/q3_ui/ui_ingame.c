@@ -136,7 +136,7 @@ void InGame_Event( void *ptr, int notification ) {
 		break;
 
 	case ID_QUIT:
-		UI_ConfirmMenu( "EXIT GAME?",  0, InGame_QuitAction );
+		InGame_QuitAction( qtrue );
 		break;
 
 	case ID_SERVERINFO:

@@ -298,6 +298,18 @@ static void StartServer_GametypeEvent( void* ptr, int event ) {
 		s_startserver.maplist[ s_startserver.nummaps ] = i;
 		s_startserver.nummaps++;
 	}
+
+	// by name, so maps added to the game don't hide at the end of the list
+	for( i = 1; i < s_startserver.nummaps; i++ ) {
+		int		j, num = s_startserver.maplist[i];
+		char	name[MAX_QPATH];
+
+		Q_strncpyz( name, Info_ValueForKey( UI_GetArenaInfoByNumber( num ), "longname" ), sizeof( name ) );
+		for( j = i; j > 0 && Q_stricmp( Info_ValueForKey( UI_GetArenaInfoByNumber( s_startserver.maplist[j - 1] ), "longname" ), name ) > 0; j-- ) {
+			s_startserver.maplist[j] = s_startserver.maplist[j - 1];
+		}
+		s_startserver.maplist[j] = num;
+	}
 	s_startserver.maxpages = (s_startserver.nummaps + MAX_MAPSPERPAGE-1)/MAX_MAPSPERPAGE;
 	s_startserver.page = 0;
 	s_startserver.currentmap = 0;

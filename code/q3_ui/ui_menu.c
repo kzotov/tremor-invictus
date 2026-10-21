@@ -121,7 +121,7 @@ void Main_MenuEvent (void* ptr, int event) {
 		break;
 
 	case ID_EXIT:
-		UI_ConfirmMenu( BG_String( STR_MENU_QUIT_CONFIRM ), 0, MainMenu_ExitAction );
+		MainMenu_ExitAction( qtrue );
 		break;
 	}
 }
