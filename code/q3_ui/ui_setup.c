@@ -317,6 +317,5 @@ UI_SetupMenu
 ===============
 */
 void UI_SetupMenu( void ) {
-	UI_SetupMenu_Init();
-	UI_PushMenu( &setupMenuInfo.menu );
+	UI_SettingsMenu();
 }

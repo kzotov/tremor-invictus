@@ -1018,6 +1018,19 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	if ( Q_stricmp (cmd, "ui_settings") == 0 ) {
+		UI_SettingsMenu();
+		if ( trap_Argc() > 1 ) {
+			UI_SettingsTab( atoi( UI_Argv( 1 ) ) );
+		}
+		return qtrue;
+	}
+
+	if ( Q_stricmp (cmd, "ui_settingsRefresh") == 0 ) {
+		UI_SettingsRefresh();
+		return qtrue;
+	}
+
 	if ( Q_stricmp (cmd, "ui_cache") == 0 ) {
 		UI_Cache_f();
 		return qtrue;

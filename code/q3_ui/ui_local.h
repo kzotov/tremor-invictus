@@ -358,6 +358,13 @@ extern void UI_SetupMenu_Cache( void );
 extern void UI_SetupMenu(void);
 
 //
+// ui_settings.c
+//
+extern void UI_SettingsMenu( void );
+extern void UI_SettingsRefresh( void );
+extern void UI_SettingsTab( int tab );
+
+//
 // ui_team.c
 //
 extern void UI_TeamMainMenu( void );
