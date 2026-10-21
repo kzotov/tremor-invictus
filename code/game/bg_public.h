@@ -46,7 +46,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define	VOTE_TIME			30000	// 30 seconds before vote times out
 
-#define PLAYER_WIDTH		15		// medium body; see bg_classInfo
+#define PLAYER_WIDTH		18		// medium body; see bg_classInfo
 #define	MINS_Z				-24
 #define DEFAULT_HEIGHT		45		// 69 units standing
 #define	MODEL_HEIGHT		56		// standing height the player models are built for

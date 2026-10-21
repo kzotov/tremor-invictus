@@ -68,7 +68,7 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_speedLimit",			"1",	&bg_pmoveSettings.speedLimit },
 	{ {0}, "pm_jumpSilentTime",		"100",	&bg_pmoveSettings.jumpSilentTime },
 
-	{ {0}, "pm_acFriction",			"8",	&bg_pmoveSettings.acFriction },
+	{ {0}, "pm_acFriction",			"6",	&bg_pmoveSettings.acFriction },	// ground friction, as everyone
 	{ {0}, "pm_acStrafeAccel",		"70",	&bg_pmoveSettings.acStrafeAccel },
 	{ {0}, "pm_acStrafeSpeed",		"30",	&bg_pmoveSettings.acStrafeSpeed },
 	{ {0}, "pm_acBrakeAccel",		"2.5",	&bg_pmoveSettings.acBrakeAccel },
@@ -119,17 +119,17 @@ static pmoveCvar_t pmoveCvars[] = {
 
 	{ {0}, "pm_hookImpulse",		"400",	&bg_pmoveSettings.hookImpulse },
 	{ {0}, "pm_hookPullStart",		"400",	&bg_pmoveSettings.hookPullStart },
-	{ {0}, "pm_hookPullAccel",		"1000",	&bg_pmoveSettings.hookPullAccel },
-	{ {0}, "pm_hookPullMax",		"800",	&bg_pmoveSettings.hookPullMax },
+	{ {0}, "pm_hookPullAccel",		"400",	&bg_pmoveSettings.hookPullAccel },
+	{ {0}, "pm_hookPullMax",		"700",	&bg_pmoveSettings.hookPullMax },
 	{ {0}, "pm_hookDeadZone",		"68",	&bg_pmoveSettings.hookDeadZone },
 	{ {0}, "pm_hookSwingMax",		"1000",	&bg_pmoveSettings.hookSwingMax },
 
 	{ {0}, "pm_rampJumpScale",		"1",	&bg_pmoveSettings.rampJumpScale },
 	{ {0}, "pm_rampJumpMax",		"600",	&bg_pmoveSettings.rampJumpMax },
 
-	{ {0}, "pm_airAccelLight",		"0.85",	&bg_pmoveSettings.airAccelLight },
-	{ {0}, "pm_airAccelMedium",		"0.906",	&bg_pmoveSettings.airAccelMedium },
-	{ {0}, "pm_airAccelHeavy",		"0.967",	&bg_pmoveSettings.airAccelHeavy },
+	{ {0}, "pm_airAccelLight",		"1",	&bg_pmoveSettings.airAccelLight },	// QC: 1.0 for every class
+	{ {0}, "pm_airAccelMedium",		"1",	&bg_pmoveSettings.airAccelMedium },
+	{ {0}, "pm_airAccelHeavy",		"1",	&bg_pmoveSettings.airAccelHeavy },
 	{ {0}, "pm_airAccelFullSprint",	"1.012",	&bg_pmoveSettings.airAccelFullSprint },
 
 	{ {0}, "pm_injectionSpeed",		"1.1",	&bg_pmoveSettings.injectionSpeed },

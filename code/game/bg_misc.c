@@ -1028,9 +1028,9 @@ them as stand-ins.
 // health counts down to max health (100 with no handicap) for every class
 const classInfo_t bg_classInfo[CLASS_NUM_CLASSES] = {
 	// half-width, base armor, mega health bonus, max armor, spawn armor, spawn armor in duel
-	{ 15, 75, 75, 150, 25, 0 },		// CLASS_LIGHT
-	{ 15, 100, 75, 175, 50, 25 },	// CLASS_MEDIUM
-	{ 17, 125, 75, 200, 75, 50 }	// CLASS_HEAVY
+	{ 18, 75, 75, 150, 25, 0 },		// CLASS_LIGHT (QC's 36 unit box)
+	{ 18, 100, 75, 175, 50, 25 },	// CLASS_MEDIUM
+	{ 20, 125, 75, 200, 75, 50 }	// CLASS_HEAVY (40 units)
 };
 
 const champion_t bg_championList[] = {
