@@ -172,11 +172,11 @@ static void CG_DrawDemoControls( void ) {
 	static const vec4_t	fill = { 0.83f, 0.1f, 0.12f, 1 };
 	char		buf[128];
 	const char	*s;
-	int			cur, total, speed, paused, show, w;
+	int			cur, total, speed, paused, show, w, px = -1, py = -1;
 	float		frac;
 
 	trap_Cvar_VariableStringBuffer( "cl_demoState", buf, sizeof( buf ) );
-	if ( sscanf( buf, "%i %i %i %i %i", &cur, &total, &speed, &paused, &show ) < 5 || !show ) {
+	if ( sscanf( buf, "%i %i %i %i %i %i %i", &cur, &total, &speed, &paused, &show, &px, &py ) < 5 || !show ) {
 		return;
 	}
 
@@ -208,6 +208,14 @@ static void CG_DrawDemoControls( void ) {
 		s = BG_String( STR_DEMO_HELP );
 		w = CG_DrawStrlen( s ) * TINYCHAR_WIDTH;
 		CG_DrawStringExt( 320 - w / 2, 424, s, colorWhite, qfalse, qfalse, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+	}
+
+	// the pointer, once the mouse has moved; over the bar it marks the spot a click seeks to
+	if ( px > 0 || py > 0 ) {
+		if ( py >= 404 && py <= 430 && px >= 16 && px <= 624 ) {
+			CG_FillRect( px - 1, 410, 2, 14, colorWhite );
+		}
+		CG_DrawPic( px - 8, py - 8, 16, 16, cgs.media.demoPointer );
 	}
 }
 

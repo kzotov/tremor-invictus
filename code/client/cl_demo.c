@@ -42,6 +42,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define DEMO_TRAILER_MAGIC		0x58444d54		// "TMDX"
 #define DEMO_SEEK_SKIP_MSEC		15000			// jump to a keyframe when it is at least this far ahead
 #define DEMO_BAR_MSEC			3000			// controls stay on screen this long after use
+#define DEMO_BAR_X				20				// the timeline as the game draws it (640x480)
+#define DEMO_BAR_Y				414
+#define DEMO_BAR_W				600
+#define DEMO_BAR_H				6
+#define DEMO_POINTER_SCALE		0.5f			// screen units per mouse count
 
 typedef struct {
 	int		offset;
@@ -66,9 +71,12 @@ static struct {
 	float			speedCarry;
 	int				pendingSeek;		// server time to reach after a restart, 0 for none
 	int				controlTime;		// cls.realtime of the last control use
+	float			cursorX, cursorY;	// timeline pointer, 640x480 screen units
 } demo;
 
 static const float demoSpeeds[7] = { 0.125f, 0.25f, 0.5f, 1.0f, 2.0f, 4.0f, 8.0f };
+
+static qboolean CL_DemoBarShown( void );
 
 /*
 =======================================================================
@@ -464,11 +472,67 @@ void CL_DemoAdvanceTime( void ) {
 		cl.serverTimeDelta += add;
 	}
 
-	// for the game's status line and timeline
-	Cvar_Set( "cl_demoState", va( "%i %i %i %i %i",
+	// for the game's status line, timeline and pointer
+	Cvar_Set( "cl_demoState", va( "%i %i %i %i %i %i %i",
 		cl.serverTime - demo.startTime, demo.duration,
 		(int)( demoSpeeds[demo.speedStep + 3] * 1000 ), demo.paused,
-		demo.paused || ( demo.controlTime && cls.realtime - demo.controlTime < DEMO_BAR_MSEC ) ) );
+		CL_DemoBarShown(), (int)demo.cursorX, (int)demo.cursorY ) );
+}
+
+/*
+====================
+CL_DemoBarShown
+====================
+*/
+static qboolean CL_DemoBarShown( void ) {
+	return demo.paused || ( demo.controlTime && cls.realtime - demo.controlTime < DEMO_BAR_MSEC );
+}
+
+/*
+====================
+CL_DemoMouse
+
+Moving the mouse during playback shows the controls and moves a pointer
+====================
+*/
+void CL_DemoMouse( int dx, int dy ) {
+	if ( !demo.cursorX && !demo.cursorY ) {
+		demo.cursorX = 320;
+		demo.cursorY = 400;
+	}
+	demo.cursorX += dx * DEMO_POINTER_SCALE;
+	demo.cursorY += dy * DEMO_POINTER_SCALE;
+	if ( demo.cursorX < 0 ) demo.cursorX = 0;
+	if ( demo.cursorX > 639 ) demo.cursorX = 639;
+	if ( demo.cursorY < 0 ) demo.cursorY = 0;
+	if ( demo.cursorY > 479 ) demo.cursorY = 479;
+	demo.controlTime = cls.realtime;
+}
+
+/*
+====================
+CL_DemoClickBar
+
+A click on the timeline seeks there
+====================
+*/
+static qboolean CL_DemoClickBar( void ) {
+	float	frac;
+
+	if ( !CL_DemoBarShown() || !demo.duration
+		|| demo.cursorY < DEMO_BAR_Y - 10 || demo.cursorY > DEMO_BAR_Y + DEMO_BAR_H + 10
+		|| demo.cursorX < DEMO_BAR_X - 4 || demo.cursorX > DEMO_BAR_X + DEMO_BAR_W + 4 ) {
+		return qfalse;
+	}
+	frac = ( demo.cursorX - DEMO_BAR_X ) / DEMO_BAR_W;
+	if ( frac < 0 ) {
+		frac = 0;
+	} else if ( frac > 1 ) {
+		frac = 1;
+	}
+	demo.controlTime = cls.realtime;
+	CL_DemoSeekTo( demo.startTime + (int)( frac * demo.duration ) );
+	return qtrue;
 }
 
 /*
@@ -655,6 +719,7 @@ qboolean CL_DemoKey( int key ) {
 	case K_PGUP:		Cbuf_AddText( "demo_seek -60\n" ); return qtrue;
 	case K_PGDN:		Cbuf_AddText( "demo_seek +60\n" ); return qtrue;
 	case K_HOME:		Cbuf_AddText( "demo_restart\n" ); return qtrue;
+	case K_MOUSE1:		return CL_DemoClickBar();
 	case 'h':
 		Cvar_SetValue( "cg_draw2D", !Cvar_VariableIntegerValue( "cg_draw2D" ) );
 		return qtrue;

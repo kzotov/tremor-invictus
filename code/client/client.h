@@ -658,4 +658,5 @@ qboolean CL_DemoSkipBlock( int sequence );
 void CL_DemoFirstSnapshot( void );
 void CL_DemoAdvanceTime( void );
 qboolean CL_DemoKey( int key );
+void CL_DemoMouse( int dx, int dy );
 
