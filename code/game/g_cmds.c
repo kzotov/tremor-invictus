@@ -632,8 +632,7 @@ void SetTeam( gentity_t *ent, const char *s ) {
 	if ( (g_gametype.integer == GT_TOURNAMENT)
 		&& level.numNonSpectatorClients >= 2 ) {
 		team = TEAM_SPECTATOR;
-	} else if ( g_maxGameClients.integer > 0 && 
-		level.numNonSpectatorClients >= g_maxGameClients.integer ) {
+	} else if ( G_MaxPlayers() > 0 && level.numNonSpectatorClients >= G_MaxPlayers() ) {
 		team = TEAM_SPECTATOR;
 	}
 

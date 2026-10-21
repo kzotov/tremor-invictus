@@ -1219,6 +1219,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Clan Arena",
 	"Sacrifice",
 	"Round Duel",
+	"Free for All",
 	"PAUSED",
 	"Space play   Up/Down speed   Left/Right 10 s   PgUp/PgDn 1 min   Home restart   H hide HUD   Esc leave",
 	"REC",

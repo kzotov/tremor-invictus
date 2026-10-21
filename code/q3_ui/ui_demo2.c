@@ -113,6 +113,7 @@ static int Demos_ModeString( const char *gametype, const char *variant ) {
 	case GT_TOURNAMENT:	return strstr( variant, "roundduel" ) ? STR_MODE_ROUNDDUEL : STR_MODE_DUEL;
 	case GT_TEAM:		return strstr( variant, "ca" ) ? STR_MODE_CA : STR_MODE_TDM;
 	case GT_CTF:		return strstr( variant, "sacrifice" ) ? STR_MODE_SACRIFICE : STR_MODE_CTF;
+	case GT_FFA:		return STR_MODE_FFA;
 	default:			return 0;
 	}
 }

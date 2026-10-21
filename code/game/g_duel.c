@@ -57,7 +57,21 @@ int G_MatchTimeLimit( void ) {
 	if ( g_timelimit.integer > 0 ) {
 		return g_timelimit.integer;
 	}
-	return G_MatchMode() ? 10 : 0;
+	return G_MatchMode() || g_gametype.integer == GT_FFA ? 10 : 0;
+}
+
+/*
+=================
+G_MaxPlayers
+
+Players allowed in the game (0 = no limit); free-for-all holds 8 unless set
+=================
+*/
+int G_MaxPlayers( void ) {
+	if ( g_maxGameClients.integer > 0 ) {
+		return g_maxGameClients.integer;
+	}
+	return g_gametype.integer == GT_FFA ? g_ffaMaxPlayers.integer : 0;
 }
 
 /*
@@ -73,6 +87,9 @@ int G_MatchFragLimit( void ) {
 	}
 	if ( g_gametype.integer == GT_TEAM ) {
 		return g_tdmFraglimit.integer;
+	}
+	if ( g_gametype.integer == GT_FFA && g_fraglimit.integer <= 0 ) {
+		return g_ffaFraglimit.integer;
 	}
 	return g_fraglimit.integer;
 }

@@ -33,7 +33,7 @@ choices are remembered.
 
 #include "ui_local.h"
 
-#define NUM_MODES			6
+#define NUM_MODES			7
 #define MAX_PRACTICE_MAPS	128
 #define MAP_COLUMNS			4
 #define MAP_ROWS			2
@@ -70,7 +70,7 @@ typedef struct {
 	modeLimit_t	limits[MAX_LIMITS];
 } practiceMode_t;
 
-// the six modes in the player's order, each with its limits from its spec
+// the six modes in the player's order, then free-for-all, each with its limits from its spec
 static const practiceMode_t practiceModes[NUM_MODES] = {
 	{ STR_MODE_DUEL, GT_TOURNAMENT, NULL, qfalse,
 		{ { STR_PR_TIMELIMIT, "timelimit", 10 }, { STR_PR_FRAGLIMIT, "fraglimit", 0 } } },
@@ -83,7 +83,9 @@ static const practiceMode_t practiceModes[NUM_MODES] = {
 	{ STR_MODE_SACRIFICE, GT_CTF, "g_sacrifice", qtrue,
 		{ { STR_PR_ROUNDS, "g_sacRounds", 2 } } },
 	{ STR_MODE_ROUNDDUEL, GT_TOURNAMENT, "g_roundDuel", qfalse,
-		{ { STR_PR_ROUNDS, "g_rdRounds", 2 } } }
+		{ { STR_PR_ROUNDS, "g_rdRounds", 2 } } },
+	{ STR_MODE_FFA, GT_FFA, NULL, qfalse,
+		{ { STR_PR_TIMELIMIT, "timelimit", 10 }, { STR_PR_FRAGLIMIT, "fraglimit", 50 } } }
 };
 
 static const char *practiceCountNames[] = { "0", "1", "2", "3", "4", "5", "6", "7", NULL };
@@ -239,6 +241,10 @@ static void Practice_UpdateMode( void ) {
 		s_practice.opponents.generic.flags &= ~QMF_GRAYED;
 		s_practice.opponents.curvalue = Practice_Cvar( "opponents", 4 );
 		s_practice.teammates.curvalue = Practice_Cvar( "teammates", 3 );
+	} else if ( m->gametype == GT_FFA ) {
+		s_practice.teammates.generic.flags |= QMF_HIDDEN | QMF_INACTIVE;
+		s_practice.opponents.generic.flags &= ~QMF_GRAYED;
+		s_practice.opponents.curvalue = Practice_Cvar( "ffaOpponents", 5 );
 	} else {
 		s_practice.teammates.generic.flags |= QMF_HIDDEN | QMF_INACTIVE;
 		s_practice.opponents.generic.flags |= QMF_GRAYED;
@@ -300,6 +306,8 @@ static void Practice_Start( void ) {
 	if ( m->teams ) {
 		Practice_SetCvar( "opponents", opponents );
 		Practice_SetCvar( "teammates", teammates );
+	} else if ( m->gametype == GT_FFA ) {
+		Practice_SetCvar( "ffaOpponents", opponents );
 	}
 
 	// the mode

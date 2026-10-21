@@ -209,6 +209,8 @@ vmCvar_t	g_overtime;
 vmCvar_t	g_duelReadyUp;
 vmCvar_t	g_duelFraglimit;
 vmCvar_t	g_tdmFraglimit;
+vmCvar_t	g_ffaFraglimit;
+vmCvar_t	g_ffaMaxPlayers;
 vmCvar_t	g_ctfHalfLength;
 vmCvar_t	g_ctfCapturelimit;
 vmCvar_t	g_clanArena;
@@ -267,6 +269,8 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_duelReadyUp, "g_duelReadyUp", "1", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_duelFraglimit, "g_duelFraglimit", "0", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_tdmFraglimit, "g_tdmFraglimit", "75", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_ffaFraglimit, "g_ffaFraglimit", "50", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_ffaMaxPlayers, "g_ffaMaxPlayers", "8", CVAR_ARCHIVE, 0, qtrue },
 	// capture the flag: two halves of this many minutes, and no capture limit by default
 	{ &g_ctfHalfLength, "g_ctfHalfLength", "7", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_ctfCapturelimit, "g_ctfCapturelimit", "0", CVAR_ARCHIVE, 0, qtrue },
@@ -1741,6 +1745,28 @@ void CheckExitRules( void ) {
 	} else if ( ScoreIsTied() ) {
 		// check for sudden death
 		// always wait for sudden death
+		return;
+	}
+
+	// free-for-all: 10 minutes and 50 frags unless set
+	if ( g_gametype.integer == GT_FFA ) {
+		if ( !level.warmupTime && level.time - level.startTime >= G_MatchTimeLimit() * 60000 ) {
+			trap_SendServerCommand( -1, "print \"Timelimit hit.\n\"" );
+			LogExit( "Timelimit hit." );
+			return;
+		}
+		if ( !level.warmupTime && G_MatchFragLimit() > 0 ) {
+			for ( i = 0 ; i < g_maxclients.integer ; i++ ) {
+				cl = level.clients + i;
+				if ( cl->pers.connected == CON_CONNECTED && cl->sess.sessionTeam == TEAM_FREE
+					&& cl->ps.persistant[PERS_SCORE] >= G_MatchFragLimit() ) {
+					LogExit( "Fraglimit hit." );
+					trap_SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE " hit the fraglimit.\n\"",
+						cl->pers.netname ) );
+					return;
+				}
+			}
+		}
 		return;
 	}
 
