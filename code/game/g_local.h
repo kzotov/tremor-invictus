@@ -353,6 +353,7 @@ struct gclient_s {
 	int			pointBlankTime;		// one Point Blank per shot
 	qboolean	tankDone;			// one Tank per life
 	int			spawnProtectEnd;	// level.time spawn protection ends
+	int			zoomStart;			// level.time the zoom key went down, 0 when up
 
 	qboolean	fireHeld;			// used for hook
 	gentity_t	*hook;				// grapple hook if out
@@ -1150,8 +1151,8 @@ extern	vmCvar_t	g_rewindDebug;
 extern	vmCvar_t	g_championModels;
 extern	vmCvar_t	g_knockbackScale;
 extern	vmCvar_t	g_protectionScale;
-extern	vmCvar_t	g_shotgunFalloffStart;
-extern	vmCvar_t	g_shotgunFalloffMin;
+extern	vmCvar_t	g_shotgunFalloffStep;
+extern	vmCvar_t	g_shotgunCloseFade;
 extern	vmCvar_t	g_shotgunCloseBonus;
 extern	vmCvar_t	g_shotgunCloseRange;
 extern	vmCvar_t	g_rushDamage;
@@ -1159,6 +1160,8 @@ extern	vmCvar_t	g_rushSlowDamage;
 extern	vmCvar_t	g_rushFastSpeed;
 extern	vmCvar_t	g_swarmKnock;
 extern	vmCvar_t	g_hmgZoomDamage;
+extern	vmCvar_t	g_railZoomDamage;
+extern	vmCvar_t	g_railZoomTime;
 extern	vmCvar_t	g_hmgZoomSpread;
 extern	vmCvar_t	g_ssgCloseBonus;
 extern	vmCvar_t	g_ssgCloseRange;

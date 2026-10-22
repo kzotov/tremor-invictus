@@ -133,8 +133,8 @@ vmCvar_t	g_rewindDebug;
 vmCvar_t	g_championModels;
 vmCvar_t	g_knockbackScale;
 vmCvar_t	g_protectionScale;
-vmCvar_t	g_shotgunFalloffStart;
-vmCvar_t	g_shotgunFalloffMin;
+vmCvar_t	g_shotgunFalloffStep;
+vmCvar_t	g_shotgunCloseFade;
 vmCvar_t	g_shotgunCloseBonus;
 vmCvar_t	g_shotgunCloseRange;
 vmCvar_t	g_rushDamage;
@@ -142,6 +142,8 @@ vmCvar_t	g_rushSlowDamage;
 vmCvar_t	g_rushFastSpeed;
 vmCvar_t	g_swarmKnock;
 vmCvar_t	g_hmgZoomDamage;
+vmCvar_t	g_railZoomDamage;
+vmCvar_t	g_railZoomTime;
 vmCvar_t	g_hmgZoomSpread;
 vmCvar_t	g_ssgCloseBonus;
 vmCvar_t	g_ssgCloseRange;
@@ -310,7 +312,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_championDuplicates, "g_championDuplicates", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue },	// 0: one of each champion per team
 	{ &g_instagib, "g_instagib", "0", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse },		// arcade: free-for-all or TDM with one-hit rails
 	{ &g_unholyTrinity, "g_unholyTrinity", "0", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse },	// arcade: RL, LG and RG for everyone
-	{ &g_spawnProtection, "g_spawnProtection", "2000", 0, 0, qtrue },		// msec after spawning, ended by firing
+	{ &g_spawnProtection, "g_spawnProtection", "1000", 0, 0, qtrue },		// msec after spawning, ended by firing
 	{ &g_spawnProtectionScale, "g_spawnProtectionScale", "0.33", 0, 0, qtrue },	// damage taken: 67% off
 	{ &g_teamSize, "g_teamSize", "0", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue },		// players per team, 0 = no limit
 	{ &g_voteTypes, "g_voteTypes", "map nextmap map_restart kick shuffle teamsize timelimit fraglimit capturelimit roundlimit mode cointoss", CVAR_ARCHIVE, 0, qfalse },
@@ -398,15 +400,15 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_orbSplashDamage, "g_orbSplashDamage", "75", 0, 0, qtrue },
 	{ &g_orbSplashRadius, "g_orbSplashRadius", "120", 0, 0, qtrue },
 	{ &g_orbTelefragDamage, "g_orbTelefragDamage", "75", 0, 0, qtrue },
-	{ &g_swarmSpeed, "g_swarmSpeed", "700", 0, 0, qtrue },
-	{ &g_swarmFuse, "g_swarmFuse", "2000", 0, 0, qtrue },
+	{ &g_swarmSpeed, "g_swarmSpeed", "960", 0, 0, qtrue },
+	{ &g_swarmFuse, "g_swarmFuse", "10000", 0, 0, qtrue },	// or the second bounce
 	{ &g_swarmDamage, "g_swarmDamage", "50", 0, 0, qtrue },
 	{ &g_swarmRadius, "g_swarmRadius", "120", 0, 0, qtrue },
 	{ &g_fireballSpeed, "g_fireballSpeed", "666", 0, 0, qtrue },
 	{ &g_fireballSpread, "g_fireballSpread", "15", 0, 0, qtrue },
-	{ &g_fireballDamage, "g_fireballDamage", "25", 0, 0, qtrue },
-	{ &g_fireballSplash, "g_fireballSplash", "25", 0, 0, qtrue },
-	{ &g_fireballRadius, "g_fireballRadius", "120", 0, 0, qtrue },
+	{ &g_fireballDamage, "g_fireballDamage", "20", 0, 0, qtrue },
+	{ &g_fireballSplash, "g_fireballSplash", "20", 0, 0, qtrue },
+	{ &g_fireballRadius, "g_fireballRadius", "128", 0, 0, qtrue },
 	{ &g_flameConvergeDamage, "g_flameConvergeDamage", "75", 0, 0, qtrue },
 	{ &g_flameConvergeRadius, "g_flameConvergeRadius", "180", 0, 0, qtrue },
 	{ &g_burnDamage, "g_burnDamage", "75", 0, 0, qtrue },
@@ -460,8 +462,8 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_championModels, "g_championModels", "", 0, 0, qtrue },
 	{ &g_knockbackScale, "g_knockbackScale", "0.833", 0, 0, qtrue },
 	{ &g_protectionScale, "g_protectionScale", "0.3333", 0, 0, qtrue },
-	{ &g_shotgunFalloffStart, "g_shotgunFalloffStart", "512", 0, 0, qtrue },
-	{ &g_shotgunFalloffMin, "g_shotgunFalloffMin", "0.5", 0, 0, qtrue },
+	{ &g_shotgunFalloffStep, "g_shotgunFalloffStep", "768", 0, 0, qtrue },	// a point off each pellet per this many units
+	{ &g_shotgunCloseFade, "g_shotgunCloseFade", "512", 0, 0, qtrue },
 	{ &g_shotgunCloseBonus, "g_shotgunCloseBonus", "10", 0, 0, qtrue },
 	{ &g_shotgunCloseRange, "g_shotgunCloseRange", "128", 0, 0, qtrue },
 	{ &g_rushDamage, "g_rushDamage", "75", 0, 0, qtrue },
@@ -469,10 +471,12 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_rushFastSpeed, "g_rushFastSpeed", "400", 0, 0, qtrue },
 	{ &g_swarmKnock, "g_swarmKnock", "50", 0, 0, qtrue },
 	{ &g_hmgZoomDamage, "g_hmgZoomDamage", "15", 0, 0, qtrue },
+	{ &g_railZoomDamage, "g_railZoomDamage", "90", 0, 0, qtrue },	// after g_railZoomTime ms zoomed
+	{ &g_railZoomTime, "g_railZoomTime", "1500", 0, 0, qtrue },
 	{ &g_hmgZoomSpread, "g_hmgZoomSpread", "0", 0, 0, qtrue },
 	{ &g_ssgCloseBonus, "g_ssgCloseBonus", "40", 0, 0, qtrue },
-	{ &g_ssgCloseRange, "g_ssgCloseRange", "200", 0, 0, qtrue },
-	{ &g_ssgCloseFade, "g_ssgCloseFade", "400", 0, 0, qtrue },
+	{ &g_ssgCloseRange, "g_ssgCloseRange", "256", 0, 0, qtrue },
+	{ &g_ssgCloseFade, "g_ssgCloseFade", "512", 0, 0, qtrue },
 	{ &g_triboltShots, "g_triboltShots", "3", 0, 0, qtrue },
 	{ &g_triboltInterval, "g_triboltInterval", "125", 0, 0, qtrue },
 	{ &g_triboltFuse, "g_triboltFuse", "600", 0, 0, qtrue },
@@ -485,7 +489,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_shardDrops, "g_shardDrops", "2", 0, 0, qtrue },
 	{ &g_shardLife, "g_shardLife", "15000", 0, 0, qtrue },
 	{ &g_powerupFirstSpawn, "g_powerupFirstSpawn", "90", 0, 0, qtrue },
-	{ &g_powerupWarning, "g_powerupWarning", "10", 0, 0, qtrue },
+	{ &g_powerupWarning, "g_powerupWarning", "15", 0, 0, qtrue },		// seconds before a power-up spawns
 	{ &g_powerupAlternate, "g_powerupAlternate", "1", 0, 0, qtrue },
 	{ &g_hookSpeed, "g_hookSpeed", "3000", 0, 0, qtrue },
 	{ &g_hookRange, "g_hookRange", "3000", 0, 0, qtrue },
@@ -511,9 +515,9 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_berserkHitCooldown, "g_berserkHitCooldown", "1000", 0, 0, qtrue },
 	{ &g_hookBreakDamage, "g_hookBreakDamage", "75", 0, 0, qtrue },
 	{ &g_totemBlastRadius, "g_totemBlastRadius", "160", 0, 0, qtrue },
-	{ &g_turretDeployTime, "g_turretDeployTime", "2000", 0, 0, qtrue },
-	{ &g_turretTurnRate, "g_turretTurnRate", "270", 0, 0, qtrue },
-	{ &g_swarmKnockSelf, "g_swarmKnockSelf", "100", 0, 0, qtrue },
+	{ &g_turretDeployTime, "g_turretDeployTime", "1500", 0, 0, qtrue },	// arms after this
+	{ &g_turretTurnRate, "g_turretTurnRate", "140", 0, 0, qtrue },	// degrees a second
+	{ &g_swarmKnockSelf, "g_swarmKnockSelf", "150", 0, 0, qtrue },	// x3 on yourself
 	{ &g_reinforcedSelfScale, "g_reinforcedSelfScale", "0.4", 0, 0, qtrue },
 	{ &g_collisionRepeat, "g_collisionRepeat", "500", 0, 0, qtrue },
 	{ &g_gravity, "g_gravity", "800", 0, 0, qtrue  },

@@ -35,36 +35,21 @@ If the ammo has gone low enough to generate the warning, play a sound
 ==============
 */
 void CG_CheckAmmo( void ) {
-	int		i;
 	int		total;
 	int		previous;
-	int		weapons;
 
-	// see about how many seconds of ammo we have remaining
-	weapons = cg.snap->ps.stats[ STAT_WEAPONS ];
-	total = 0;
-	for ( i = WP_MACHINEGUN ; i < WP_NUM_WEAPONS ; i++ ) {
-		if ( ! ( weapons & ( 1 << i ) ) ) {
-			continue;
+	// the held weapon against its own threshold: 50 for the fast-firing
+	// ones, 5 for the rest (heavy versions as their base)
+	{
+		int		w = cg.snap->ps.weapon, base = BG_WeaponStarter( w ) ? BG_WeaponStarter( w ) : w, threshold;
+
+		if ( w <= WP_GAUNTLET || w >= WP_NUM_WEAPONS || cg.snap->ps.ammo[w] < 0 ) {
+			cg.lowAmmoWarning = 0;
+			return;
 		}
-		if ( cg.snap->ps.ammo[i] < 0 ) {
-			continue;
-		}
-		switch ( i ) {
-		case WP_ROCKET_LAUNCHER:
-		case WP_GRENADE_LAUNCHER:
-		case WP_RAILGUN:
-		case WP_SHOTGUN:
-#ifdef MISSIONPACK
-		case WP_PROX_LAUNCHER:
-#endif
-			total += cg.snap->ps.ammo[i] * 1000;
-			break;
-		default:
-			total += cg.snap->ps.ammo[i] * 200;
-			break;
-		}
-		if ( total >= 5000 ) {
+		threshold = ( base == WP_MACHINEGUN || base == WP_NAILGUN || base == WP_LIGHTNING ) ? 50 : 5;
+		total = cg.snap->ps.ammo[w];
+		if ( total > threshold ) {
 			cg.lowAmmoWarning = 0;
 			return;
 		}

@@ -728,7 +728,8 @@ static void CG_PowerupTimerSounds( void ) {
 		if ( t <= cg.time ) {
 			continue;
 		}
-		if ( t - cg.time >= POWERUP_BLINKS * POWERUP_BLINK_TIME ) {
+		// the holder hears a tick each second through the last 10 s
+		if ( t - cg.time >= 10 * POWERUP_BLINK_TIME ) {
 			continue;
 		}
 		if ( ( t - cg.time ) / POWERUP_BLINK_TIME != ( t - cg.oldTime ) / POWERUP_BLINK_TIME ) {

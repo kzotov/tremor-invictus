@@ -2165,7 +2165,7 @@ Milliseconds to lower or raise a weapon
 ===============
 */
 static int PM_SwitchTime( void ) {
-	return ( pml.champion->passives & PASSIVE_DRILLSERGEANT ) ? 150 : 200;
+	return ( pml.champion->passives & PASSIVE_DRILLSERGEANT ) ? 100 : 150;	// 150 to lower, 150 to raise
 }
 
 /*

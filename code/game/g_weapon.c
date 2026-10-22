@@ -177,10 +177,20 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 
 	CalcMuzzlePoint ( ent, forward, right, up, muzzle );
 
-	VectorMA (muzzle, BG_WeaponParam( WP_GAUNTLET, WPP_RANGE ) > 0 ? BG_WeaponParam( WP_GAUNTLET, WPP_RANGE ) : 32, forward, end);
+	// reach 30, 34 for the big four; the hit is a small box, not a line
+	{
+		const char	*name = BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->name;
+		float		reach = BG_WeaponParam( WP_GAUNTLET, WPP_RANGE ) > 0 ? BG_WeaponParam( WP_GAUNTLET, WPP_RANGE ) : 30;
+		vec3_t		hitMins = { -8, -8, -8 }, hitMaxs = { 8, 8, 8 };
 
-	if ( !G_AbilityActive( ent, ACTIVE_BERSERK ) || !G_BerserkTarget( ent, muzzle, forward, &tr ) ) {
-		trap_Trace (&tr, muzzle, NULL, NULL, end, ent->s.number, MASK_SHOT);
+		if ( !Q_stricmp( name, "sorlag" ) || !Q_stricmp( name, "clutch" ) || !Q_stricmp( name, "keel" )
+			|| !Q_stricmp( name, "scalebearer" ) ) {
+			reach += 4;
+		}
+		VectorMA( muzzle, reach, forward, end );
+		if ( !G_AbilityActive( ent, ACTIVE_BERSERK ) || !G_BerserkTarget( ent, muzzle, forward, &tr ) ) {
+			trap_Trace( &tr, muzzle, hitMins, hitMaxs, end, ent->s.number, MASK_SHOT );
+		}
 	}
 	if ( tr.surfaceFlags & SURF_NOIMPACT ) {
 		return qfalse;
@@ -431,20 +441,15 @@ qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent, int weapon ) {
 			float	dist = Distance( start, tr.endpos );
 			float	scale = 1.0f;
 			int		pellets = BG_WeaponParam( weapon, WPP_PELLETS );
-			float	range = BG_WeaponParam( weapon, WPP_RANGE );
 			float	bonus = 0;
 
-			// falls off past the start distance, down to a minimum at full range;
-			// a close-range bonus is shared between the pellets
-			if ( dist > g_shotgunFalloffStart.value && range > g_shotgunFalloffStart.value ) {
-				scale = 1.0f - ( 1.0f - g_shotgunFalloffMin.value ) * ( dist - g_shotgunFalloffStart.value )
-					/ ( range - g_shotgunFalloffStart.value );
-				if ( scale < g_shotgunFalloffMin.value ) {
-					scale = g_shotgunFalloffMin.value;
-				}
+			// each pellet loses a point every g_shotgunFalloffStep units; the
+			// close-range bonus is shared between the pellets and fades out
+			// from its range to g_*CloseFade
+			if ( g_shotgunFalloffStep.value > 0 ) {
+				scale = 0;		// the step decides, not a factor
 			}
 			if ( weapon == WP_SUPER_SHOTGUN ) {
-				// full bonus up close, fading out further away
 				if ( dist <= g_ssgCloseRange.value ) {
 					bonus = g_ssgCloseBonus.value;
 				} else if ( dist < g_ssgCloseFade.value ) {
@@ -452,8 +457,17 @@ qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent, int weapon ) {
 				}
 			} else if ( dist <= g_shotgunCloseRange.value ) {
 				bonus = g_shotgunCloseBonus.value;
+			} else if ( dist < g_shotgunCloseFade.value ) {
+				bonus = g_shotgunCloseBonus.value * ( g_shotgunCloseFade.value - dist ) / ( g_shotgunCloseFade.value - g_shotgunCloseRange.value );
 			}
-			damage = BG_WeaponParam( weapon, WPP_DAMAGE ) * scale;
+			if ( scale == 0 ) {
+				damage = BG_WeaponParam( weapon, WPP_DAMAGE ) - (int)( dist / g_shotgunFalloffStep.value );
+				if ( damage < 1 ) {
+					damage = 1;
+				}
+			} else {
+				damage = BG_WeaponParam( weapon, WPP_DAMAGE );
+			}
 			if ( pellets > 0 ) {
 				damage += bonus / pellets;
 			}
@@ -584,7 +598,7 @@ static void G_FireTribolt( gentity_t *ent ) {
 	bolt = fire_grenade( ent, muzzle, forward );
 	bolt->classname = "tribolt";
 	bolt->s.eFlags = 0;							// no bouncing
-	bolt->s.pos.trType = TR_LINEAR;
+	bolt->s.pos.trType = TR_GRAVITY_LOW;		// bolts drop at 400 u/s^2
 	G_WeaponTuneMissile( bolt, WP_TRIBOLT );
 	bolt->damage *= s_quadFactor;
 	bolt->splashDamage *= s_quadFactor;
@@ -711,6 +725,10 @@ void weapon_railgun_fire (gentity_t *ent) {
 	gentity_t	*unlinkedEntities[MAX_RAIL_HITS];
 
 	damage = BG_WeaponParam( WP_RAILGUN, WPP_DAMAGE ) * s_quadFactor;
+	// zoomed in for a while: the steadier shot hits harder
+	if ( ent->client && ent->client->zoomStart && level.time - ent->client->zoomStart >= g_railZoomTime.integer ) {
+		damage = g_railZoomDamage.integer * s_quadFactor;
+	}
 
 	VectorMA (muzzle, BG_WeaponParam( WP_RAILGUN, WPP_RANGE ), forward, end);
 

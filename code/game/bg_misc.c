@@ -1317,7 +1317,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Strafe jumping builds speed: hold forward and a side key, and turn smoothly in the air.",
 	"The Railgun hums while you hold it. Others can hear you coming.",
 	"Hits register on the server; within a small window, where you aimed is what counts.",
-	"Quad Damage and Protection appear on a timer; the announcer warns everyone 10 seconds before.",
+	"Quad Damage and Protection appear on a timer; the announcer warns everyone 15 seconds before.",
 	"Holding Protection, you can rocket jump almost for free.",
 	"Heavy champions are wider targets but carry more armour.",
 	"Switch weapons before a fight, not during it: a switch takes a moment.",
@@ -2053,17 +2053,17 @@ Weapons not listed keep their classic behaviour.
 */
 
 const weaponNumbers_t bg_weaponInfo[] = {
-	{ WP_GAUNTLET,			"gauntlet",	{ "75", "500", "30", "0", "0", "45", "50", "0", "0", "0", "0", "0", "-1", "-1" } },
-	{ WP_MACHINEGUN,		"mg",		{ "6", "100", "6000", "0.02", "0", "7", "7", "0", "0", "0", "0", "0", "100", "150" } },
-	{ WP_SHOTGUN,			"sg",		{ "5", "850", "2000", "0.085", "16", "2.5", "2.5", "0", "0", "0", "0", "0", "10", "25" } },
-	{ WP_ROCKET_LAUNCHER,	"rl",		{ "100", "800", "0", "0", "0", "90", "90", "120", "100", "10", "120", "1000", "10", "25" } },
-	{ WP_LIGHTNING,			"lg",		{ "6", "44", "768", "0", "0", "7", "7.1", "0", "0", "0", "0", "0", "100", "200" } },
-	{ WP_RAILGUN,			"rg",		{ "80", "1500", "6000", "0", "0", "50", "50", "0", "0", "0", "0", "0", "10", "10" } },
+	{ WP_GAUNTLET,			"gauntlet",	{ "75", "500", "30", "0", "0", "60", "60", "0", "0", "0", "0", "0", "-1", "-1" } },
+	{ WP_MACHINEGUN,		"mg",		{ "6", "100", "6000", "0.01", "0", "7", "7", "0", "0", "0", "0", "0", "100", "150" } },
+	{ WP_SHOTGUN,			"sg",		{ "5", "850", "2000", "0.085", "16", "3", "3", "0", "0", "0", "0", "0", "10", "25" } },
+	{ WP_ROCKET_LAUNCHER,	"rl",		{ "100", "800", "0", "0", "0", "90", "81", "132", "100", "10", "120", "1000", "10", "25" } },
+	{ WP_LIGHTNING,			"lg",		{ "6", "44", "768", "0", "0", "7", "7.7", "0", "0", "0", "0", "0", "100", "200" } },
+	{ WP_RAILGUN,			"rg",		{ "80", "1500", "10000", "0", "0", "50", "50", "0", "0", "0", "0", "0", "10", "10" } },
 	{ WP_HEAVY_MACHINEGUN,	"hmg",		{ "9", "100", "6000", "0.01", "0", "7", "7", "0", "0", "0", "0", "0", "100", "150" } },
-	{ WP_SUPER_SHOTGUN,		"ssg",		{ "5", "1000", "2000", "0.085", "16", "2.5", "2.5", "0", "0", "0", "0", "0", "10", "25" } },
+	{ WP_SUPER_SHOTGUN,		"ssg",		{ "5", "1000", "2000", "0.085", "16", "5", "5", "0", "0", "0", "0", "0", "10", "25" } },
 	{ WP_NAILGUN,			"ng",		{ "15", "100", "0", "0", "0", "6", "6", "28", "12", "0", "20", "1800", "100", "150" } },
 	{ WP_SUPER_NAILGUN,		"sng",		{ "20", "100", "0", "0", "0", "6", "6", "28", "15", "0", "20", "2000", "100", "150" } },
-	{ WP_TRIBOLT,			"tribolt",	{ "35", "1300", "0", "0", "0", "50", "50", "50", "50", "10", "120", "1600", "10", "15" } }
+	{ WP_TRIBOLT,			"tribolt",	{ "35", "1300", "0", "0", "0", "50", "50", "50", "35", "0", "120", "1600", "10", "15" } }
 };
 
 /*
@@ -2558,6 +2558,11 @@ void BG_EvaluateTrajectory( const trajectory_t *tr, int atTime, vec3_t result ) 
 		VectorMA( tr->trBase, deltaTime, tr->trDelta, result );
 		result[2] -= 0.5 * DEFAULT_GRAVITY * deltaTime * deltaTime;		// FIXME: local gravity...
 		break;
+	case TR_GRAVITY_LOW:
+		deltaTime = ( atTime - tr->trTime ) * 0.001;
+		VectorMA( tr->trBase, deltaTime, tr->trDelta, result );
+		result[2] -= 0.5 * ( DEFAULT_GRAVITY * 0.5f ) * deltaTime * deltaTime;
+		break;
 	default:
 		Com_Error( ERR_DROP, "BG_EvaluateTrajectory: unknown trType: %i", tr->trType );
 		break;
@@ -2600,6 +2605,11 @@ void BG_EvaluateTrajectoryDelta( const trajectory_t *tr, int atTime, vec3_t resu
 		deltaTime = ( atTime - tr->trTime ) * 0.001;	// milliseconds to seconds
 		VectorCopy( tr->trDelta, result );
 		result[2] -= DEFAULT_GRAVITY * deltaTime;		// FIXME: local gravity...
+		break;
+	case TR_GRAVITY_LOW:
+		deltaTime = ( atTime - tr->trTime ) * 0.001;
+		VectorCopy( tr->trDelta, result );
+		result[2] -= ( DEFAULT_GRAVITY * 0.5f ) * deltaTime;
 		break;
 	default:
 		Com_Error( ERR_DROP, "BG_EvaluateTrajectoryDelta: unknown trType: %i", tr->trType );

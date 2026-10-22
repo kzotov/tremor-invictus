@@ -1153,6 +1153,15 @@ void ClientThink_real( gentity_t *ent ) {
 	// mark the time, so the connection sprite can be removed
 	ucmd = &ent->client->pers.cmd;
 
+	// how long the zoom has been held, for the zoomed railgun shot
+	if ( ucmd->buttons & BUTTON_ZOOM ) {
+		if ( !client->zoomStart ) {
+			client->zoomStart = level.time;
+		}
+	} else {
+		client->zoomStart = 0;
+	}
+
 	// sanity check the command time to prevent speedup cheating
 	if ( ucmd->serverTime > level.time + 200 ) {
 		ucmd->serverTime = level.time + 200;

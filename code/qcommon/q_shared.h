@@ -1254,7 +1254,8 @@ typedef enum {
 	TR_LINEAR,
 	TR_LINEAR_STOP,
 	TR_SINE,					// value = base + sin( time / duration ) * delta
-	TR_GRAVITY
+	TR_GRAVITY,
+	TR_GRAVITY_LOW				// half gravity: the tri-bolt's bolts (400 u/s^2)
 } trType_t;
 
 typedef struct {

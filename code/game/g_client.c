@@ -1321,13 +1321,22 @@ void ClientSpawn(gentity_t *ent) {
 	client->ps.stats[STAT_JUMP_TIME] = STAT_TIME_CAP;
 	client->ps.stats[STAT_LAND_TIME] = STAT_TIME_CAP;
 
-	// the gauntlet plus the starting weapon the player chose
+	// the gauntlet and all three starting weapons; the player's choice is
+	// the one held (weapons.md corrections)
 	memset( client->pers.lifeDealt, 0, sizeof( client->pers.lifeDealt ) );
 	memset( client->pers.lifeTaken, 0, sizeof( client->pers.lifeTaken ) );
-	client->ps.stats[STAT_WEAPONS] = ( 1 << client->pers.startWeapon );
-	client->ps.ammo[client->pers.startWeapon] = BG_WeaponParam( client->pers.startWeapon, WPP_AMMOSTART );
-	if ( BG_AmmoPartner( client->pers.startWeapon ) != WP_NONE ) {
-		client->ps.ammo[BG_AmmoPartner( client->pers.startWeapon )] = client->ps.ammo[client->pers.startWeapon];
+	client->ps.stats[STAT_WEAPONS] = 0;
+	{
+		static const int	starters[] = { WP_MACHINEGUN, WP_SHOTGUN, WP_NAILGUN };
+		int					k;
+
+		for ( k = 0 ; k < ARRAY_LEN( starters ) ; k++ ) {
+			client->ps.stats[STAT_WEAPONS] |= ( 1 << starters[k] );
+			client->ps.ammo[starters[k]] = BG_WeaponParam( starters[k], WPP_AMMOSTART );
+			if ( BG_AmmoPartner( starters[k] ) != WP_NONE ) {
+				client->ps.ammo[BG_AmmoPartner( starters[k] )] = client->ps.ammo[starters[k]];
+			}
+		}
 	}
 
 	client->ps.stats[STAT_WEAPONS] |= ( 1 << WP_GAUNTLET );
@@ -1378,13 +1387,17 @@ void ClientSpawn(gentity_t *ent) {
 			client->ps.weaponstate = WEAPON_READY;
 			// fire the targets of the spawn point
 			G_UseTargets(spawnPoint, ent);
-			// select the highest weapon number available, after any spawn given items have fired
+			// hold the chosen starting weapon, else the highest one carried
 			client->ps.weapon = 1;
 
-			for (i = WP_NUM_WEAPONS - 1 ; i > 0 ; i--) {
-				if (client->ps.stats[STAT_WEAPONS] & (1 << i)) {
-					client->ps.weapon = i;
-					break;
+			if ( client->ps.stats[STAT_WEAPONS] & ( 1 << client->pers.startWeapon ) ) {
+				client->ps.weapon = client->pers.startWeapon;
+			} else {
+				for (i = WP_NUM_WEAPONS - 1 ; i > 0 ; i--) {
+					if (client->ps.stats[STAT_WEAPONS] & (1 << i)) {
+						client->ps.weapon = i;
+						break;
+					}
 				}
 			}
 			// positively link the client, even if the command times are weird

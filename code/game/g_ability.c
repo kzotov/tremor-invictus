@@ -455,6 +455,8 @@ static void G_ThrowGrenade( gentity_t *ent ) {
 
 	G_AbilityEyes( ent, start, forward, right );
 	gren = fire_grenade( ent, start, forward );
+	gren->classname = "swarm";		// bursts on its second bounce (G_BounceMissile)
+	gren->count = 0;
 	VectorScale( forward, g_swarmSpeed.value, gren->s.pos.trDelta );
 	SnapVector( gren->s.pos.trDelta );
 	gren->nextthink = level.time + g_swarmFuse.integer;

@@ -41,6 +41,23 @@ void G_BounceMissile( gentity_t *ent, trace_t *trace ) {
 	dot = DotProduct( velocity, trace->plane.normal );
 	VectorMA( velocity, -2*dot, trace->plane.normal, ent->s.pos.trDelta );
 
+	// Keel's grenades keep half their speed and burst on the second bounce
+	if ( ent->classname && !strcmp( ent->classname, "swarm" ) ) {
+		if ( ++ent->count >= 2 ) {
+			ent->nextthink = level.time;
+		}
+		VectorScale( ent->s.pos.trDelta, 0.5f, ent->s.pos.trDelta );
+		if ( trace->plane.normal[2] > 0.2 && VectorLength( ent->s.pos.trDelta ) < 60 ) {
+			G_SetOrigin( ent, trace->endpos );
+			ent->s.time = level.time / 4;
+			return;
+		}
+		VectorAdd( ent->r.currentOrigin, trace->plane.normal, ent->r.currentOrigin );
+		VectorCopy( ent->r.currentOrigin, ent->s.pos.trBase );
+		ent->s.pos.trTime = level.time;
+		return;
+	}
+
 	if ( ent->s.eFlags & EF_BOUNCE_HALF ) {
 		VectorScale( ent->s.pos.trDelta, 0.65, ent->s.pos.trDelta );
 		// check for stop

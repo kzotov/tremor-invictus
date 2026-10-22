@@ -1019,8 +1019,8 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		knockback = nextKnockback;
 		nextKnockback = -1;
 	}
-	if ( knockback > 200 ) {
-		knockback = 200;
+	if ( knockback > 132 ) {		// the cap is one rocket on yourself
+		knockback = 132;
 	}
 	if ( targ->flags & FL_NO_KNOCKBACK ) {
 		knockback = 0;
@@ -1111,6 +1111,8 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			if ( g_friendlyFire.integer == 2 ) {
 				teamArmorOnly = qtrue;
 			}
+			// on: teammates take half (the tourney rule)
+			damage = damage * 0.5f < 1 ? 1 : damage * 0.5f;
 		}
 #ifdef MISSIONPACK
 		if (mod == MOD_PROXIMITY_MINE) {
