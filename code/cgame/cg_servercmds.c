@@ -1019,7 +1019,16 @@ static void CG_AnnounceKey( const char *key ) {
 		numKeys++;
 	}
 	if ( sounds[i] ) {
-		CG_AddBufferedSound( sounds[i] );
+		// pre-round lines first, then power-ups and timers, then the rest
+		int		priority = 3;
+
+		if ( !Q_stricmpn( key, "round", 5 ) || !Q_stricmpn( key, "prepare", 7 ) || !Q_stricmp( key, "fight" )
+			|| strstr( key, "soul" ) || strstr( key, "obelisk" ) ) {
+			priority = 6;
+		} else if ( strstr( key, "quad" ) || strstr( key, "protection" ) || strstr( key, "minute" ) ) {
+			priority = 5;
+		}
+		CG_AddBufferedSoundPriority( sounds[i], priority );
 	}
 }
 

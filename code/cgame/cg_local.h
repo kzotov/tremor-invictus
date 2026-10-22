@@ -631,11 +631,11 @@ typedef struct {
 	int			rewardName[MAX_REWARDSTACK];		// string id of a medal's name, 0 for the Quake III awards
 
 	// sound buffer mainly for announcer sounds
-	int			soundBufferIn;
-	int			soundBufferOut;
+	int			soundBufferCount;	// lines waiting, oldest first
 	int			soundTime;
 	qhandle_t	soundBuffer[MAX_SOUNDBUFFER];
 	int			soundBufferTime[MAX_SOUNDBUFFER];	// when each line was queued
+	int			soundBufferPriority[MAX_SOUNDBUFFER];	// 3 general, 4-5 pickups and timers, 6 pre-round
 
 #ifdef MISSIONPACK
 	// for voice chat buffer
@@ -1401,6 +1401,7 @@ void CG_TestModelPrevSkin_f (void);
 void CG_ZoomDown_f( void );
 void CG_ZoomUp_f( void );
 void CG_AddBufferedSound( sfxHandle_t sfx);
+void CG_AddBufferedSoundPriority( sfxHandle_t sfx, int priority );
 
 void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demoPlayback );
 

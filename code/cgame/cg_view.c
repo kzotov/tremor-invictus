@@ -740,40 +740,85 @@ static void CG_PowerupTimerSounds( void ) {
 
 /*
 =====================
-CG_AddBufferedSound
+CG_AddBufferedSoundPriority
+
+Queues an announcer line: 3 general, 4-5 pickups and timers, 6 pre-round
+and Sacrifice. A full queue drops its least important, oldest line.
 =====================
 */
-void CG_AddBufferedSound( sfxHandle_t sfx ) {
-	if ( !sfx )
+static void CG_DropBufferedSound( int i );
+
+void CG_AddBufferedSoundPriority( sfxHandle_t sfx, int priority ) {
+	int		i, worst;
+
+	if ( !sfx ) {
 		return;
-	cg.soundBuffer[cg.soundBufferIn] = sfx;
-	cg.soundBufferTime[cg.soundBufferIn] = cg.time;
-	cg.soundBufferIn = (cg.soundBufferIn + 1) % MAX_SOUNDBUFFER;
-	if (cg.soundBufferIn == cg.soundBufferOut) {
-		cg.soundBufferOut = (cg.soundBufferOut + 1) % MAX_SOUNDBUFFER;		// full: drop the oldest
 	}
+	if ( cg.soundBufferCount == MAX_SOUNDBUFFER ) {
+		worst = 0;
+		for ( i = 1 ; i < MAX_SOUNDBUFFER ; i++ ) {
+			if ( cg.soundBufferPriority[i] < cg.soundBufferPriority[worst] ) {
+				worst = i;
+			}
+		}
+		if ( cg.soundBufferPriority[worst] > priority ) {
+			return;		// everything waiting matters more
+		}
+		CG_DropBufferedSound( worst );
+	}
+	i = cg.soundBufferCount++;
+	cg.soundBuffer[i] = sfx;
+	cg.soundBufferTime[i] = cg.time;
+	cg.soundBufferPriority[i] = priority;
+}
+
+void CG_AddBufferedSound( sfxHandle_t sfx ) {
+	CG_AddBufferedSoundPriority( sfx, 3 );
+}
+
+/*
+=====================
+CG_DropBufferedSound
+=====================
+*/
+static void CG_DropBufferedSound( int i ) {
+	cg.soundBufferCount--;
+	memmove( cg.soundBuffer + i, cg.soundBuffer + i + 1, ( cg.soundBufferCount - i ) * sizeof( cg.soundBuffer[0] ) );
+	memmove( cg.soundBufferTime + i, cg.soundBufferTime + i + 1, ( cg.soundBufferCount - i ) * sizeof( cg.soundBufferTime[0] ) );
+	memmove( cg.soundBufferPriority + i, cg.soundBufferPriority + i + 1,
+		( cg.soundBufferCount - i ) * sizeof( cg.soundBufferPriority[0] ) );
 }
 
 /*
 =====================
 CG_PlayBufferedSounds
+
+The most important waiting line plays next (the oldest of those); a line
+that cannot start within SOUNDBUFFER_WAIT is dropped
 =====================
 */
 static void CG_PlayBufferedSounds( void ) {
-	// a line that cannot start within SOUNDBUFFER_WAIT is dropped
-	while ( cg.soundBufferOut != cg.soundBufferIn && cg.soundTime >= cg.time
-		&& cg.time - cg.soundBufferTime[cg.soundBufferOut] > SOUNDBUFFER_WAIT ) {
-		cg.soundBuffer[cg.soundBufferOut] = 0;
-		cg.soundBufferOut = (cg.soundBufferOut + 1) % MAX_SOUNDBUFFER;
-	}
-	if ( cg.soundTime < cg.time ) {
-		if (cg.soundBufferOut != cg.soundBufferIn && cg.soundBuffer[cg.soundBufferOut]) {
-			trap_S_StartLocalSound(cg.soundBuffer[cg.soundBufferOut], CHAN_ANNOUNCER);
-			cg.soundBuffer[cg.soundBufferOut] = 0;
-			cg.soundBufferOut = (cg.soundBufferOut + 1) % MAX_SOUNDBUFFER;
-			cg.soundTime = cg.time + 1500;		// each line holds the announcer this long
+	int		i, best;
+
+	for ( i = 0 ; i < cg.soundBufferCount ; ) {
+		if ( cg.soundTime >= cg.time && cg.time - cg.soundBufferTime[i] > SOUNDBUFFER_WAIT ) {
+			CG_DropBufferedSound( i );
+		} else {
+			i++;
 		}
 	}
+	if ( cg.soundTime >= cg.time || !cg.soundBufferCount ) {
+		return;
+	}
+	best = 0;
+	for ( i = 1 ; i < cg.soundBufferCount ; i++ ) {
+		if ( cg.soundBufferPriority[i] > cg.soundBufferPriority[best] ) {
+			best = i;
+		}
+	}
+	trap_S_StartLocalSound( cg.soundBuffer[best], CHAN_ANNOUNCER );
+	CG_DropBufferedSound( best );
+	cg.soundTime = cg.time + 1500;		// each line holds the announcer this long
 }
 
 //=========================================================================
