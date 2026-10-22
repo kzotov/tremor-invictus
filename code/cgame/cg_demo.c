@@ -223,7 +223,8 @@ static void CG_DrawDemoControls( void ) {
 =================
 CG_DrawRecordMark
 
-A small REC in the corner while recording (cl_demoRecordMessage 2)
+A small REC in the corner while recording by hand (cl_demoRecordMessage 2);
+the automatic match recording (cg_autoAction) stays quiet
 =================
 */
 static void CG_DrawRecordMark( void ) {
@@ -234,6 +235,10 @@ static void CG_DrawRecordMark( void ) {
 	}
 	trap_Cvar_VariableStringBuffer( "cl_demoRecording", buf, sizeof( buf ) );
 	if ( !atoi( buf ) ) {
+		return;
+	}
+	trap_Cvar_VariableStringBuffer( "cg_autoRecording", buf, sizeof( buf ) );
+	if ( atoi( buf ) == 1 ) {
 		return;
 	}
 	trap_Cvar_VariableStringBuffer( "cl_demoRecordMessage", buf, sizeof( buf ) );
