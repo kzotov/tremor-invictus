@@ -790,12 +790,13 @@ extern "C" void RML_Frame( void ) {
 	imp.SetScissor2D( 0, 0, 0, 0 );
 
 	// the cursor
+	// our pointer, its tip the hot spot
 	if ( !cursorShader ) {
-		cursorShader = imp.RegisterShaderNoMip( "menu/art/3_cursor2" );
+		cursorShader = imp.RegisterShaderNoMip( "gfx/tremor/cursor" );
 	}
-	size = screenHeight / 30.0f;
+	size = screenHeight / 28.0f;
 	imp.SetColor( white );
-	imp.DrawStretchPic( cursorX - size * 0.5f, cursorY - size * 0.5f, size, size, 0, 0, 1, 1, cursorShader );
+	imp.DrawStretchPic( cursorX, cursorY, size, size, 0, 0, 1, 1, cursorShader );
 	imp.SetColor( nullptr );
 }
 

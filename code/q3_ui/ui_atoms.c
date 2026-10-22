@@ -1446,7 +1446,7 @@ void UI_Refresh( int realtime )
 	// draw cursor (an RmlUi menu draws its own)
 	UI_SetColor( NULL );
 	if ( !trap_Cvar_VariableValue( "rml_active" ) ) {
-		UI_DrawHandlePic( uis.cursorx-16, uis.cursory-16, 32, 32, uis.cursor);
+		UI_DrawHandlePic( uis.cursorx, uis.cursory, 24, 24, uis.cursor);		// the tip is the hot spot
 	}
 
 #ifndef NDEBUG

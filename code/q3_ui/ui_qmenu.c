@@ -1778,7 +1778,7 @@ void Menu_Cache( void )
 	uis.charsetProp		= trap_R_RegisterShaderNoMip( "menu/art/font1_prop.tga" );
 	uis.charsetPropGlow	= trap_R_RegisterShaderNoMip( "menu/art/font1_prop_glo.tga" );
 	uis.charsetPropB	= trap_R_RegisterShaderNoMip( "menu/art/font2_prop.tga" );
-	uis.cursor          = trap_R_RegisterShaderNoMip( "menu/art/3_cursor2" );
+	uis.cursor          = trap_R_RegisterShaderNoMip( "gfx/tremor/cursor" );
 	uis.rb_on           = trap_R_RegisterShaderNoMip( "menu/art/switch_on" );
 	uis.rb_off          = trap_R_RegisterShaderNoMip( "menu/art/switch_off" );
 
