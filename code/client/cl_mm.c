@@ -61,6 +61,10 @@ static void SetState( const char *state ) {
 	Cvar_Set( "mm_state", state );
 	if ( !strcmp( state, "ready_check" ) && strcmp( mm.lastState, "ready_check" ) ) {
 		Cbuf_ExecuteText( EXEC_NOW, "rml_show ui/readycheck.rml\n" );
+		// call the player back to the game: a chime, and the Dock icon
+		// bounces while the window is in the background
+		S_StartLocalSound( S_RegisterSound( "sound/tremor/match_found.wav", qfalse ), CHAN_LOCAL_SOUND );
+		IN_FlashWindow();
 	} else if ( !strcmp( state, "found" ) && strcmp( mm.lastState, "found" ) ) {
 		Cbuf_ExecuteText( EXEC_NOW, "rml_show ui/matchfound.rml\n" );
 	} else if ( strcmp( state, "ready_check" ) && !strcmp( mm.lastState, "ready_check" ) ) {

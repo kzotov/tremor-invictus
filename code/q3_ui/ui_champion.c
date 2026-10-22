@@ -739,7 +739,7 @@ void UI_Champion_Frame( void ) {
 
 static void UI_DrawOneStage( uiStage_t *stage, const char *suffix, qboolean turns ) {
 	char	box[128], cvar[64], name[MAX_QPATH], *p;
-	float	x, y, w, h;
+	float	x, y, w, h, yaw;
 	int		i;
 
 	trap_Cvar_VariableStringBuffer( va( "rml_stage%s", suffix ), box, sizeof( box ) );
@@ -766,10 +766,18 @@ static void UI_DrawOneStage( uiStage_t *stage, const char *suffix, qboolean turn
 	if ( i < 0 ) {
 		i = 0;
 	}
+	// the match-found lineup: the left half turned to the right and the right
+	// half to the left, a duel's two squarely facing each other
+	yaw = turns ? trap_Cvar_VariableValue( "rml_stageYaw" ) : 0;
+	if ( !Q_strncmp( cvar, "mm_p", 4 ) ) {
+		int		slot = atoi( cvar + 4 ), players = (int)trap_Cvar_VariableValue( "mm_pcount" );
+		float	turn = players <= 2 ? 40 : 15;
+
+		yaw = slot * 2 < players ? turn : -turn;
+	}
 	trap_Cvar_VariableStringBuffer( va( "rml_stageTint%s", suffix ), cvar, sizeof( cvar ) );
 	UI_Stage_Tint( stage, UI_Cvar_VariableString( cvar ) );
-	UI_Stage_Draw( stage, x, y, w, h, i, UI_StartWeapon( UI_Cvar_VariableString( Champion_WeaponCvar( i ) ) ),
-		turns ? trap_Cvar_VariableValue( "rml_stageYaw" ) : 0 );
+	UI_Stage_Draw( stage, x, y, w, h, i, UI_StartWeapon( UI_Cvar_VariableString( Champion_WeaponCvar( i ) ) ), yaw );
 }
 
 /*

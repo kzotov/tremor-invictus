@@ -1788,7 +1788,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Sends your voice whenever you talk, without holding the push-to-talk key.",
 	"System default",
 	"MUTE",
-	"UNMUTE"
+	"UNMUTE",
+	"READY"
 };
 
 /*

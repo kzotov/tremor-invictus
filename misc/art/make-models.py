@@ -24,6 +24,8 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
                                             hit tones: a bright ping on armour, a
                                             dull knock on health, a crack when the
                                             armour breaks (synthesised)
+  sound/tremor/match_found.wav              the ready check's call: three rising
+                                            bell tones
   scripts/tremor-assets.shader              the shaders above
 All shapes are built here from lathes and boxes; textures from noise.
 """
@@ -376,6 +378,14 @@ def sounds(out):
     write_wav(os.path.join(out, "sound/tremor/hit_armor.wav"), tone([(2400, 0.6), (3600, 0.3), (5100, 0.15)], 0.12, 38))
     write_wav(os.path.join(out, "sound/tremor/hit_health.wav"), tone([(520, 0.7), (780, 0.25)], 0.12, 45, noise=0.15))
     write_wav(os.path.join(out, "sound/tremor/armor_break.wav"), tone([(1800, 0.4), (2700, 0.3), (900, 0.3)], 0.35, 14, noise=0.5))
+    # a bell (fundamental and inharmonic partials) on A, C sharp and E, 0.16 s apart
+    call = [0.0] * int(1.2 * 22050)
+    for n, f in enumerate((880, 1109, 1319)):
+        bell = tone([(f, 0.6), (f * 2.76, 0.2), (f * 5.4, 0.08)], 0.8, 6)
+        start = int(n * 0.16 * 22050)
+        for i, v in enumerate(bell):
+            call[start + i] += v * 0.6
+    write_wav(os.path.join(out, "sound/tremor/match_found.wav"), call)
 
 
 SHADERS = """// tremor-invictus generated assets (misc/art/make-models.py)

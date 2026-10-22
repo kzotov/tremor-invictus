@@ -29,6 +29,9 @@ void IN_Frame (void) {
 void IN_Shutdown( void ) {
 }
 
+void IN_FlashWindow( void ) {
+}
+
 void IN_Restart( void ) {
 }
 

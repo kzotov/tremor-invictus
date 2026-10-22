@@ -879,14 +879,7 @@ White normally, yellow at 50 and below, red at 25 and below
 =================
 */
 static void CG_HudNumberColor( int value, vec4_t out ) {
-	if ( value <= 25 ) {
-		VectorSet( out, 1.0f, 0.2f, 0.2f );
-	} else if ( value <= 50 ) {
-		VectorSet( out, 1.0f, 0.85f, 0.2f );
-	} else {
-		VectorSet( out, 1.0f, 1.0f, 1.0f );
-	}
-	out[3] = 1.0f;
+	CG_HealthPalette( value <= 25 ? 0 : value <= 50 ? 1 : 2, out );
 }
 
 /*
@@ -4007,7 +4000,8 @@ Up to 16 players on pillars across the screen: `height` per slot (0 for
 the same height), names under them. Positions are spread from left to right.
 =================
 */
-static void CG_DrawPillars( const int *clients, const int *heights, const int *teams, int count, const char **labels, const int *ranks ) {
+static void CG_DrawPillars( const int *clients, const int *heights, const int *teams, int count, const char **labels, const int *ranks,
+	int readyBits ) {
 	// glow: logo red when neutral, else the team colour
 	static const byte	glows[3][4] = { { 211, 25, 31, 255 }, { 208, 26, 26, 255 }, { 40, 90, 220, 255 } };
 	float		dist;
@@ -4061,6 +4055,13 @@ static void CG_DrawPillars( const int *clients, const int *heights, const int *t
 		if ( labels && labels[i] ) {
 			CG_DrawStringExt( sx - CG_DrawStrlen( labels[i] ) * TINYCHAR_WIDTH / 2, 424, labels[i], colorLtGrey,
 				qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+		}
+		// ready-up in warm-up: who has readied
+		if ( readyBits & ( 1 << clients[i] ) ) {
+			const char	*ready = BG_String( STR_LINEUP_READY );
+
+			CG_DrawStringExt( sx - CG_DrawStrlen( ready ) * SMALLCHAR_WIDTH / 2, 436, ready, colorGreen,
+				qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
 		}
 	}
 }
@@ -4228,7 +4229,8 @@ static void CG_DrawLineup( void ) {
 		labels[i] = champ >= 0 ? BG_String( BG_Champion( champ )->nameString ) : NULL;
 	}
 	CG_FillRect( -1000, 0, 3000, 480, dim );
-	CG_DrawPillars( clients, NULL, teams, count, labels, NULL );
+	CG_DrawPillars( clients, NULL, teams, count, labels, NULL,
+		atoi( CG_ConfigString( CS_READYUP ) ) && cg.warmup ? cg.snap->ps.stats[STAT_CLIENTS_READY] : 0 );
 	UI_DrawProportionalString( 320, 40, CG_ModeString(), UI_CENTER | UI_DROPSHADOW, colorWhite );
 	UI_DrawProportionalString( 320, 66, CG_ConfigString( CS_MESSAGE )[0] ? CG_ConfigString( CS_MESSAGE ) : cgs.mapname + 5,
 		UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorLtGrey );
@@ -4269,7 +4271,7 @@ static void CG_DrawPodium( void ) {
 		count++;
 	}
 	CG_FillRect( -1000, 0, 3000, 480, dim );
-	CG_DrawPillars( clients, heights, teams, count, labels, ranks );
+	CG_DrawPillars( clients, heights, teams, count, labels, ranks, 0 );
 
 	// the awards above, in two columns
 	for ( i = 0 ; i < cg.numAwards ; i++ ) {

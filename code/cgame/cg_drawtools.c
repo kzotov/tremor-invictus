@@ -482,6 +482,32 @@ float *CG_TeamColor( int team ) {
 
 /*
 =================
+CG_HealthPalette
+
+The HUD's colour for a low (level 0), middling (1) or healthy (2) value:
+red and yellow, or with cg_colorBlind 1 or 2 (deuteranopia, protanopia)
+blue and yellow, with 3 (tritanopia) red and cyan; healthy is white
+=================
+*/
+void CG_HealthPalette( int level, vec4_t out ) {
+	static const float	palettes[4][2][3] = {
+		{ { 1, 0.2f, 0.2f }, { 1, 0.85f, 0.2f } },
+		{ { 0.25f, 0.55f, 1 }, { 1, 0.8f, 0.1f } },
+		{ { 0.25f, 0.55f, 1 }, { 1, 0.8f, 0.1f } },
+		{ { 1, 0.15f, 0.2f }, { 0.2f, 0.9f, 0.9f } }
+	};
+	int		p = cg_colorBlind.integer >= 0 && cg_colorBlind.integer <= 3 ? cg_colorBlind.integer : 0;
+
+	out[3] = 1.0f;
+	if ( level >= 2 ) {
+		VectorSet( out, 1, 1, 1 );
+		return;
+	}
+	VectorCopy( palettes[p][level], out );
+}
+
+/*
+=================
 CG_GetColorForHealth
 =================
 */
@@ -502,6 +528,12 @@ void CG_GetColorForHealth( int health, int armor, vec4_t hcolor ) {
 		count = max;
 	}
 	health += count;
+
+	// colour-blind palettes in three steps
+	if ( cg_colorBlind.integer > 0 ) {
+		CG_HealthPalette( health < 30 ? 0 : health < 66 ? 1 : 2, hcolor );
+		return;
+	}
 
 	// set the color based on health
 	hcolor[0] = 1.0;

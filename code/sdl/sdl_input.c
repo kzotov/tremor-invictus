@@ -1434,6 +1434,20 @@ void IN_Shutdown( void )
 
 /*
 ===============
+IN_FlashWindow
+
+Asks for attention while the window is in the background (the Dock icon
+bounces on a Mac)
+===============
+*/
+void IN_FlashWindow( void )
+{
+	if( SDL_window && !( SDL_GetWindowFlags( SDL_window ) & SDL_WINDOW_INPUT_FOCUS ) )
+		SDL_FlashWindow( SDL_window, SDL_FLASH_UNTIL_FOCUSED );
+}
+
+/*
+===============
 IN_Restart
 ===============
 */
