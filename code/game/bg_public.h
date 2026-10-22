@@ -1193,7 +1193,7 @@ typedef struct {
 	char		*name;				// userinfo "champion" value
 	int			bodyClass;			// championClass_t
 	int			runSpeed;
-	int			jumpSpeedCap;		// horizontal cap on jump, 0 = none
+	int			jumpSpeedCap;		// horizontal speed cap (acceleration and air decay), 0 = none
 	int			moveStyle;			// moveStyle_t
 	int			abilities;			// MOVEABIL_* bits
 	int			active;				// activeAbility_t
@@ -1230,7 +1230,7 @@ typedef struct {
 	float	friction;
 	float	stopSpeed;
 	float	crouchSpeed;
-	float	speedLimit;				// non-zero: cap horizontal speed on jump
+	float	speedLimit;				// non-zero: the champions' speed caps apply
 	float	jumpSilentTime;
 
 	float	acFriction;				// air-control style
@@ -1253,8 +1253,13 @@ typedef struct {
 	float	chainScale;				// others: up to this share more, fading over the chain time
 	float	crouchJumpScale;		// a jump from a crouch (sliders jump fully)
 	float	crouchWalkScale;		// crouch walking, times run speed (sliders: pm_slideCrouchScale)
+	float	airSpeedDecay;			// u/s each second lost above the speed cap in the air
+	float	airSpeedDecayWrack;
+	float	airSpeedDecayClutch;
+	float	circleFriction;			// air-control style, forward and strafe held on the ground
 
 	float	slideFriction;
+	float	slideFrictionStrogg;
 	float	slideStopSpeed;
 	float	slideChargeRate;
 	float	slideChargeMax;

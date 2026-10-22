@@ -2812,6 +2812,7 @@ void BG_TouchJumpPad( playerState_t *ps, entityState_t *jumppad ) {
 	ps->jumppad_frame = ps->pmove_framecount;
 	// give the player the velocity from the jumppad
 	VectorCopy( jumppad->origin2, ps->velocity );
+	ps->stats[STAT_LAND_TIME] = -1;		// launched: no air speed decay until landing
 }
 
 /*

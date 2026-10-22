@@ -318,8 +318,8 @@ void PM_StepSlideMove( qboolean gravity ) {
 
 		delta = pm->ps->origin[2] - start_o[2];
 		if ( delta > 2 ) {
-			if ( pml.walking ) {
-				pm->ps->persistant[PERS_STEP_TIME] = 0;		// a step up on foot, not a ledge caught in the air
+			if ( trace.fraction < 1.0 && trace.plane.normal[2] > MIN_WALK_NORMAL ) {
+				pm->ps->persistant[PERS_STEP_TIME] = 0;		// a step up onto walkable ground, on foot or in the air
 			}
 			if ( delta < 7 ) {
 				PM_AddEvent( EV_STEP_4 );

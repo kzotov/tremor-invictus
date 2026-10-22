@@ -73,9 +73,9 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_acStrafeSpeed",		"30",	&bg_pmoveSettings.acStrafeSpeed },
 	{ {0}, "pm_acBrakeAccel",		"2.5",	&bg_pmoveSettings.acBrakeAccel },
 	{ {0}, "pm_acAirControl",		"150",	&bg_pmoveSettings.acAirControl },
-	{ {0}, "pm_hopAccel",			"0.05",	&bg_pmoveSettings.hopAccel },
+	{ {0}, "pm_hopAccel",			"240",	&bg_pmoveSettings.hopAccel },
 	{ {0}, "pm_hopMaxSpeed",		"500",	&bg_pmoveSettings.hopMaxSpeed },
-	{ {0}, "pm_easyStrafeAccel",	"0.1",	&bg_pmoveSettings.easyStrafeAccel },
+	{ {0}, "pm_easyStrafeAccel",	"0.08",	&bg_pmoveSettings.easyStrafeAccel },
 	{ {0}, "pm_easyStrafeMaxSpeed",	"400",	&bg_pmoveSettings.easyStrafeMaxSpeed },
 	{ {0}, "pm_isoAirAccel",		"2.5",	&bg_pmoveSettings.isoAirAccel },
 	{ {0}, "pm_isoAirControl",		"1",	&bg_pmoveSettings.isoAirControl },
@@ -88,21 +88,26 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_chainScale",			"0.4",	&bg_pmoveSettings.chainScale },
 	{ {0}, "pm_crouchJumpScale",	"0.6",	&bg_pmoveSettings.crouchJumpScale },
 	{ {0}, "pm_crouchWalkScale",	"0.5",	&bg_pmoveSettings.crouchWalkScale },
+	{ {0}, "pm_airSpeedDecay",		"52",	&bg_pmoveSettings.airSpeedDecay },
+	{ {0}, "pm_airSpeedDecayWrack",	"400",	&bg_pmoveSettings.airSpeedDecayWrack },
+	{ {0}, "pm_airSpeedDecayClutch",	"600",	&bg_pmoveSettings.airSpeedDecayClutch },
+	{ {0}, "pm_circleFriction",		"8",	&bg_pmoveSettings.circleFriction },
 
 	{ {0}, "pm_slideFriction",		"1.2",	&bg_pmoveSettings.slideFriction },
+	{ {0}, "pm_slideFrictionStrogg",	"2",	&bg_pmoveSettings.slideFrictionStrogg },
 	{ {0}, "pm_slideStopSpeed",		"1",	&bg_pmoveSettings.slideStopSpeed },
 	{ {0}, "pm_slideChargeRate",	"5",	&bg_pmoveSettings.slideChargeRate },
 	{ {0}, "pm_slideChargeMax",		"6000",	&bg_pmoveSettings.slideChargeMax },
 	{ {0}, "pm_slideDrain",			"1",	&bg_pmoveSettings.slideDrain },
-	{ {0}, "pm_slideAirGrace",		"1200",	&bg_pmoveSettings.slideAirGrace },
+	{ {0}, "pm_slideAirGrace",		"200",	&bg_pmoveSettings.slideAirGrace },
 	{ {0}, "pm_slideChargeMaxStrogg",	"1000",	&bg_pmoveSettings.slideChargeMaxStrogg },
-	{ {0}, "pm_slideAirGraceStrogg",	"2000",	&bg_pmoveSettings.slideAirGraceStrogg },
+	{ {0}, "pm_slideAirGraceStrogg",	"200",	&bg_pmoveSettings.slideAirGraceStrogg },
 	{ {0}, "pm_slideCrouchScale",	"0.85",	&bg_pmoveSettings.slideCrouchScale },
 
 	{ {0}, "pm_wallJumpVelocity",	"400",	&bg_pmoveSettings.wallJumpVelocity },
 	{ {0}, "pm_wallJumpReach",		"18",	&bg_pmoveSettings.wallJumpReach },
 	{ {0}, "pm_wallJumpMaxSpeed",	"680",	&bg_pmoveSettings.wallJumpMaxSpeed },
-	{ {0}, "pm_wallJumpPush",		"200",	&bg_pmoveSettings.wallJumpPush },
+	{ {0}, "pm_wallJumpPush",		"14",	&bg_pmoveSettings.wallJumpPush },
 	{ {0}, "pm_wallJumpNormal",		"0.3",	&bg_pmoveSettings.wallJumpNormal },
 
 	{ {0}, "pm_doubleJumpVelocity",	"275",	&bg_pmoveSettings.doubleJumpVelocity },
@@ -445,10 +450,11 @@ PM_GroundFriction
 */
 static float PM_GroundFriction( void ) {
 	if ( PM_IsSliding() ) {
-		return bg_pmoveSettings.slideFriction;
+		return PM_IsSlash() ? bg_pmoveSettings.slideFriction : bg_pmoveSettings.slideFrictionStrogg;
 	}
 	if ( pml.champion->moveStyle == MOVE_AIRCONTROL ) {
-		return bg_pmoveSettings.acFriction;
+		// circling: forward and strafe both held
+		return pm->cmd.forwardmove && pm->cmd.rightmove ? bg_pmoveSettings.circleFriction : bg_pmoveSettings.acFriction;
 	}
 	return bg_pmoveSettings.friction;
 }
@@ -527,21 +533,62 @@ static void PM_Friction( void ) {
 
 /*
 ==============
+PM_HorizontalSpeed
+==============
+*/
+static float PM_HorizontalSpeed( void ) {
+	return sqrt( pm->ps->velocity[0] * pm->ps->velocity[0] + pm->ps->velocity[1] * pm->ps->velocity[1] );
+}
+
+/*
+==============
+PM_SlowMoving
+
+Crouched (not sliding) or holding walk: a fixed slow speed
+==============
+*/
+static qboolean PM_SlowMoving( void ) {
+	if ( pm->ps->pm_flags & PMF_DUCKED ) {
+		return !PM_IsSliding();
+	}
+	return ( pm->cmd.buttons & BUTTON_WALKING ) != 0;
+}
+
+/*
+==============
+PM_SlowSpeed
+
+The crouch or walk speed
+==============
+*/
+static float PM_SlowSpeed( void ) {
+	if ( ( pm->ps->pm_flags & PMF_DUCKED ) && pml.champion->moveStyle == MOVE_SLIDE && PM_IsSlash() ) {
+		return pml.runSpeed * bg_pmoveSettings.slideCrouchScale;
+	}
+	return pml.runSpeed * bg_pmoveSettings.crouchWalkScale;
+}
+
+/*
+==============
 PM_Accelerate
 
 Handles user intended acceleration
 ==============
 */
-static void PM_Accelerate( vec3_t wishdir, float wishspeed, float accel ) {
+static float PM_Accelerate( vec3_t wishdir, float wishspeed, float accel ) {
 #if 1
 	// q2 style
 	int			i;
-	float		addspeed, accelspeed, currentspeed;
+	float		addspeed, accelspeed, currentspeed, before, after, limit;
 
+	before = PM_HorizontalSpeed();
 	currentspeed = DotProduct (pm->ps->velocity, wishdir);
+	if ( PM_SlowMoving() ) {
+		currentspeed = before;		// crouched or walking: no strafe gain
+	}
 	addspeed = wishspeed - currentspeed;
 	if (addspeed <= 0) {
-		return;
+		return 0;
 	}
 	accelspeed = accel*pml.frametime*wishspeed;
 	if (accelspeed > addspeed) {
@@ -551,6 +598,18 @@ static void PM_Accelerate( vec3_t wishdir, float wishspeed, float accel ) {
 	for (i=0 ; i<3 ; i++) {
 		pm->ps->velocity[i] += accelspeed*wishdir[i];	
 	}
+
+	// never past the cap, or past the speed already held: above it,
+	// strafing only turns
+	if ( bg_pmoveSettings.speedLimit && pml.champion->jumpSpeedCap > 0 ) {
+		limit = before > pml.champion->jumpSpeedCap ? before : pml.champion->jumpSpeedCap;
+		after = PM_HorizontalSpeed();
+		if ( after > limit ) {
+			pm->ps->velocity[0] *= limit / after;
+			pm->ps->velocity[1] *= limit / after;
+		}
+	}
+	return accelspeed;
 #else
 	// proper way (avoids strafe jump maxspeed bug), but feels bad
 	vec3_t		wishVelocity;
@@ -568,6 +627,7 @@ static void PM_Accelerate( vec3_t wishdir, float wishspeed, float accel ) {
 	}
 
 	VectorMA( pm->ps->velocity, canPush, pushDir, pm->ps->velocity );
+	return canPush;
 #endif
 }
 
@@ -652,12 +712,12 @@ PM_CheckJump
 =============
 */
 #define CHAIN_FULL_MSEC		300		// air control: full chain boost this soon after a jump
-#define CHAIN_END_VELOCITY	37		// ... fading to this at the chain time
+#define JUMP_REPEAT_MSEC	50		// holding jump hops again after this long
 
 static qboolean PM_CheckJump( void ) {
 	qboolean	silent;
 	int			style, jt;
-	float		cap, speed;
+	float		speed;
 
 	if ( pm->ps->pm_flags & PMF_RESPAWNED ) {
 		return qfalse;		// don't allow jump until all buttons are up
@@ -668,15 +728,26 @@ static qboolean PM_CheckJump( void ) {
 		return qfalse;
 	}
 
-	// must wait for jump to be released, unless auto-hopping
-	if ( ( pm->ps->pm_flags & PMF_JUMP_HELD ) && !pm->autoHop ) {
-		// clear upmove so cmdscale doesn't lower running speed
-		pm->cmd.upmove = 0;
+	// holding jump hops, a short while after the last jump
+	if ( pm->ps->stats[STAT_JUMP_TIME] < JUMP_REPEAT_MSEC ) {
 		return qfalse;
 	}
 
+	// a crouched or walking jump keeps no more than the slow speed's worth
+	// of what it carries above it, halved
+	if ( PM_SlowMoving() && !( pm->ps->pm_flags & PMF_TIME_KNOCKBACK ) ) {
+		float	h = PM_HorizontalSpeed(), slow = PM_SlowSpeed();
+
+		if ( h > slow ) {
+			float	nh = slow + ( h - slow ) * 0.5f;
+
+			pm->ps->velocity[0] *= nh / h;
+			pm->ps->velocity[1] *= nh / h;
+		}
+	}
+
 	// landing and sliding jumps are silent
-	silent = pm->ps->stats[STAT_LAND_TIME] < bg_pmoveSettings.jumpSilentTime
+	silent = ( pm->ps->stats[STAT_LAND_TIME] >= 0 && pm->ps->stats[STAT_LAND_TIME] < bg_pmoveSettings.jumpSilentTime )
 		|| pml.wasSliding;
 
 	pml.groundPlane = qfalse;		// jumping away
@@ -696,12 +767,6 @@ static qboolean PM_CheckJump( void ) {
 		}
 	}
 	pm->ps->velocity[2] = bg_pmoveSettings.jumpVelocity;
-	if ( speed > 0 ) {
-		pm->ps->velocity[2] += bg_pmoveSettings.rampJumpScale * speed;
-		if ( pm->ps->velocity[2] > bg_pmoveSettings.rampJumpMax ) {
-			pm->ps->velocity[2] = bg_pmoveSettings.rampJumpMax;
-		}
-	}
 
 	style = pml.champion->moveStyle;
 
@@ -710,60 +775,34 @@ static qboolean PM_CheckJump( void ) {
 		pm->ps->velocity[2] *= bg_pmoveSettings.crouchJumpScale;
 	}
 
-	// one bonus per jump. A ramp jump keeps its climb and gets nothing more.
-	// Air control: a chained jump adds a fixed boost that fades from 300 ms
-	// to the chain time, or else a jump off a step up adds a small one.
+	// one bonus per jump.
+	// Air control: under 300 ms after the last jump +110 (+48 on a stair
+	// jump), then +48 fading to +16 at the chain time.
 	// Everyone else: a chained jump scales up, fading over the chain time.
 	jt = pm->ps->stats[STAT_JUMP_TIME];
-	if ( speed > 0 ) {
-		// ramp jump
-	} else if ( style == MOVE_AIRCONTROL ) {
-		if ( jt < bg_pmoveSettings.chainTime ) {
-			if ( jt <= CHAIN_FULL_MSEC ) {
-				pm->ps->velocity[2] += bg_pmoveSettings.chainVelocity;
-			} else {
-				pm->ps->velocity[2] += bg_pmoveSettings.chainVelocity - ( bg_pmoveSettings.chainVelocity - CHAIN_END_VELOCITY )
-					* ( jt - CHAIN_FULL_MSEC ) / ( bg_pmoveSettings.chainTime - CHAIN_FULL_MSEC );
-			}
-		} else if ( pm->ps->persistant[PERS_STEP_TIME] < bg_pmoveSettings.stepJumpTime ) {
-			pm->ps->velocity[2] += bg_pmoveSettings.stepJumpVelocity;
+	if ( style == MOVE_AIRCONTROL ) {
+		if ( jt < CHAIN_FULL_MSEC ) {
+			pm->ps->velocity[2] += pml.stairJump ? bg_pmoveSettings.stepJumpVelocity : bg_pmoveSettings.chainVelocity;
+		} else if ( jt < bg_pmoveSettings.chainTime ) {
+			pm->ps->velocity[2] += bg_pmoveSettings.stepJumpVelocity * ( 2.0f - jt / (float)CHAIN_FULL_MSEC );
 		}
 	} else if ( jt < bg_pmoveSettings.chainTime ) {
 		pm->ps->velocity[2] *= 1.0f + bg_pmoveSettings.chainScale
 			* ( bg_pmoveSettings.chainTime - jt ) / bg_pmoveSettings.chainTime;
+	}
+	// ramp jump: the climb adds to the jump (chain bonus included), up to a cap
+	if ( speed > 0 ) {
+		pm->ps->velocity[2] += bg_pmoveSettings.rampJumpScale * speed;
+		if ( pm->ps->velocity[2] > bg_pmoveSettings.rampJumpMax ) {
+			pm->ps->velocity[2] = bg_pmoveSettings.rampJumpMax;
+		}
 	}
 	pm->ps->persistant[PERS_STEP_TIME] = STAT_TIME_CAP;
 	if ( style == MOVE_SLIDE ) {
 		pm->ps->stats[STAT_MOVE_STATE] = 0;
 	}
 
-	// bunny hop: each jump adds a share of the running speed, up to a cap
-	if ( pml.champion->abilities & MOVEABIL_BUNNYHOP ) {
-		float	h = sqrt( pm->ps->velocity[0] * pm->ps->velocity[0]
-			+ pm->ps->velocity[1] * pm->ps->velocity[1] );
-
-		if ( h > 1 && h < bg_pmoveSettings.hopMaxSpeed ) {
-			float	nh = h * ( 1.0f + bg_pmoveSettings.hopAccel );
-
-			if ( nh > bg_pmoveSettings.hopMaxSpeed ) {
-				nh = bg_pmoveSettings.hopMaxSpeed;
-			}
-			pm->ps->velocity[0] *= nh / h;
-			pm->ps->velocity[1] *= nh / h;
-		}
-	}
 	pm->ps->stats[STAT_JUMP_TIME] = 0;
-
-	// optional per-champion horizontal speed cap; sliders always have theirs
-	cap = pml.champion->jumpSpeedCap;
-	if ( ( bg_pmoveSettings.speedLimit || style == MOVE_SLIDE ) && cap > 0 ) {
-		speed = sqrt( pm->ps->velocity[0] * pm->ps->velocity[0]
-			+ pm->ps->velocity[1] * pm->ps->velocity[1] );
-		if ( speed > cap ) {
-			pm->ps->velocity[0] *= cap / speed;
-			pm->ps->velocity[1] *= cap / speed;
-		}
-	}
 
 	if ( !silent ) {
 		PM_AddEvent( EV_JUMP );
@@ -1018,7 +1057,7 @@ A fresh jump press in the air next to a wall, once per airtime
 static qboolean PM_CheckWallJump( const vec3_t wishdir ) {
 	trace_t		trace;
 	vec3_t		dir, normal;
-	float		away;
+	float		before, limit, speed;
 	int			i;
 	qboolean	found;
 
@@ -1050,23 +1089,17 @@ static qboolean PM_CheckWallJump( const vec3_t wishdir ) {
 		return qfalse;
 	}
 
-	pm->ps->velocity[2] = bg_pmoveSettings.wallJumpVelocity;
-
-	// push off the wall as far as the input points away from it
+	// a nudge off the wall and straight up; no faster than the speed held
+	// before or the cap, whichever is more
+	before = VectorLength( pm->ps->velocity );
 	VectorSet( normal, trace.plane.normal[0], trace.plane.normal[1], 0 );
 	VectorNormalize( normal );
-	away = DotProduct( wishdir, normal );
-	if ( away > 0 ) {
-		VectorMA( pm->ps->velocity, bg_pmoveSettings.wallJumpPush * away, normal, pm->ps->velocity );
-	}
-	// wall jumps can't build speed past a cap
-	{
-		float	h = sqrt( pm->ps->velocity[0] * pm->ps->velocity[0] + pm->ps->velocity[1] * pm->ps->velocity[1] );
-
-		if ( h > bg_pmoveSettings.wallJumpMaxSpeed ) {
-			pm->ps->velocity[0] *= bg_pmoveSettings.wallJumpMaxSpeed / h;
-			pm->ps->velocity[1] *= bg_pmoveSettings.wallJumpMaxSpeed / h;
-		}
+	VectorMA( pm->ps->velocity, bg_pmoveSettings.wallJumpPush, normal, pm->ps->velocity );
+	pm->ps->velocity[2] = bg_pmoveSettings.wallJumpVelocity;
+	limit = before > bg_pmoveSettings.wallJumpMaxSpeed ? before : bg_pmoveSettings.wallJumpMaxSpeed;
+	speed = VectorLength( pm->ps->velocity );
+	if ( speed > limit ) {
+		VectorScale( pm->ps->velocity, limit / speed, pm->ps->velocity );
 	}
 
 	pm->ps->pm_flags |= PMF_AIRMOVE_USED | PMF_JUMP_HELD;
@@ -1158,6 +1191,42 @@ static void PM_AirControl( const vec3_t wishdir, float wishspeed, float strength
 
 /*
 ===================
+PM_AirSpeedDecay
+
+In the air, speed above the cap (the crouch or walk speed while moving
+slowly) bleeds off at a fixed rate, except after a jump pad until landing
+===================
+*/
+static void PM_AirSpeedDecay( void ) {
+	float	cap, h, rate, nh;
+
+	if ( !bg_pmoveSettings.speedLimit || pm->ps->stats[STAT_LAND_TIME] < 0 ) {
+		return;		// off, or launched
+	}
+	cap = PM_SlowMoving() ? PM_SlowSpeed() : pml.champion->jumpSpeedCap;
+	if ( cap <= 0 ) {
+		return;
+	}
+	h = PM_HorizontalSpeed();
+	if ( h <= cap ) {
+		return;
+	}
+	rate = bg_pmoveSettings.airSpeedDecay;
+	if ( !Q_stricmp( pml.champion->name, "wrack" ) ) {
+		rate = bg_pmoveSettings.airSpeedDecayWrack;
+	} else if ( !Q_stricmp( pml.champion->name, "clutch" ) ) {
+		rate = bg_pmoveSettings.airSpeedDecayClutch;
+	}
+	nh = h - rate * pml.frametime;
+	if ( nh < cap ) {
+		nh = cap;
+	}
+	pm->ps->velocity[0] *= nh / h;
+	pm->ps->velocity[1] *= nh / h;
+}
+
+/*
+===================
 PM_AirMove
 
 ===================
@@ -1170,7 +1239,7 @@ static void PM_AirMove( void ) {
 	float		wishspeed;
 	float		scale;
 	usercmd_t	cmd;
-	float		accelerate, accelspeed;
+	float		accelerate, accelspeed, added;
 
 	PM_Friction();
 
@@ -1216,12 +1285,32 @@ static void PM_AirMove( void ) {
 			accelerate = bg_pmoveSettings.acBrakeAccel;
 		}
 	}
-	PM_Accelerate (wishdir, accelspeed, accelerate);
+	added = PM_Accelerate (wishdir, accelspeed, accelerate);
 
-	// easy strafe jump: a little extra air acceleration toward the wish
-	// direction, until a set speed
-	if ( ( pml.champion->abilities & MOVEABIL_EASYSTRAFE ) && wishspeed > 0 ) {
-		PM_Accelerate( wishdir, bg_pmoveSettings.easyStrafeMaxSpeed, bg_pmoveSettings.easyStrafeAccel );
+	// with forward alone held and nothing gained the normal way:
+	if ( fmove > 0 && smove == 0 && added <= 0 && wishspeed > 0 ) {
+		if ( pml.champion->abilities & MOVEABIL_EASYSTRAFE ) {
+			// easy strafe: accelerate as if the wish speed were higher
+			PM_Accelerate( wishdir, bg_pmoveSettings.easyStrafeMaxSpeed, bg_pmoveSettings.easyStrafeAccel );
+		} else if ( pml.champion->abilities & MOVEABIL_BUNNYHOP ) {
+			// bunny hop: gain up to the run speed, less and less above it
+			float	h = PM_HorizontalSpeed(), gain = bg_pmoveSettings.hopAccel * pml.frametime;
+
+			if ( h > pml.runSpeed ) {
+				gain *= ( bg_pmoveSettings.hopMaxSpeed - h ) / pml.runSpeed;
+			}
+			if ( gain > 0 ) {
+				float	before = h, limit;
+
+				VectorMA( pm->ps->velocity, gain, wishdir, pm->ps->velocity );
+				limit = before > pml.champion->jumpSpeedCap ? before : pml.champion->jumpSpeedCap;
+				h = PM_HorizontalSpeed();
+				if ( pml.champion->jumpSpeedCap > 0 && h > limit ) {
+					pm->ps->velocity[0] *= limit / h;
+					pm->ps->velocity[1] *= limit / h;
+				}
+			}
+		}
 	}
 
 	if ( pml.champion->moveStyle == MOVE_AIRCONTROL && fmove != 0 && smove == 0 ) {
@@ -1231,22 +1320,12 @@ static void PM_AirMove( void ) {
 		PM_AirControl( wishdir, wishspeed, bg_pmoveSettings.acAirControl );
 	}
 
-	// isotropic: steering works with any keys, and speed over the cap bleeds off fast
+	// isotropic: steering works with any keys
 	if ( pml.champion->abilities & MOVEABIL_ISOAIR ) {
-		float	h, cap = pml.champion->jumpSpeedCap;
-
 		PM_AirControl( wishdir, wishspeed, bg_pmoveSettings.isoAirControl );
-		h = sqrt( pm->ps->velocity[0] * pm->ps->velocity[0] + pm->ps->velocity[1] * pm->ps->velocity[1] );
-		if ( cap > 0 && h > cap ) {
-			float	nh = h - ( h - cap ) * bg_pmoveSettings.isoAirClamp * pml.frametime;
-
-			if ( nh < cap ) {
-				nh = cap;
-			}
-			pm->ps->velocity[0] *= nh / h;
-			pm->ps->velocity[1] *= nh / h;
-		}
 	}
+
+	PM_AirSpeedDecay();
 
 	// we may have a ground plane that is very steep, even
 	// though we don't have a groundentity
@@ -2517,7 +2596,9 @@ static void PM_MoveTimers( void ) {
 	if ( pm->ps->stats[STAT_JUMP_TIME] > STAT_TIME_CAP ) {
 		pm->ps->stats[STAT_JUMP_TIME] = STAT_TIME_CAP;
 	}
-	pm->ps->stats[STAT_LAND_TIME] += pml.msec;
+	if ( pm->ps->stats[STAT_LAND_TIME] >= 0 ) {		// below 0: launched by a jump pad
+		pm->ps->stats[STAT_LAND_TIME] += pml.msec;
+	}
 	if ( pm->ps->stats[STAT_LAND_TIME] > STAT_TIME_CAP ) {
 		pm->ps->stats[STAT_LAND_TIME] = STAT_TIME_CAP;
 	}
@@ -2544,8 +2625,9 @@ static void PM_MoveTimers( void ) {
 			charge = 0;
 		}
 	} else {
-		// landing after real air time: crouch held starts the slide, otherwise the charge is gone
-		if ( air > PM_SlideAirGrace() && pm->cmd.upmove >= 0 ) {
+		// on the ground without crouch held the charge is gone: no slide
+		// starts, and letting go of crouch ends one for good
+		if ( pm->cmd.upmove >= 0 ) {
 			charge = 0;
 		}
 		air = 0;
@@ -3514,6 +3596,15 @@ void PmoveSingle (pmove_t *pmove) {
 	// set groundentity, watertype, and waterlevel
 	PM_GroundTrace();
 	PM_SetWaterLevel();
+
+	// stair jump: a step up with jump held jumps at once
+	pml.stairJump = qfalse;
+	if ( pm->ps->persistant[PERS_STEP_TIME] == 0 && pm->ps->pm_type == PM_NORMAL && pm->waterlevel <= 1
+		&& !PM_DroneActive() && BG_AbilityState( pm->ps ) != ABILITY_HOOK_PULL ) {
+		pml.stairJump = qtrue;
+		PM_CheckJump();
+		pml.stairJump = qfalse;
+	}
 
 	PM_CheckRushBlocked();
 	PM_TrackClimb( wasWalking );
