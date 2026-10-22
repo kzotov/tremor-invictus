@@ -264,6 +264,9 @@ static void CG_TouchItem( centity_t *cent ) {
 	if ( !cg_predictItems.integer ) {
 		return;
 	}
+	if ( cg.predictedPlayerState.eFlags & EF_DRONE ) {
+		return;		// Strogg's drone picks nothing up
+	}
 	if ( !BG_PlayerTouchesItem( &cg.predictedPlayerState, &cent->currentState, cg.time ) ) {
 		return;
 	}

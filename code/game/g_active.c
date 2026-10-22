@@ -282,6 +282,10 @@ void	G_TouchTriggers( gentity_t *ent ) {
 		// use separate code for determining if an item is picked up
 		// so you don't have to actually contact its bounding box
 		if ( hit->s.eType == ET_ITEM ) {
+			// Strogg's drone picks nothing up
+			if ( G_AbilityActive( ent, ACTIVE_DRONE ) ) {
+				continue;
+			}
 			if ( !BG_PlayerTouchesItem( &ent->client->ps, &hit->s, level.time ) ) {
 				continue;
 			}
