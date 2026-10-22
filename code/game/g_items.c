@@ -447,6 +447,7 @@ A power-up appears after the given seconds, with a warning beforehand
 ===============
 */
 void G_SchedulePowerup( gentity_t *ent, int seconds ) {
+	ent->itemDue = level.time + seconds * 1000;
 	if ( seconds > g_powerupWarning.integer && g_powerupWarning.integer > 0 ) {
 		ent->think = G_PowerupWarning;
 		ent->nextthink = level.time + ( seconds - g_powerupWarning.integer ) * 1000;
@@ -483,7 +484,8 @@ void G_UpdateItemTimers( void ) {
 			continue;
 		}
 		Q_strcat( info, sizeof( info ), va( "%i %i %i %i %i ", ent->s.modelindex,
-			( ent->s.eFlags & EF_NODRAW ) && ent->nextthink ? ent->nextthink : 0,
+			( ent->s.eFlags & EF_NODRAW ) && ent->nextthink
+				? ( ent->item->giType == IT_POWERUP && ent->itemDue ? ent->itemDue : ent->nextthink ) : 0,
 			(int)ent->s.pos.trBase[0], (int)ent->s.pos.trBase[1], (int)ent->s.pos.trBase[2] ) );
 	}
 	if ( strcmp( info, last ) ) {
