@@ -462,12 +462,12 @@ button.small {
 	height: 112dp;
 	margin: 0 10dp 10dp 0;
 	background-color: #16171bf0;
-	border: 1dp #3a3b40;
+	border: 3dp #26272c;	/* every state keeps this width: hover never moves the grid */
 	cursor: pointer;
 }
 
 .roster .tile:hover {
-	border: 3dp #8a8780;
+	border-color: #8a8780;
 }
 
 .roster .tile:hover img {
@@ -475,22 +475,22 @@ button.small {
 }
 
 .roster .tile.shown {
-	border: 3dp #d3191f;
+	border-color: #d3191f;
 }
 
 /* recreated champions: a lighter hairline and a faint stripe (no dashed
    borders in the menu renderer) */
 .roster .tile.rec {
-	border: 1dp #6a6b70;
+	border-color: #45464c;
 	decorator: horizontal-gradient( #16171bf0 #24252bf0 );
 }
 
 .roster .tile.rec:hover {
-	border: 3dp #8a8780;
+	border-color: #8a8780;
 }
 
 .roster .tile.rec.shown {
-	border: 3dp #d3191f;
+	border-color: #d3191f;
 }
 
 .roster .tile img {
