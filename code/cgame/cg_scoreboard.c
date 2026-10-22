@@ -263,8 +263,9 @@ static void CG_DrawClientScore( int y, score_t *score, float *color, float fade,
 		}
 	}
 
-	// add the "ready" marker for intermission exiting
-	if ( cg.snap->ps.stats[ STAT_CLIENTS_READY ] & ( 1 << score->client ) ) {
+	// add the "ready" marker for intermission exiting, or in warm-up
+	if ( ( cg.warmup || cg.snap->ps.pm_type == PM_INTERMISSION )
+		&& ( cg.snap->ps.stats[ STAT_CLIENTS_READY ] & ( 1 << score->client ) ) ) {
 		CG_DrawBigStringColor( iconx, y, "READY", color );
 	}
 }
