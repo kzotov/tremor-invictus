@@ -1376,7 +1376,7 @@ static const char *CG_CapName( const char *name, float size, float maxDp ) {
 		out[o++] = name[i];
 		visible++;
 	}
-	Q_strncpyz( out + o, S_COLOR_WHITE "...", sizeof( out ) - o );
+	Q_strncpyz( out + o, "...", sizeof( out ) - o );		// keeps the row's colour
 	return out;
 }
 
@@ -1492,7 +1492,7 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit )
 		return;
 	}
 
-	if ( cgs.gametype == GT_FFA ) {
+	if ( cgs.gametype == GT_FFA && !cg.showScores ) {
 		// two rows right of centre: the leader, then you (the runner-up when
 		// you lead; first and second in free camera); spectators skipped;
 		// equal scores share a rank and read TIED
@@ -4012,6 +4012,20 @@ static void CG_DrawVote( float y ) {
 		s = va( (char *)BG_String( STR_VOTE_LINE ), sec, cgs.voteString, yesKey, cgs.voteYes, noKey, cgs.voteNo );
 	}
 	cg_hudAnchor = ANCHOR_LEFT;
+	if ( CG_HudModern() ) {
+		// left + 50, top + 110, 22 dp, at most 480 dp wide
+		float	h = 22 * DP, cw = h * 0.6f;
+		int		len = CG_DrawStrlen( s );
+
+		if ( len * cw > 480 * DP ) {
+			cw = 480 * DP / len;
+		}
+		cg_hudAnchor = ANCHOR_LEFT;
+		CG_DrawStringExt( 50 * DP, 110 * DP, s, colorWhite, qfalse, qtrue, cw, h, 0 );
+		CG_DrawStringExt( 50 * DP, 110 * DP + h + 2, BG_String( STR_VOTE_ESC ), colorLtGrey, qfalse, qtrue, h * 0.5f, h * 0.8f, 0 );
+		cg_hudAnchor = ANCHOR_CENTER;
+		return;
+	}
 	CG_DrawSmallString( 8, y, s, 1.0F );
 	CG_DrawSmallStringColor( 8, y + SMALLCHAR_HEIGHT + 2, (char *)BG_String( STR_VOTE_ESC ), colorLtGrey );
 	cg_hudAnchor = ANCHOR_CENTER;
@@ -5107,6 +5121,30 @@ static void CG_DrawModernHud( void ) {
 		CG_DrawPic( x - size, y - size, size, size, pic );
 	}
 
+	// a drop flashes the number red for 150 ms, a rise tints it (white
+	// armour, green health)
+	{
+		static int	lastHealth, lastArmor, healthTime, armorTime, healthUp, armorUp;
+		static vec4_t	dropRed = { 1, 0.25f, 0.19f, 1 }, riseGreen = { 0.376f, 1, 0.376f, 1 };
+
+		if ( ps->stats[STAT_HEALTH] != lastHealth ) {
+			healthUp = ps->stats[STAT_HEALTH] > lastHealth;
+			healthTime = cg.time;
+			lastHealth = ps->stats[STAT_HEALTH];
+		}
+		if ( ps->stats[STAT_ARMOR] != lastArmor ) {
+			armorUp = ps->stats[STAT_ARMOR] > lastArmor;
+			armorTime = cg.time;
+			lastArmor = ps->stats[STAT_ARMOR];
+		}
+		if ( cg.time - healthTime < 150 ) {
+			Vector4Copy( healthUp ? riseGreen : dropRed, healthTint );
+		}
+		if ( cg.time - armorTime < 150 && !( !armorUp && !ci->spawnArmor ) ) {
+			Vector4Copy( armorUp ? colorWhite : dropRed, armorTint );
+		}
+	}
+
 	// armour and health against the class base
 	CG_HudPlace( "armor", &x, &y );
 	CG_DrawPic( x - 14 * DP, y - 30 * DP, 28 * DP * 1.6f, 28 * DP * 1.6f, cgs.media.armorIcon );
@@ -5144,7 +5182,7 @@ static void CG_DrawModernHud( void ) {
 	CG_HudPlace( "ammo", &x, &y );
 	if ( cent->currentState.weapon && ps->ammo[cent->currentState.weapon] > -1 ) {
 		value = ps->ammo[cent->currentState.weapon];
-		trap_R_SetColor( value <= 5 ? colorRed : NULL );
+		trap_R_SetColor( cg.lowAmmoWarning ? colorRed : NULL );		// the weapon's own low-ammo count
 		CG_DrawField( x - CHAR_WIDTH * 3 + 30, y - CHAR_HEIGHT / 2, 3, value );
 		trap_R_SetColor( NULL );
 		if ( cg_weapons[cent->currentState.weapon].ammoIcon ) {
@@ -5296,7 +5334,9 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 #else
 			//CG_DrawPersistantPowerup();
 #endif
-			CG_DrawReward();
+			if ( !cg.showScores ) {
+				CG_DrawReward();		// the scoreboard hides the medal
+			}
 		}
 	}
 
