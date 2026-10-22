@@ -100,6 +100,9 @@ start)
 	# images made at build time (the menu logo)
 	mkdir -p "$HOME_DIR/baseq3/gfx"
 	ln -sfn "$BUILD/generated/gfx/tremor" "$HOME_DIR/baseq3/gfx/tremor"
+	# models and replaceable ability assets made at build time (a pack;
+	# local packs sort after it and win)
+	ln -sfn "$BUILD/generated/tremor-assets.pk3" "$HOME_DIR/baseq3/tremor-assets.pk3"
 	# local test assets from outside the repo (see scripts/local-assets.sh)
 	. "$ROOT/scripts/local-assets.sh"
 	LOCAL_ARGS=$(link_local_assets "$HOME_DIR/baseq3")

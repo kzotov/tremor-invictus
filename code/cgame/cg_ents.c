@@ -514,6 +514,81 @@ How the champions' ability entities look: generated sprites and rings
 (misc/art/make-abilities.py), lines, and models every install has
 ==================
 */
+/*
+===============
+Plasma Trail ribbon
+
+Every trail point this frame, then quads 12 units wide lying on the floor
+between each owner's neighbouring points
+===============
+*/
+#define MAX_TRAIL_POINTS	256
+#define TRAIL_JOIN_DIST		120		// points further apart are separate runs
+
+typedef struct {
+	vec3_t	origin;
+	int		owner, number;
+	qboolean	blue;
+} trailPoint_t;
+
+static trailPoint_t	trailPoints[MAX_TRAIL_POINTS];
+static int			trailPointCount;
+
+static void CG_AddTrailRibbons( void ) {
+	trailPoint_t	*p, *q, tmp;
+	polyVert_t		v[4];
+	vec3_t			dir, side, up = { 0, 0, 1 };
+	int				i, j, k;
+	float			u0, u1;
+
+	// owner, then the order they were dropped (entity numbers are reused, so
+	// sort by distance along the run instead: nearest neighbour chains)
+	for ( i = 1; i < trailPointCount; i++ ) {
+		for ( j = i; j > 0 && trailPoints[j - 1].owner > trailPoints[j].owner; j-- ) {
+			tmp = trailPoints[j]; trailPoints[j] = trailPoints[j - 1]; trailPoints[j - 1] = tmp;
+		}
+	}
+	for ( i = 0; i < trailPointCount; i++ ) {
+		p = &trailPoints[i];
+		// join to the nearest later point of the same owner
+		q = NULL;
+		for ( j = i + 1; j < trailPointCount && trailPoints[j].owner == p->owner; j++ ) {
+			if ( Distance( trailPoints[j].origin, p->origin ) <= TRAIL_JOIN_DIST
+				&& ( !q || Distance( trailPoints[j].origin, p->origin ) < Distance( q->origin, p->origin ) ) ) {
+				q = &trailPoints[j];
+			}
+		}
+		if ( !q ) {
+			continue;
+		}
+		VectorSubtract( q->origin, p->origin, dir );
+		CrossProduct( dir, up, side );
+		if ( VectorNormalize( side ) == 0 ) {
+			continue;
+		}
+		VectorScale( side, 6, side );
+		u0 = ( p->number % 8 ) * 0.125f;
+		u1 = u0 + Distance( q->origin, p->origin ) / 128.0f;
+		VectorAdd( p->origin, side, v[0].xyz );
+		VectorSubtract( p->origin, side, v[1].xyz );
+		VectorSubtract( q->origin, side, v[2].xyz );
+		VectorAdd( q->origin, side, v[3].xyz );
+		v[0].st[0] = u0; v[0].st[1] = 0;
+		v[1].st[0] = u0; v[1].st[1] = 1;
+		v[2].st[0] = u1; v[2].st[1] = 1;
+		v[3].st[0] = u1; v[3].st[1] = 0;
+		for ( k = 0; k < 4; k++ ) {
+			v[k].xyz[2] -= 14;		// down on the floor, the points float at the shins
+			v[k].modulate[0] = p->blue ? 80 : 255;
+			v[k].modulate[1] = p->blue ? 160 : 200;
+			v[k].modulate[2] = 255;
+			v[k].modulate[3] = 255;
+		}
+		trap_R_AddPolyToScene( cgs.media.abilityTrailShader, 4, v );
+	}
+	trailPointCount = 0;
+}
+
 static void CG_AbilityVisual( centity_t *cent ) {
 	entityState_t	*s1 = &cent->currentState;
 	refEntity_t		ent;
@@ -604,8 +679,33 @@ static void CG_AbilityVisual( centity_t *cent ) {
 		break;
 
 	case AV_ORB:
-		CG_VfxSprite( cent->lerpOrigin, 22, cgs.media.orbShader, 255, 255, 255, 0 );
-		trap_R_AddLightToScene( cent->lerpOrigin, 160, 0.83f, 0.1f, 0.12f );
+		if ( cgs.media.abilityOrbModel ) {
+			// a swirling sphere that grows brighter as its blast ramps up over 1.5 s
+			float	ramp = ( cg.time - s1->pos.trTime ) / 1500.0f;
+			float	k;
+
+			if ( ramp > 1 ) {
+				ramp = 1;
+			}
+			k = 0.45f + 0.55f * ramp + 0.12f * sin( cg.time * 0.012f );
+			memset( &ent, 0, sizeof( ent ) );
+			VectorCopy( cent->lerpOrigin, ent.origin );
+			VectorCopy( cent->lerpOrigin, ent.oldorigin );
+			ent.hModel = cgs.media.abilityOrbModel;
+			VectorSet( a, cg.time * 0.09f, cg.time * 0.05f, 0 );
+			AnglesToAxis( a, ent.axis );
+			ent.shaderRGBA[0] = 255 * ( k > 1 ? 1 : k );
+			ent.shaderRGBA[1] = 200 * ( k > 1 ? 1 : k );
+			ent.shaderRGBA[2] = 255 * ( k > 1 ? 1 : k );
+			ent.shaderRGBA[3] = 255;
+			ent.renderfx = RF_NOSHADOW;
+			trap_R_AddRefEntityToScene( &ent );
+			CG_VfxSprite( cent->lerpOrigin, 22 + 8 * ramp, cgs.media.glowBallShader, 90 * k, 30 * k, 160 * k, 0 );
+			trap_R_AddLightToScene( cent->lerpOrigin, 120 + 80 * ramp, 0.55f, 0.15f, 0.9f );
+		} else {
+			CG_VfxSprite( cent->lerpOrigin, 22, cgs.media.orbShader, 255, 255, 255, 0 );
+			trap_R_AddLightToScene( cent->lerpOrigin, 160, 0.83f, 0.1f, 0.12f );
+		}
 		break;
 
 	case AV_FIREBALL:
@@ -623,7 +723,16 @@ static void CG_AbilityVisual( centity_t *cent ) {
 		// the owner's team colour, or the logo red
 		t = s1->otherEntityNum >= 0 && s1->otherEntityNum < MAX_CLIENTS ? cgs.clientinfo[s1->otherEntityNum].team : TEAM_FREE;
 		VectorCopy( cent->lerpOrigin, a );
-		if ( t == TEAM_BLUE && cgs.gametype >= GT_TEAM ) {
+		if ( cgs.media.abilityTrailShader && trailPointCount < MAX_TRAIL_POINTS ) {
+			// a ribbon joins the points once every entity is in (CG_AddTrailRibbons)
+			trailPoint_t	*tp = &trailPoints[trailPointCount++];
+
+			VectorCopy( a, tp->origin );
+			tp->owner = s1->otherEntityNum;
+			tp->number = s1->number;
+			tp->blue = t == TEAM_BLUE && cgs.gametype >= GT_TEAM;
+			CG_VfxSprite( a, 7, cgs.media.glowBallShader, tp->blue ? 40 : 200, tp->blue ? 110 : 60, 220, 0 );
+		} else if ( t == TEAM_BLUE && cgs.gametype >= GT_TEAM ) {
 			CG_VfxSprite( a, 18, cgs.media.glowBallShader, 40, 90, 220, 0 );
 		} else {
 			CG_VfxSprite( a, 18, cgs.media.glowBallShader, 211, 25, 31, 0 );
@@ -704,7 +813,7 @@ static void CG_Missile( centity_t *cent ) {
 
 	// flicker between two skins
 	ent.skinNum = cg.clientFrame & 1;
-	ent.hModel = weapon->missileModel;
+	ent.hModel = cgs.media.abilityClawModel ? cgs.media.abilityClawModel : weapon->missileModel;
 	ent.renderfx = weapon->missileRenderfx | RF_NOSHADOW;
 
 #ifdef MISSIONPACK
@@ -1423,5 +1532,7 @@ void CG_AddPacketEntities( void ) {
 
 	// and the predicted ones still waiting for them
 	CG_AddOwnMissiles();
+
+	CG_AddTrailRibbons();
 }
 

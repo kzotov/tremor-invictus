@@ -973,9 +973,9 @@ takes a tenth of the full wait off the ability's recharge
 	{
 		"item_hourglass",
 		"sound/items/holdable.wav",
-		{ "models/powerups/holdable/teleporter.md3",
+		{ "models/powerups/hourglass/hourglass.md3",
 		NULL, NULL, NULL},
-/* icon */		"icons/teleporter",
+/* icon */		"icons/hourglass",
 /* pickup */	"Hourglass",
 		10,
 		IT_HOURGLASS,

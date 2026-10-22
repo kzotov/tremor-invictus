@@ -553,6 +553,53 @@ static void CG_PlasmaTrail( centity_t *cent, const weaponInfo_t *wi ) {
 CG_GrappleTrail
 ==========================
 */
+/*
+==========================
+CG_HookRope
+
+The hook's cable as camera-facing segments: slack while the claw flies
+(it sags), straight under tension once it has bitten
+==========================
+*/
+#define ROPE_SEGMENTS	12
+
+static void CG_HookRope( const vec3_t start, const vec3_t end, qboolean taut ) {
+	vec3_t		pts[ROPE_SEGMENTS + 1], dir, toEye, side;
+	polyVert_t	v[4];
+	float		len = Distance( start, end ), sag = taut ? 0 : len * 0.06f;
+	int			i, k;
+
+	for ( i = 0; i <= ROPE_SEGMENTS; i++ ) {
+		float	f = i / (float)ROPE_SEGMENTS;
+
+		pts[i][0] = start[0] + ( end[0] - start[0] ) * f;
+		pts[i][1] = start[1] + ( end[1] - start[1] ) * f;
+		pts[i][2] = start[2] + ( end[2] - start[2] ) * f;
+		pts[i][2] -= sag * 4 * f * ( 1 - f );
+	}
+	for ( i = 0; i < ROPE_SEGMENTS; i++ ) {
+		VectorSubtract( pts[i + 1], pts[i], dir );
+		VectorSubtract( cg.refdef.vieworg, pts[i], toEye );
+		CrossProduct( dir, toEye, side );
+		if ( VectorNormalize( side ) == 0 ) {
+			continue;
+		}
+		VectorScale( side, 1.5f, side );
+		VectorAdd( pts[i], side, v[0].xyz );
+		VectorSubtract( pts[i], side, v[1].xyz );
+		VectorSubtract( pts[i + 1], side, v[2].xyz );
+		VectorAdd( pts[i + 1], side, v[3].xyz );
+		v[0].st[0] = i * len / ROPE_SEGMENTS / 16.0f; v[0].st[1] = 0;
+		v[1].st[0] = v[0].st[0]; v[1].st[1] = 1;
+		v[2].st[0] = ( i + 1 ) * len / ROPE_SEGMENTS / 16.0f; v[2].st[1] = 1;
+		v[3].st[0] = v[2].st[0]; v[3].st[1] = 0;
+		for ( k = 0; k < 4; k++ ) {
+			v[k].modulate[0] = v[k].modulate[1] = v[k].modulate[2] = v[k].modulate[3] = 255;
+		}
+		trap_R_AddPolyToScene( cgs.media.abilityRopeShader, 4, v );
+	}
+}
+
 void CG_GrappleTrail( centity_t *ent, const weaponInfo_t *wi ) {
 	vec3_t	origin;
 	entityState_t	*es;
@@ -574,6 +621,11 @@ void CG_GrappleTrail( centity_t *ent, const weaponInfo_t *wi ) {
 
 	if (Distance( beam.origin, beam.oldorigin ) < 64 )
 		return; // Don't draw if close
+
+	if ( cgs.media.abilityRopeShader ) {
+		CG_HookRope( beam.origin, beam.oldorigin, es->pos.trType == TR_STATIONARY );
+		return;
+	}
 
 	beam.reType = RT_LIGHTNING;
 	beam.customShader = cgs.media.hookLineShader;
@@ -845,6 +897,17 @@ void CG_RegisterItemVisuals( int itemNum ) {
 	itemInfo->models[0] = trap_R_RegisterModel( item->world_model[0] );
 
 	itemInfo->icon = trap_R_RegisterShader( item->icon );
+
+	// the hourglass's own model and icon come in tremor-assets.pk3; without
+	// it, the holdable teleporter stands in
+	if ( item->giType == IT_HOURGLASS ) {
+		if ( !itemInfo->models[0] ) {
+			itemInfo->models[0] = trap_R_RegisterModel( "models/powerups/holdable/teleporter.md3" );
+		}
+		if ( !itemInfo->icon ) {
+			itemInfo->icon = trap_R_RegisterShader( "icons/teleporter" );
+		}
+	}
 
 	if ( item->giType == IT_WEAPON ) {
 		CG_RegisterWeapon( item->giTag );

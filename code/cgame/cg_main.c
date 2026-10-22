@@ -995,6 +995,10 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.hookLineShader = trap_R_RegisterShader( "tremor/fx/hookline" );
 	cgs.media.glowBallShader = trap_R_RegisterShader( "tremor/fx/glowball" );
 	cgs.media.orbShader = trap_R_RegisterShader( "tremor/fx/orb" );
+	cgs.media.abilityOrbModel = trap_R_RegisterModel( "models/abilities/orb/orb.md3" );
+	cgs.media.abilityClawModel = trap_R_RegisterModel( "models/abilities/hook/claw.md3" );
+	cgs.media.abilityRopeShader = trap_R_RegisterShader( "ability/hookrope" );
+	cgs.media.abilityTrailShader = trap_R_RegisterShader( "ability/plasmatrail" );
 	cgs.media.barrierShader = trap_R_RegisterShader( "tremor/fx/barrier" );
 	cgs.media.ringShader = trap_R_RegisterShader( "tremor/fx/ring" );
 	cgs.media.droneModel = trap_R_RegisterModel( "models/powerups/holdable/teleporter.md3" );

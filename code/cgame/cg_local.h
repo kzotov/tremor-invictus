@@ -827,6 +827,11 @@ typedef struct {
 	qhandle_t	hookLineShader;		// the ability effects drawn by misc/art/make-abilities.py
 	qhandle_t	glowBallShader;
 	qhandle_t	orbShader;
+	// replaceable ability assets (tremor-assets.pk3); 0 when missing
+	qhandle_t	abilityOrbModel;
+	qhandle_t	abilityClawModel;
+	qhandle_t	abilityRopeShader;
+	qhandle_t	abilityTrailShader;
 	qhandle_t	barrierShader;
 	qhandle_t	ringShader;
 	qhandle_t	droneModel;

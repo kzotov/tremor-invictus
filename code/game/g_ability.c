@@ -1125,21 +1125,42 @@ static void G_DropTrail( gentity_t *ent ) {
 	trap_LinkEntity( seg );
 }
 
-static void G_DetonateTrail( gentity_t *ent ) {
-	gentity_t	*seg;
-	vec3_t		dir = { 0, 0, 1 };
-	int			i;
+// one segment bursting, its turn in the chain
+static void G_TrailBurst( gentity_t *seg ) {
+	vec3_t	dir = { 0, 0, 1 };
 
-	for ( i = MAX_CLIENTS, seg = &g_entities[MAX_CLIENTS] ; i < level.num_entities ; i++, seg++ ) {
+	if ( seg->parent ) {
+		G_RadiusDamage( seg->r.currentOrigin, seg->parent, g_trailBlast.integer, g_trailRadius.integer, NULL, MOD_PLASMATRAIL );
+	}
+	seg->s.eType = ET_GENERAL;
+	G_AddEvent( seg, EV_MISSILE_MISS, DirToByte( dir ) );
+	seg->freeAfterEvent = qtrue;
+	seg->think = NULL;
+	trap_LinkEntity( seg );
+}
+
+// the segments burst one by one, oldest first, 30 ms apart
+#define TRAIL_CHAIN_MSEC	30
+
+static void G_DetonateTrail( gentity_t *ent ) {
+	gentity_t	*seg, *segs[MAX_GENTITIES / 8];
+	int			i, j, n = 0;
+
+	for ( i = MAX_CLIENTS, seg = &g_entities[MAX_CLIENTS] ; i < level.num_entities && n < ARRAY_LEN( segs ) ; i++, seg++ ) {
 		if ( !seg->inuse || seg->parent != ent || !seg->classname || strcmp( seg->classname, "plasma_trail" ) ) {
 			continue;
 		}
-		G_RadiusDamage( seg->r.currentOrigin, ent, g_trailBlast.integer, g_trailRadius.integer, NULL, MOD_PLASMATRAIL );
-		seg->s.eType = ET_GENERAL;
-		G_AddEvent( seg, EV_MISSILE_MISS, DirToByte( dir ) );
-		seg->freeAfterEvent = qtrue;
-		seg->think = NULL;
-		trap_LinkEntity( seg );
+		// oldest first: the one that expires first
+		for ( j = n; j > 0 && segs[j - 1]->abilityTime > seg->abilityTime; j-- ) {
+			segs[j] = segs[j - 1];
+		}
+		segs[j] = seg;
+		n++;
+	}
+	for ( i = 0; i < n; i++ ) {
+		segs[i]->think = G_TrailBurst;
+		segs[i]->nextthink = level.time + i * TRAIL_CHAIN_MSEC;
+		segs[i]->abilityTime = level.time + 60000;		// no longer burning: only the burst
 	}
 	G_AbilityDone( ent );
 }
