@@ -1302,6 +1302,146 @@ static void CG_DrawAbilityRing( float cx, float cy, float radius, float startDeg
 
 /*
 =================
+CG_TopText
+
+Text in design units (dp) on the 1080-tall layout, x from the screen's
+centre: align -1 left edge, 0 centred, 1 right edge
+=================
+*/
+static void CG_TopText( float x, float top, float size, const char *s, const float *color, int align ) {
+	float	h = size * DP, w = h * 0.6f, len = CG_DrawStrlen( s ) * w;	// narrow, so the top bar fits
+	float	sx = 320 + x * DP;
+
+	if ( align == 0 ) {
+		sx -= len / 2;
+	} else if ( align > 0 ) {
+		sx -= len;
+	}
+	CG_DrawStringExt( sx, top * DP, s, color, qfalse, qtrue, w, h, 0 );
+}
+
+/*
+=================
+CG_DrawTopBar
+
+The modern layout's top centre (hud.md 9.1): the phase label, the clock
+and the time limit, then the duel bar, the team bar or the free-for-all
+standings
+=================
+*/
+static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit ) {
+	static vec4_t	pale = { 1, 0.871f, 0.624f, 1 }, grey = { 0.75f, 0.75f, 0.75f, 1 }, darkGrey = { 0.6f, 0.6f, 0.6f, 1 };
+	static vec4_t	red = { 1, 0.3f, 0.3f, 1 }, ourBlue = { 0, 0.6f, 1, 1 }, theirRed = { 1, 0.22f, 0.22f, 1 };
+	static vec4_t	box = { 0, 0, 0, 0.45f };
+	float			clockX = 0;
+	int				i, me = cg.snap->ps.clientNum;
+
+	cg_hudAnchor = ANCHOR_CENTER;
+
+	// free-for-all: the clock moves left to make room for the standings
+	if ( cgs.gametype == GT_FFA ) {
+		clockX = -248;
+	}
+	CG_TopText( clockX, 16, 20, cg.warmup ? BG_String( STR_WARMUP ) : CG_ModeString(), cg.warmup ? pale : grey, 0 );
+	CG_TopText( clockX, 35, 45, clock, finalSeconds ? red : colorWhite, 0 );
+	if ( limit && !cg.warmup ) {
+		CG_TopText( clockX, 92, 18, va( "%i:00", limit ), grey, 0 );
+	}
+
+	if ( cgs.gametype == GT_TOURNAMENT ) {
+		// you left, the opponent right: 61 dp portraits at +-250, score boxes
+		// 129 x 69 with their inner edges at +-80, names under them
+		int		side, other = -1;
+
+		for ( i = 0 ; i < cgs.maxclients ; i++ ) {
+			if ( i != me && cgs.clientinfo[i].infoValid && cgs.clientinfo[i].team == TEAM_FREE ) {
+				other = i;
+				break;
+			}
+		}
+		for ( side = 0 ; side < 2 ; side++ ) {
+			int				who = side ? other : me;
+			float			sign = side ? 1 : -1, inner = 80 * sign, outer = ( 80 + 129 ) * sign;
+			const char		*score;
+			qhandle_t		portrait;
+
+			if ( who < 0 || !cgs.clientinfo[who].infoValid ) {
+				continue;
+			}
+			portrait = CG_ChampionPortrait( BG_ChampionForModel( cgs.clientinfo[who].modelName ), qtrue );
+			if ( portrait ) {
+				CG_DrawPic( 320 + ( 250 * sign - 30.5f ) * DP, 24 * DP, 61 * DP, 61 * DP, portrait );
+			}
+			CG_FillRect( 320 + ( side ? inner : outer ) * DP, 23 * DP, 129 * DP, 69 * DP, box );
+			score = va( "%i", side ? ( cgs.scores1 == cg.snap->ps.persistant[PERS_SCORE] ? cgs.scores2 : cgs.scores1 )
+				: cg.snap->ps.persistant[PERS_SCORE] );
+			if ( side && ( cgs.scores1 == SCORE_NOT_PRESENT || cgs.scores2 == SCORE_NOT_PRESENT ) ) {
+				score = "0";
+			}
+			CG_TopText( ( inner + outer ) / 2, 23, 70 * 0.9f, score, colorWhite, 0 );
+			CG_TopText( ( inner + outer ) / 2, 92, 15, cgs.clientinfo[who].name, darkGrey, 0 );
+		}
+		return;
+	}
+
+	if ( cgs.gametype >= GT_TEAM ) {
+		// score boxes from -280 to -65 and +48 to +284, scores at the outer
+		// ends; team names above, your side blue, the other red
+		int			myTeam = cg.snap->ps.persistant[PERS_TEAM];
+		qboolean	blueLeft = myTeam == TEAM_BLUE;
+		int			leftScore = blueLeft ? cgs.scores2 : cgs.scores1, rightScore = blueLeft ? cgs.scores1 : cgs.scores2;
+		const char	*leftName = blueLeft ? cgs.blueTeam : cgs.redTeam, *rightName = blueLeft ? cgs.redTeam : cgs.blueTeam;
+		const float	*leftColor = myTeam == TEAM_SPECTATOR ? theirRed : ourBlue;
+		const float	*rightColor = myTeam == TEAM_SPECTATOR ? ourBlue : theirRed;
+
+		if ( myTeam == TEAM_SPECTATOR ) {
+			leftColor = blueLeft ? ourBlue : theirRed;
+		}
+		CG_FillRect( 320 - 280 * DP, 23 * DP, 215 * DP, 48 * DP, box );
+		CG_FillRect( 320 + 48 * DP, 23 * DP, 236 * DP, 48 * DP, box );
+		CG_TopText( -272, 30, 32, va( "%i", leftScore == SCORE_NOT_PRESENT ? 0 : leftScore ), leftColor, -1 );
+		CG_TopText( 276, 30, 32, va( "%i", rightScore == SCORE_NOT_PRESENT ? 0 : rightScore ), rightColor, 1 );
+		CG_TopText( -290, 8, 20, leftName[0] ? leftName : ( blueLeft ? "BLUE" : "RED" ), leftColor, 1 );
+		CG_TopText( 294, 8, 20, rightName[0] ? rightName : ( blueLeft ? "RED" : "BLUE" ), rightColor, -1 );
+		return;
+	}
+
+	if ( cgs.gametype == GT_FFA ) {
+		// two rows right of centre: the leader, then the runner-up or you
+		int		rows = 0, shown[2] = { -1, -1 };
+
+		if ( cg.scoresRequestTime + 2000 < cg.time ) {
+			cg.scoresRequestTime = cg.time;
+			trap_SendClientCommand( "score" );
+		}
+		for ( i = 0 ; i < cg.numScores && rows < 2 ; i++ ) {
+			if ( rows == 1 && i > 0 && cg.scores[i].client != me ) {
+				// the second row is you when you aren't the leader
+				int		j;
+
+				for ( j = 0 ; j < cg.numScores ; j++ ) {
+					if ( cg.scores[j].client == me && j > 0 ) {
+						i = j;
+						break;
+					}
+				}
+			}
+			shown[rows++] = i;
+		}
+		for ( i = 0 ; i < rows ; i++ ) {
+			score_t		*sc = &cg.scores[shown[i]];
+			float		top = i ? 80 : 53;
+			const float	*c = sc->client == me ? colorWhite : grey;
+
+			CG_TopText( -104, top, 18, va( "#%i", shown[i] + 1 ), c, -1 );
+			CG_TopText( -60, top, 19, cgs.clientinfo[sc->client].name, c, -1 );
+			CG_TopText( 168, top, 18, va( "%i", sc->score ), c, -1 );
+		}
+	}
+}
+
+/*
+=================
 CG_DrawHudClock
 
 Top centre: the clock counting down to the limit, and the scores
@@ -1336,29 +1476,12 @@ static void CG_DrawHudClock( void ) {
 	secs %= 60;
 	s = va( "%i:%02i", mins, secs );
 	if ( CG_HudModern() ) {
-		// large clock at top + 38, the mode under it at top + 97
-		float	cx, cy;
-		int		cw = 24, ch = 28;
-
-		CG_HudPlace( "clock", &cx, &cy );
-		cg_hudAnchor = ANCHOR_CENTER;
-		w = CG_DrawStrlen( s ) * cw;
-		CG_DrawStringExt( 320 - w / 2, cy - ch / 2, s, finalSeconds ? red : colorWhite, qfalse, qtrue, cw, ch, 0 );
-		CG_HudPlace( "clockline", &cx, &cy );
-		cg_hudAnchor = ANCHOR_CENTER;
-		s = cg.warmup ? BG_String( STR_WARMUP ) : CG_ModeString();
-		CG_DrawStringExt( 320 - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH / 2, cy - SMALLCHAR_HEIGHT / 2, s, colorMdGrey,
-			qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
-		s = va( "%i:%02i", mins, secs );
-		w = CG_DrawStrlen( s ) * cw;
-		CG_HudPlace( "clock", &cx, &cy );
-		cg_hudAnchor = ANCHOR_CENTER;
-		ty = cy - ch / 2;
-	} else {
-		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
-		CG_DrawBigStringColor( 320 - w / 2, 4, s, finalSeconds ? red : colorWhite );
-		ty = 4;
+		CG_DrawTopBar( s, finalSeconds, limit );
+		return;
 	}
+	w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
+	CG_DrawBigStringColor( 320 - w / 2, 4, s, finalSeconds ? red : colorWhite );
+	ty = 4;
 
 	// scores either side of the clock
 	if ( cgs.gametype >= GT_TEAM ) {
@@ -5101,7 +5224,8 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 
 #ifndef MISSIONPACK
 	{
-		if ( cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
+		// the modern top bar shows for spectators too
+		if ( cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR || CG_HudModern() ) {
 			CG_DrawHudClock();
 		}
 		cg_hudAnchor = ANCHOR_RIGHT;
