@@ -2834,6 +2834,9 @@ static void PM_Ability( void ) {
 	if ( active == ACTIVE_NONE || pm->ps->pm_type != PM_NORMAL ) {
 		return;
 	}
+	if ( pm->movementOnly && !BG_MovementAbility( active ) ) {
+		return;
+	}
 
 	state = BG_AbilityState( pm->ps );
 	charges = BG_AbilityCharges( pm->ps );

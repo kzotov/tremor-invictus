@@ -498,8 +498,8 @@ typedef struct {
 	// duel
 	int			overtimes;				// overtime periods added so far
 	qboolean	duelForceReady;
-	int			readyWaitStart;		// level.time the warm-up wait began			// allready: start without waiting for readyup
-	int			duelReadyHintTime;		// next warmup reminder
+	int			readyWaitStart;		// level.time the warm-up wait began
+	char		readyUpString[64];	// last CS_READYUP sent
 
 	// capture the flag
 	int			ctfHalf;				// 0 or 1 the first half, 2 the second
@@ -752,6 +752,11 @@ void		Cmd_MapVote_f( gentity_t *ent );
 int			G_ArenaCount( void );
 const char	*G_ArenaInfo( int n );
 qboolean	G_DuelPlayersReady( void );
+qboolean	G_WarmupPractice( void );
+void		G_WarmupLoadout( gentity_t *ent );
+void		G_WarmupAmmo( gentity_t *ent );
+qboolean	G_WarmupKill( gentity_t *ent );
+int			G_ReadyShare( void );
 qboolean	G_DuelCheckTime( void );
 void		G_DuelCheckFraglimit( void );
 void		Cmd_ReadyUp_f( gentity_t *ent );
@@ -991,6 +996,9 @@ extern	vmCvar_t	g_maxGameClients;		// allow this many active
 extern	vmCvar_t	g_restarted;
 extern	vmCvar_t	g_overtime;
 extern	vmCvar_t	g_duelReadyUp;
+extern	vmCvar_t	g_readyUp;
+extern	vmCvar_t	g_readyUpShare;
+extern	vmCvar_t	g_warmupTime;
 extern	vmCvar_t	g_duelFraglimit;
 extern	vmCvar_t	g_tdmFraglimit;
 extern	vmCvar_t	g_randomChampion;

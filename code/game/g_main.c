@@ -208,6 +208,9 @@ vmCvar_t	g_doWarmup;
 vmCvar_t	g_restarted;
 vmCvar_t	g_overtime;
 vmCvar_t	g_duelReadyUp;
+vmCvar_t	g_readyUp;
+vmCvar_t	g_readyUpShare;
+vmCvar_t	g_warmupTime;
 vmCvar_t	g_duelFraglimit;
 vmCvar_t	g_tdmFraglimit;
 vmCvar_t	g_randomChampion;
@@ -279,6 +282,12 @@ static cvarTable_t		gameCvarTable[] = {
 	// countdown, and a frag limit of its own (0 = none; fraglimit is for the other modes)
 	{ &g_overtime, "g_overtime", "120", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_duelReadyUp, "g_duelReadyUp", "1", CVAR_ARCHIVE, 0, qtrue },
+	// warm-up start: 1 ready-up (custom servers), 0 a timed start g_warmupTime
+	// seconds after the players are in (matchmade); g_readyUpShare percent
+	// must be ready (0: 100 in duel, 75 in team modes)
+	{ &g_readyUp, "g_readyUp", "1", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qtrue },
+	{ &g_readyUpShare, "g_readyUpShare", "0", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_warmupTime, "g_warmupTime", "20", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_duelFraglimit, "g_duelFraglimit", "0", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_tdmFraglimit, "g_tdmFraglimit", "75", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_randomChampion, "g_randomChampion", "0", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue },		// everyone a random champion each spawn
@@ -477,7 +486,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_hwDamagePer100, "g_hwDamagePer100", "25", 0, 0, qtrue },
 	{ &g_hwKnockback, "g_hwKnockback", "100", 0, 0, qtrue },
 	{ &g_hookKnockback, "g_hookKnockback", "50", 0, 0, qtrue },
-	{ &g_warmupMax, "g_warmupMax", "90", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_warmupMax, "g_warmupMax", "0", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_blindPick, "g_blindPick", "0", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_specChatToPlayers, "g_specChatToPlayers", "0", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_teleportKeepSpeed, "g_teleportKeepSpeed", "1", 0, 0, qtrue },

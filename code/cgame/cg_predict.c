@@ -463,6 +463,9 @@ void CG_PredictPlayerState( void ) {
 		&& BG_AbilityState( cg_pmove.ps ) == ABILITY_ACTIVE ) {
 		cg_pmove.tracemask &= ~CONTENTS_BODY;	// ghost walk passes through players
 	}
+	if ( cg.warmup && ( cgs.gametype == GT_TOURNAMENT || cgs.gametype == GT_TEAM || cgs.gametype == GT_CTF ) ) {
+		cg_pmove.tracemask &= ~CONTENTS_BODY;	// warm-up: players pass through each other
+	}
 	cg_pmove.noFootsteps = ( cgs.dmflags & DF_NO_FOOTSTEPS ) > 0;
 
 	// save the state before the pmove so we can detect transitions
@@ -510,6 +513,7 @@ void CG_PredictPlayerState( void ) {
 	cg_pmove.pmove_fixed = pmove_fixed.integer;// | cg_pmove_fixed.integer;
 	cg_pmove.pmove_msec = pmove_msec.integer;
 	cg_pmove.autoHop = cg_autoHop.integer != 0;
+	cg_pmove.movementOnly = cg.warmup && ( cgs.gametype == GT_TOURNAMENT || cgs.gametype == GT_TEAM || cgs.gametype == GT_CTF );
 
 	// run cmds
 	moved = qfalse;

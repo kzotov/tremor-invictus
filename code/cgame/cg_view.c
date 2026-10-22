@@ -788,6 +788,10 @@ static void CG_JoinScreen( void ) {
 	}
 	cg.joinScreenShown = qtrue;
 	info = CG_ConfigString( CS_SERVERINFO );
+	// a matchmade game knows the team: the server places the player
+	if ( Info_ValueForKey( info, "sv_mmMatch" )[0] ) {
+		return;
+	}
 	trap_Cvar_Set( "cg_joinMode", CG_ModeString() );
 	trap_Cvar_Set( "cg_joinMap", CG_ConfigString( CS_MESSAGE )[0] ? CG_ConfigString( CS_MESSAGE ) : Info_ValueForKey( info, "mapname" ) );
 	trap_Cvar_Set( "cg_joinTeams", cgs.gametype >= GT_TEAM ? "1" : "0" );

@@ -204,6 +204,8 @@ static void StartMatch( const char *json ) {
 	if ( !strcmp( mm.mode, "ca2v2" ) || !strcmp( mm.mode, "tdm2v2" ) ) {
 		Cbuf_AddText( "set g_teamSize 2\n" );
 	}
+	// matchmade: a timed start, never more than 90 s of warm-up
+	Cbuf_AddText( "set g_readyUp 0\nset g_warmupMax 90\n" );
 	Cbuf_AddText( va( "map %s\n", map ) );
 }
 

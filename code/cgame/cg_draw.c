@@ -4084,6 +4084,66 @@ static void CG_DrawPodium( void ) {
 	}
 }
 
+/*
+=================
+CG_DrawWarmupLine
+
+"WARM-UP" and what the start waits for: players, ready players, or the
+clock (CS_READYUP)
+=================
+*/
+static void CG_DrawWarmupLine( void ) {
+	char		line[128], *p;
+	char		info[64];
+	int			readyUp, ready, players, needed, startTime, i, count[TEAM_NUM_TEAMS], w;
+	qboolean	enough;
+
+	Q_strncpyz( info, CG_ConfigString( CS_READYUP ), sizeof( info ) );
+	p = info;
+	readyUp = atoi( COM_Parse( &p ) );
+	COM_Parse( &p );		// share
+	ready = atoi( COM_Parse( &p ) );
+	players = atoi( COM_Parse( &p ) );
+	needed = atoi( COM_Parse( &p ) );
+	startTime = atoi( COM_Parse( &p ) );
+
+	memset( count, 0, sizeof( count ) );
+	for ( i = 0 ; i < cgs.maxclients ; i++ ) {
+		if ( cgs.clientinfo[i].infoValid && cgs.clientinfo[i].team != TEAM_SPECTATOR ) {
+			count[cgs.clientinfo[i].team]++;
+		}
+	}
+	if ( cgs.gametype >= GT_TEAM ) {
+		enough = count[TEAM_RED] && count[TEAM_BLUE];
+	} else {
+		enough = count[TEAM_FREE] >= 2;
+	}
+
+	w = CG_DrawStrlen( BG_String( STR_WARMUP ) ) * BIGCHAR_WIDTH;
+	CG_DrawBigString( 320 - w / 2, 24, BG_String( STR_WARMUP ), 1.0F );
+
+	if ( !enough ) {
+		Com_sprintf( line, sizeof( line ), BG_String( STR_WARMUP_WAITING ),
+			cgs.gametype >= GT_TEAM ? ( count[TEAM_RED] > 0 ) + ( count[TEAM_BLUE] > 0 ) : count[TEAM_FREE], 2 );
+	} else if ( !readyUp ) {
+		Com_sprintf( line, sizeof( line ), BG_String( STR_WARMUP_STARTS ),
+			startTime > cg.time ? ( startTime - cg.time + 999 ) / 1000 : 0 );
+	} else {
+		const char *key = CG_BindName( "readyup" );
+
+		Com_sprintf( line, sizeof( line ), BG_String( STR_WARMUP_READY ), key[0] == '?' ? "readyup" : key, ready, players );
+		if ( startTime > cg.time ) {
+			Q_strcat( line, sizeof( line ), "  -  " );
+			Q_strcat( line, sizeof( line ), va( (char *)BG_String( STR_WARMUP_ANYWAY ), ( startTime - cg.time + 999 ) / 1000 ) );
+		}
+	}
+	w = CG_DrawStrlen( line ) * SMALLCHAR_WIDTH;
+	CG_DrawSmallString( 320 - w / 2, 46, line, 1.0F );
+	(void)needed;
+}
+
+static qboolean	lineupShown;	// the countdown lineup is up this frame
+
 static void CG_DrawWarmup( void ) {
 	int			w;
 	int			sec;
@@ -4102,14 +4162,14 @@ static void CG_DrawWarmup( void ) {
 	}
 
 	if ( sec < 0 ) {
-		s = "Waiting for players";		
-		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
-		CG_DrawBigString(320 - w / 2, 24, s, 1.0F);
+		CG_DrawWarmupLine();
 		cg.warmupCount = 0;
 		return;
 	}
 
-	if (cgs.gametype == GT_TOURNAMENT) {
+	// the lineup has the title; only the count goes over it
+	if ( lineupShown ) {
+	} else if (cgs.gametype == GT_TOURNAMENT) {
 		// find the two active players
 		ci1 = NULL;
 		ci2 = NULL;
@@ -4302,7 +4362,9 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	// the countdown: everyone on pillars
 	if ( ( cg.warmup > cg.time && cg_drawLineup.integer ) || cg_showLineup.integer ) {
 		CG_DrawLineup();
+		lineupShown = qtrue;
 		CG_DrawWarmup();
+		lineupShown = qfalse;
 		return;
 	}
 

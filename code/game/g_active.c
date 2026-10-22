@@ -1218,7 +1218,7 @@ void ClientThink_real( gentity_t *ent ) {
 		client->ps.pm_type = PM_DEAD;
 	} else if ( level.timeoutEnd ) {
 		client->ps.pm_type = PM_FREEZE;		// timeout: everyone holds still
-	} else if ( G_MatchMode() && ( level.warmupTime > 0 || level.halfTimeEnd
+	} else if ( G_MatchMode() && ( ( level.warmupTime > 0 && level.warmupTime - level.time <= 3000 ) || level.halfTimeEnd
 		|| ( G_ClanArena() && level.caState == CA_COUNTDOWN ) || G_RoundDuelHolds() ) ) {
 		// countdown or half time: held in place, no firing
 		client->ps.pm_type = PM_FREEZE;
@@ -1306,8 +1306,8 @@ void ClientThink_real( gentity_t *ent ) {
 	else {
 		pm.tracemask = MASK_PLAYERSOLID;
 	}
-	if ( G_AbilityActive( ent, ACTIVE_GHOSTWALK ) ) {
-		pm.tracemask &= ~CONTENTS_BODY;		// ghost walk passes through players
+	if ( G_AbilityActive( ent, ACTIVE_GHOSTWALK ) || G_WarmupPractice() ) {
+		pm.tracemask &= ~CONTENTS_BODY;		// ghost walk and warm-up pass through players
 	}
 	pm.trace = trap_Trace;
 	pm.pointcontents = trap_PointContents;
@@ -1317,6 +1317,10 @@ void ClientThink_real( gentity_t *ent ) {
 	pm.pmove_fixed = pmove_fixed.integer | client->pers.pmoveFixed;
 	pm.pmove_msec = pmove_msec.integer;
 	pm.autoHop = client->pers.autoHop;
+	pm.movementOnly = G_WarmupPractice();
+	if ( pm.movementOnly ) {
+		G_WarmupAmmo( ent );
+	}
 
 	impactSpeed = VectorLength( client->ps.velocity );
 

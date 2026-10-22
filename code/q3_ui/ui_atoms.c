@@ -1171,6 +1171,22 @@ void UI_Init( void ) {
 	// initialize the menu system
 	Menu_Cache();
 
+	// F3 readies up in warm-up, unless the player has bound something there
+	{
+		char	binding[64];
+		int		k;
+		qboolean	bound = qfalse;
+
+		for ( k = 0; k < 256 && !bound; k++ ) {
+			trap_Key_GetBindingBuf( k, binding, sizeof( binding ) );
+			bound = !Q_stricmp( binding, "readyup" );
+		}
+		trap_Key_GetBindingBuf( K_F3, binding, sizeof( binding ) );
+		if ( !bound && !binding[0] ) {
+			trap_Key_SetBinding( K_F3, "readyup" );
+		}
+	}
+
 	uis.activemenu = NULL;
 	uis.menusp     = 0;
 }

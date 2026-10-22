@@ -526,6 +526,9 @@ void Cmd_Kill_f( gentity_t *ent ) {
 	if (ent->health <= 0) {
 		return;
 	}
+	if ( G_WarmupKill( ent ) ) {
+		return;
+	}
 	ent->flags &= ~FL_GODMODE;
 	ent->client->ps.stats[STAT_HEALTH] = ent->health = -999;
 	player_die (ent, ent, ent, 100000, MOD_SUICIDE);

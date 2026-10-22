@@ -27,11 +27,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "g_local.h"
 
+#define WARMUP_AMMO		200		// warm-up: every weapon kept full
+
 #define DUEL_SPAWN_SPOTS		128
 #define DUEL_SPAWN_KEEP_MIN		3
 #define DUEL_SPAWN_KEEP_MAX		26
 #define DUEL_SPAWN_CLEARANCE	64
-#define DUEL_READY_HINT_MSEC	5000
 #define SPAWN_TEAMMATE_SCALE	1.5f	// teammates count this much further away than enemies
 
 /*
@@ -96,6 +97,107 @@ int G_MatchFragLimit( void ) {
 
 /*
 =================
+G_WarmupPractice
+
+A match mode's warm-up and countdown: moving only, no damage or items
+=================
+*/
+qboolean G_WarmupPractice( void ) {
+	return G_MatchMode() && level.warmupTime != 0 && !level.intermissiontime;
+}
+
+/*
+=================
+G_WarmupLoadout
+
+Warm-up: every weapon the mode has, with endless ammo, to practise moving
+=================
+*/
+void G_WarmupLoadout( gentity_t *ent ) {
+	gclient_t	*client = ent->client;
+	int			w;
+
+	if ( g_instagib.integer ) {
+		return;		// the arcade loadout is the mode's whole loadout
+	}
+	for ( w = WP_GAUNTLET; w < WP_NUM_WEAPONS; w++ ) {
+		if ( w == WP_GRAPPLING_HOOK || w == WP_BFG ) {
+			continue;
+		}
+		client->ps.stats[STAT_WEAPONS] |= 1 << w;
+		client->ps.ammo[w] = WARMUP_AMMO;
+	}
+}
+
+/*
+=================
+G_WarmupAmmo
+
+Keeps every carried weapon full during warm-up
+=================
+*/
+void G_WarmupAmmo( gentity_t *ent ) {
+	int w;
+
+	for ( w = WP_MACHINEGUN; w < WP_NUM_WEAPONS; w++ ) {
+		if ( ent->client->ps.stats[STAT_WEAPONS] & ( 1 << w ) ) {
+			ent->client->ps.ammo[w] = WARMUP_AMMO;
+		}
+	}
+}
+
+/*
+=================
+Cmd_WarmupKill
+
+kill in warm-up: back to a spawn point, no death counted
+=================
+*/
+qboolean G_WarmupKill( gentity_t *ent ) {
+	if ( !G_WarmupPractice() || ent->client->sess.sessionTeam == TEAM_SPECTATOR ) {
+		return qfalse;
+	}
+	ClientSpawn( ent );
+	return qtrue;
+}
+
+/*
+=================
+G_ReadyShare
+
+Percent of players that must be ready: g_readyUpShare, or 100 in duel and
+75 in team modes when it is 0
+=================
+*/
+int G_ReadyShare( void ) {
+	if ( g_readyUpShare.integer > 0 ) {
+		return g_readyUpShare.integer > 100 ? 100 : g_readyUpShare.integer;
+	}
+	return g_gametype.integer == GT_TOURNAMENT ? 100 : 75;
+}
+
+/*
+=================
+G_WarmupPublish
+
+"readyUp share ready players needed startTime" for the warm-up HUD in
+CS_READYUP; startTime is the level time a timed start or g_warmupMax ends,
+0 when none
+=================
+*/
+static void G_WarmupPublish( int ready, int players, int needed, int startTime ) {
+	char	text[64];
+
+	Com_sprintf( text, sizeof( text ), "%i %i %i %i %i %i", g_readyUp.integer, G_ReadyShare(), ready, players, needed,
+		startTime );
+	if ( strcmp( text, level.readyUpString ) ) {
+		Q_strncpyz( level.readyUpString, text, sizeof( level.readyUpString ) );
+		trap_SetConfigstring( CS_READYUP, text );
+	}
+}
+
+/*
+=================
 G_DuelPlayersReady
 
 True once every player has typed readyup (bots always are), or the
@@ -104,46 +206,78 @@ server said allready; then the countdown may start
 */
 qboolean G_DuelPlayersReady( void ) {
 	gclient_t	*cl;
-	qboolean	ready = qtrue;
-	int			i;
+	int			i, ready = 0, humans = 0, needed, bots = 0, startTime = 0;
+	int			readyTeam[TEAM_NUM_TEAMS];
+	qboolean	go;
 
-	if ( !g_duelReadyUp.integer || level.duelForceReady ) {
-		return qtrue;
-	}
-
-	// the warm-up lasts at most g_warmupMax seconds once there are players
-	if ( level.numPlayingClients < 2 ) {
-		level.readyWaitStart = 0;
-	} else if ( !level.readyWaitStart ) {
-		level.readyWaitStart = level.time;
-	} else if ( g_warmupMax.integer > 0 && level.time - level.readyWaitStart >= g_warmupMax.integer * 1000 ) {
-		return qtrue;
-	}
+	memset( readyTeam, 0, sizeof( readyTeam ) );
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
 		cl = &level.clients[i];
 		if ( cl->pers.connected != CON_CONNECTED || cl->sess.sessionTeam == TEAM_SPECTATOR ) {
 			continue;
 		}
 		if ( g_entities[i].r.svFlags & SVF_BOT ) {
+			bots++;
+			readyTeam[cl->sess.sessionTeam]++;
 			continue;
 		}
-		if ( !cl->pers.ready ) {
-			ready = qfalse;
+		humans++;
+		if ( cl->pers.ready ) {
+			ready++;
+			readyTeam[cl->sess.sessionTeam]++;
+		}
+	}
+	needed = ( humans * G_ReadyShare() + 99 ) / 100;
+
+	// the wait for the start: a timed start, or the longest warm-up
+	if ( level.numPlayingClients < 2 ) {
+		level.readyWaitStart = 0;
+	} else if ( !level.readyWaitStart ) {
+		level.readyWaitStart = level.time;
+	}
+	if ( level.readyWaitStart ) {
+		if ( !g_readyUp.integer ) {
+			startTime = level.readyWaitStart + g_warmupTime.integer * 1000;
+		} else if ( g_warmupMax.integer > 0 ) {
+			startTime = level.readyWaitStart + g_warmupMax.integer * 1000;
 		}
 	}
 
-	// remind whoever is not ready yet
-	if ( !ready && level.numPlayingClients >= 2 && level.time >= level.duelReadyHintTime ) {
-		level.duelReadyHintTime = level.time + DUEL_READY_HINT_MSEC;
-		for ( i = 0 ; i < level.maxclients ; i++ ) {
+	if ( level.duelForceReady ) {
+		go = qtrue;
+	} else if ( !g_readyUp.integer ) {
+		go = level.readyWaitStart && level.time >= startTime;
+	} else {
+		go = ready >= needed;
+		// team modes: a ready player on each team
+		if ( g_gametype.integer >= GT_TEAM && ( !readyTeam[TEAM_RED] || !readyTeam[TEAM_BLUE] ) ) {
+			go = qfalse;
+		}
+		if ( startTime && level.time >= startTime ) {
+			go = qtrue;
+		}
+	}
+	G_WarmupPublish( ready, humans, needed, startTime );
+
+	// the scoreboard's ready ticks
+	{
+		int bits = 0;
+
+		for ( i = 0 ; i < level.maxclients && i < 32 ; i++ ) {
 			cl = &level.clients[i];
 			if ( cl->pers.connected == CON_CONNECTED && cl->sess.sessionTeam != TEAM_SPECTATOR
-				&& !cl->pers.ready && !( g_entities[i].r.svFlags & SVF_BOT ) ) {
-				trap_SendServerCommand( i, va( "cp \"%s\"", BG_String( STR_DUEL_TYPE_READYUP ) ) );
+				&& ( cl->pers.ready || ( g_entities[i].r.svFlags & SVF_BOT ) ) ) {
+				bits |= 1 << i;
+			}
+		}
+		for ( i = 0 ; i < level.maxclients ; i++ ) {
+			if ( level.clients[i].pers.connected == CON_CONNECTED ) {
+				level.clients[i].ps.stats[STAT_CLIENTS_READY] = bits;
 			}
 		}
 	}
-	return ready;
+
+	return go;
 }
 
 /*

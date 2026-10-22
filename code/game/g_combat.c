@@ -1003,6 +1003,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		knockback = 0;
 	}
 
+	// warm-up is for moving: your own shots still push you, nothing else does
+	if ( G_WarmupPractice() && targ->client && mod != MOD_TRIGGER_HURT && mod != MOD_TELEFRAG ) {
+		if ( targ != attacker ) {
+			return;
+		}
+		nextKnockback = -1;
+	}
+
 	// figure momentum add, even if the damage won't be taken
 	if ( knockback && targ->client ) {
 		vec3_t	kvel;
@@ -1045,6 +1053,9 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
 	// clan arena: rocket and nail jumps and falls cost nothing
 	if ( G_ClanArena() && ( targ == attacker || mod == MOD_FALLING ) ) {
+		return;
+	}
+	if ( G_WarmupPractice() && targ->client && ( targ == attacker || mod == MOD_FALLING ) ) {
 		return;
 	}
 

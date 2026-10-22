@@ -585,6 +585,9 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
 		return;
 	if (other->health < 1)
 		return;		// dead people can't pickup
+	if ( G_WarmupPractice() && !( ent->flags & FL_DROPPED_ITEM ) && ent->item->giType != IT_TEAM ) {
+		return;		// warm-up leaves the map clean
+	}
 
 	// the same pickup rules are used for client side and server side
 	if ( !BG_CanItemBeGrabbed( g_gametype.integer, &ent->s, &other->client->ps ) ) {
@@ -887,6 +890,10 @@ void FinishSpawningItem( gentity_t *ent ) {
 		return;
 	}
 
+	// warm-up: the map is clean; the match start restarts the map
+	if ( G_WarmupPractice() && ent->item->giType != IT_TEAM ) {
+		ent->r.svFlags |= SVF_NOCLIENT;
+	}
 
 	trap_LinkEntity (ent);
 	G_UpdateItemTimers();

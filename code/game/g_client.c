@@ -1401,6 +1401,9 @@ void ClientSpawn(gentity_t *ent) {
 	if ( client->sess.sessionTeam != TEAM_SPECTATOR && !level.intermissiontime ) {
 		G_ArcadeLoadout( ent );
 	}
+	if ( client->sess.sessionTeam != TEAM_SPECTATOR && G_WarmupPractice() ) {
+		G_WarmupLoadout( ent );
+	}
 
 	// run a client frame to drop exactly to the floor,
 	// initialize animations and other things

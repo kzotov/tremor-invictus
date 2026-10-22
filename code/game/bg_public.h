@@ -184,7 +184,9 @@ typedef enum {
 #define CS_LOCATIONS			(CS_PLAYERS+MAX_CLIENTS)
 #define CS_PARTICLES			(CS_LOCATIONS+MAX_LOCATIONS) 
 
-#define CS_MAX					(CS_PARTICLES+MAX_LOCATIONS)
+#define CS_READYUP				(CS_PARTICLES+MAX_LOCATIONS)	// warm-up: "readyUp share ready players needed startTime"
+
+#define CS_MAX					(CS_READYUP+1)
 
 #if (CS_MAX) > MAX_CONFIGSTRINGS
 #error overflow: (CS_MAX) > MAX_CONFIGSTRINGS
@@ -285,6 +287,7 @@ typedef struct {
 	int			pmove_msec;
 
 	qboolean	autoHop;			// holding jump jumps again on landing
+	qboolean	movementOnly;		// warm-up: only movement abilities (hook, rush, orb, rift)
 
 	// callbacks to test the world
 	// these will be different functions during game and cgame
@@ -915,6 +918,11 @@ typedef enum {
 	STR_SB_EXTRACTS,
 	STR_SB_ROUNDS,
 	STR_HUD_NEXT_SPAWN,
+	STR_WARMUP,
+	STR_WARMUP_READY,
+	STR_WARMUP_WAITING,
+	STR_WARMUP_STARTS,
+	STR_WARMUP_ANYWAY,
 	STR_ACC_TITLE,
 	STR_TO_CALLED,
 	STR_TO_OVER,
@@ -1148,6 +1156,7 @@ extern	const classInfo_t	bg_classInfo[CLASS_NUM_CLASSES];
 int					BG_ChampionForName( const char *name );
 int					BG_ChampionForModel( const char *model );
 const champion_t	*BG_Champion( int index );
+qboolean			BG_MovementAbility( int active );
 
 // movement tunables, shared with the client through CVAR_SYSTEMINFO cvars
 typedef struct {

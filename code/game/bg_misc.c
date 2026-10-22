@@ -1689,6 +1689,11 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"EXT",
 	"RND",
 	"Next spawn: %s",
+	"WARM-UP",
+	"Press %s when ready (%i / %i ready)",
+	"Waiting for players (%i / %i)",
+	"The match starts in %i",
+	"Starts anyway in %i",
 	"ACCURACY",
 	"%s called a timeout",
 	"Timeout over",
@@ -1775,6 +1780,17 @@ int BG_ChampionForName( const char *name ) {
 		}
 	}
 	return 0;
+}
+
+/*
+==============
+BG_MovementAbility
+
+Actives that move the player, the ones warm-up keeps
+==============
+*/
+qboolean BG_MovementAbility( int active ) {
+	return active == ACTIVE_HOOK || active == ACTIVE_BULLRUSH || active == ACTIVE_ORB || active == ACTIVE_RIFTANCHOR;
 }
 
 /*
