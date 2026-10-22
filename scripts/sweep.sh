@@ -53,7 +53,11 @@ champions() {
 	for c in ranger anarki athena nyx slash bj deathknight doomslayer eisen galena strogg visor clutch keel scalebearer sorlag wrack sarge klesk hunter xaero raine beastmaster unumrey; do
 		r "set champion $c" >/dev/null
 		r "kill" >/dev/null
-		sleep 3.5
+		sleep 1.5
+		r "+attack" >/dev/null		# respawn as the new champion
+		sleep 0.2
+		r "-attack" >/dev/null
+		sleep 2
 		r "+button12" >/dev/null
 		sleep 0.25
 		r "-button12" >/dev/null
