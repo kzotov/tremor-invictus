@@ -543,19 +543,21 @@ Let everyone know about a team change
 */
 void BroadcastTeamChange( gclient_t *client, int oldTeam )
 {
+	int		id;
+
+	// a grey system line in the chat (a "print"), not a centre print
 	if ( client->sess.sessionTeam == TEAM_RED ) {
-		trap_SendServerCommand( -1, va("cp \"%s" S_COLOR_WHITE " joined the red team.\n\"",
-			client->pers.netname) );
+		id = STR_JOIN_RED;
 	} else if ( client->sess.sessionTeam == TEAM_BLUE ) {
-		trap_SendServerCommand( -1, va("cp \"%s" S_COLOR_WHITE " joined the blue team.\n\"",
-		client->pers.netname));
+		id = STR_JOIN_BLUE;
 	} else if ( client->sess.sessionTeam == TEAM_SPECTATOR && oldTeam != TEAM_SPECTATOR ) {
-		trap_SendServerCommand( -1, va("cp \"%s" S_COLOR_WHITE " joined the spectators.\n\"",
-		client->pers.netname));
+		id = STR_JOIN_SPECTATORS;
 	} else if ( client->sess.sessionTeam == TEAM_FREE ) {
-		trap_SendServerCommand( -1, va("cp \"%s" S_COLOR_WHITE " joined the battle.\n\"",
-		client->pers.netname));
+		id = STR_JOIN_GAME;
+	} else {
+		return;
 	}
+	trap_SendServerCommand( -1, va( "print \"%s\n\"", va( (char *)BG_String( id ), client->pers.netname ) ) );
 }
 
 /*

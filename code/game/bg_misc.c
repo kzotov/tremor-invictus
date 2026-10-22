@@ -1847,7 +1847,11 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"%s place with 1 frag",
 	"RED",
 	"BLUE",
-	"TIED"
+	"TIED",
+	"%s^7 joined the red team",
+	"%s^7 joined the blue team",
+	"%s^7 is spectating",
+	"%s^7 joined the match"
 };
 
 /*

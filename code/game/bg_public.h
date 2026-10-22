@@ -1082,6 +1082,10 @@ typedef enum {
 	STR_HUD_RED,
 	STR_HUD_BLUE,
 	STR_HUD_TIED,
+	STR_JOIN_RED,					// "%s^7 joined the red team"
+	STR_JOIN_BLUE,
+	STR_JOIN_SPECTATORS,
+	STR_JOIN_GAME,
 
 	STR_NUM_STRINGS
 } stringId_t;
