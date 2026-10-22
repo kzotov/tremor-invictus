@@ -2064,65 +2064,142 @@ int Q_vsnprintf(char *str, size_t length, const char *fmt, va_list args)
 }
 
 /* this is really crappy */
+/*
+==============
+sscanf
+
+A small scanf for the virtual machine: %d %i %u %x %f %s %c with optional
+widths, %%, spaces in the format matching any amount of space, other
+characters matching themselves. It stops at the first mismatch and
+returns how many fields were stored.
+==============
+*/
 int sscanf( const char *buffer, const char *fmt, ... ) {
-	int		cmd;
 	va_list		ap;
-	int		count, empty;
-	size_t		len;
+	int			count = 0, width, neg, base, digits, value;
+	const char	*p = buffer;
 
-	va_start (ap, fmt);
-	count = 0;
-
+	va_start( ap, fmt );
 	while ( *fmt ) {
-		if ( fmt[0] != '%' ) {
+		if ( isspace( *fmt ) ) {
+			while ( isspace( *p ) ) {
+				p++;
+			}
 			fmt++;
 			continue;
 		}
-
-		fmt++;
-		cmd = *fmt;
-
-		if (isdigit (cmd)) {
-			len = (size_t)_atoi (&fmt);
-			cmd = *(fmt - 1);
-		} else {
-			len = MAX_STRING_CHARS - 1;
+		if ( *fmt != '%' ) {
+			if ( *p != *fmt ) {
+				break;
+			}
+			p++;
 			fmt++;
+			continue;
 		}
-
-		// once the input runs out the rest are still set (0 or empty, as
-		// before), but no longer counted
-		while ( isspace( *buffer ) ) {
-			buffer++;
+		fmt++;
+		if ( *fmt == '%' ) {
+			if ( *p != '%' ) {
+				break;
+			}
+			p++;
+			fmt++;
+			continue;
 		}
-		empty = !*buffer;
-
-		switch ( cmd ) {
-		case 'i':
-		case 'd':
-		case 'u':
-			*(va_arg (ap, int *)) = _atoi( &buffer );
-			count += !empty;
-			break;
-		case 'f':
-			*(va_arg (ap, float *)) = _atof( &buffer );
-			count += !empty;
-			break;
-		case 's':
-			{
-			char *s = va_arg (ap, char *);
-			while (isspace (*buffer))
-				buffer++;
-			while (*buffer && !isspace (*buffer) && len-- > 0 )
-				*s++ = *buffer++;
-			*s++ = '\0';
-			count += !empty;
-			break;
+		width = 0;
+		while ( *fmt >= '0' && *fmt <= '9' ) {
+			width = width * 10 + ( *fmt++ - '0' );
+		}
+		if ( *fmt != 'c' ) {
+			while ( isspace( *p ) ) {
+				p++;
 			}
 		}
-	}
+		if ( !*p ) {
+			break;
+		}
+		if ( width <= 0 ) {
+			width = 0x7fffffff;
+		}
 
-	va_end (ap);
+		if ( *fmt == 'd' || *fmt == 'i' || *fmt == 'u' || *fmt == 'x' ) {
+			base = *fmt == 'x' ? 16 : 10;
+			neg = 0;
+			if ( ( *p == '-' || *p == '+' ) && width > 1 ) {
+				neg = *p == '-';
+				p++;
+				width--;
+			}
+			if ( base == 16 && p[0] == '0' && ( p[1] == 'x' || p[1] == 'X' ) && width > 2 ) {
+				p += 2;
+				width -= 2;
+			}
+			value = 0;
+			digits = 0;
+			while ( width > 0 ) {
+				int		d;
+
+				if ( *p >= '0' && *p <= '9' ) {
+					d = *p - '0';
+				} else if ( base == 16 && *p >= 'a' && *p <= 'f' ) {
+					d = *p - 'a' + 10;
+				} else if ( base == 16 && *p >= 'A' && *p <= 'F' ) {
+					d = *p - 'A' + 10;
+				} else {
+					break;
+				}
+				value = value * base + d;
+				digits++;
+				p++;
+				width--;
+			}
+			if ( !digits ) {
+				break;
+			}
+			*va_arg( ap, int * ) = neg ? -value : value;
+		} else if ( *fmt == 'f' ) {
+			char		num[64];
+			int			n = 0;
+			const char	*q;
+
+			while ( width > 0 && n < (int)sizeof( num ) - 1
+				&& ( ( *p >= '0' && *p <= '9' ) || *p == '.' || ( ( *p == '-' || *p == '+' ) && n == 0 )
+				|| ( ( *p == 'e' || *p == 'E' ) && n > 0 ) || ( ( *p == '-' || *p == '+' ) && n > 0 && ( num[n - 1] == 'e' || num[n - 1] == 'E' ) ) ) ) {
+				num[n++] = *p++;
+				width--;
+			}
+			num[n] = 0;
+			for ( digits = 0, q = num ; *q ; q++ ) {
+				digits += *q >= '0' && *q <= '9';
+			}
+			if ( !digits ) {
+				break;
+			}
+			*va_arg( ap, float * ) = atof( num );
+		} else if ( *fmt == 's' ) {
+			char	*out = va_arg( ap, char * );
+
+			while ( *p && !isspace( *p ) && width > 0 ) {
+				*out++ = *p++;
+				width--;
+			}
+			*out = 0;
+		} else if ( *fmt == 'c' ) {
+			char	*out = va_arg( ap, char * );
+
+			if ( width == 0x7fffffff ) {
+				width = 1;
+			}
+			while ( *p && width > 0 ) {
+				*out++ = *p++;
+				width--;
+			}
+		} else {
+			break;		// a conversion this scanf doesn't know
+		}
+		count++;
+		fmt++;
+	}
+	va_end( ap );
 	return count;
 }
 

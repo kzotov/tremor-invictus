@@ -94,6 +94,7 @@ static hudElement_t	hudElements[ARRAY_LEN( hudDefaults )];
 #define HUD_LAYOUT_NAME_MAX		32
 
 static char	hudLayoutLoaded[MAX_CVAR_VALUE_STRING];	// the whole name, so a rejected one isn't retried
+static qboolean	hudLayoutTried;		// hudLayoutLoaded holds the name last tried (it may be empty)
 static qboolean CG_BannerWordShowing( void );
 
 #define DP	( 480.0f / 1080.0f )	// design pixels to the 640 x 480 frame
@@ -112,10 +113,11 @@ static void CG_HudLayout( void ) {
 	int				len, i;
 	float			x, y, scale;
 
-	if ( hudLayoutLoaded[0] && !strcmp( hudLayoutLoaded, cg_hudLayout.string ) ) {
+	if ( hudLayoutTried && !strcmp( hudLayoutLoaded, cg_hudLayout.string ) ) {
 		return;
 	}
 	Q_strncpyz( hudLayoutLoaded, cg_hudLayout.string, sizeof( hudLayoutLoaded ) );
+	hudLayoutTried = qtrue;
 	// every load starts from the defaults
 	memcpy( hudElements, hudDefaults, sizeof( hudElements ) );
 	if ( strlen( cg_hudLayout.string ) >= HUD_LAYOUT_NAME_MAX ) {
@@ -188,7 +190,7 @@ from the bottom
 static float CG_HudPlace( const char *name, float *x, float *y ) {
 	int		i;
 
-	if ( !hudLayoutLoaded[0] ) {
+	if ( !hudLayoutTried ) {
 		CG_HudLayout();
 	}
 
@@ -1393,8 +1395,12 @@ static void CG_DrawWeaponBar( void ) {
 	if ( mode == 3 ) {
 		return;
 	}
+	if ( mode == 1 ) {
+		cg_hudAnchor = ANCHOR_CENTER;
+	}
 	for ( w = WP_GAUNTLET ; w < WP_NUM_WEAPONS ; w++ ) {
-		if ( w == WP_GRAPPLING_HOOK || !cg_weapons[w].registered || !cg_weapons[w].weaponIcon ) {
+		// one icon per weapon key (1-8): no grapple, no weapons without a key
+		if ( !BG_WeaponSlot( w ) || !cg_weapons[w].registered || !cg_weapons[w].weaponIcon ) {
 			continue;
 		}
 		have = ps->stats[STAT_WEAPONS] & ( 1 << w );
@@ -1425,7 +1431,7 @@ static void CG_DrawWeaponBar( void ) {
 
 			CG_HudPlace( "weaponbar", &bx, &by );
 			x = bx;
-			y = by - i * 70 * DP;
+			y = by - ( BG_WeaponSlot( w ) - 1 ) * 70 * DP;		// by key, slot 1 lowest
 			trap_R_SetColor( have ? NULL : dim );
 			CG_DrawPic( x, y, size, size, cg_weapons[w].weaponIcon );
 			trap_R_SetColor( NULL );
@@ -1446,7 +1452,7 @@ static void CG_DrawWeaponBar( void ) {
 		} else {
 			// the classic column grows up from above the ammo, slot 1 lowest
 			x = 612;
-			y = 372 - i * 26;
+			y = 372 - ( BG_WeaponSlot( w ) - 1 ) * 26;
 		}
 		trap_R_SetColor( have ? NULL : dim );
 		CG_DrawPic( x, y, 24, 24, cg_weapons[w].weaponIcon );

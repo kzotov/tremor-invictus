@@ -39,6 +39,7 @@ enum {
 	TAB_MOUSE,
 	TAB_CONTROLS,
 	TAB_GAME,
+	TAB_HUD,
 	TAB_SOUND,
 	TAB_CHAMPIONS,
 	NUM_TABS
@@ -140,7 +141,6 @@ static const settingRow_t controlRows[] = {
 static const settingRow_t gameRows[] = {
 	{ ROW_SPIN, STR_SET_CONFIGPRESET, STR_SET_CONFIGPRESET_HELP, "ui_configPreset", 4, { "", "competitive", "casual", "default" },
 		{ STR_SET_CUSTOM, STR_SET_COMPETITIVE, STR_SET_CASUAL, STR_SET_DEFAULTPRESET } },
-	{ ROW_SPIN, STR_SET_HUDSTYLE, STR_SET_HUDSTYLE_HELP, "cg_hudLayout", 2, { "modern", "classic" }, { STR_SET_HUD_NEW, STR_SET_HUD_CLASSIC } },
 	{ ROW_SPIN, STR_SET_AUTOSWITCH, STR_SET_AUTOSWITCH_HELP, "cg_autoswitch", OFF_ON },
 	{ ROW_SPIN, STR_SET_AUTOHOP, STR_SET_AUTOHOP_HELP, "cg_autoHop", OFF_ON },
 	{ ROW_SPIN, STR_SET_OUTLINE, STR_SET_OUTLINE_HELP, "cg_enemyOutline", OFF_ON },
@@ -149,6 +149,21 @@ static const settingRow_t gameRows[] = {
 		{ STR_SET_RED, STR_SET_YELLOW, STR_SET_GREEN, STR_SET_PINK, STR_SET_WHITE } },
 	{ ROW_SPIN, STR_SET_COLORBLIND, STR_SET_COLORBLIND_HELP, "cg_colorBlind", 4, { "0", "1", "2", "3" },
 		{ STR_SET_OFF, STR_SET_DEUTERANOPIA, STR_SET_PROTANOPIA, STR_SET_TRITANOPIA } },
+	{ ROW_SPIN, STR_SET_HITBEEP, STR_SET_HITBEEP_HELP, "cg_hitBeep", OFF_ON },
+	{ ROW_SPIN, STR_SET_KILLBEEP, STR_SET_KILLBEEP_HELP, "cg_killBeep", OFF_ON },
+	{ ROW_SPIN, STR_SET_DMGNUM, STR_SET_DMGNUM_HELP, "cg_damagePlum", OFF_ON },
+	{ ROW_SPIN, STR_SET_ZOOMTOGGLE, STR_SET_ZOOMTOGGLE_HELP, "cg_zoomToggle", 2, { "0", "1" }, { STR_SET_HOLD, STR_SET_TOGGLE } },
+	{ ROW_SPIN, STR_SET_TIPS, STR_SET_TIPS_HELP, "cg_loadingTips", OFF_ON },
+	{ ROW_SPIN, STR_SET_GORE, STR_SET_GORE_HELP, "cg_gibs", OFF_ON },
+	{ ROW_SPIN, STR_SET_RAILRINGS, STR_SET_RAILRINGS_HELP, "cg_oldRail", 2, { "1", "0" }, { STR_SET_OFF, STR_SET_ON } },
+	{ ROW_SPIN, STR_SET_TIMENUDGE, STR_SET_TIMENUDGE_HELP, "cl_timeNudge", 5, { "-16", "-12", "-8", "-4", "0" } },
+	{ ROW_SPIN, STR_SET_PROJNUDGE, STR_SET_PROJNUDGE_HELP, "cg_autoProjectileNudge", OFF_ON },
+	{ ROW_SPIN, STR_SET_AUTOREC, STR_SET_AUTOREC_HELP, "cg_autoAction", 3, { "0", "1", "3" },
+		{ STR_SET_OFF, STR_SET_AUTOREC_DEMO, STR_SET_AUTOREC_BOTH } }
+};
+
+static const settingRow_t hudRows[] = {
+	{ ROW_SPIN, STR_SET_HUDSTYLE, STR_SET_HUDSTYLE_HELP, "cg_hudLayout", 2, { "modern", "classic" }, { STR_SET_HUD_NEW, STR_SET_HUD_CLASSIC } },
 	{ ROW_SPIN, STR_SET_CROSSHAIR, STR_SET_CROSSHAIR_HELP, "cg_drawCrosshair", 10, { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" },
 		{ STR_SET_OFF } },
 	{ ROW_SLIDER, STR_SET_CROSSHAIRSIZE, STR_SET_CROSSHAIRSIZE_HELP, "cg_crosshairSize", 0, { NULL }, { 0 }, 12, 48 },
@@ -172,24 +187,12 @@ static const settingRow_t gameRows[] = {
 	{ ROW_SPIN, STR_SET_WEAPONBAR, STR_SET_WEAPONBAR_HELP, "cg_weaponBar", 4, { "0", "1", "2", "3" },
 		{ STR_SET_WB_COLUMN, STR_SET_WB_CENTRE, STR_SET_WB_HELD, STR_SET_WB_HIDDEN } },
 	{ ROW_SPIN, STR_SET_KILLFEED, STR_SET_KILLFEED_HELP, "cg_obituaryRowSize", 6, { "0", "1", "2", "3", "4", "5" }, { STR_SET_OFF } },
-	{ ROW_SPIN, STR_SET_HITBEEP, STR_SET_HITBEEP_HELP, "cg_hitBeep", OFF_ON },
-	{ ROW_SPIN, STR_SET_KILLBEEP, STR_SET_KILLBEEP_HELP, "cg_killBeep", OFF_ON },
-	{ ROW_SPIN, STR_SET_DMGNUM, STR_SET_DMGNUM_HELP, "cg_damagePlum", OFF_ON },
 	{ ROW_SPIN, STR_SET_DMGARC, STR_SET_DMGARC_HELP, "cg_damageArc", OFF_ON },
 	{ ROW_SPIN, STR_SET_LOWHEALTH, STR_SET_LOWHEALTH_HELP, "cg_lowHealthWarning", OFF_ON },
 	{ ROW_SPIN, STR_SET_ITEMTIMERS, STR_SET_ITEMTIMERS_HELP, "cg_worldItemTimers", OFF_ON },
-	{ ROW_SPIN, STR_SET_ZOOMTOGGLE, STR_SET_ZOOMTOGGLE_HELP, "cg_zoomToggle", 2, { "0", "1" }, { STR_SET_HOLD, STR_SET_TOGGLE } },
-	{ ROW_SPIN, STR_SET_TIPS, STR_SET_TIPS_HELP, "cg_loadingTips", OFF_ON },
-	{ ROW_SPIN, STR_SET_GORE, STR_SET_GORE_HELP, "cg_gibs", OFF_ON },
-	{ ROW_SPIN, STR_SET_RAILRINGS, STR_SET_RAILRINGS_HELP, "cg_oldRail", 2, { "1", "0" }, { STR_SET_OFF, STR_SET_ON } },
 	{ ROW_SPIN, STR_SET_TEAMOVERLAY, STR_SET_TEAMOVERLAY_HELP, "cg_drawTeamOverlay", OFF_ON },
 	{ ROW_SPIN, STR_SET_FPS, STR_SET_FPS_HELP, "cg_drawFPS", OFF_ON },
-	{ ROW_SPIN, STR_SET_LAGOMETER, STR_SET_LAGOMETER_HELP, "cg_lagometer", OFF_ON },
-	{ ROW_SPIN, STR_SET_SPEEDO, STR_SET_SPEEDO_HELP, "cg_drawSpeed", OFF_ON },
-	{ ROW_SPIN, STR_SET_TIMENUDGE, STR_SET_TIMENUDGE_HELP, "cl_timeNudge", 5, { "-16", "-12", "-8", "-4", "0" } },
-	{ ROW_SPIN, STR_SET_PROJNUDGE, STR_SET_PROJNUDGE_HELP, "cg_autoProjectileNudge", OFF_ON },
-	{ ROW_SPIN, STR_SET_AUTOREC, STR_SET_AUTOREC_HELP, "cg_autoAction", 3, { "0", "1", "3" },
-		{ STR_SET_OFF, STR_SET_AUTOREC_DEMO, STR_SET_AUTOREC_BOTH } }
+	{ ROW_SPIN, STR_SET_LAGOMETER, STR_SET_LAGOMETER_HELP, "cg_lagometer", OFF_ON }
 };
 
 static const settingRow_t soundRows[] = {
@@ -223,6 +226,7 @@ static const struct {
 	{ mouseRows, ARRAY_LEN( mouseRows ), STR_SET_TAB_MOUSE },
 	{ controlRows, ARRAY_LEN( controlRows ), STR_SET_TAB_CONTROLS },
 	{ gameRows, ARRAY_LEN( gameRows ), STR_SET_TAB_GAME },
+	{ hudRows, ARRAY_LEN( hudRows ), STR_SET_TAB_HUD },
 	{ soundRows, ARRAY_LEN( soundRows ), STR_SET_TAB_SOUND },
 	{ championRows, ARRAY_LEN( championRows ), STR_SET_TAB_CHAMPIONS }
 };

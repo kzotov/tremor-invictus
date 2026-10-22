@@ -437,9 +437,9 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_obituaryRowSize, "cg_obituaryRowSize", "5", CVAR_ARCHIVE},
 	{ &cg_chatHistoryLength, "cg_chatHistoryLength", "5", CVAR_ARCHIVE},
 	{ &cg_specItemTimers, "cg_specItemTimers", "15", CVAR_ARCHIVE},
-	{ &cg_weaponBar, "cg_weaponBar", "0", CVAR_ARCHIVE},
+	{ &cg_weaponBar, "cg_weaponBar", "0", CVAR_ARCHIVE},		// 0 right column, 1 bottom centre, 2 held weapon only, 3 hidden
 	{ &cg_drawCooldown, "cg_drawCooldown", "1", CVAR_ARCHIVE},	// the ability ring and its arc
-	{ &cg_drawPassive, "cg_drawPassive", "1", CVAR_ARCHIVE},		// the passive ring under the portrait		// 0 right column, 1 bottom centre, 2 held weapon only, 3 hidden
+	{ &cg_drawPassive, "cg_drawPassive", "1", CVAR_ARCHIVE},		// the passive ring under the portrait
 	{ &cg_followKiller, "cg_followKiller", "0", CVAR_ARCHIVE},
 	{ &cg_specFov, "cg_specFov", "0", CVAR_ARCHIVE},		// spectating: this field of view, 0 = cg_fov
 	{ &cg_specThirdPerson, "cg_specThirdPerson", "0", CVAR_ARCHIVE},	// following: chase from behind

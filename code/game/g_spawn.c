@@ -390,6 +390,7 @@ void G_ParseField( const char *key, const char *value, gentity_t *ent ) {
 				*(char **)(b+f->ofs) = G_NewString (value);
 				break;
 			case F_VECTOR:
+				VectorClear( vec );		// a short value leaves the rest 0
 				sscanf (value, "%f %f %f", &vec[0], &vec[1], &vec[2]);
 				((float *)(b+f->ofs))[0] = vec[0];
 				((float *)(b+f->ofs))[1] = vec[1];

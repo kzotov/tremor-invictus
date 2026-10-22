@@ -1437,6 +1437,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"MOUSE",
 	"CONTROLS",
 	"GAME",
+	"HUD",
 	"SOUND",
 	"DEFAULTS",
 	"APPLY",
