@@ -704,6 +704,7 @@ typedef struct {
 } cg_t;
 
 qhandle_t CG_ChampionPortrait( int champion, qboolean small );
+void CG_TeamPalette( int team, vec4_t out );
 
 
 // all of the model, shader, and sound references that are
@@ -848,6 +849,7 @@ typedef struct {
 	qhandle_t	brightShader;			// player colours
 	qhandle_t	sportShader;
 	qhandle_t	tintShader;
+	qhandle_t	outlineShader;
 	qhandle_t	regenShader;
 	qhandle_t	battleSuitShader;
 	qhandle_t	battleWeaponShader;
@@ -1257,6 +1259,9 @@ extern	vmCvar_t		cg_trailColor;
 extern	vmCvar_t		cg_trailEnemyColor;
 extern	vmCvar_t		cg_abilityLights;
 extern	vmCvar_t		cg_backflips;
+extern	vmCvar_t		cg_enemyOutline;
+extern	vmCvar_t		cg_enemyOutlineColor;
+extern	vmCvar_t		cg_colorBlind;
 void CG_ParseColor( vmCvar_t *cv, const char *defaultValue, byte out[4] );
 extern	vmCvar_t		cg_forceTeamSkin;
 extern	vmCvar_t		cg_enemyHeadColor;

@@ -39,6 +39,9 @@ static byte		tintColors[3][4];		// head, upper, lower
 static int		tintPart;
 static qboolean	tintWeapon;
 
+static qboolean	outlineOn;			// the next parts get the enemy outline
+static byte		outlineColor[4];
+
 /*
 ================
 CG_ParseColor
@@ -120,6 +123,23 @@ void CG_PlayerColors( centity_t *cent, clientInfo_t *ci ) {
 	tintMode = TINT_NONE;
 	tintPart = 0;
 	tintWeapon = qfalse;
+	outlineOn = qfalse;
+
+	// the enemy outline: an enemy in plain sight (never through walls)
+	if ( cg_enemyOutline.integer && cent->currentState.number != ps->clientNum
+		&& !( cent->currentState.powerups & ( 1 << PW_INVIS ) )
+		&& ( cgs.gametype < GT_TEAM || ci->team != viewTeam ) && viewTeam != TEAM_SPECTATOR ) {
+		trace_t	tr;
+		vec3_t	chest;
+
+		VectorCopy( cent->lerpOrigin, chest );
+		chest[2] += 16;
+		CG_Trace( &tr, cg.refdef.vieworg, NULL, NULL, chest, ps->clientNum, MASK_SOLID );
+		if ( tr.fraction == 1.0f ) {
+			outlineOn = qtrue;
+			CG_ParseColor( &cg_enemyOutlineColor, "0xFF2020FF", outlineColor );
+		}
+	}
 
 	if ( cent->currentState.number == ps->clientNum ) {
 		return;
@@ -169,6 +189,7 @@ Nothing forced for whatever is drawn next
 ================
 */
 void CG_ColorReset( void ) {
+	outlineOn = qfalse;
 	tintMode = TINT_NONE;
 	tintWeapon = qfalse;
 }
@@ -207,6 +228,13 @@ Sport adds a colour pass over the part as drawn
 */
 void CG_ColorAfterDraw( refEntity_t *ent ) {
 	refEntity_t	pass;
+
+	if ( outlineOn ) {
+		pass = *ent;
+		pass.customShader = cgs.media.outlineShader;
+		Byte4Copy( outlineColor, pass.shaderRGBA );
+		trap_R_AddRefEntityToScene( &pass );
+	}
 
 	if ( tintMode != TINT_SPORT ) {
 		return;

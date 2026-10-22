@@ -139,6 +139,12 @@ static const settingRow_t gameRows[] = {
 	{ ROW_SPIN, STR_SET_HUDSTYLE, STR_SET_HUDSTYLE_HELP, "cg_hudStyle", 2, { "1", "0" }, { STR_SET_HUD_NEW, STR_SET_HUD_CLASSIC } },
 	{ ROW_SPIN, STR_SET_AUTOSWITCH, STR_SET_AUTOSWITCH_HELP, "cg_autoswitch", OFF_ON },
 	{ ROW_SPIN, STR_SET_AUTOHOP, STR_SET_AUTOHOP_HELP, "cg_autoHop", OFF_ON },
+	{ ROW_SPIN, STR_SET_OUTLINE, STR_SET_OUTLINE_HELP, "cg_enemyOutline", OFF_ON },
+	{ ROW_SPIN, STR_SET_OUTLINECOLOR, STR_SET_OUTLINECOLOR_HELP, "cg_enemyOutlineColor", 5,
+		{ "0xFF2020FF", "0xFFFF00FF", "0x00FF00FF", "0xFF00FFFF", "0xFFFFFFFF" },
+		{ STR_SET_RED, STR_SET_YELLOW, STR_SET_GREEN, STR_SET_PINK, STR_SET_WHITE } },
+	{ ROW_SPIN, STR_SET_COLORBLIND, STR_SET_COLORBLIND_HELP, "cg_colorBlind", 4, { "0", "1", "2", "3" },
+		{ STR_SET_OFF, STR_SET_DEUTERANOPIA, STR_SET_PROTANOPIA, STR_SET_TRITANOPIA } },
 	{ ROW_SPIN, STR_SET_CROSSHAIR, STR_SET_CROSSHAIR_HELP, "cg_drawCrosshair", 10, { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" },
 		{ STR_SET_OFF } },
 	{ ROW_SLIDER, STR_SET_CROSSHAIRSIZE, STR_SET_CROSSHAIRSIZE_HELP, "cg_crosshairSize", 0, { NULL }, { 0 }, 12, 48 },
@@ -1050,6 +1056,9 @@ void UI_SettingsRml( void ) {
 	trap_Cvar_Register( NULL, "cg_trailEnemyColor", "", CVAR_ARCHIVE );
 	trap_Cvar_Register( NULL, "cg_abilityLights", "1", CVAR_ARCHIVE );
 	trap_Cvar_Register( NULL, "cg_backflips", "1", CVAR_ARCHIVE );
+	trap_Cvar_Register( NULL, "cg_enemyOutline", "0", CVAR_ARCHIVE );
+	trap_Cvar_Register( NULL, "cg_enemyOutlineColor", "0xFF2020FF", CVAR_ARCHIVE );
+	trap_Cvar_Register( NULL, "cg_colorBlind", "0", CVAR_ARCHIVE );
 	trap_Cvar_Register( NULL, "ui_setTab", "0", CVAR_TEMP );
 	trap_Cvar_Register( NULL, "ui_setRestart", "0", CVAR_TEMP );
 	trap_Cvar_Set( "ui_setWait", "" );

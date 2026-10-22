@@ -1254,19 +1254,37 @@ CG_DrawTeamBackground
 
 ================
 */
+/*
+================
+CG_TeamPalette
+
+Red and blue, or a pair told apart with cg_colorBlind: 1 deuteranopia
+(orange and blue), 2 protanopia (yellow and blue), 3 tritanopia (red and
+teal)
+================
+*/
+void CG_TeamPalette( int team, vec4_t out ) {
+	static const float	pairs[4][2][3] = {
+		{ { 1, 0, 0 }, { 0, 0, 1 } },
+		{ { 1, 0.55f, 0 }, { 0.1f, 0.45f, 1 } },
+		{ { 1, 0.85f, 0.1f }, { 0.1f, 0.45f, 1 } },
+		{ { 1, 0.15f, 0.2f }, { 0, 0.75f, 0.75f } }
+	};
+	int		p = cg_colorBlind.integer >= 0 && cg_colorBlind.integer <= 3 ? cg_colorBlind.integer : 0;
+	int		t = team == TEAM_BLUE ? 1 : 0;
+
+	out[0] = pairs[p][t][0];
+	out[1] = pairs[p][t][1];
+	out[2] = pairs[p][t][2];
+}
+
 void CG_DrawTeamBackground( int x, int y, int w, int h, float alpha, int team )
 {
 	vec4_t		hcolor;
 
 	hcolor[3] = alpha;
-	if ( team == TEAM_RED ) {
-		hcolor[0] = 1;
-		hcolor[1] = 0;
-		hcolor[2] = 0;
-	} else if ( team == TEAM_BLUE ) {
-		hcolor[0] = 0;
-		hcolor[1] = 0;
-		hcolor[2] = 1;
+	if ( team == TEAM_RED || team == TEAM_BLUE ) {
+		CG_TeamPalette( team, hcolor );
 	} else {
 		return;
 	}
@@ -1652,17 +1670,8 @@ static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 		ret_y = y;
 	}
 
-	if ( overlayTeam == TEAM_RED ) {
-		hcolor[0] = 1.0f;
-		hcolor[1] = 0.0f;
-		hcolor[2] = 0.0f;
-		hcolor[3] = 0.33f;
-	} else { // if ( overlayTeam == TEAM_BLUE )
-		hcolor[0] = 0.0f;
-		hcolor[1] = 0.0f;
-		hcolor[2] = 1.0f;
-		hcolor[3] = 0.33f;
-	}
+	CG_TeamPalette( overlayTeam, hcolor );
+	hcolor[3] = 0.33f;
 	trap_R_SetColor( hcolor );
 	CG_DrawPic( x, y, w, h, cgs.media.teamStatusBar );
 	trap_R_SetColor( NULL );

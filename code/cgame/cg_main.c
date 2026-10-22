@@ -214,6 +214,9 @@ vmCvar_t	cg_trailColor;
 vmCvar_t	cg_trailEnemyColor;
 vmCvar_t	cg_abilityLights;
 vmCvar_t	cg_backflips;
+vmCvar_t	cg_enemyOutline;
+vmCvar_t	cg_enemyOutlineColor;
+vmCvar_t	cg_colorBlind;
 vmCvar_t	cg_hudStyle;
 vmCvar_t	cg_drawCooldownArc;
 vmCvar_t	cg_obituaryRowSize;
@@ -408,6 +411,10 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_trailEnemyColor, "cg_trailEnemyColor", "", CVAR_ARCHIVE },
 	{ &cg_abilityLights, "cg_abilityLights", "1", CVAR_ARCHIVE },
 	{ &cg_backflips, "cg_backflips", "1", CVAR_ARCHIVE },
+	// visibility: enemy outline (in sight only) and colour-blind palettes
+	{ &cg_enemyOutline, "cg_enemyOutline", "0", CVAR_ARCHIVE },
+	{ &cg_enemyOutlineColor, "cg_enemyOutlineColor", "0xFF2020FF", CVAR_ARCHIVE },
+	{ &cg_colorBlind, "cg_colorBlind", "0", CVAR_ARCHIVE },
 	// 1: the champions HUD, 0: the classic status bar
 	{ &cg_hudStyle, "cg_hudStyle", "1", CVAR_ARCHIVE},
 	// the ability arc by the crosshair: 0 off, 2 top, 3 bottom, 4 left, 5 right
@@ -1042,6 +1049,7 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.brightShader = trap_R_RegisterShader( "tremor/bright" );
 	cgs.media.sportShader = trap_R_RegisterShader( "tremor/sport" );
 	cgs.media.tintShader = trap_R_RegisterShader( "tremor/tint" );
+	cgs.media.outlineShader = trap_R_RegisterShader( "tremor/outline" );
 	cgs.media.regenShader = trap_R_RegisterShader("powerups/regen" );
 	cgs.media.hastePuffShader = trap_R_RegisterShader("hasteSmokePuff" );
 

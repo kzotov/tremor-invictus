@@ -47,3 +47,16 @@ tremor/reveal
 		rgbGen const ( 0.75 0.12 0.06 )
 	}
 }
+
+// the enemy outline (cg_enemyOutline): the model pushed out along its
+// normals, only its back faces drawn, in the entity colour
+tremor/outline
+{
+	nopicmip
+	cull front
+	deformVertexes wave 100 sin 1.4 0 0 0
+	{
+		map $whiteimage
+		rgbGen entity
+	}
+}
