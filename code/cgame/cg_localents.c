@@ -398,6 +398,8 @@ static void CG_AddSpark( localEntity_t *le ) {
 	refEntity_t	*re = &le->refEntity;
 	float		c = ( le->endTime - cg.time ) * le->lifeRate;
 
+	// events can start one a little ahead of the frame being drawn
+	c = c < 0 ? 0 : c > 1 ? 1 : c;
 	BG_EvaluateTrajectory( &le->pos, cg.time, re->origin );
 	re->shaderRGBA[0] = 255 * le->color[0] * c;
 	re->shaderRGBA[1] = 255 * le->color[1] * c;
@@ -413,10 +415,12 @@ CG_AddGroundRing
 */
 static void CG_AddGroundRing( localEntity_t *le ) {
 	float	c = ( le->endTime - cg.time ) * le->lifeRate;
-	float	radius = le->radius * ( 0.25f + 0.75f * ( 1 - c * c ) );
+	float	radius;
 
-	CG_VfxGroundRing( le->pos.trBase, radius, le->startTime * 0.1f,
-		255 * le->color[0] * c, 255 * le->color[1] * c, 255 * le->color[2] * c );
+	c = c < 0 ? 0 : c > 1 ? 1 : c;
+	radius = le->radius * ( 0.25f + 0.75f * ( 1 - c * c ) );
+	CG_VfxGroundRing( le->pos.trBase, radius, ( le->startTime % 360 ) + cg.time * 0.05f,
+		(byte)( 255 * le->color[0] * c ), (byte)( 255 * le->color[1] * c ), (byte)( 255 * le->color[2] * c ) );
 }
 
 /*

@@ -724,13 +724,12 @@ static void CG_AbilityVisual( centity_t *cent ) {
 			trap_R_AddRefEntityToScene( &ent );
 			CG_VfxSprite( cent->lerpOrigin, 22 + 8 * ramp, cgs.media.glowBallShader, 90 * k, 30 * k, 160 * k, 0 );
 			CG_AbilityLight( cent->lerpOrigin, 120 + 80 * ramp, 0.55f, 0.15f, 0.9f );
-			// a dark smoky wake while it flies
-			if ( s1->pos.trType != TR_STATIONARY && cg.time - cent->trailTime > 50 ) {
-				vec3_t	up = { 0, 0, 8 };
+			// a dim violet wake while it flies
+			if ( s1->pos.trType != TR_STATIONARY && cg.time - cent->trailTime > 40 ) {
+				static const vec3_t	wake = { 0.3f, 0.08f, 0.45f };
 
 				cent->trailTime = cg.time;
-				CG_SmokePuff( cent->lerpOrigin, up, 14, 0.35f, 0.15f, 0.45f, 0.5f, 700, cg.time, 0, 0,
-					cgs.media.smokePuffShader );
+				CG_VfxWake( cent->lerpOrigin, 12, 600, wake );
 			}
 		} else {
 			CG_VfxSprite( cent->lerpOrigin, 22, cgs.media.orbShader, 255, 255, 255, 0 );

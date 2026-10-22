@@ -206,6 +206,28 @@ void CG_VfxSparks( const vec3_t origin, const vec3_t dir, int count, float speed
 
 /*
 ==================
+CG_VfxWake
+
+A glow left hanging where something passed, dimming over duration
+==================
+*/
+void CG_VfxWake( const vec3_t origin, float radius, int duration, const vec3_t color ) {
+	localEntity_t	*le = CG_AllocLocalEntity();
+
+	le->leType = LE_SPARK;
+	le->startTime = cg.time;
+	le->endTime = cg.time + duration;
+	le->lifeRate = 1.0f / duration;
+	VectorCopy( color, le->color );
+	le->pos.trType = TR_STATIONARY;
+	VectorCopy( origin, le->pos.trBase );
+	le->refEntity.reType = RT_SPRITE;
+	le->refEntity.customShader = cgs.media.glowBallShader;
+	le->refEntity.radius = radius;
+}
+
+/*
+==================
 CG_VfxRingBurst
 
 A flat ring of light on the floor widening to radius and dimming

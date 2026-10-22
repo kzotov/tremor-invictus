@@ -1575,6 +1575,7 @@ void	CG_AddLocalEntities( void );
 // cg_effects.c
 //
 void CG_VfxSparks( const vec3_t origin, const vec3_t dir, int count, float speed, const vec3_t color );
+void CG_VfxWake( const vec3_t origin, float radius, int duration, const vec3_t color );
 void CG_VfxRingBurst( const vec3_t origin, float radius, int duration, const vec3_t color );
 localEntity_t *CG_SmokePuff( const vec3_t p, 
 				   const vec3_t vel, 
