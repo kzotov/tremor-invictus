@@ -116,6 +116,7 @@ set(UI_SOURCES
     ${SOURCE_DIR}/q3_ui/ui_stage.c
     ${SOURCE_DIR}/q3_ui/ui_createrml.c
     ${SOURCE_DIR}/q3_ui/ui_botsrml.c
+    ${SOURCE_DIR}/q3_ui/ui_voicerml.c
     ${SOURCE_DIR}/q3_ui/ui_playersettings.c
     ${SOURCE_DIR}/q3_ui/ui_preferences.c
     ${SOURCE_DIR}/q3_ui/ui_qmenu.c

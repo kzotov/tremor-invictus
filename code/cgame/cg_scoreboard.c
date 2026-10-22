@@ -159,6 +159,12 @@ static void CG_DrawClientScore( int y, score_t *score, float *color, float fade,
 	else {
 		CG_DrawHead( headx, y, 16, 16, score->client, headAngles );
 	}
+	// voice chat: talking or muted, at the face's corner
+	if ( largeFormat ) {
+		CG_DrawVoip( headx + ICON_SIZE - 14, y - ( ICON_SIZE - BIGCHAR_HEIGHT ) / 2 + ICON_SIZE - 14, 16, score->client );
+	} else {
+		CG_DrawVoip( headx + 10, y + 8, 10, score->client );
+	}
 
 #ifdef MISSIONPACK
 	// draw the team task

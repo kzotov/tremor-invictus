@@ -243,6 +243,7 @@ typedef struct {
 	int voipIncomingSequence[MAX_CLIENTS];
 	float voipGain[MAX_CLIENTS];
 	qboolean voipIgnore[MAX_CLIENTS];
+	int voipLastHeard[MAX_CLIENTS];	// cls.realtime of each player's last voice packet
 	qboolean voipMuteAll;
 
 	// outgoing data...
@@ -445,6 +446,7 @@ extern	cvar_t	*cl_voipGainDuringCapture;
 extern	cvar_t	*cl_voipCaptureMult;
 extern	cvar_t	*cl_voipShowMeter;
 extern	cvar_t	*cl_voip;
+extern	cvar_t	*cl_voipVolume;
 
 // 20ms at 48k
 #define VOIP_MAX_FRAME_SAMPLES		( 20 * 48 )

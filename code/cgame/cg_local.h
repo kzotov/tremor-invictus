@@ -819,6 +819,8 @@ typedef struct {
 	qhandle_t	shadowMarkShader;
 
 	qhandle_t	botSkillShaders[5];
+	qhandle_t	speakerShader;			// talking on voice chat
+	qhandle_t	speakerMutedShader;
 
 	// wall mark shaders
 	qhandle_t	wakeMarkShader;
@@ -1257,6 +1259,10 @@ extern	vmCvar_t		cg_playerScale;
 extern	vmCvar_t		cg_projectileNudge;
 extern	vmCvar_t		cg_forceEnemySkin;
 extern	vmCvar_t		cg_trailGrey;
+extern	vmCvar_t		cl_voipTalking;
+extern	vmCvar_t		cl_voipMuted;
+qboolean CG_VoipFlag( const vmCvar_t *mask, int clientNum );
+void CG_DrawVoip( float x, float y, float size, int clientNum );
 extern	vmCvar_t		cg_trailColor;
 extern	vmCvar_t		cg_trailEnemyColor;
 extern	vmCvar_t		cg_abilityLights;

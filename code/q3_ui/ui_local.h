@@ -351,6 +351,11 @@ void UI_FindServersRml( void );
 void UI_DemosRml( void );
 void UI_BotsRml( int tab );
 qboolean UI_BotsCommand( const char *cmd );
+
+//
+// ui_voicerml.c
+//
+qboolean UI_VoiceCommand( const char *cmd );
 qboolean UI_DemosCommand( const char *cmd );
 void UI_ProfileRml( void );
 qboolean UI_ProfileCommand( const char *cmd );

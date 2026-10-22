@@ -210,6 +210,8 @@ vmCvar_t	cg_trueLightning;
 vmCvar_t	cg_predictLocalRailshots;
 vmCvar_t	cg_autoAction;
 vmCvar_t	cg_trailGrey;
+vmCvar_t	cl_voipTalking;
+vmCvar_t	cl_voipMuted;
 vmCvar_t	cg_trailColor;
 vmCvar_t	cg_trailEnemyColor;
 vmCvar_t	cg_abilityLights;
@@ -407,6 +409,8 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_autoAction, "cg_autoAction", "3", CVAR_ARCHIVE},
 	// Settings > Champions
 	{ &cg_trailGrey, "cg_trailGrey", "0", CVAR_ARCHIVE },
+	{ &cl_voipTalking, "cl_voipTalking", "", CVAR_ROM },
+	{ &cl_voipMuted, "cl_voipMuted", "", CVAR_ROM },
 	{ &cg_trailColor, "cg_trailColor", "", CVAR_ARCHIVE },
 	{ &cg_trailEnemyColor, "cg_trailEnemyColor", "", CVAR_ARCHIVE },
 	{ &cg_abilityLights, "cg_abilityLights", "1", CVAR_ARCHIVE },
@@ -965,6 +969,8 @@ static void CG_RegisterGraphics( void ) {
 		cgs.media.numberShaders[i] = trap_R_RegisterShader( sb_nums[i] );
 	}
 
+	cgs.media.speakerShader = trap_R_RegisterShaderNoMip( "gfx/tremor/speaker.tga" );
+	cgs.media.speakerMutedShader = trap_R_RegisterShaderNoMip( "gfx/tremor/speaker_muted.tga" );
 	cgs.media.botSkillShaders[0] = trap_R_RegisterShader( "menu/art/skill1.tga" );
 	cgs.media.botSkillShaders[1] = trap_R_RegisterShader( "menu/art/skill2.tga" );
 	cgs.media.botSkillShaders[2] = trap_R_RegisterShader( "menu/art/skill3.tga" );

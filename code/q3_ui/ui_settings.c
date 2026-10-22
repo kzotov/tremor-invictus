@@ -52,6 +52,7 @@ typedef enum {
 	ROW_DISPLAY,		// fullscreen, windowed or borderless
 	ROW_INVERT,			// sign of m_pitch
 	ROW_READOUT,		// computed text, not a control
+	ROW_DEVICE,			// a microphone from the sound system's list
 	ROW_BIND			// a command and up to two keys
 } rowType_t;
 
@@ -177,7 +178,11 @@ static const settingRow_t soundRows[] = {
 	{ ROW_SLIDER, STR_SET_VOLUME, STR_SET_VOLUME_HELP, "s_volume", 0, { NULL }, { 0 }, 0, 1 },
 	{ ROW_SLIDER, STR_SET_MUSIC, STR_SET_MUSIC_HELP, "s_musicvolume", 0, { NULL }, { 0 }, 0, 1 },
 	{ ROW_SLIDER, STR_SET_ANNOUNCER, STR_SET_ANNOUNCER_HELP, "s_announcerVolume", 0, { NULL }, { 0 }, 0, 1 },
-	{ ROW_SPIN, STR_SET_VOIP, STR_SET_VOIP_HELP, "cl_voip", OFF_ON }
+	{ ROW_SPIN, STR_SET_VOIP, STR_SET_VOIP_HELP, "cl_voip", OFF_ON },
+	{ ROW_SLIDER, STR_SET_VOICEVOL, STR_SET_VOICEVOL_HELP, "cl_voipVolume", 0, { NULL }, { 0 }, 0, 2 },
+	{ ROW_DEVICE, STR_SET_MIC, STR_SET_MIC_HELP, "s_alInputDevice", 0, { NULL }, { 0 }, 0, 0, qtrue },
+	{ ROW_SLIDER, STR_SET_MICGAIN, STR_SET_MICGAIN_HELP, "cl_voipCaptureMult", 0, { NULL }, { 0 }, 0.5f, 5 },
+	{ ROW_SPIN, STR_SET_OPENMIC, STR_SET_OPENMIC_HELP, "cl_voipUseVAD", OFF_ON }
 };
 
 static const settingRow_t championRows[] = {
@@ -969,6 +974,68 @@ static void Rml_Option( const settingRow_t *row, const char *condition, const ch
 		row->restart ? "; set ui_setRestart 1" : "", UI_RmlText( label ) ) );
 }
 
+/*
+=================
+Settings_Device
+
+The n-th microphone the sound system lists (0 is the system default),
+copied to out; false past the end of the list
+=================
+*/
+static qboolean Settings_Device( int n, char *out, int size ) {
+	char		list[4096];
+	const char	*s;
+	int			i, len;
+
+	out[0] = 0;
+	if ( n == 0 ) {
+		return qtrue;
+	}
+	trap_Cvar_VariableStringBuffer( "s_alAvailableInputDevices", list, sizeof( list ) );
+	s = list;
+	for ( i = 1; *s; i++ ) {
+		for ( len = 0; s[len] && s[len] != '\n'; len++ ) {
+		}
+		if ( i == n ) {
+			if ( len >= size ) {
+				len = size - 1;
+			}
+			memcpy( out, s, len );
+			out[len] = 0;
+			return qtrue;
+		}
+		s += len;
+		if ( *s ) {
+			s++;
+		}
+	}
+	return qfalse;
+}
+
+/*
+=================
+Rml_Devices
+
+A button per microphone; ui_setMic holds the shown one's number, as
+device names don't fit a condition
+=================
+*/
+static void Rml_Devices( const settingRow_t *row ) {
+	char	name[256], current[256], cond[32], command[32];
+	int		i, chosen = 0;
+
+	trap_Cvar_VariableStringBuffer( row->cvar, current, sizeof( current ) );
+	for ( i = 0; i < 16 && Settings_Device( i, name, sizeof( name ) ); i++ ) {
+		if ( i > 0 && !strcmp( name, current ) ) {
+			chosen = i;
+		}
+		Com_sprintf( cond, sizeof( cond ), "ui_setMic=%i", i );
+		Com_sprintf( command, sizeof( command ), "ui_setMicPick %i", i );
+		Rml_Option( row, cond, command, i == 0 ? BG_String( STR_SET_DEFAULTDEV ) : name );
+	}
+	trap_Cvar_SetValue( "ui_setMic", chosen );
+}
+
 static void Rml_Row( int tab, int r ) {
 	const settingRow_t	*row = &settingTabs[tab].rows[r];
 	char				label[96];
@@ -1030,6 +1097,9 @@ static void Rml_Row( int tab, int r ) {
 		break;
 	case ROW_READOUT:
 		Rml_Add( "<span class=\"sread\" data-text-cvar=\"ui_setTurn\"></span>" );
+		break;
+	case ROW_DEVICE:
+		Rml_Devices( row );
 		break;
 	case ROW_BIND:
 		Rml_BindText( tab, r );
@@ -1128,6 +1198,15 @@ qboolean UI_SettingsCommand( const char *cmd ) {
 		trap_Cvar_Set( "ui_setTab", UI_Argv( 1 ) );
 		return qtrue;
 	}
+	if ( !Q_stricmp( cmd, "ui_setMicPick" ) ) {
+		char	name[256];
+
+		if ( Settings_Device( atoi( UI_Argv( 1 ) ), name, sizeof( name ) ) ) {
+			trap_Cvar_Set( "s_alInputDevice", name );
+			trap_Cvar_SetValue( "ui_setMic", atoi( UI_Argv( 1 ) ) );
+		}
+		return qtrue;
+	}
 	if ( !Q_stricmp( cmd, "ui_setInvert" ) ) {
 		trap_Cvar_SetValue( "m_pitch", ( atoi( UI_Argv( 1 ) ) ? -1 : 1 ) * fabs( trap_Cvar_VariableValue( "m_pitch" ) ) );
 		return qtrue;
@@ -1148,6 +1227,8 @@ qboolean UI_SettingsCommand( const char *cmd ) {
 				trap_Cmd_ExecuteText( EXEC_APPEND, "reset r_mode\n" );
 			} else if ( row->type == ROW_DISPLAY ) {
 				trap_Cmd_ExecuteText( EXEC_APPEND, "reset r_fullscreen; reset r_noborder\n" );
+			} else if ( row->type == ROW_DEVICE ) {
+				trap_Cmd_ExecuteText( EXEC_APPEND, "reset s_alInputDevice\nset ui_setMic 0\n" );
 			} else if ( row->type != ROW_BIND && row->type != ROW_READOUT ) {
 				trap_Cmd_ExecuteText( EXEC_APPEND, va( "reset %s\n", (char *)row->cvar ) );
 			}

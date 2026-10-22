@@ -1777,7 +1777,18 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Pink",
 	"Orange",
 	"Speedometer",
-	"Your speed under the crosshair."
+	"Your speed under the crosshair.",
+	"Voice chat volume",
+	"Loudness of other players talking.",
+	"Microphone",
+	"The device your voice is recorded from.",
+	"Microphone level",
+	"How much your voice is amplified before it is sent.",
+	"Open microphone",
+	"Sends your voice whenever you talk, without holding the push-to-talk key.",
+	"System default",
+	"MUTE",
+	"UNMUTE"
 };
 
 /*

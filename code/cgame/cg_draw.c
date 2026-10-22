@@ -1601,6 +1601,42 @@ CG_DrawTeamOverlay
 =================
 */
 
+/*
+=================
+CG_VoipFlag
+
+A player's bit in one of the engine's voice chat masks (cl_voipTalking,
+cl_voipMuted): a hex digit per four players
+=================
+*/
+qboolean CG_VoipFlag( const vmCvar_t *mask, int clientNum ) {
+	int		digit;
+	char	c;
+
+	if ( clientNum < 0 || clientNum / 4 >= (int)strlen( mask->string ) ) {
+		return qfalse;
+	}
+	c = mask->string[clientNum / 4];
+	digit = c >= 'a' ? c - 'a' + 10 : c - '0';
+	return ( digit >> ( clientNum % 4 ) ) & 1;
+}
+
+/*
+=================
+CG_DrawVoip
+
+A speaker for a player talking on voice chat, a crossed-out one for a
+muted player
+=================
+*/
+void CG_DrawVoip( float x, float y, float size, int clientNum ) {
+	if ( CG_VoipFlag( &cl_voipMuted, clientNum ) ) {
+		CG_DrawPic( x, y, size, size, cgs.media.speakerMutedShader );
+	} else if ( CG_VoipFlag( &cl_voipTalking, clientNum ) ) {
+		CG_DrawPic( x, y, size, size, cgs.media.speakerShader );
+	}
+}
+
 static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 	int x, w, h, xx;
 	int i, j, len;
@@ -1706,6 +1742,7 @@ static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 				}
 				CG_FillRect( x + TINYCHAR_WIDTH + TINYCHAR_HEIGHT - 3, y + TINYCHAR_HEIGHT - 3, 3, 3, dot );
 			}
+			CG_DrawVoip( x, y, TINYCHAR_HEIGHT, sortedTeamPlayers[i] );
 			x += TINYCHAR_WIDTH * 2;
 
 			xx = x + TINYCHAR_WIDTH;

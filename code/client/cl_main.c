@@ -47,6 +47,7 @@ cvar_t	*cl_voipSendTarget;
 cvar_t	*cl_voipGainDuringCapture;
 cvar_t	*cl_voipCaptureMult;
 cvar_t	*cl_voipShowMeter;
+cvar_t	*cl_voipVolume;
 cvar_t	*cl_voipProtocol;
 cvar_t	*cl_voip;
 #endif
@@ -402,6 +403,45 @@ void CL_VoipParseTargets(void)
 
 /*
 ===============
+CL_PublishVoip
+
+Who is talking (heard in the last 300 ms) and who is muted, for the
+scoreboard and team overlay: one hex digit per four players, player 0
+in the lowest bit of the first digit
+===============
+*/
+static void CL_PublishVoip( void )
+{
+	char talking[MAX_CLIENTS / 4 + 1], muted[MAX_CLIENTS / 4 + 1];
+	int i;
+
+	for ( i = 0; i < MAX_CLIENTS / 4; i++ ) {
+		int t = 0, m = 0, j;
+
+		for ( j = 0; j < 4; j++ ) {
+			const int c = i * 4 + j;
+
+			if ( clc.state == CA_ACTIVE && clc.voipLastHeard[c] && cls.realtime - clc.voipLastHeard[c] < 300 ) {
+				t |= 1 << j;
+			}
+			if ( clc.voipIgnore[c] ) {
+				m |= 1 << j;
+			}
+		}
+		talking[i] = "0123456789abcdef"[t];
+		muted[i] = "0123456789abcdef"[m];
+	}
+	talking[i] = muted[i] = 0;
+	if ( strcmp( talking, Cvar_VariableString( "cl_voipTalking" ) ) ) {
+		Cvar_Set( "cl_voipTalking", talking );
+	}
+	if ( strcmp( muted, Cvar_VariableString( "cl_voipMuted" ) ) ) {
+		Cvar_Set( "cl_voipMuted", muted );
+	}
+}
+
+/*
+===============
 CL_CaptureVoip
 
 Record more audio from the hardware if required and encode it into Opus
@@ -542,6 +582,7 @@ void CL_CaptureVoip(void)
 			} else {
 				clc.voipOutgoingDataSize = bytes;
 				clc.voipOutgoingDataFrames = voipFrames;
+				clc.voipLastHeard[clc.clientNum] = cls.realtime;
 
 				Com_DPrintf("VoIP: Send %d frames, %d bytes, %f power\n",
 				            voipFrames, bytes, clc.voipPower);
@@ -2996,7 +3037,8 @@ void CL_Frame ( int msec ) {
 	// (loading a map passes through the main menu)
 	if ( clc.state == CA_ACTIVE && !( Key_GetCatcher() & KEYCATCH_UI ) && RML_Active() ) {
 		static const char	*menuPages[] = { "ui/main.rml", "ui/findmatch.rml", "ui/createserver.rml",
-			"ui/findservers.rml", "ui/colors.rml", "ui-gen/settings.rml", "ui/demos.rml", "ui-gen/credits.rml", "ui/profile.rml" };
+			"ui/findservers.rml", "ui/colors.rml", "ui-gen/settings.rml", "ui/demos.rml", "ui-gen/credits.rml", "ui/profile.rml",
+			"ui-gen/players.rml" };
 		const char			*doc = Cvar_VariableString( "rml_doc" );
 		int					i;
 
@@ -3139,6 +3181,7 @@ void CL_Frame ( int msec ) {
 
 #ifdef USE_VOIP
 	CL_CaptureVoip();
+	CL_PublishVoip();
 #endif
 
 #ifdef USE_MUMBLE
@@ -3866,6 +3909,10 @@ void CL_Init( void ) {
 	cl_voipUseVAD = Cvar_Get ("cl_voipUseVAD", "0", CVAR_ARCHIVE);
 	cl_voipVADThreshold = Cvar_Get ("cl_voipVADThreshold", "0.25", CVAR_ARCHIVE);
 	cl_voipShowMeter = Cvar_Get ("cl_voipShowMeter", "1", CVAR_ARCHIVE);
+	cl_voipVolume = Cvar_Get ("cl_voipVolume", "1", CVAR_ARCHIVE);
+	Cvar_CheckRange( cl_voipVolume, 0, 2, qfalse );
+	Cvar_Get ("cl_voipTalking", "", CVAR_ROM);
+	Cvar_Get ("cl_voipMuted", "", CVAR_ROM);
 
 	cl_voip = Cvar_Get ("cl_voip", "1", CVAR_ARCHIVE);
 	Cvar_CheckRange( cl_voip, 0, 1, qtrue );
