@@ -94,7 +94,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define	CS_MAPVOTE				31		// "endTime map1 map2 map3 votes1 votes2 votes3", end-of-match map vote
 #define	CS_MAPAUTHORS			30		// "\a1\<author>\a2\<author2>" from the map's worldspawn
 
-// medals: the QC set beyond Quake III's own awards (excellent, impressive,
+// medals: the arena set beyond Quake III's own awards (excellent, impressive,
 // humiliation, defend, assist, capture), sent to the earner as "medal <id> <count>"
 typedef enum {
 	MEDAL_FIRSTBLOOD,

@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 //
-// g_medals.c -- the QC medal set
+// g_medals.c -- the arena medal set
 //
 // Quake III's own awards (excellent, impressive, humiliation, defend, assist,
 // capture) stay where they were; these are the rest. Each one counts toward

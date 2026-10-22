@@ -3039,7 +3039,7 @@ void CL_Frame ( int msec ) {
 		|| ( clc.state >= CA_CONNECTING && clc.state < CA_ACTIVE ) ) && RML_Active() ) {
 		static const char	*menuPages[] = { "ui/main.rml", "ui/findmatch.rml", "ui/createserver.rml",
 			"ui/findservers.rml", "ui/colors.rml", "ui-gen/settings.rml", "ui/demos.rml", "ui-gen/credits.rml", "ui/profile.rml",
-			"ui-gen/players.rml" };
+			"ui-gen/players.rml", "ui/prelineup.rml" };
 		const char			*doc = Cvar_VariableString( "rml_doc" );
 		int					i;
 

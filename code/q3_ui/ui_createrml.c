@@ -273,8 +273,11 @@ static void CS_Start( void ) {
 	Q_CleanStr( name );
 	CS_ShowPlayer( name, BG_ChampionForName( UI_Cvar_VariableString( "champion" ) ), "red" );
 
-	CS_Cmd( va( "rml_hide\nexec presets/%s.cfg\n", m->preset ) );
-	CS_Cmd( va( "wait ; wait ; map %s\nwait 3\n", Info_ValueForKey( info, "map" ) ) );
+	// the lineup page stays up until the loading screen takes over (the
+	// client hides menu pages while connecting), so the main menu never
+	// shows in between; the menus close once the map is in
+	CS_Cmd( va( "exec presets/%s.cfg\n", m->preset ) );
+	CS_Cmd( va( "wait ; wait ; map %s\nwait 3\nui_close\n", Info_ValueForKey( info, "map" ) ) );
 
 	if ( trap_Cvar_VariableValue( "ui_csPractice" ) ) {
 		int		opp = (int)trap_Cvar_VariableValue( "ui_prOpp" ), mates = m->teams ? (int)trap_Cvar_VariableValue( "ui_prMates" ) : 0;
@@ -357,8 +360,6 @@ void UI_CreateServer_Frame( void ) {
 	}
 	csLaunchTime = 0;
 	trap_Cmd_ExecuteText( EXEC_APPEND, csCommands );
-	// the menus go now, or the main menu comes back over the loading game
-	UI_ForceMenuOff();
 }
 
 /*

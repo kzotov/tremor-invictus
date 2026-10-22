@@ -45,7 +45,7 @@ Shell Shock's numbers, as settings
 =================
 */
 void G_RegisterChampionCvars( void ) {
-	// QC's own values: a 6.5 m zone for 8 s, shocked 8 s, up to 60 s of cooldown back
+	// the reference values: a 6.5 m zone for 8 s, shocked 8 s, up to 60 s of cooldown back
 	trap_Cvar_Register( &g_shockRadius, "g_shockRadius", "260", 0 );
 	trap_Cvar_Register( &g_shockZoneTime, "g_shockZoneTime", "8000", 0 );
 	trap_Cvar_Register( &g_shockTime, "g_shockTime", "8000", 0 );
