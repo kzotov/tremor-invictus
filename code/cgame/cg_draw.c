@@ -490,6 +490,7 @@ typedef struct {
 	char	killer[MAX_QPATH];
 	char	victim[MAX_QPATH];
 	int		weapon;			// icon, WP_NONE for none
+	qhandle_t	killerPic, victimPic;	// champion portraits, 0 for none
 	int		time;
 } killFeed_t;
 
@@ -501,12 +502,21 @@ static int			killFeedHead;
 CG_AddKillFeed
 =================
 */
-void CG_AddKillFeed( const char *killer, const char *victim, int weapon ) {
+static qhandle_t CG_KillFeedPortrait( int clientNum ) {
+	if ( clientNum < 0 || clientNum >= MAX_CLIENTS || !cgs.clientinfo[clientNum].infoValid ) {
+		return 0;
+	}
+	return CG_ChampionPortrait( BG_ChampionForModel( cgs.clientinfo[clientNum].modelName ), qtrue );
+}
+
+void CG_AddKillFeed( const char *killer, const char *victim, int weapon, int killerNum, int victimNum ) {
 	killFeed_t	*k = &killFeed[killFeedHead++ % KILLFEED_QUEUE];
 
 	Q_strncpyz( k->killer, killer, sizeof( k->killer ) );
 	Q_strncpyz( k->victim, victim, sizeof( k->victim ) );
 	k->weapon = weapon;
+	k->killerPic = killer[0] ? CG_KillFeedPortrait( killerNum ) : 0;
+	k->victimPic = CG_KillFeedPortrait( victimNum );
 	k->time = cg.time;
 }
 
@@ -531,6 +541,12 @@ static void CG_DrawKillFeed( void ) {
 		w = CG_DrawStrlen( k->victim ) * TINYCHAR_WIDTH;
 		x -= w;
 		CG_DrawStringExt( x, y + 4, k->victim, fade, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+		trap_R_SetColor( fade );
+		if ( k->victimPic ) {
+			x -= 18;
+			CG_DrawPic( x, y, 16, 16, k->victimPic );
+		}
+		trap_R_SetColor( NULL );
 		x -= 20;
 		if ( k->weapon > WP_NONE && k->weapon < WP_NUM_WEAPONS && cg_weapons[k->weapon].weaponIcon ) {
 			trap_R_SetColor( fade );
@@ -543,6 +559,12 @@ static void CG_DrawKillFeed( void ) {
 			w = CG_DrawStrlen( k->killer ) * TINYCHAR_WIDTH;
 			x -= w + 4;
 			CG_DrawStringExt( x, y + 4, k->killer, fade, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+			if ( k->killerPic ) {
+				x -= 18;
+				trap_R_SetColor( fade );
+				CG_DrawPic( x, y, 16, 16, k->killerPic );
+				trap_R_SetColor( NULL );
+			}
 		}
 		y += 18;
 		n++;
@@ -3330,6 +3352,22 @@ static void CG_DrawSpectatorAbilities( void ) {
 			CG_DrawStringExt( x + w - 26 - 7 * TINYCHAR_WIDTH, y + 18, va( "%3i %3i", cg.specHealth[i], cg.specArmor[i] ),
 				colorWhite, qfalse, qfalse, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
 		}
+		// big items held: power-ups and flags, small over the portrait's left
+		{
+			centity_t	*cent = &cg_entities[cg.specAbilityClient[i] & ( MAX_CLIENTS - 1 )];
+			int			powerups = cent->currentValid ? cent->currentState.powerups : ci->powerups;
+			int			pw, n = 0;
+
+			for ( pw = PW_QUAD ; pw < PW_NUM_POWERUPS && n < 3 ; pw++ ) {
+				gitem_t	*item;
+
+				if ( !( powerups & ( 1 << pw ) ) || !( item = BG_FindItemForPowerup( pw ) ) ) {
+					continue;
+				}
+				CG_DrawPic( x + w - 38, y + 1 + n * 8, 10, 10, trap_R_RegisterShaderNoMip( item->icon ) );
+				n++;
+			}
+		}
 		Q_strncpyz( name, ci->name, sizeof( name ) );
 		Q_CleanStr( name );
 		name[8] = 0;
@@ -4053,8 +4091,14 @@ static void CG_DrawPillars( const int *clients, const int *heights, const int *t
 		CG_DrawStringExt( sx - CG_DrawStrlen( ci->name ) * SMALLCHAR_WIDTH / 2, 404, ci->name, colorWhite,
 			qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 16 );
 		if ( labels && labels[i] ) {
-			CG_DrawStringExt( sx - CG_DrawStrlen( labels[i] ) * TINYCHAR_WIDTH / 2, 424, labels[i], colorLtGrey,
-				qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+			float		lx = sx - CG_DrawStrlen( labels[i] ) * TINYCHAR_WIDTH / 2;
+			qhandle_t	pic = ranks ? 0 : CG_ChampionPortrait( BG_ChampionForModel( ci->modelName ), qtrue );
+
+			CG_DrawStringExt( lx, 424, labels[i], colorLtGrey, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+			// the champion's portrait beside its name on the lineup
+			if ( pic ) {
+				CG_DrawPic( lx - 14, 422, 12, 12, pic );
+			}
 		}
 		// ready-up in warm-up: who has readied
 		if ( readyBits & ( 1 << clients[i] ) ) {

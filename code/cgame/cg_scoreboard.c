@@ -86,6 +86,7 @@ static void CG_DrawClientScore( int y, score_t *score, float *color, float fade,
 	vec3_t	headAngles;
 	clientInfo_t	*ci;
 	int iconx, headx;
+	qhandle_t	portrait;
 
 	if ( score->client < 0 || score->client >= cgs.maxclients ) {
 		Com_Printf( "Bad score->client: %i\n", score->client );
@@ -149,14 +150,21 @@ static void CG_DrawClientScore( int y, score_t *score, float *color, float fade,
 		}
 	}
 
-	// draw the face
+	// the champion's portrait, or the model's face when there is none
+	portrait = CG_ChampionPortrait( BG_ChampionForModel( ci->modelName ), !largeFormat );
 	VectorClear( headAngles );
 	headAngles[YAW] = 180;
 	if( largeFormat ) {
-		CG_DrawHead( headx, y - ( ICON_SIZE - BIGCHAR_HEIGHT ) / 2, ICON_SIZE, ICON_SIZE, 
-			score->client, headAngles );
+		if ( portrait ) {
+			CG_DrawPic( headx, y - ( ICON_SIZE - BIGCHAR_HEIGHT ) / 2, ICON_SIZE, ICON_SIZE, portrait );
+		} else {
+			CG_DrawHead( headx, y - ( ICON_SIZE - BIGCHAR_HEIGHT ) / 2, ICON_SIZE, ICON_SIZE,
+				score->client, headAngles );
+		}
 	}
-	else {
+	else if ( portrait ) {
+		CG_DrawPic( headx, y, 16, 16, portrait );
+	} else {
 		CG_DrawHead( headx, y, 16, 16, score->client, headAngles );
 	}
 	// voice chat: talking or muted, at the face's corner

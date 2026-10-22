@@ -1883,7 +1883,7 @@ void CG_AddOwnMissiles( void );
 // cg_demo.c
 //
 void CG_DemoFrame( void );
-void CG_AddKillFeed( const char *killer, const char *victim, int weapon );
+void CG_AddKillFeed( const char *killer, const char *victim, int weapon, int killerNum, int victimNum );
 void CG_AddChat( const char *text );
 void CG_DrawDuelBoard( void );
 void CG_LayoutFrameEnd( void );

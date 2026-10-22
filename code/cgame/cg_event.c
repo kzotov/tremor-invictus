@@ -253,7 +253,7 @@ static void CG_Obituary( entityState_t *ent ) {
 	if (message) {
 		CG_Printf( "%s %s.\n", targetName, message);
 #ifndef MISSIONPACK
-		CG_AddKillFeed( "", targetName, WP_NONE );
+		CG_AddKillFeed( "", targetName, WP_NONE, -1, target );
 #endif
 		return;
 	}
@@ -414,7 +414,7 @@ static void CG_Obituary( entityState_t *ent ) {
 			CG_Printf( "%s %s %s%s\n", 
 				targetName, message, attackerName, message2);
 #ifndef MISSIONPACK
-			CG_AddKillFeed( attackerName, targetName, CG_WeaponForMod( mod ) );
+			CG_AddKillFeed( attackerName, targetName, CG_WeaponForMod( mod ), attacker, target );
 #endif
 			return;
 		}
