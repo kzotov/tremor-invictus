@@ -109,6 +109,7 @@ vmCvar_t	cg_drawCrosshair;
 vmCvar_t	cg_drawCrosshairNames;
 vmCvar_t	cg_drawRewards;
 vmCvar_t	cg_killFeed;
+vmCvar_t	cg_drawItemPickups;
 vmCvar_t	cg_fragBanner;
 vmCvar_t	cg_medals;
 vmCvar_t	cg_eventBanner;
@@ -295,6 +296,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_drawCrosshairNames, "cg_drawCrosshairNames", "1", CVAR_ARCHIVE },
 	{ &cg_drawRewards, "cg_drawRewards", "1", CVAR_ARCHIVE },
 	{ &cg_killFeed, "cg_killFeed", "1", CVAR_ARCHIVE },
+	{ &cg_drawItemPickups, "cg_drawItemPickups", "1", CVAR_ARCHIVE },	// 0 off, 1 the pickup feed
 	{ &cg_fragBanner, "cg_fragBanner", "1", CVAR_ARCHIVE },
 	{ &cg_medals, "cg_medals", "1", CVAR_ARCHIVE },			// 0 hides the medal row; medals still count
 	{ &cg_eventBanner, "cg_eventBanner", "1", CVAR_ARCHIVE },

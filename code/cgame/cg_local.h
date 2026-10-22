@@ -1201,6 +1201,7 @@ extern	vmCvar_t		cg_drawCrosshair;
 extern	vmCvar_t		cg_drawCrosshairNames;
 extern	vmCvar_t		cg_drawRewards;
 extern	vmCvar_t		cg_killFeed;
+extern	vmCvar_t		cg_drawItemPickups;
 extern	vmCvar_t		cg_hudLayout;
 extern	vmCvar_t		cg_fragBanner;
 extern	vmCvar_t		cg_medals;
