@@ -126,7 +126,7 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_hookPullStart",		"400",	&bg_pmoveSettings.hookPullStart },
 	{ {0}, "pm_hookPullAccel",		"400",	&bg_pmoveSettings.hookPullAccel },
 	{ {0}, "pm_hookPullMax",		"700",	&bg_pmoveSettings.hookPullMax },
-	{ {0}, "pm_hookDeadZone",		"68",	&bg_pmoveSettings.hookDeadZone },
+	{ {0}, "pm_hookDeadZone",		"40",	&bg_pmoveSettings.hookDeadZone },
 	{ {0}, "pm_hookSwingMax",		"1000",	&bg_pmoveSettings.hookSwingMax },
 
 	{ {0}, "pm_rampJumpScale",		"1",	&bg_pmoveSettings.rampJumpScale },
@@ -2773,6 +2773,7 @@ static void PM_EndAbility( void ) {
 #define HOOK_BLOCKED_MSEC		200
 #define HOOK_BLOCKED_RANGE		128
 #define HOOK_BLOCKED_SPEED		50
+#define HOOK_MAX_ROPE			3000	// let go beyond this much rope
 
 /*
 ================
@@ -2902,7 +2903,7 @@ static void PM_Ability( void ) {
 			VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
 			dist = VectorNormalize( dir );
 			radial = DotProduct( pm->ps->velocity, dir );
-			if ( dist <= bg_pmoveSettings.hookDeadZone
+			if ( dist <= bg_pmoveSettings.hookDeadZone || dist > HOOK_MAX_ROPE
 				|| ( time > HOOK_BLOCKED_MSEC && dist < HOOK_BLOCKED_RANGE && radial < HOOK_BLOCKED_SPEED ) ) {
 				arrived = qtrue;
 			}
@@ -3173,14 +3174,14 @@ static void PM_HookMove( void ) {
 	} else {
 		pm->ps->stats[STAT_MOVE_STATE] = 0;
 		if ( dist > bg_pmoveSettings.hookDeadZone ) {
-			pull = bg_pmoveSettings.hookPullStart
-				+ bg_pmoveSettings.hookPullAccel * pm->ps->stats[STAT_ABILITY_TIME] * 0.001f;
+			// straight at the hook, at least the start speed, gaining each frame
+			speed = VectorLength( pm->ps->velocity );
+			pull = ( speed > bg_pmoveSettings.hookPullStart ? speed : bg_pmoveSettings.hookPullStart )
+				+ bg_pmoveSettings.hookPullAccel * pml.frametime;
 			if ( pull > bg_pmoveSettings.hookPullMax ) {
 				pull = bg_pmoveSettings.hookPullMax;
 			}
-			if ( radial < pull ) {
-				VectorMA( pm->ps->velocity, pull - radial, dir, pm->ps->velocity );
-			}
+			VectorScale( dir, pull, pm->ps->velocity );
 		}
 	}
 

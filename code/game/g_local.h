@@ -186,6 +186,8 @@ struct gentity_s {
 	// weapon numbers carried by a projectile (wpTuned set)
 	qboolean	wpTuned;
 	float		splashMin;		// splash damage at the edge
+	float		splashFull;		// splash is full strength out to this distance
+	qboolean	splashSparesOwner;	// the splash never hits whoever fired it
 	float		wpKnock;		// knockback on others
 	float		wpKnockSelf;	// knockback on the owner
 };
@@ -721,6 +723,7 @@ void G_WeaponTuneMissile( gentity_t *m, int weapon );
 void G_WeaponThink( gentity_t *ent );
 void G_SchedulePowerup( gentity_t *ent, int seconds );
 void G_SplashParams( float minDamage, float knock, float knockSelf );
+void G_SplashShape( float full, qboolean sparesOwner );
 
 //
 void LogExit( const char *string );

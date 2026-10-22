@@ -103,6 +103,7 @@ void G_ExplodeMissile( gentity_t *ent ) {
 		if ( ent->wpTuned ) {
 			G_SplashParams( ent->splashMin, ent->wpKnock, ent->wpKnockSelf );
 		}
+		G_SplashShape( ent->splashFull, ent->splashSparesOwner );
 		if( G_RadiusDamage( ent->r.currentOrigin, ent->parent, ent->splashDamage, ent->splashRadius, ent
 			, ent->splashMethodOfDeath ) ) {
 			G_LogAccuracyHit( g_entities[ent->r.ownerNum].client, ent->s.weapon );
@@ -462,6 +463,7 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace ) {
 		if ( ent->wpTuned ) {
 			G_SplashParams( ent->splashMin, ent->wpKnock, ent->wpKnockSelf );
 		}
+		G_SplashShape( ent->splashFull, ent->splashSparesOwner );
 		if( G_RadiusDamage( trace->endpos, ent->parent, ent->splashDamage, ent->splashRadius, 
 			other, ent->splashMethodOfDeath ) ) {
 			if( !hitClient ) {

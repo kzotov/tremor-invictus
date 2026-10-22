@@ -882,6 +882,8 @@ dflags		these flags are used to control how T_Damage works
 static float	nextKnockback = -1;		// set by G_NextKnockback for the next G_Damage
 static float	splashMin;				// set by G_SplashParams for the next G_RadiusDamage
 static float	splashKnock = -1, splashKnockSelf = -1;
+static float	splashFull;				// set by G_SplashShape for the next G_RadiusDamage
+static qboolean	splashSparesOwner;
 
 /*
 ============
@@ -934,6 +936,19 @@ void G_SplashParams( float minDamage, float knock, float knockSelf ) {
 	splashMin = minDamage;
 	splashKnock = knock;
 	splashKnockSelf = knockSelf;
+}
+
+/*
+============
+G_SplashShape
+
+For the next radius damage: full strength out to "full" units before the
+fall to the edge value, and whether the one who fired it is spared
+============
+*/
+void G_SplashShape( float full, qboolean sparesOwner ) {
+	splashFull = full;
+	splashSparesOwner = sparesOwner;
 }
 
 void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
@@ -1019,6 +1034,10 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		knockback = nextKnockback;
 		nextKnockback = -1;
 	}
+	// the attacker's damage multiplier pushes too, at most double (Quad)
+	if ( attacker->client && attacker->client->ps.powerups[PW_QUAD] ) {
+		knockback *= g_quadfactor.value < 2 ? g_quadfactor.value : 2;
+	}
 	if ( knockback > 132 ) {		// the cap is one rocket on yourself
 		knockback = 132;
 	}
@@ -1071,11 +1090,8 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			int		t;
 
 			t = knockback * 2;
-			if ( t < 50 ) {
-				t = 50;
-			}
-			if ( t > 200 ) {
-				t = 200;
+			if ( t > 132 ) {
+				t = 132;
 			}
 			targ->client->ps.pm_time = t;
 			targ->client->ps.pm_flags |= PMF_TIME_KNOCKBACK;
@@ -1383,97 +1399,28 @@ explosions and melee attacks.
 ============
 */
 qboolean CanDamage (gentity_t *targ, vec3_t origin) {
-	vec3_t	dest;
+	static const float	corners[5][2] = { { 0, 0 }, { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } };
+	vec3_t	dest, midpoint, half;
 	trace_t	tr;
-	vec3_t	midpoint;
-	vec3_t	offsetmins = {-15, -15, -15};
-	vec3_t	offsetmaxs = {15, 15, 15};
+	int		i;
 
 	// use the midpoint of the bounds instead of the origin, because
 	// bmodels may have their origin is 0,0,0
 	VectorAdd (targ->r.absmin, targ->r.absmax, midpoint);
 	VectorScale (midpoint, 0.5, midpoint);
+	VectorSubtract( targ->r.absmax, midpoint, half );
 
-	VectorCopy(midpoint, dest);
-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
-
-	if (tr.fraction == 1.0 || tr.entityNum == targ->s.number)
-		return qtrue;
-
-	// this should probably check in the plane of projection, 
-	// rather than in world coordinate
-	VectorCopy(midpoint, dest);
-	dest[0] += offsetmaxs[0];
-	dest[1] += offsetmaxs[1];
-	dest[2] += offsetmaxs[2];
-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
-
-	if (tr.fraction == 1.0)
-		return qtrue;
-
-	VectorCopy(midpoint, dest);
-	dest[0] += offsetmaxs[0];
-	dest[1] += offsetmins[1];
-	dest[2] += offsetmaxs[2];
-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
-
-	if (tr.fraction == 1.0)
-		return qtrue;
-
-	VectorCopy(midpoint, dest);
-	dest[0] += offsetmins[0];
-	dest[1] += offsetmaxs[1];
-	dest[2] += offsetmaxs[2];
-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
-
-	if (tr.fraction == 1.0)
-		return qtrue;
-
-	VectorCopy(midpoint, dest);
-	dest[0] += offsetmins[0];
-	dest[1] += offsetmins[1];
-	dest[2] += offsetmaxs[2];
-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
-
-	if (tr.fraction == 1.0)
-		return qtrue;
-
-	VectorCopy(midpoint, dest);
-	dest[0] += offsetmaxs[0];
-	dest[1] += offsetmaxs[1];
-	dest[2] += offsetmins[2];
-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
-
-	if (tr.fraction == 1.0)
-		return qtrue;
-
-	VectorCopy(midpoint, dest);
-	dest[0] += offsetmaxs[0];
-	dest[1] += offsetmins[1];
-	dest[2] += offsetmins[2];
-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
-
-	if (tr.fraction == 1.0)
-		return qtrue;
-
-	VectorCopy(midpoint, dest);
-	dest[0] += offsetmins[0];
-	dest[1] += offsetmaxs[1];
-	dest[2] += offsetmins[2];
-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
-
-	if (tr.fraction == 1.0)
-		return qtrue;
-
-	VectorCopy(midpoint, dest);
-	dest[0] += offsetmins[0];
-	dest[1] += offsetmins[1];
-	dest[2] += offsetmins[2];
-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
-
-	if (tr.fraction == 1.0)
-		return qtrue;
-
+	// shielded only when the centre and all four corners at centre height
+	// are out of sight
+	for ( i = 0 ; i < 5 ; i++ ) {
+		VectorCopy( midpoint, dest );
+		dest[0] += corners[i][0] * half[0];
+		dest[1] += corners[i][1] * half[1];
+		trap_Trace( &tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID );
+		if ( tr.fraction == 1.0 || tr.entityNum == targ->s.number ) {
+			return qtrue;
+		}
+	}
 	return qfalse;
 }
 
@@ -1494,11 +1441,14 @@ qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, floa
 	vec3_t		dir;
 	int			i, e;
 	qboolean	hitClient = qfalse;
-	float		minDamage = splashMin, knock = splashKnock, knockSelf = splashKnockSelf;
+	float		minDamage = splashMin, knock = splashKnock, knockSelf = splashKnockSelf, full = splashFull;
+	qboolean	sparesOwner = splashSparesOwner;
 
 	// the splash parameters apply to this call only
 	splashMin = 0;
 	splashKnock = splashKnockSelf = -1;
+	splashFull = 0;
+	splashSparesOwner = qfalse;
 	if ( minDamage > damage ) {
 		minDamage = damage;
 	}
@@ -1521,6 +1471,9 @@ qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, floa
 			continue;
 		if (!ent->takedamage)
 			continue;
+		if ( sparesOwner && ent == attacker ) {
+			continue;
+		}
 
 		// find the distance from the edge of the bounding box
 		for ( i = 0 ; i < 3 ; i++ ) {
@@ -1538,8 +1491,12 @@ qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, floa
 			continue;
 		}
 
-		// linear from the full value at the centre to the minimum at the edge
-		points = minDamage + ( damage - minDamage ) * ( 1.0 - dist / radius );
+		// full out to "full", then linear to the minimum at the edge
+		if ( dist <= full ) {
+			points = damage;
+		} else {
+			points = minDamage + ( damage - minDamage ) * ( 1.0 - ( dist - full ) / ( radius - full ) );
+		}
 
 		if( CanDamage (ent, origin) ) {
 			if( LogAccuracyHit( ent, attacker ) ) {

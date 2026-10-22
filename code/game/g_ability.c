@@ -279,6 +279,7 @@ static void G_OrbExplode( gentity_t *orb ) {
 	}
 	orb->splashRadius = g_orbSplashRadius.integer;
 	orb->splashMethodOfDeath = MOD_ORB;
+	orb->splashSparesOwner = qtrue;
 	if ( owner && owner->client && owner->client->abilityEnt == orb ) {
 		owner->client->abilityEnt = NULL;
 		G_AbilityDone( owner );
@@ -464,7 +465,9 @@ static void G_ThrowGrenade( gentity_t *ent ) {
 	gren->splashDamage = g_swarmDamage.integer;
 	gren->splashRadius = g_swarmRadius.integer;
 	gren->wpTuned = qtrue;
-	gren->splashMin = 10;
+	gren->splashMin = g_swarmDamage.integer * 0.2f;		// full to 12 u, then down to 20%
+	gren->splashFull = 12;
+	gren->splashSparesOwner = qtrue;
 	gren->wpKnock = g_swarmKnock.value;
 	gren->wpKnockSelf = g_swarmKnockSelf.value;
 	gren->abilityImpact = G_GrenadeImpact;
@@ -488,6 +491,7 @@ static void G_FireballBurst( gentity_t *ball, vec3_t origin, int damage, int rad
 	gentity_t	*other;
 	int			i, num;
 
+	G_SplashParams( damage * 0.4f, -1, -1 );		// 100% at the centre to 40% at the edge
 	G_RadiusDamage( origin, ball->parent, damage, radius, NULL, MOD_FIREBALL );
 
 	// set everything in the blast burning

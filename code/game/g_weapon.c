@@ -68,6 +68,14 @@ void G_WeaponTuneMissile( gentity_t *m, int weapon ) {
 	m->splashDamage = BG_WeaponParam( weapon, WPP_SPLASH );
 	m->splashMin = BG_WeaponParam( weapon, WPP_SPLASHMIN );
 	m->splashRadius = BG_WeaponParam( weapon, WPP_RADIUS );
+	// full strength near the blast: Rocket 8 u, Tri-bolt 12 u; nails are flat
+	switch ( weapon ) {
+	case WP_ROCKET_LAUNCHER:	m->splashFull = 8; break;
+	case WP_TRIBOLT:			m->splashFull = 12; break;
+	case WP_NAILGUN:
+	case WP_SUPER_NAILGUN:		m->splashFull = m->splashRadius; break;
+	default:					break;
+	}
 	m->wpKnock = BG_WeaponParam( weapon, WPP_KNOCK );
 	m->wpKnockSelf = BG_WeaponParam( weapon, WPP_KNOCKSELF );
 	if ( BG_WeaponParam( weapon, WPP_SPEED ) > 0 ) {
@@ -415,6 +423,8 @@ SHOTGUN
 // client predicts same spreads
 #define	DEFAULT_SHOTGUN_DAMAGE	10
 
+static qboolean	shotgunBonusGiven;		// this shot's close-range bonus has landed
+
 qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent, int weapon ) {
 	trace_t		tr;
 	int			damage, i, passent;
@@ -443,9 +453,9 @@ qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent, int weapon ) {
 			int		pellets = BG_WeaponParam( weapon, WPP_PELLETS );
 			float	bonus = 0;
 
-			// each pellet loses a point every g_shotgunFalloffStep units; the
-			// close-range bonus is shared between the pellets and fades out
-			// from its range to g_*CloseFade
+			// beyond g_shotgunFalloffStep each pellet loses a point per further
+			// step (or part of one); the close-range bonus, fading out from its
+			// range to g_*CloseFade, goes once a shot to the first pellet to hit
 			if ( g_shotgunFalloffStep.value > 0 ) {
 				scale = 0;		// the step decides, not a factor
 			}
@@ -461,15 +471,25 @@ qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent, int weapon ) {
 				bonus = g_shotgunCloseBonus.value * ( g_shotgunCloseFade.value - dist ) / ( g_shotgunCloseFade.value - g_shotgunCloseRange.value );
 			}
 			if ( scale == 0 ) {
-				damage = BG_WeaponParam( weapon, WPP_DAMAGE ) - (int)( dist / g_shotgunFalloffStep.value );
+				damage = BG_WeaponParam( weapon, WPP_DAMAGE );
+				if ( dist > g_shotgunFalloffStep.value ) {
+					float	over = dist - g_shotgunFalloffStep.value;
+					int		steps = (int)( over / g_shotgunFalloffStep.value );
+
+					if ( steps * g_shotgunFalloffStep.value < over ) {
+						steps++;		// a part step counts
+					}
+					damage -= steps;
+				}
 				if ( damage < 1 ) {
 					damage = 1;
 				}
 			} else {
 				damage = BG_WeaponParam( weapon, WPP_DAMAGE );
 			}
-			if ( pellets > 0 ) {
-				damage += bonus / pellets;
+			if ( bonus > 0 && !shotgunBonusGiven ) {
+				shotgunBonusGiven = qtrue;
+				damage += bonus;
 			}
 			damage *= s_quadFactor;
 #ifdef MISSIONPACK
@@ -515,6 +535,7 @@ void ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, gentity_t *ent, in
 	CrossProduct( localForward, localRight, localUp );
 
 	// the pellet ring, the same on the clients
+	shotgunBonusGiven = qfalse;
 	count = BG_WeaponParam( weapon, WPP_PELLETS );
 	range = BG_WeaponParam( weapon, WPP_RANGE );
 	for ( i = 0 ; i < count ; i++ ) {
@@ -775,11 +796,17 @@ void weapon_railgun_fire (gentity_t *ent) {
 				if( LogAccuracyHit( traceEnt, ent ) ) {
 					hits++;
 				}
+				G_WeaponKnock( WP_RAILGUN, traceEnt, ent );
 				G_Damage (traceEnt, ent, ent, forward, trace.endpos, damage, 0, MOD_RAILGUN);
 #endif
 		}
 		if ( trace.contents & CONTENTS_SOLID ) {
 			break;		// we hit something solid enough to stop the beam
+		}
+		// a door, or an enemy's Barrier (which took the hit), stops it too
+		if ( traceEnt->s.eType == ET_MOVER || ( traceEnt->client && traceEnt->client->barrierMode == 1
+			&& G_AbilityActive( traceEnt, ACTIVE_BARRIER ) && !OnSameTeam( traceEnt, ent ) ) ) {
+			break;
 		}
 		// unlink this entity, so the next trace will go past it
 		trap_UnlinkEntity( traceEnt );
