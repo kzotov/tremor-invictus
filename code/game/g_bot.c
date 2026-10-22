@@ -1036,6 +1036,8 @@ void G_InitBots( qboolean restart ) {
 
 	trap_Cvar_Register( &bot_minplayers, "bot_minplayers", "0", CVAR_SERVERINFO );
 	trap_Cvar_Register( NULL, "bot_abilities", "1", 0 );		// bots use their champion ability
+	trap_Cvar_Register( NULL, "bot_hook", "1", 0 );			// bots hook up to goals and away from danger
+	trap_Cvar_Register( NULL, "bot_slide", "1", 0 );			// sliders crouch-slide on long straight runs
 
 	if( g_gametype.integer == GT_SINGLE_PLAYER ) {
 		trap_GetServerinfo( serverinfo, sizeof(serverinfo) );

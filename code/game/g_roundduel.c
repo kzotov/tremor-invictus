@@ -211,7 +211,20 @@ static qboolean G_RDPick( int side, int champion ) {
 }
 
 static void G_RDPickRandom( int side ) {
-	int		tries;
+	// bots draft by a fixed preference, then at random
+	static const char	*botPreference[] = { "ranger", "galena", "scalebearer", "visor", "doomslayer",
+		"anarki", "clutch", "slash", "nyx", "eisen", "bj", "keel", "athena", "sorlag", "strogg", "deathknight" };
+	int		tries, i;
+
+	if ( g_entities[rd.player[side]].r.svFlags & SVF_BOT ) {
+		for ( i = 0 ; i < ARRAY_LEN( botPreference ) ; i++ ) {
+			int		champion = BG_ChampionForName( botPreference[i] );
+
+			if ( champion >= 0 && !Q_stricmp( BG_Champion( champion )->name, botPreference[i] ) && G_RDPick( side, champion ) ) {
+				return;
+			}
+		}
+	}
 
 	for ( tries = 0 ; tries < 200 ; tries++ ) {
 		if ( G_RDPick( side, rand() % bg_numChampions ) ) {

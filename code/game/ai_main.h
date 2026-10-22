@@ -272,6 +272,10 @@ typedef struct bot_state_s
 	bot_waypoint_t *curpatrolpoint;					//current patrol point the bot is going for
 	int patrolflags;								//patrol flags
 	float abilitycheck_time;						//next time to think about the champion ability
+	float abilitystart_time;						//when the bot started a lasting ability (the drone)
+	vec3_t abilityaim;								//where to look while the ability fires (the hook)
+	float abilityaim_time;							//look there until this time
+	int sliding;									//holding crouch for a slide
 } bot_state_t;
 
 //resets the whole bot state

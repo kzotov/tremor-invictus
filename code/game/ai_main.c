@@ -913,6 +913,48 @@ Every 250 ms: does the ability's rule hold for this champion, and does a
 roll scaled by skill pass? The press lasts one command.
 ==============
 */
+/*
+==============
+BotHookTarget
+
+Where the hook should bite: away from a seen enemy and upward when hurt
+(escape), else at the current goal when it is well above, within 1500 u
+and in a straight line. Only solid world, never sky.
+==============
+*/
+static qboolean BotHookTarget(bot_state_t *bs, qboolean seen, int health, vec3_t target) {
+	bot_goal_t goal;
+	trace_t tr;
+	vec3_t dir, end, angles;
+
+	if (!trap_Cvar_VariableIntegerValue("bot_hook")) return qfalse;
+	if (seen && health < 40) {
+		VectorSubtract(bs->origin, g_entities[bs->enemy].r.currentOrigin, dir);
+		vectoangles(dir, angles);
+		angles[PITCH] = -35;
+		AngleVectors(angles, dir, NULL, NULL);
+		VectorMA(bs->eye, 1500, dir, end);
+		trap_Trace(&tr, bs->eye, NULL, NULL, end, bs->entitynum, MASK_SOLID);
+		if (tr.fraction < 1 && !(tr.surfaceFlags & SURF_SKY) && tr.fraction * 1500 > 200) {
+			VectorCopy(tr.endpos, target);
+			return qtrue;
+		}
+		return qfalse;
+	}
+	if (seen || !trap_BotGetTopGoal(bs->gs, &goal)) return qfalse;
+	if (goal.origin[2] - bs->origin[2] < 96 || Distance(goal.origin, bs->eye) > 1500) return qfalse;
+	// aim a little under the goal so the claw bites its floor or ledge
+	VectorCopy(goal.origin, end);
+	end[2] -= 24;
+	VectorSubtract(end, bs->eye, dir);
+	VectorNormalize(dir);
+	VectorMA(end, 32, dir, end);
+	trap_Trace(&tr, bs->eye, NULL, NULL, end, bs->entitynum, MASK_SOLID);
+	if (tr.fraction >= 1 || (tr.surfaceFlags & SURF_SKY) || Distance(tr.endpos, goal.origin) > 96) return qfalse;
+	VectorCopy(tr.endpos, target);
+	return qtrue;
+}
+
 static qboolean BotWantsAbility(bot_state_t *bs) {
 	playerState_t *ps = &g_entities[bs->client].client->ps;
 	int active = BG_Champion(ps->stats[STAT_CHAMPION])->active;
@@ -933,8 +975,10 @@ static qboolean BotWantsAbility(bot_state_t *bs) {
 		seen = BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360, bs->enemy) > 0;
 	}
 
-	// a second press: recall to the rift anchor when hurt
+	// a second press: recall to the rift anchor when hurt; back from the
+	// drone after 4 s or as soon as an enemy shows
 	if (state == ABILITY_ACTIVE) {
+		if (active == ACTIVE_DRONE) return seen || FloatTime() > bs->abilitystart_time + 4;
 		return active == ACTIVE_RIFTANCHOR && health < 40;
 	}
 	if (state != ABILITY_IDLE || BG_AbilityCharges(ps) <= 0) return qfalse;
@@ -962,10 +1006,71 @@ static qboolean BotWantsAbility(bot_state_t *bs) {
 	case ACTIVE_DOWNPOUR:		want = seen && dist < 1000; break;
 	case ACTIVE_HOUND:			want = bs->enemy >= 0 && dist < 1500; break;
 	case ACTIVE_RIFTANCHOR:		want = seen && health > 70; break;
-	default:					want = qfalse; break;	// hook and drone need route planning
+	case ACTIVE_DRONE:			want = bs->enemy < 0 && health > 60 && random() < 0.03; break;
+	case ACTIVE_HOOK:
+		if (BotHookTarget(bs, seen, health, bs->abilityaim)) {
+			want = qtrue;
+		}
+		break;
+	default:					want = qfalse; break;
 	}
 	if (!want) return qfalse;
-	return random() < 0.3 + 0.1 * bs->settings.skill;
+	if (random() >= 0.3 + 0.1 * bs->settings.skill) return qfalse;
+	if (active == ACTIVE_HOOK) {
+		// keep looking at the bite point through the press delay
+		bs->abilityaim_time = FloatTime() + 0.3;
+	}
+	if (active == ACTIVE_DRONE) bs->abilitystart_time = FloatTime();
+	return qtrue;
+}
+
+/*
+==============
+BotAbilityMovement
+
+While the hook fires, the command looks at its bite point. Sliders hold
+crouch on a long straight run once the slide is charged (1 s) and the
+bot is faster than 400 u/s, and jump out as the charge runs low.
+==============
+*/
+static void BotAbilityMovement(bot_state_t *bs, usercmd_t *ucmd) {
+	playerState_t *ps = &g_entities[bs->client].client->ps;
+	vec3_t dir, angles, flat, end;
+	trace_t tr;
+	float speed;
+	int j;
+
+	if (FloatTime() < bs->abilityaim_time) {
+		VectorSubtract(bs->abilityaim, bs->eye, dir);
+		vectoangles(dir, angles);
+		for (j = 0; j < 3; j++) {
+			ucmd->angles[j] = ANGLE2SHORT(angles[j]) - bs->cur_ps.delta_angles[j];
+		}
+	}
+
+	if (!trap_Cvar_VariableIntegerValue("bot_slide") || BG_Champion(ps->stats[STAT_CHAMPION])->moveStyle != MOVE_SLIDE) {
+		bs->sliding = qfalse;
+		return;
+	}
+	VectorSet(flat, ps->velocity[0], ps->velocity[1], 0);
+	speed = VectorNormalize(flat);
+	if (bs->sliding) {
+		if (BG_SlideCharge(ps) < 200 || speed < 250) {
+			// out of the slide with a jump to keep the speed
+			bs->sliding = qfalse;
+			ucmd->upmove = 127;
+		} else {
+			ucmd->upmove = -127;
+		}
+		return;
+	}
+	if (ps->groundEntityNum == ENTITYNUM_NONE || BG_SlideCharge(ps) < 1000 || speed < 400) return;
+	// the way ahead clear and not climbing for 300 u
+	VectorMA(ps->origin, 300, flat, end);
+	trap_Trace(&tr, ps->origin, g_entities[bs->client].r.mins, g_entities[bs->client].r.maxs, end, bs->entitynum, MASK_PLAYERSOLID);
+	if (tr.fraction < 1) return;
+	bs->sliding = qtrue;
+	ucmd->upmove = -127;
 }
 
 /*
@@ -993,6 +1098,8 @@ void BotUpdateInput(bot_state_t *bs, int time, int elapsed_time) {
 	BotInputToUserCommand(&bi, &bs->lastucmd, bs->cur_ps.delta_angles, time);
 	//the champion's ability
 	if (BotWantsAbility(bs)) bs->lastucmd.buttons |= BUTTON_ABILITY;
+	//look where the ability aims, and slide
+	BotAbilityMovement(bs, &bs->lastucmd);
 	//subtract the delta angles
 	for (j = 0; j < 3; j++) {
 		bs->viewangles[j] = AngleMod(bs->viewangles[j] - SHORT2ANGLE(bs->cur_ps.delta_angles[j]));
