@@ -714,7 +714,7 @@ UI_DrawPlayer
 #define STAGE_HALF_HEIGHT	64		// units from the box centre to its top or bottom
 #define STAGE_FEET			-26		// the pillar's top, below the box centre
 #define STAGE_PILLAR_RADIUS	22
-#define STAGE_PITCH			10		// degrees the stage camera looks down
+#define STAGE_FOV_Y			44		// the stage camera's vertical view: wide enough that the pillar's faces recede
 
 /*
 ===============
@@ -876,6 +876,9 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 	// on the stage the camera is fitted to the height: the model and the
 	// top of its pillar fill the box the same way for every champion
 	if ( pi->onPillar ) {
+		// a wider lens from closer: the pillar keeps its perspective
+		refdef.fov_x = 2 * RAD2DEG( atan2( tan( DEG2RAD( STAGE_FOV_Y ) * 0.5 ) * refdef.width, refdef.height ) );
+		refdef.fov_y = STAGE_FOV_Y;
 		origin[0] = STAGE_HALF_HEIGHT / tan( DEG2RAD( refdef.fov_y ) * 0.5 );
 		origin[2] = STAGE_FEET - mins[2];
 	}
@@ -1035,16 +1038,6 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 		if ( pi->flash > 0 ) {
 			VectorSet( light, origin[0] - 40, 0, STAGE_FEET + 20 );
 			trap_R_AddLightToScene( light, 300 * pi->flash, 1.0f, 0.8f, 0.7f );
-		}
-		// look down a little from above, still at the box's centre, so the
-		// pillar's sides recede and its top shows like the floor it is
-		{
-			float	pitch = DEG2RAD( STAGE_PITCH );
-
-			VectorSet( refdef.viewaxis[0], cos( pitch ), 0, -sin( pitch ) );
-			VectorSet( refdef.viewaxis[1], 0, 1, 0 );
-			VectorSet( refdef.viewaxis[2], sin( pitch ), 0, cos( pitch ) );
-			VectorSet( refdef.vieworg, 0, 0, origin[0] * tan( pitch ) );
 		}
 		trap_R_RenderScene( &refdef );
 		return;
