@@ -50,9 +50,11 @@ weapon_t UI_StartWeapon( const char *code ) {
 
 static void UI_Stage_Load( playerInfo_t *pi, int champion, weapon_t weapon ) {
 	vec3_t	angles;
+	char	model[MAX_QPATH];
 
 	memset( pi, 0, sizeof( *pi ) );
-	UI_PlayerInfo_SetModel( pi, bg_championList[champion].model );
+	BG_ChampionModel( champion, model, sizeof( model ) );
+	UI_PlayerInfo_SetModel( pi, model );
 	VectorClear( angles );
 	angles[YAW] = 180;
 	UI_PlayerInfo_SetInfo( pi, LEGS_IDLE, TORSO_STAND, angles, vec3_origin, weapon, qfalse );

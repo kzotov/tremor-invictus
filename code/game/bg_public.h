@@ -1218,6 +1218,8 @@ extern	const classInfo_t	bg_classInfo[CLASS_NUM_CLASSES];
 #define	DEFAULT_CHAMPION	"ranger"
 
 int					BG_ChampionForName( const char *name );
+void				BG_ChampionModel( int champion, char *out, int size );
+#define	MAX_CHAMPIONS		32
 int					BG_ChampionForModel( const char *model );
 const champion_t	*BG_Champion( int index );
 qboolean			BG_MovementAbility( int active );

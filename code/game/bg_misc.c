@@ -1861,7 +1861,7 @@ or -1 if none does
 ==============
 */
 int BG_ChampionForModel( const char *model ) {
-	char	name[MAX_QPATH];
+	char	name[MAX_QPATH], own[MAX_QPATH];
 	char	*slash;
 	int		i;
 
@@ -1871,11 +1871,93 @@ int BG_ChampionForModel( const char *model ) {
 		*slash = 0;
 	}
 	for ( i = 0 ; i < bg_numChampions ; i++ ) {
-		if ( !Q_stricmp( name, bg_championList[i].model ) ) {
+		// the model in use (a local test model may stand in), then the table's
+		BG_ChampionModel( i, own, sizeof( own ) );
+		slash = strchr( own, '/' );
+		if ( slash ) {
+			*slash = 0;
+		}
+		if ( !Q_stricmp( name, own ) ) {
+			return i;
+		}
+	}
+	for ( i = 0 ; i < bg_numChampions ; i++ ) {
+		Q_strncpyz( own, bg_championList[i].model, sizeof( own ) );
+		slash = strchr( own, '/' );
+		if ( slash ) {
+			*slash = 0;
+		}
+		if ( !Q_stricmp( name, own ) ) {
 			return i;
 		}
 	}
 	return -1;
+}
+
+int		trap_FS_FOpenFile( const char *qpath, fileHandle_t *f, fsMode_t mode );
+void	trap_FS_FCloseFile( fileHandle_t f );
+void	trap_Cvar_VariableStringBuffer( const char *var_name, char *buffer, int bufsize );
+
+/*
+==============
+BG_ChampionModel
+
+The champion's player model, unless g_championModels names another one
+for it ("champion=model" pairs separated by spaces) and that model can be
+loaded here: how local test models are tried without changing the table.
+The game, the menus and the HUD all ask this, so they agree.
+==============
+*/
+void BG_ChampionModel( int champion, char *out, int size ) {
+	static char		seen[MAX_CVAR_VALUE_STRING] = "\\unset";
+	static char		models[MAX_CHAMPIONS][MAX_QPATH];
+	char			list[MAX_CVAR_VALUE_STRING];
+
+	if ( champion < 0 || champion >= bg_numChampions ) {
+		champion = 0;
+	}
+	trap_Cvar_VariableStringBuffer( "g_championModels", list, sizeof( list ) );
+	if ( strcmp( list, seen ) ) {
+		// the list changed: work out every champion's model once
+		char			pair[MAX_QPATH * 2], dir[MAX_QPATH], *s, *token, *eq, *slash;
+		fileHandle_t	f;
+		int				i, len;
+
+		Q_strncpyz( seen, list, sizeof( seen ) );
+		for ( i = 0 ; i < bg_numChampions && i < MAX_CHAMPIONS ; i++ ) {
+			Q_strncpyz( models[i], bg_championList[i].model, sizeof( models[i] ) );
+		}
+		s = list;
+		while ( 1 ) {
+			token = COM_Parse( &s );
+			if ( !token[0] ) {
+				break;
+			}
+			Q_strncpyz( pair, token, sizeof( pair ) );
+			eq = strchr( pair, '=' );
+			if ( !eq || !eq[1] ) {
+				continue;
+			}
+			*eq = 0;
+			i = BG_ChampionForName( pair );
+			if ( i < 0 || i >= MAX_CHAMPIONS || Q_stricmp( pair, bg_championList[i].name ) ) {
+				continue;
+			}
+			Q_strncpyz( dir, eq + 1, sizeof( dir ) );
+			slash = strchr( dir, '/' );
+			if ( slash ) {
+				*slash = 0;
+			}
+			len = trap_FS_FOpenFile( va( "models/players/%s/lower.md3", dir ), &f, FS_READ );
+			if ( f ) {
+				trap_FS_FCloseFile( f );
+			}
+			if ( len > 0 ) {
+				Q_strncpyz( models[i], eq + 1, sizeof( models[i] ) );
+			}
+		}
+	}
+	Q_strncpyz( out, champion < MAX_CHAMPIONS ? models[champion] : bg_championList[champion].model, size );
 }
 
 /*

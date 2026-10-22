@@ -290,8 +290,11 @@ static void Champion_Draw( void ) {
 
 	// the model, turning slowly
 	if ( s_champion.modelFor != s_champion.shown ) {
+		char	model[MAX_QPATH];
+
 		memset( &s_champion.playerInfo, 0, sizeof( s_champion.playerInfo ) );
-		UI_PlayerInfo_SetModel( &s_champion.playerInfo, c->model );
+		BG_ChampionModel( s_champion.shown, model, sizeof( model ) );
+		UI_PlayerInfo_SetModel( &s_champion.playerInfo, model );
 		VectorClear( angles );
 		angles[YAW] = 180 - 30;
 		UI_PlayerInfo_SetInfo( &s_champion.playerInfo, LEGS_IDLE, TORSO_STAND, angles, vec3_origin, WP_MACHINEGUN, qfalse );
@@ -445,8 +448,11 @@ static void Champion_MenuInit( void ) {
 	s_champion.shown = 0;
 	for ( i = 0 ; i < s_champion.count ; i++ ) {
 		menuaction_s	*cell = &s_champion.cells[i];
-		const char		*model = bg_championList[i].model;
-		const char		*skin = strchr( model, '/' );
+		char			model[MAX_QPATH];
+		const char		*skin;
+
+		BG_ChampionModel( i, model, sizeof( model ) );
+		skin = strchr( model, '/' );
 
 		if ( skin ) {
 			char	base[MAX_QPATH];
@@ -605,7 +611,7 @@ static void Champion_Pictures( void ) {
 
 		Com_sprintf( path, sizeof( path ), "gfx/champions/%s", c->name );
 		if ( !trap_R_RegisterShaderNoMip( path ) ) {
-			Q_strncpyz( model, c->model, sizeof( model ) );
+			BG_ChampionModel( i, model, sizeof( model ) );
 			skin = strchr( model, '/' );
 			if ( skin ) {
 				*skin++ = 0;
