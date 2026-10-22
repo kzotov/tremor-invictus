@@ -891,6 +891,54 @@ static void CG_HudNumberColor( int value, vec4_t out ) {
 
 /*
 =================
+CG_DrawChargeIcons
+
+One icon per charge under the portrait: lit when ready, its shadow while
+recharging. A pack may give gfx/abilities/charges/<ability> and
+<ability>_shadow; otherwise the ability's own icon, dimmed for the shadow.
+=================
+*/
+static void CG_DrawChargeIcons( int active, int charges, int maxCharges ) {
+	static qhandle_t	lit[ACTIVE_NUM_ABILITIES], shadow[ACTIVE_NUM_ABILITIES];
+	static qboolean		loaded[ACTIVE_NUM_ABILITIES];
+	static const vec4_t	dim = { 0.3f, 0.3f, 0.3f, 0.8f };
+	float				size = 12;
+	int					i;
+
+	if ( active <= ACTIVE_NONE || active >= ACTIVE_NUM_ABILITIES ) {
+		return;
+	}
+	if ( !loaded[active] ) {
+		const char *name = bg_abilityInfo[active].cvarName;
+
+		lit[active] = trap_R_RegisterShaderNoMip( va( "gfx/abilities/charges/%s", name ) );
+		shadow[active] = trap_R_RegisterShaderNoMip( va( "gfx/abilities/charges/%s_shadow", name ) );
+		if ( !lit[active] ) {
+			lit[active] = trap_R_RegisterShaderNoMip( va( "gfx/tremor/abilities/%s", name ) );
+		}
+		loaded[active] = qtrue;
+	}
+	for ( i = 0 ; i < maxCharges ; i++ ) {
+		float	x = 320 - maxCharges * ( size + 2 ) * 0.5f + i * ( size + 2 );
+
+		if ( !lit[active] ) {
+			CG_FillRect( x + 3, 474, size - 6, 4, i < charges ? colorWhite : colorMdGrey );
+			continue;
+		}
+		if ( i < charges ) {
+			CG_DrawPic( x, 470, size, size, lit[active] );
+		} else if ( shadow[active] ) {
+			CG_DrawPic( x, 470, size, size, shadow[active] );
+		} else {
+			trap_R_SetColor( dim );
+			CG_DrawPic( x, 470, size, size, lit[active] );
+			trap_R_SetColor( NULL );
+		}
+	}
+}
+
+/*
+=================
 CG_DrawAbilityRing
 
 Dots around a centre: the share of the ability's recharge done, full and
@@ -1145,9 +1193,7 @@ static void CG_DrawHud( void ) {
 	maxCharges = BG_AbilityParam( BG_Champion( ps->stats[STAT_CHAMPION] )->active, AP_CHARGES );
 	charges = BG_AbilityCharges( ps );
 	if ( maxCharges > 1 ) {
-		for ( i = 0 ; i < maxCharges ; i++ ) {
-			CG_FillRect( 320 - maxCharges * 5 + i * 10 + 2, 474, 6, 4, i < charges ? colorWhite : colorMdGrey );
-		}
+		CG_DrawChargeIcons( BG_Champion( ps->stats[STAT_CHAMPION] )->active, charges, maxCharges );
 	}
 
 	// armour, right of the centre
