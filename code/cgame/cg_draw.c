@@ -3392,6 +3392,10 @@ static void CG_DrawFragBanner( void ) {
 		Com_sprintf( line, sizeof( line ), "%s %s", BG_String( STR_MSG_YOUFRAGGED ), fragBanner.victim );
 		w = CG_DrawStrlen( line ) * cw;
 		CG_DrawStringExt( fx - w / 2, fy - ch / 2, line, color, qfalse, qtrue, cw, ch, 0 );
+		if ( fragBanner.count > 1 ) {
+			// quick frags within 3 s: x2, x3
+			CG_DrawStringExt( fx + w / 2 + 6, fy - ch / 2, va( "x%i", fragBanner.count ), red, qtrue, qtrue, cw, ch, 0 );
+		}
 		if ( fragBanner.line[0] && cgs.gametype == GT_FFA ) {
 			w = CG_DrawStrlen( fragBanner.line ) * pw;
 			CG_DrawStringExt( fx - w / 2, fy + 32 * DP - ph / 2, fragBanner.line, grey, qtrue, qtrue, pw, ph, 0 );
