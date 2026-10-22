@@ -801,7 +801,9 @@ void UI_ProfileRml( void ) {
 	for ( ; row < PROFILE_ROWS; row++ ) {
 		trap_Cvar_Set( va( "ui_h%i_date", row ), "" );
 	}
-	trap_Cmd_ExecuteText( EXEC_NOW, "mm_profile\nrml_show ui/profile.rml\n" );
+	// EXEC_NOW runs one command line: one call each
+	trap_Cmd_ExecuteText( EXEC_NOW, "mm_profile\n" );
+	trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/profile.rml\n" );
 }
 
 qboolean UI_ProfileCommand( const char *cmd ) {

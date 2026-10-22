@@ -1235,6 +1235,13 @@ scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc {
 	width: 24%;
 }
 
-.pfratings .slabel {
-	width: 60%;
+.pfratings .slabel, .pfratings .svalue {
+	display: block;
+	width: 100%;
+	text-align: center;
+}
+
+.pfratings .svalue {
+	font-size: 18dp;
+	color: #ffffff;
 }
