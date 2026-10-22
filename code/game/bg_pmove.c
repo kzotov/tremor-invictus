@@ -169,15 +169,30 @@ right and up directions: evenly spaced around a ring at the full spread,
 with a little seeded jitter so the server and clients agree
 ===============
 */
-void BG_ShotgunPelletOffset( int weapon, int index, int count, int *seed, float *right, float *up ) {
-	float	spread, angle, radius;
+#define PELLET_RING_DEGREES		1.97f
 
-	spread = BG_WeaponParam( weapon, WPP_SPREAD );
-	if ( count < 1 ) {
-		count = 1;
+void BG_ShotgunPelletOffset( int weapon, int index, int count, int *seed, float *right, float *up ) {
+	// a pellet in the middle, then rings of 3, 5 and 7, ring k about
+	// k x 1.97 degrees off the aim line, each ring turned by the shot's seed
+	static const int	ringStart[] = { 0, 1, 4, 9, 16 };
+	float	angle, radius, turn;
+	int		ring, slot, size, ringSeed;
+
+	for ( ring = 0 ; ring < 3 && index >= ringStart[ring + 1] ; ring++ ) {
 	}
-	angle = ( index + 0.25f * Q_crandom( seed ) ) * 2 * M_PI / count;
-	radius = spread * ( 0.75f + 0.25f * Q_random( seed ) );
+	if ( index >= ringStart[4] ) {
+		ring = 3;		// more pellets than the pattern holds: on the outer ring
+	}
+	ringSeed = *seed + ring * 7919;		// the same turn for every pellet of a ring
+	turn = Q_random( &ringSeed ) * 2 * M_PI;
+	if ( ring == 0 ) {
+		*right = *up = 0;
+		return;
+	}
+	size = ringStart[ring + 1] - ringStart[ring];
+	slot = index - ringStart[ring];
+	angle = turn + slot * 2 * M_PI / size;
+	radius = tan( DEG2RAD( ring * PELLET_RING_DEGREES ) );
 	*right = cos( angle ) * radius;
 	*up = sin( angle ) * radius;
 }

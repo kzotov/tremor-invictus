@@ -1022,6 +1022,15 @@ static void CG_AnnounceKey( const char *key ) {
 		// pre-round lines first, then power-ups and timers, then the rest
 		int		priority = 3;
 
+		static const char	*sacrificeKeys[] = { "one", "two", "three", "four", "five", "six", "seven",
+			"eight", "nine", "ten", "obeliskunderattack" };
+		int					k;
+
+		for ( k = 0 ; k < ARRAY_LEN( sacrificeKeys ) ; k++ ) {
+			if ( !Q_stricmp( key, sacrificeKeys[k] ) ) {
+				priority = 6;
+			}
+		}
 		if ( !Q_stricmpn( key, "round", 5 ) || !Q_stricmpn( key, "prepare", 7 ) ) {
 			priority = 6;
 		} else if ( strstr( key, "quad" ) || strstr( key, "protection" ) || strstr( key, "minute" ) ) {

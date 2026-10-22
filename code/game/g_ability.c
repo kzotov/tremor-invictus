@@ -532,14 +532,17 @@ they land pulls them together into one bigger explosion.
 ==============================================================================
 */
 
+#define FIREBALL_IMPULSE	30
+
 static void G_FireballBurst( gentity_t *ball, vec3_t origin, int damage, int radius ) {
 	int			touch[MAX_GENTITIES];
 	vec3_t		mins, maxs;
 	gentity_t	*other;
 	int			i, num;
 
-	// 100% at the centre to 40% at the edge; Death Knight pushed x1.467 by his own
-	G_SplashParams( damage * 0.4f, damage, damage * 1.467f );
+	// 100% at the centre to 40% at the edge; the push from an impulse of 30,
+	// Death Knight pushed x1.467 by his own
+	G_SplashParams( damage * 0.4f, FIREBALL_IMPULSE, FIREBALL_IMPULSE * 1.467f );
 	G_RadiusDamage( origin, ball->parent, damage, radius, NULL, MOD_FIREBALL );
 
 	// set everything in the blast burning
@@ -585,6 +588,7 @@ static void G_FireballImpact( gentity_t *ball, trace_t *trace ) {
 	gentity_t	*other = &g_entities[trace->entityNum];
 
 	if ( other->takedamage ) {
+		G_NextKnockback( FIREBALL_IMPULSE );
 		G_Damage( other, ball, ball->parent, NULL, trace->endpos, g_fireballDamage.integer, 0, MOD_FIREBALL );
 		if ( other->client ) {
 			G_Ignite( other, ball->parent );
@@ -896,6 +900,8 @@ static void G_TurretDie( gentity_t *self, gentity_t *inflictor, gentity_t *attac
 	G_FreeEntity( self );
 }
 
+#define TURRET_FOV		140
+
 static void G_TurretThink( gentity_t *turret ) {
 	gentity_t	*other, *best = NULL;
 	trace_t		tr;
@@ -923,6 +929,12 @@ static void G_TurretThink( gentity_t *turret ) {
 		target[2] += 16;
 		dist = Distance( muzzle, target );
 		if ( dist >= bestDist ) {
+			continue;
+		}
+		// it watches a 140 degree arc around the way it was set down
+		VectorSubtract( target, muzzle, dir );
+		vectoangles( dir, angles );
+		if ( fabs( AngleSubtract( angles[YAW], turret->movedir[YAW] ) ) > TURRET_FOV / 2 ) {
 			continue;
 		}
 		trap_Trace( &tr, muzzle, NULL, NULL, target, turret->s.number, MASK_SHOT );
@@ -1037,6 +1049,7 @@ static void G_PlaceTurret( gentity_t *ent ) {
 	turret->abilityTime = level.time + g_turretDeployTime.integer;	// deploying
 	G_SetOrigin( turret, tr.endpos );
 	G_AbilitySetAngles( turret, ent->client->ps.viewangles );
+	VectorCopy( ent->client->ps.viewangles, turret->movedir );	// the middle of its view
 	trap_LinkEntity( turret );
 	ent->client->turret = turret;
 	return;

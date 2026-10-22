@@ -461,7 +461,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_rewindDebug, "g_rewindDebug", "0", 0, 0, qtrue },
 	// local test models: "champion=model champion=model/skin ..."; set outside the repo
 	{ &g_championModels, "g_championModels", "", 0, 0, qtrue },
-	{ &g_knockbackScale, "g_knockbackScale", "0.833", 0, 0, qtrue },
+	{ &g_knockbackScale, "g_knockbackScale", "1", 0, 0, qtrue },
 	{ &g_protectionScale, "g_protectionScale", "0.3333", 0, 0, qtrue },
 	{ &g_shotgunFalloffStep, "g_shotgunFalloffStep", "768", 0, 0, qtrue },	// a point off each pellet per this many units
 	{ &g_shotgunCloseFade, "g_shotgunCloseFade", "512", 0, 0, qtrue },

@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "g_local.h"
 
 #define SAC_SOUL_DELAY			10000	// after the round starts
+#define SAC_ATTACK_CALL_GAP		10000	// "obelisk under attack" at most this often
 #define SAC_SOUL_WARNING		15000	// the soul is called 15 s before it appears
 #define SAC_RESULT_MSEC			3000
 #define SAC_ROUND_MSEC			600000
@@ -71,6 +72,7 @@ static struct {
 	qboolean	warned;
 	int			extract;			// msec of extraction progress
 	int			hudTime;
+	int			attackCallTime;		// level.time "obelisk under attack" was last called
 } sac;
 
 enum {
@@ -637,7 +639,18 @@ static void G_SacrificeObelisk( int msec ) {
 	i = sac.soulAt;
 	team = sac.owner[i];
 
-	// the meter fills, and every 10 s each living teammate gets a point
+	// the meter fills, and every 10 s each living teammate gets a point;
+	// the announcer counts its last 10 s
+	{
+		int		before = ( G_MeterTime() - sac.meter[team] + 999 ) / 1000;
+		int		after = ( G_MeterTime() - sac.meter[team] - msec + 999 ) / 1000;
+
+		if ( after != before && after >= 1 && after <= 10 ) {
+			static const char	*counts[] = { "", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten" };
+
+			G_Announce( -1, counts[after] );
+		}
+	}
 	sac.meter[team] += msec;
 	sac.pointTime[team] += msec;
 	if ( sac.pointTime[team] >= SAC_POINT_MSEC ) {
@@ -668,6 +681,15 @@ static void G_SacrificeObelisk( int msec ) {
 		}
 	}
 	if ( attackers && !defenders ) {
+		// the owners hear it, at most every 10 s
+		if ( !sac.extract && level.time - sac.attackCallTime >= SAC_ATTACK_CALL_GAP ) {
+			sac.attackCallTime = level.time;
+			for ( j = 0 ; j < level.maxclients ; j++ ) {
+				if ( g_entities[j].inuse && g_entities[j].client && g_entities[j].client->sess.sessionTeam == team ) {
+					G_Announce( j, "obeliskunderattack" );
+				}
+			}
+		}
 		sac.extract += msec;
 	} else if ( !attackers ) {
 		sac.extract -= msec;
