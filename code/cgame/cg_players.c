@@ -1268,7 +1268,17 @@ static void CG_PlayerAnimation( centity_t *cent, int *legsOld, int *legs, float 
 	if ( cent->pe.legs.yawing && ( cent->currentState.legsAnim & ~ANIM_TOGGLEBIT ) == LEGS_IDLE ) {
 		CG_RunLerpFrame( ci, &cent->pe.legs, LEGS_TURN, speedScale );
 	} else {
-		CG_RunLerpFrame( ci, &cent->pe.legs, cent->currentState.legsAnim, speedScale );
+		int	legsAnim = cent->currentState.legsAnim;
+
+		// no backflips (cg_backflips 0): a plain jump and landing
+		if ( !cg_backflips.integer ) {
+			if ( ( legsAnim & ~ANIM_TOGGLEBIT ) == LEGS_JUMPB ) {
+				legsAnim = ( legsAnim & ANIM_TOGGLEBIT ) | LEGS_JUMP;
+			} else if ( ( legsAnim & ~ANIM_TOGGLEBIT ) == LEGS_LANDB ) {
+				legsAnim = ( legsAnim & ANIM_TOGGLEBIT ) | LEGS_LAND;
+			}
+		}
+		CG_RunLerpFrame( ci, &cent->pe.legs, legsAnim, speedScale );
 	}
 
 	*legsOld = cent->pe.legs.oldFrame;

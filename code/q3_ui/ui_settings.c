@@ -40,6 +40,7 @@ enum {
 	TAB_CONTROLS,
 	TAB_GAME,
 	TAB_SOUND,
+	TAB_CHAMPIONS,
 	NUM_TABS
 };
 
@@ -173,6 +174,17 @@ static const settingRow_t soundRows[] = {
 	{ ROW_SPIN, STR_SET_VOIP, STR_SET_VOIP_HELP, "cl_voip", OFF_ON }
 };
 
+static const settingRow_t championRows[] = {
+	{ ROW_SPIN, STR_SET_TRAILGREY, STR_SET_TRAILGREY_HELP, "cg_trailGrey", 4, { "0", "0.3", "0.6", "1" },
+		{ STR_SET_OFF, STR_SET_LOW, STR_SET_MEDIUM, STR_SET_HIGH } },
+	{ ROW_SPIN, STR_SET_TRAILCOLOR, STR_SET_TRAILCOLOR_HELP, "cg_trailColor", 5, { "", "0xFF40C0FF", "0x40C0FFFF", "0xA040FFFF", "0x40FF60FF" },
+		{ STR_SET_TEAMCOLOR, STR_SET_PINK2, STR_SET_CYAN, STR_SET_VIOLET, STR_SET_GREEN } },
+	{ ROW_SPIN, STR_SET_TRAILENEMY, STR_SET_TRAILENEMY_HELP, "cg_trailEnemyColor", 5, { "", "0xFF40C0FF", "0x40C0FFFF", "0xA040FFFF", "0xFF8000FF" },
+		{ STR_SET_TEAMCOLOR, STR_SET_PINK2, STR_SET_CYAN, STR_SET_VIOLET, STR_SET_ORANGE } },
+	{ ROW_SPIN, STR_SET_ABILLIGHT, STR_SET_ABILLIGHT_HELP, "cg_abilityLights", OFF_ON },
+	{ ROW_SPIN, STR_SET_BACKFLIP, STR_SET_BACKFLIP_HELP, "cg_backflips", OFF_ON }
+};
+
 static const struct {
 	const settingRow_t	*rows;
 	int					numRows;
@@ -182,7 +194,8 @@ static const struct {
 	{ mouseRows, ARRAY_LEN( mouseRows ), STR_SET_TAB_MOUSE },
 	{ controlRows, ARRAY_LEN( controlRows ), STR_SET_TAB_CONTROLS },
 	{ gameRows, ARRAY_LEN( gameRows ), STR_SET_TAB_GAME },
-	{ soundRows, ARRAY_LEN( soundRows ), STR_SET_TAB_SOUND }
+	{ soundRows, ARRAY_LEN( soundRows ), STR_SET_TAB_SOUND },
+	{ championRows, ARRAY_LEN( championRows ), STR_SET_TAB_CHAMPIONS }
 };
 
 #define MAX_ROWS			32
@@ -1031,6 +1044,12 @@ void UI_SettingsRml( void ) {
 	fileHandle_t	f;
 	int				tab, r;
 
+	// the game module's settings shown here, saved even before a game has run
+	trap_Cvar_Register( NULL, "cg_trailGrey", "0", CVAR_ARCHIVE );
+	trap_Cvar_Register( NULL, "cg_trailColor", "", CVAR_ARCHIVE );
+	trap_Cvar_Register( NULL, "cg_trailEnemyColor", "", CVAR_ARCHIVE );
+	trap_Cvar_Register( NULL, "cg_abilityLights", "1", CVAR_ARCHIVE );
+	trap_Cvar_Register( NULL, "cg_backflips", "1", CVAR_ARCHIVE );
 	trap_Cvar_Register( NULL, "ui_setTab", "0", CVAR_TEMP );
 	trap_Cvar_Register( NULL, "ui_setRestart", "0", CVAR_TEMP );
 	trap_Cvar_Set( "ui_setWait", "" );

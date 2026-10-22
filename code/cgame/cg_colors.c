@@ -47,7 +47,7 @@ CG_ParseColor
 An invalid value falls back to the default with a warning.
 ================
 */
-static void CG_ParseColor( vmCvar_t *cv, const char *defaultValue, byte out[4] ) {
+void CG_ParseColor( vmCvar_t *cv, const char *defaultValue, byte out[4] ) {
 	const char	*s = cv->string;
 	unsigned	value = 0;
 	int			i, len, digit;

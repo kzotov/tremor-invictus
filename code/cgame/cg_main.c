@@ -209,6 +209,11 @@ vmCvar_t	cg_oldPlasma;
 vmCvar_t	cg_trueLightning;
 vmCvar_t	cg_predictLocalRailshots;
 vmCvar_t	cg_autoAction;
+vmCvar_t	cg_trailGrey;
+vmCvar_t	cg_trailColor;
+vmCvar_t	cg_trailEnemyColor;
+vmCvar_t	cg_abilityLights;
+vmCvar_t	cg_backflips;
 vmCvar_t	cg_hudStyle;
 vmCvar_t	cg_drawCooldownArc;
 vmCvar_t	cg_obituaryRowSize;
@@ -397,6 +402,12 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_predictLocalRailshots, "cg_predictLocalRailshots", "1", CVAR_ARCHIVE},
 	// 1: record every match, 2: screenshot at its end
 	{ &cg_autoAction, "cg_autoAction", "3", CVAR_ARCHIVE},
+	// Settings > Champions
+	{ &cg_trailGrey, "cg_trailGrey", "0", CVAR_ARCHIVE },
+	{ &cg_trailColor, "cg_trailColor", "", CVAR_ARCHIVE },
+	{ &cg_trailEnemyColor, "cg_trailEnemyColor", "", CVAR_ARCHIVE },
+	{ &cg_abilityLights, "cg_abilityLights", "1", CVAR_ARCHIVE },
+	{ &cg_backflips, "cg_backflips", "1", CVAR_ARCHIVE },
 	// 1: the champions HUD, 0: the classic status bar
 	{ &cg_hudStyle, "cg_hudStyle", "1", CVAR_ARCHIVE},
 	// the ability arc by the crosshair: 0 off, 2 top, 3 bottom, 4 left, 5 right

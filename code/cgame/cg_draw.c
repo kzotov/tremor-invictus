@@ -3388,6 +3388,26 @@ static void CG_DrawNextSpawn( void ) {
 	CG_DrawSmallStringColor( 320 - CG_DrawStrlen( name ) * SMALLCHAR_WIDTH / 2, 360, name, color );
 }
 
+/*
+=================
+CG_DrawTrailGrey
+
+Settings > Champions: the world greyed while you lay Plasma Trail
+=================
+*/
+static void CG_DrawTrailGrey( void ) {
+	playerState_t	*ps = &cg.snap->ps;
+	vec4_t			grey;
+
+	if ( cg_trailGrey.value <= 0 || BG_Champion( ps->stats[STAT_CHAMPION] )->active != ACTIVE_PLASMATRAIL
+		|| BG_AbilityState( ps ) == ABILITY_IDLE ) {
+		return;
+	}
+	grey[0] = grey[1] = grey[2] = 0.35f;
+	grey[3] = 0.45f * ( cg_trailGrey.value > 1 ? 1 : cg_trailGrey.value );
+	CG_FillRect( -cgs.screenXBias / cgs.screenXScale, 0, 640 + 2 * cgs.screenXBias / cgs.screenXScale, 480, grey );
+}
+
 static void CG_DrawSpectator(void) {
 	// the ability strip only in free camera; following shows that player's HUD
 	if ( !( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
@@ -4512,6 +4532,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 		}
 		if ( !( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
 			CG_DrawDeathScreen();
+			CG_DrawTrailGrey();
 		}
 
 		// don't draw any status if dead or the scoreboard is being explicitly shown

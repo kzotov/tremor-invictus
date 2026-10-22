@@ -514,6 +514,13 @@ How the champions' ability entities look: generated sprites and rings
 (misc/art/make-abilities.py), lines, and models every install has
 ==================
 */
+// light from an ability effect, unless turned off (cg_abilityLights)
+static void CG_AbilityLight( const vec3_t origin, float intensity, float r, float g, float b ) {
+	if ( cg_abilityLights.integer ) {
+		trap_R_AddLightToScene( origin, intensity, r, g, b );
+	}
+}
+
 /*
 ===============
 Plasma Trail ribbon
@@ -577,12 +584,27 @@ static void CG_AddTrailRibbons( void ) {
 		v[1].st[0] = u0; v[1].st[1] = 1;
 		v[2].st[0] = u1; v[2].st[1] = 1;
 		v[3].st[0] = u1; v[3].st[1] = 0;
-		for ( k = 0; k < 4; k++ ) {
-			v[k].xyz[2] -= 14;		// down on the floor, the points float at the shins
-			v[k].modulate[0] = p->blue ? 80 : 255;
-			v[k].modulate[1] = p->blue ? 160 : 200;
-			v[k].modulate[2] = 255;
-			v[k].modulate[3] = 255;
+		{
+			byte		rgba[4];
+			vmCvar_t	*custom = p->owner == cg.snap->ps.clientNum ? &cg_trailColor
+				: ( cgs.gametype < GT_TEAM || cgs.clientinfo[p->owner & ( MAX_CLIENTS - 1 )].team != cg.snap->ps.persistant[PERS_TEAM] )
+				? &cg_trailEnemyColor : NULL;
+
+			// a chosen colour, else the team's
+			if ( custom && custom->string[0] ) {
+				CG_ParseColor( custom, "0xFF40C0FF", rgba );
+			} else {
+				rgba[0] = p->blue ? 80 : 255;
+				rgba[1] = p->blue ? 160 : 200;
+				rgba[2] = 255;
+			}
+			for ( k = 0; k < 4; k++ ) {
+				v[k].xyz[2] -= 14;		// down on the floor, the points float at the shins
+				v[k].modulate[0] = rgba[0];
+				v[k].modulate[1] = rgba[1];
+				v[k].modulate[2] = rgba[2];
+				v[k].modulate[3] = 255;
+			}
 		}
 		trap_R_AddPolyToScene( cgs.media.abilityTrailShader, 4, v );
 	}
@@ -624,7 +646,7 @@ static void CG_AbilityVisual( centity_t *cent ) {
 		ent.nonNormalizedAxes = qtrue;
 		trap_R_AddRefEntityToScene( &ent );
 		if ( ( cg.time / 400 ) & 1 ) {
-			trap_R_AddLightToScene( cent->lerpOrigin, 120, 0.2f, 1.0f, 0.2f );
+			CG_AbilityLight( cent->lerpOrigin, 120, 0.2f, 1.0f, 0.2f );
 		}
 		break;
 
@@ -701,17 +723,17 @@ static void CG_AbilityVisual( centity_t *cent ) {
 			ent.renderfx = RF_NOSHADOW;
 			trap_R_AddRefEntityToScene( &ent );
 			CG_VfxSprite( cent->lerpOrigin, 22 + 8 * ramp, cgs.media.glowBallShader, 90 * k, 30 * k, 160 * k, 0 );
-			trap_R_AddLightToScene( cent->lerpOrigin, 120 + 80 * ramp, 0.55f, 0.15f, 0.9f );
+			CG_AbilityLight( cent->lerpOrigin, 120 + 80 * ramp, 0.55f, 0.15f, 0.9f );
 		} else {
 			CG_VfxSprite( cent->lerpOrigin, 22, cgs.media.orbShader, 255, 255, 255, 0 );
-			trap_R_AddLightToScene( cent->lerpOrigin, 160, 0.83f, 0.1f, 0.12f );
+			CG_AbilityLight( cent->lerpOrigin, 160, 0.83f, 0.1f, 0.12f );
 		}
 		break;
 
 	case AV_FIREBALL:
 		CG_VfxSprite( cent->lerpOrigin, 14, cgs.media.glowBallShader, 255, 140, 40, 0 );
 		CG_VfxSprite( cent->lerpOrigin, 28, cgs.media.glowBallShader, 160, 50, 10, cg.time * 0.2f );
-		trap_R_AddLightToScene( cent->lerpOrigin, 140, 1.0f, 0.5f, 0.15f );
+		CG_AbilityLight( cent->lerpOrigin, 140, 1.0f, 0.5f, 0.15f );
 		break;
 
 	case AV_ACID:
