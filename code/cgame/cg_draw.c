@@ -3939,13 +3939,14 @@ static void CG_AddPillar( const vec3_t base, const byte *glow, int rank ) {
 		VectorSet( corner[i], base[0] + cos( a ) * PILLAR_RADIUS, base[1] + sin( a ) * PILLAR_RADIUS, top );
 	}
 
-	// sides: u from corner i to corner i+1, v down from the top
+	// sides: u across the face, v down from the top, wound to face outward
+	// (the other way the near faces are culled and the inside shows)
 	for ( i = 0 ; i < 6 ; i++ ) {
 		j = ( i + 1 ) % 6;
-		VectorCopy( corner[i], q[0] );
-		VectorCopy( corner[j], q[1] );
-		VectorCopy( corner[j], q[2] );
-		VectorCopy( corner[i], q[3] );
+		VectorCopy( corner[j], q[0] );
+		VectorCopy( corner[i], q[1] );
+		VectorCopy( corner[i], q[2] );
+		VectorCopy( corner[j], q[3] );
 		q[0][2] = q[1][2] = bottom;
 		st[0][0] = 0; st[0][1] = ( top - bottom ) / PILLAR_V_SCALE;
 		st[1][0] = 1; st[1][1] = ( top - bottom ) / PILLAR_V_SCALE;
