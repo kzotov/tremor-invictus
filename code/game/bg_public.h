@@ -923,6 +923,11 @@ typedef enum {
 	STR_WARMUP_WAITING,
 	STR_WARMUP_STARTS,
 	STR_WARMUP_ANYWAY,
+	STR_DEATH_KILLEDBY,
+	STR_DEATH_LEFT,
+	STR_DEATH_DAMAGE,
+	STR_DEATH_RESPAWN_IN,
+	STR_DEATH_RESPAWN,
 	STR_ACC_TITLE,
 	STR_TO_CALLED,
 	STR_TO_OVER,
@@ -1863,6 +1868,7 @@ void	BG_TouchJumpPad( playerState_t *ps, entityState_t *jumppad );
 void	BG_PlayerStateToEntityState( playerState_t *ps, entityState_t *s, qboolean snap );
 void	BG_PlayerStateToEntityStateExtraPolate( playerState_t *ps, entityState_t *s, int time, qboolean snap );
 
+#define	ITEM_PICKUP_RADIUS	70		// how far across an item is picked up from (centre to centre)
 qboolean	BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int atTime );
 
 

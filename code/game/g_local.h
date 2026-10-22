@@ -266,6 +266,8 @@ typedef struct {
 	int			accHits[WP_NUM_WEAPONS];
 	int			damageGiven;		// to enemies, health and armour
 	int			modeStat[2];		// scoreboard mode columns: sacrifice plants and extracts, clan arena rounds survived
+	short		lifeDealt[MAX_CLIENTS];	// this life: damage to each player, for the death screen
+	short		lifeTaken[MAX_CLIENTS];	// and from each
 	int			damageTaken;
 	int			pickups[4];			// mega health, heavy armour, light armour, power-ups
 	int			enterTime;			// level.time the client entered the game
@@ -360,6 +362,7 @@ struct gclient_s {
 	int			shockBudget;		// msec the cooldown may still run back this shock
 	int			slowEndTime;		// spines: run speed cut until then
 	int			markEndTime;		// marked prey / storm: shown through walls until then
+	int			trailBurnTime;		// Plasma Trail: no burn again before this
 	int			markTeam;			// team (or client + 1000 in free for all) whose hits are stronger
 	qboolean	undyingUsed;
 	int			invulnEndTime;		// no damage until then

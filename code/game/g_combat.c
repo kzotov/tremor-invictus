@@ -658,6 +658,18 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	// duel and TDM: attack respawns from 2.1 s, and it happens anyway at 2.4 s
 	self->client->respawnTime = level.time + ( G_Sacrifice() ? 5000 : G_MatchMode() ? 2100 : 1700 );
 
+	// the death screen: who, with what, what they have left, the damage both
+	// ways this life, and when the respawn comes
+	if ( attacker && attacker->client && attacker != self && attacker->s.number < MAX_CLIENTS ) {
+		trap_SendServerCommand( self - g_entities, va( "deathinfo %i %i %i %i %i %i %i %i", attacker->s.number,
+			meansOfDeath, attacker->client->ps.weapon, attacker->health > 0 ? attacker->health : 0,
+			attacker->client->ps.stats[STAT_ARMOR], self->client->pers.lifeDealt[attacker->s.number],
+			self->client->pers.lifeTaken[attacker->s.number], self->client->respawnTime - level.time ) );
+	} else {
+		trap_SendServerCommand( self - g_entities, va( "deathinfo -1 %i 0 0 0 0 0 %i", meansOfDeath,
+			self->client->respawnTime - level.time ) );
+	}
+
 	// remove powerups
 	memset( self->client->ps.powerups, 0, sizeof(self->client->ps.powerups) );
 
@@ -1241,6 +1253,10 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			}
 			attacker->client->pers.damageGiven += dealt;
 			client->pers.damageTaken += dealt;
+			if ( attacker->s.number < MAX_CLIENTS && targ->s.number < MAX_CLIENTS ) {
+				attacker->client->pers.lifeDealt[targ->s.number] += dealt;
+				client->pers.lifeTaken[attacker->s.number] += dealt;
+			}
 
 			// the number over the target, for the attacker alone
 			if ( dealt > 0 ) {

@@ -3247,6 +3247,58 @@ CG_DrawNextSpawn
 respawn (not where champions are fixed for the match)
 =================
 */
+static void CG_DrawDeathScreen( void ) {
+	char			line[128];
+	const char		*how = "";
+	clientInfo_t	*ci;
+	gitem_t			*item;
+	vec4_t			back = { 0, 0, 0, 0.6f }, grey = { 0.65f, 0.65f, 0.65f, 1 }, red = { 0.83f, 0.1f, 0.12f, 1 };
+	int				left, y = 300, w;
+
+	if ( !cg.deathTime || cg.snap->ps.stats[STAT_HEALTH] > 0 || cg.time - cg.deathTime > 30000 ) {
+		return;
+	}
+	CG_FillRect( 140, y - 6, 360, cg.deathKiller >= 0 ? 104 : 46, back );
+
+	if ( cg.deathKiller >= 0 && cg.deathKiller < MAX_CLIENTS ) {
+		int champ;
+
+		ci = &cgs.clientinfo[cg.deathKiller];
+		champ = BG_ChampionForModel( ci->modelName );
+		// a weapon, or the champion's ability for ability deaths
+		if ( cg.deathMod >= MOD_HEAVYWEIGHT && champ >= 0 && BG_Champion( champ )->active > ACTIVE_NONE ) {
+			how = BG_String( bg_abilityInfo[BG_Champion( champ )->active].nameString );
+		} else if ( ( item = BG_FindItemForWeapon( cg.deathWeapon ) ) != NULL ) {
+			how = item->pickup_name;
+		}
+		Com_sprintf( line, sizeof( line ), BG_String( STR_DEATH_KILLEDBY ), ci->name );
+		w = CG_DrawStrlen( line ) * BIGCHAR_WIDTH;
+		CG_DrawBigString( 320 - w / 2, y, line, 1.0f );
+		y += BIGCHAR_HEIGHT + 4;
+		Com_sprintf( line, sizeof( line ), "%s  -  %s", champ >= 0 ? BG_String( BG_Champion( champ )->nameString ) : "", how );
+		w = CG_DrawStrlen( line ) * SMALLCHAR_WIDTH;
+		CG_DrawSmallStringColor( 320 - w / 2, y, line, grey );
+		y += SMALLCHAR_HEIGHT + 8;
+		Com_sprintf( line, sizeof( line ), BG_String( STR_DEATH_LEFT ), cg.deathHealth, cg.deathArmor );
+		w = CG_DrawStrlen( line ) * SMALLCHAR_WIDTH;
+		CG_DrawSmallStringColor( 320 - w / 2, y, line, red );
+		y += SMALLCHAR_HEIGHT + 4;
+		Com_sprintf( line, sizeof( line ), BG_String( STR_DEATH_DAMAGE ), cg.deathDealt, cg.deathTaken );
+		w = CG_DrawStrlen( line ) * SMALLCHAR_WIDTH;
+		CG_DrawSmallStringColor( 320 - w / 2, y, line, colorWhite );
+		y += SMALLCHAR_HEIGHT + 8;
+	}
+
+	left = cg.deathRespawn - ( cg.time - cg.deathTime );
+	if ( left > 0 ) {
+		Com_sprintf( line, sizeof( line ), BG_String( STR_DEATH_RESPAWN_IN ), ( left + 999 ) / 1000 );
+	} else {
+		Q_strncpyz( line, BG_String( STR_DEATH_RESPAWN ), sizeof( line ) );
+	}
+	w = CG_DrawStrlen( line ) * SMALLCHAR_WIDTH;
+	CG_DrawSmallStringColor( 320 - w / 2, y, line, grey );
+}
+
 static void CG_DrawNextSpawn( void ) {
 	char		name[MAX_QPATH];
 	const char	*info = CG_ConfigString( CS_SERVERINFO );
@@ -4386,6 +4438,9 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	} else {
 		if ( !cg.showScores && !( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
 			CG_DrawNextSpawn();
+		}
+		if ( !( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
+			CG_DrawDeathScreen();
 		}
 
 		// don't draw any status if dead or the scoreboard is being explicitly shown

@@ -890,6 +890,11 @@ void FinishSpawningItem( gentity_t *ent ) {
 		return;
 	}
 
+	// picked up from ITEM_PICKUP_RADIUS across (the box is set after the drop
+	// to the floor, which needs the small one)
+	ent->r.mins[0] = ent->r.mins[1] = -( ITEM_PICKUP_RADIUS - 15 );
+	ent->r.maxs[0] = ent->r.maxs[1] = ITEM_PICKUP_RADIUS - 15;
+
 	// warm-up: the map is clean; the match start restarts the map
 	if ( G_WarmupPractice() && ent->item->giType != IT_TEAM ) {
 		ent->r.svFlags |= SVF_NOCLIENT;

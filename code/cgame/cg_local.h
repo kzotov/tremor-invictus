@@ -694,6 +694,11 @@ typedef struct {
 	int			specAbilityStat[16];		// STAT_ABILITY
 	int			specAbilityRecharge[16];	// tenths of a second when received
 	int			specAbilityTime;			// cg.time it was received
+
+	// the death screen ("deathinfo"): who killed us and how
+	int			deathTime;					// cg.time it arrived, 0 for none
+	int			deathKiller, deathMod, deathWeapon, deathHealth, deathArmor;
+	int			deathDealt, deathTaken, deathRespawn;	// respawn: msec after deathTime
 } cg_t;
 
 

@@ -1077,11 +1077,14 @@ float G_BarrierScale( gentity_t *targ, int mod ) {
 
 PLASMA TRAIL
 
-While active, glowing segments are left behind; each hurts every enemy
-once. Pressing again detonates them all.
+While active, glowing points are left behind about 80 units apart; an
+enemy within 32 units of the trail's line, 20 units over the floor, burns
+for g_trailDamage every 200 ms. Pressing again detonates them all.
 
 ==============================================================================
 */
+
+#define TRAIL_BURN_MSEC		200
 
 static void G_TrailThink( gentity_t *seg ) {
 	int			touch[MAX_GENTITIES];
@@ -1098,13 +1101,14 @@ static void G_TrailThink( gentity_t *seg ) {
 	num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
 	for ( i = 0 ; i < num ; i++ ) {
 		other = &g_entities[touch[i]];
-		if ( !G_AbilityEnemy( seg->parent, other ) || G_AbilityMarked( seg, other->s.number ) ) {
+		// once per 200 ms however many points overlap
+		if ( !G_AbilityEnemy( seg->parent, other ) || !other->client || level.time < other->client->trailBurnTime ) {
 			continue;
 		}
-		G_AbilityMark( seg, other->s.number );
+		other->client->trailBurnTime = level.time + TRAIL_BURN_MSEC;
 		G_Damage( other, seg, seg->parent, NULL, NULL, g_trailDamage.integer, DAMAGE_NO_KNOCKBACK, MOD_PLASMATRAIL );
 	}
-	seg->nextthink = level.time + ABILITY_FRAME * 2;
+	seg->nextthink = level.time + ABILITY_FRAME;
 }
 
 static void G_DropTrail( gentity_t *ent ) {
@@ -1117,8 +1121,9 @@ static void G_DropTrail( gentity_t *ent ) {
 	seg->s.generic1 = AV_TRAIL;
 	seg->s.otherEntityNum = ent->s.number;
 	seg->clipmask = 0;
-	VectorSet( seg->r.mins, -16, -16, -8 );
-	VectorSet( seg->r.maxs, 16, 16, 24 );
+	// 32 units around a line 20 over the floor (the point sits 8 over it)
+	VectorSet( seg->r.mins, -32, -32, 12 - 32 );
+	VectorSet( seg->r.maxs, 32, 32, 12 + 32 );
 	seg->abilityTime = level.time + g_trailLife.integer;
 	seg->think = G_TrailThink;
 	seg->nextthink = level.time + ABILITY_FRAME;

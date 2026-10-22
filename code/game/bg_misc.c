@@ -1694,6 +1694,11 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Waiting for players (%i / %i)",
 	"The match starts in %i",
 	"Starts anyway in %i",
+	"Killed by %s",
+	"They had %i health and %i armour left",
+	"You dealt %i, they dealt %i",
+	"Respawn in %i",
+	"Press fire to respawn",
 	"ACCURACY",
 	"%s called a timeout",
 	"Timeout over",
@@ -2186,11 +2191,12 @@ qboolean	BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int atTim
 
 	BG_EvaluateTrajectory( &item->pos, atTime, origin );
 
-	// we are ignoring ducked differences here
-	if ( ps->origin[0] - origin[0] > 44
-		|| ps->origin[0] - origin[0] < -50
-		|| ps->origin[1] - origin[1] > 36
-		|| ps->origin[1] - origin[1] < -36
+	// within ITEM_PICKUP_RADIUS across, the usual reach up and down (the
+	// server's touch boxes are the same size, g_items.c)
+	if ( ps->origin[0] - origin[0] > ITEM_PICKUP_RADIUS
+		|| ps->origin[0] - origin[0] < -ITEM_PICKUP_RADIUS
+		|| ps->origin[1] - origin[1] > ITEM_PICKUP_RADIUS
+		|| ps->origin[1] - origin[1] < -ITEM_PICKUP_RADIUS
 		|| ps->origin[2] - origin[2] > 36
 		|| ps->origin[2] - origin[2] < -36 ) {
 		return qfalse;

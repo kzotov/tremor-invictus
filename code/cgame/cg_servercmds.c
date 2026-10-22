@@ -1246,6 +1246,19 @@ static void CG_ServerCommand( void ) {
 		return;
 	}
 
+	if ( !strcmp( cmd, "deathinfo" ) ) {
+		cg.deathKiller = atoi( CG_Argv( 1 ) );
+		cg.deathMod = atoi( CG_Argv( 2 ) );
+		cg.deathWeapon = atoi( CG_Argv( 3 ) );
+		cg.deathHealth = atoi( CG_Argv( 4 ) );
+		cg.deathArmor = atoi( CG_Argv( 5 ) );
+		cg.deathDealt = atoi( CG_Argv( 6 ) );
+		cg.deathTaken = atoi( CG_Argv( 7 ) );
+		cg.deathRespawn = atoi( CG_Argv( 8 ) );
+		cg.deathTime = cg.time ? cg.time : 1;
+		return;
+	}
+
 	if ( !strcmp( cmd, "abil" ) ) {
 		int n = atoi( CG_Argv( 1 ) ), j;
 

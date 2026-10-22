@@ -1319,6 +1319,8 @@ void ClientSpawn(gentity_t *ent) {
 	client->ps.stats[STAT_LAND_TIME] = STAT_TIME_CAP;
 
 	// the gauntlet plus the starting weapon the player chose
+	memset( client->pers.lifeDealt, 0, sizeof( client->pers.lifeDealt ) );
+	memset( client->pers.lifeTaken, 0, sizeof( client->pers.lifeTaken ) );
 	client->ps.stats[STAT_WEAPONS] = ( 1 << client->pers.startWeapon );
 	client->ps.ammo[client->pers.startWeapon] = BG_WeaponParam( client->pers.startWeapon, WPP_AMMOSTART );
 	if ( BG_AmmoPartner( client->pers.startWeapon ) != WP_NONE ) {

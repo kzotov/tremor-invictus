@@ -34,7 +34,7 @@ shot() {
 }
 start() {
 	"$RUN" stop -n "$NAME" >/dev/null 2>&1
-	rm -rf "$SHOTS"
+	rm -rf "$SHOTS" "$HOME_DIR/baseq3/games.log"
 	printf '%s\n' "$@" > "$HOME_DIR/baseq3/sweep.cfg"
 	"$RUN" start -n "$NAME" -p 27979 +exec sweep.cfg >/dev/null
 	wait_map

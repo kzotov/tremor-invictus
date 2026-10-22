@@ -425,9 +425,9 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_laserInterval, "g_laserInterval", "125", 0, 0, qtrue },
 	{ &g_laserDamage, "g_laserDamage", "10", 0, 0, qtrue },
 	{ &g_laserRange, "g_laserRange", "2000", 0, 0, qtrue },
-	{ &g_trailInterval, "g_trailInterval", "150", 0, 0, qtrue },
+	{ &g_trailInterval, "g_trailInterval", "250", 0, 0, qtrue },	// about 80 units apart at run speed
 	{ &g_trailLife, "g_trailLife", "5000", 0, 0, qtrue },
-	{ &g_trailDamage, "g_trailDamage", "5", 0, 0, qtrue },
+	{ &g_trailDamage, "g_trailDamage", "10", 0, 0, qtrue },	// every 200 ms
 	{ &g_trailBlast, "g_trailBlast", "25", 0, 0, qtrue },
 	{ &g_trailRadius, "g_trailRadius", "80", 0, 0, qtrue },
 	{ &g_droneHealth, "g_droneHealth", "90", 0, 0, qtrue },
