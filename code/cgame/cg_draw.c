@@ -79,15 +79,15 @@ static const hudElement_t	hudDefaults[] = {
 	{ "clockline",		ANCHOR_CENTER,	qfalse,	0, 97, 1 },
 	{ "killfeed",		ANCHOR_LEFT,	qfalse,	50, 150, 1 },
 	{ "pickups",		ANCHOR_RIGHT,	qfalse,	50, 150, 1 },
-	{ "medals",			ANCHOR_CENTER,	qfalse,	0, 392, 1 },		// the row's bottom edge
+	{ "medals",			ANCHOR_CENTER,	qfalse,	0, 234, 1 },		// the medal's top
 	{ "fragline",		ANCHOR_CENTER,	qfalse,	0, 412, 1 },
-	{ "eventline",		ANCHOR_CENTER,	qfalse,	0, 200, 1 },
-	{ "bannerword",		ANCHOR_CENTER,	qfalse,	0, 278, 1 },
+	{ "eventline",		ANCHOR_CENTER,	qfalse,	0, 337, 1 },		// top
+	{ "bannerword",		ANCHOR_CENTER,	qfalse,	0, 171, 1 },		// top
 	{ "chat",			ANCHOR_LEFT,	qtrue,	10, 308, 1 },
 	{ "teamoverlay",	ANCHOR_LEFT,	qfalse,	10, 340, 1 },
 	{ "passive",		ANCHOR_LEFT,	qtrue,	142, 110, 1 },
-	{ "warmup",			ANCHOR_CENTER,	qfalse,	0, 249, 1 },
-	{ "countdown",		ANCHOR_CENTER,	qfalse,	0, 260, 1 }
+	{ "warmup",			ANCHOR_CENTER,	qfalse,	0, 762, 1 },		// the status line's top
+	{ "countdown",		ANCHOR_CENTER,	qfalse,	0, 455, 1 }		// top
 };
 
 static hudElement_t	hudElements[ARRAY_LEN( hudDefaults )];
@@ -2604,6 +2604,10 @@ CG_DrawReward
 #define MEDAL_SHOW		2000
 #define MEDAL_FADE		300
 #define MEDAL_POP		150
+#define MEDAL_ONE_TIME	3900	// modern: one medal's whole showing
+#define MEDAL_ONE_IN	170
+#define MEDAL_ONE_OUT	570
+#define MEDAL_ONE_POP	290
 #define MEDAL_SIZE		44
 #define MEDAL_Y			60
 
@@ -2635,9 +2639,11 @@ static void CG_DrawReward( void ) {
 		medalRowCount = 0;
 		return;
 	}
-	if ( !medalRowCount || t >= MEDAL_SHOW + MEDAL_FADE || t < 0 ) {
+	// the modern layout shows one medal at a time, and a new one replaces it
+	if ( !medalRowCount || t >= ( CG_HudModern() ? MEDAL_ONE_TIME : MEDAL_SHOW + MEDAL_FADE ) || t < 0
+		|| ( CG_HudModern() && cg.rewardStack > 0 ) ) {
 		medalRowCount = 0;
-		while ( cg.rewardStack > 0 && medalRowCount < MEDAL_ROW ) {
+		while ( cg.rewardStack > 0 && medalRowCount < ( CG_HudModern() ? 1 : MEDAL_ROW ) ) {
 			medalRow[medalRowCount].name = cg.rewardName[1];
 			medalRow[medalRowCount].shader = cg.rewardShader[1];
 			medalRow[medalRowCount].count = cg.rewardCount[1];
@@ -2665,33 +2671,26 @@ static void CG_DrawReward( void ) {
 
 	color[3] = t > MEDAL_SHOW ? 1.0f - (float)( t - MEDAL_SHOW ) / MEDAL_FADE : 1;
 	if ( CG_HudModern() ) {
-		// a row pinned by its bottom edge: 34 dp icons, each name beside its icon
-		float	mx, my, icon = 34 * DP * ( t < MEDAL_POP ? 1.2f - 0.2f * t / MEDAL_POP : 1 ), total = 0, step[MEDAL_ROW];
+		// one medal: a 129 x 96 dp icon box with its top at + 234, popping in
+		// from 1.32 times its size over 0.29 s; the name 16 dp under it at
+		// + 321; fading in over 0.17 s and out over 0.57 s, 3.9 s in all
+		float	mx, my, pop = t < MEDAL_ONE_POP ? 1.32f - 0.32f * t / MEDAL_ONE_POP : 1;
+		float	bh = 96 * DP * pop, nh = 16 * DP, nw = nh * 0.8f;
 
+		color[3] = t < MEDAL_ONE_IN ? (float)t / MEDAL_ONE_IN
+			: t > MEDAL_ONE_TIME - MEDAL_ONE_OUT ? (float)( MEDAL_ONE_TIME - t ) / MEDAL_ONE_OUT : 1;
 		CG_HudPlace( "medals", &mx, &my );
 		cg_hudAnchor = ANCHOR_CENTER;
-		for ( i = 0 ; i < medalRowCount ; i++ ) {
-			name = medalRow[i].name ? BG_String( medalRow[i].name ) : "";
-			step[i] = 34 * DP + 4 + CG_DrawStrlen( name ) * SMALLCHAR_WIDTH
-				+ ( medalRow[i].count > 1 ? 4 * TINYCHAR_WIDTH : 0 ) + 16;
-			total += step[i];
+		name = medalRow[0].name ? BG_String( medalRow[0].name ) : "";
+		if ( medalRow[0].shader ) {
+			trap_R_SetColor( color );
+			CG_DrawPic( mx - bh / 2, my + ( 96 * DP - bh ) / 2, bh, bh, medalRow[0].shader );		// the icon is square inside the box
+			trap_R_SetColor( NULL );
 		}
-		x = mx - total / 2;
-		for ( i = 0 ; i < medalRowCount ; i++ ) {
-			name = medalRow[i].name ? BG_String( medalRow[i].name ) : "";
-			if ( medalRow[i].shader ) {
-				trap_R_SetColor( color );
-				CG_DrawPic( x + ( 34 * DP - icon ) / 2, my - 34 * DP + ( 34 * DP - icon ) / 2, icon, icon, medalRow[i].shader );
-				trap_R_SetColor( NULL );
-			}
-			CG_DrawStringExt( x + 34 * DP + 4, my - 17 * DP - SMALLCHAR_HEIGHT / 2, name, color, qfalse, qtrue,
-				SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
-			if ( medalRow[i].count > 1 ) {
-				CG_DrawStringExt( x + 34 * DP + 8 + CG_DrawStrlen( name ) * SMALLCHAR_WIDTH, my - 17 * DP - TINYCHAR_HEIGHT / 2,
-					va( "x%i", medalRow[i].count ), color, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
-			}
-			x += step[i];
+		if ( medalRow[0].count > 1 ) {
+			name = va( "%s x%i", name, medalRow[0].count );
 		}
+		CG_DrawStringExt( mx - CG_DrawStrlen( name ) * nw / 2, my + 87 * DP, name, color, qfalse, qtrue, nw, nh, 0 );
 		return;
 	}
 	// pops in from 1.2 times its size over 150 ms
@@ -3128,7 +3127,7 @@ static void CG_DrawCenterString( void ) {
 	const char	*start;
 	char		linebuffer[256];
 	vec4_t		color = { 1, 1, 1, 1 };
-	float		fade;
+	float		fade, lineW = BIGCHAR_WIDTH, lineH = BIGCHAR_HEIGHT;
 
 	if ( !cg_eventBanner.integer ) {
 		bannerQueued = 0;
@@ -3159,12 +3158,13 @@ static void CG_DrawCenterString( void ) {
 		float	bx, by;
 
 		if ( bannerShown.priority == 1 ) {
-			// the banner word: large, its foot at top + 350
+			// the banner word: 57 dp, its top at + 171
+			float	h = 57 * DP, cw = h * 0.8f;
+
 			CG_HudPlace( "bannerword", &bx, &by );
 			cg_hudAnchor = ANCHOR_CENTER;
-			w = CG_DrawStrlen( bannerShown.text ) * GIANTCHAR_WIDTH;
-			CG_DrawStringExt( 320 - w / 2, by - GIANTCHAR_HEIGHT / 2, bannerShown.text, color, qfalse, qtrue,
-				GIANTCHAR_WIDTH, GIANTCHAR_HEIGHT, 0 );
+			w = CG_DrawStrlen( bannerShown.text ) * cw;
+			CG_DrawStringExt( 320 - w / 2, by, bannerShown.text, color, qfalse, qtrue, cw, h, 0 );
 			return;
 		}
 		if ( cg.deathTime && cg.snap->ps.stats[STAT_HEALTH] <= 0 ) {
@@ -3172,7 +3172,9 @@ static void CG_DrawCenterString( void ) {
 		}
 		CG_HudPlace( "eventline", &bx, &by );
 		cg_hudAnchor = ANCHOR_CENTER;
-		y = by - BIGCHAR_HEIGHT / 2;
+		y = by;
+		lineH = 45 * DP;
+		lineW = lineH * 0.8f;
 	}
 	start = bannerShown.text;
 	for ( line = 0 ; line < 3 && *start ; line++ ) {
@@ -3180,9 +3182,9 @@ static void CG_DrawCenterString( void ) {
 			linebuffer[i] = start[i];
 		}
 		linebuffer[i] = 0;
-		w = BIGCHAR_WIDTH * CG_DrawStrlen( linebuffer );
-		CG_DrawStringExt( ( SCREEN_WIDTH - w ) / 2, y, linebuffer, color, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
-		y += BIGCHAR_HEIGHT + 4;
+		w = lineW * CG_DrawStrlen( linebuffer );
+		CG_DrawStringExt( ( SCREEN_WIDTH - w ) / 2, y, linebuffer, color, qfalse, qtrue, lineW, lineH, 0 );
+		y += lineH + 4;
 		start += i;
 		while ( *start == '\n' ) {
 			start++;
@@ -4569,10 +4571,11 @@ static void CG_DrawWarmupLine( void ) {
 
 		CG_HudPlace( "warmup", &wx, &wy );
 		cg_hudAnchor = ANCHOR_CENTER;
-		top = wy - BIGCHAR_HEIGHT / 2;
+		top = wy;
+	} else {
+		w = CG_DrawStrlen( BG_String( STR_WARMUP ) ) * BIGCHAR_WIDTH;
+		CG_DrawBigString( 320 - w / 2, top, BG_String( STR_WARMUP ), 1.0F );
 	}
-	w = CG_DrawStrlen( BG_String( STR_WARMUP ) ) * BIGCHAR_WIDTH;
-	CG_DrawBigString( 320 - w / 2, top, BG_String( STR_WARMUP ), 1.0F );
 
 	if ( !enough ) {
 		Com_sprintf( line, sizeof( line ), BG_String( STR_WARMUP_WAITING ),
@@ -4589,8 +4592,19 @@ static void CG_DrawWarmupLine( void ) {
 			Q_strcat( line, sizeof( line ), va( (char *)BG_String( STR_WARMUP_ANYWAY ), ( startTime - cg.time + 999 ) / 1000 ) );
 		}
 	}
-	w = CG_DrawStrlen( line ) * SMALLCHAR_WIDTH;
-	CG_DrawSmallString( 320 - w / 2, top + ( CG_HudModern() ? 29 * DP + BIGCHAR_HEIGHT / 2 : 22 ), line, 1.0F );
+	if ( CG_HudModern() ) {
+		// the status line: 22 dp orange with moving dots; the clock's label
+		// says WARM-UP
+		static vec4_t	orange = { 1, 0.718f, 0.282f, 1 };
+		float			h = 22 * DP, cw = h * 0.8f;
+
+		Q_strcat( line, sizeof( line ), &"..."[3 - ( cg.time / 400 ) % 4] );
+		w = CG_DrawStrlen( line ) * cw;
+		CG_DrawStringExt( 320 - w / 2, top, line, orange, qfalse, qtrue, cw, h, 0 );
+	} else {
+		w = CG_DrawStrlen( line ) * SMALLCHAR_WIDTH;
+		CG_DrawSmallString( 320 - w / 2, top + 22, line, 1.0F );
+	}
 	(void)needed;
 }
 
@@ -4749,9 +4763,12 @@ static void CG_DrawWarmup( void ) {
 	if ( CG_HudModern() ) {
 		float	cx, cy;
 
+		// 76 dp, its top at + 455
+		float	ch = 76 * DP, ccw = ch * 0.8f;
+
 		CG_HudPlace( "countdown", &cx, &cy );
 		cg_hudAnchor = ANCHOR_CENTER;
-		CG_DrawStringExt( 320 - w * cw/2, cy - cw * 0.75f, s, colorWhite, qfalse, qtrue, cw, (int)(cw * 1.5), 0 );
+		CG_DrawStringExt( 320 - w * ccw / 2, cy, s, colorWhite, qfalse, qtrue, ccw, ch, 0 );
 		return;
 	}
 	CG_DrawStringExt( 320 - w * cw/2, 70, s, colorWhite, 

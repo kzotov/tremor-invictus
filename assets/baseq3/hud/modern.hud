@@ -1,4 +1,4 @@
-// The default HUD layout (hud.md section 7).
+// The default HUD layout (hud.md sections 7 and 9).
 // name  left|centre|right  top|bottom  x  y  [scale]
 // Offsets in design pixels: 1080 to the screen height, x inward from a side
 // (or right of the centre), y down from the top or up from the bottom.
@@ -15,8 +15,10 @@ clock		centre	top		0	38
 clockline	centre	top		0	97
 killfeed	left	top		50	150
 pickups		right	top		50	150
-eventline	centre	top		0	200
-bannerword	centre	top		0	278
-medals		centre	top		0	392
+eventline	centre	top		0	337
+bannerword	centre	top		0	171
+medals		centre	top		0	234
 fragline	centre	top		0	412
+countdown	centre	top		0	455
+warmup		centre	top		0	762
 chat		left	bottom	10	308
