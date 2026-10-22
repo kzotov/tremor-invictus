@@ -51,12 +51,15 @@ typedef enum {
 	ROW_RESOLUTION,		// desktop or one of the display's modes
 	ROW_DISPLAY,		// fullscreen, windowed or borderless
 	ROW_INVERT,			// sign of m_pitch
+	ROW_BIT,			// one bit (slot) of a mask cvar, off or on
 	ROW_READOUT,		// computed text, not a control
 	ROW_DEVICE,			// a microphone from the sound system's list
 	ROW_BIND			// a command and up to two keys
 } rowType_t;
 
 #define MAX_ROW_VALUES	12
+
+static void Settings_SetBit( const char *cvar, int bit, int on );
 
 typedef struct {
 	rowType_t	type;
@@ -151,8 +154,21 @@ static const settingRow_t gameRows[] = {
 	{ ROW_SLIDER, STR_SET_CROSSHAIRSIZE, STR_SET_CROSSHAIRSIZE_HELP, "cg_crosshairSize", 0, { NULL }, { 0 }, 12, 48 },
 	{ ROW_SPIN, STR_SET_XHCOLOR, STR_SET_XHCOLOR_HELP, "cg_crosshairColor", 8, { "0", "1", "2", "3", "4", "5", "6", "7" },
 		{ STR_SET_WHITE, STR_SET_RED, STR_SET_GREEN, STR_SET_YELLOW, STR_SET_BLUE, STR_SET_CYAN, STR_SET_PINK, STR_SET_ORANGE } },
-	{ ROW_SPIN, STR_SET_ARC, STR_SET_ARC_HELP, "cg_drawCooldownArc", 5, { "0", "1", "2", "3", "5" },
-		{ STR_SET_OFF, STR_SET_BOTTOM, STR_SET_TOP, STR_SET_RIGHTSIDE, STR_SET_LEFTSIDE } },
+	{ ROW_SPIN, STR_SET_ARC, STR_SET_ARC_HELP, "cg_drawCooldownArc", 6, { "0", "1", "2", "3", "4", "5" },
+		{ STR_SET_OFF, STR_SET_AUTO, STR_SET_TOP, STR_SET_RIGHTSIDE, STR_SET_BOTTOM, STR_SET_LEFTSIDE } },
+	{ ROW_SPIN, STR_SET_ABILRING, STR_SET_ABILRING_HELP, "cg_drawCooldown", OFF_ON },
+	{ ROW_SPIN, STR_SET_PASSRING, STR_SET_PASSRING_HELP, "cg_drawPassive", OFF_ON },
+	{ ROW_SPIN, STR_SET_MEDALS, STR_SET_MEDALS_HELP, "cg_medals", 3, { "0", "1", "2" }, { STR_SET_OFF, STR_SET_ON, STR_SET_SOUNDONLY } },
+	{ ROW_SPIN, STR_SET_FRAGLINE, STR_SET_FRAGLINE_HELP, "cg_fragLine", OFF_ON },
+	{ ROW_SPIN, STR_SET_EVENTLINE, STR_SET_EVENTLINE_HELP, "cg_eventLine", OFF_ON },
+	{ ROW_SPIN, STR_SET_PICKUPS, STR_SET_PICKUPS_HELP, "cg_drawItemPickups", OFF_ON },
+	{ ROW_SPIN, STR_SET_SYSMSG, STR_SET_SYSMSG_HELP, "cg_systemMessages", OFF_ON },
+	{ ROW_SLIDER, STR_SET_CHATLINES, STR_SET_CHATLINES_HELP, "cg_chatHistoryLength", 0, { NULL }, { 0 }, 0, 24 },
+	{ ROW_BIT, STR_SET_ST_POWERUPS, STR_SET_SPECTIMERS_HELP, "cg_specItemTimers", 2, { NULL }, { STR_SET_OFF, STR_SET_ON }, 0, 0, qfalse, 1 },
+	{ ROW_BIT, STR_SET_ST_MEGA, STR_SET_SPECTIMERS_HELP, "cg_specItemTimers", 2, { NULL }, { STR_SET_OFF, STR_SET_ON }, 0, 0, qfalse, 2 },
+	{ ROW_BIT, STR_SET_ST_HEAVY, STR_SET_SPECTIMERS_HELP, "cg_specItemTimers", 2, { NULL }, { STR_SET_OFF, STR_SET_ON }, 0, 0, qfalse, 4 },
+	{ ROW_BIT, STR_SET_ST_LIGHT, STR_SET_SPECTIMERS_HELP, "cg_specItemTimers", 2, { NULL }, { STR_SET_OFF, STR_SET_ON }, 0, 0, qfalse, 8 },
+	{ ROW_SPIN, STR_SET_SPEED, STR_SET_SPEED_HELP, "cg_drawSpeed", 3, { "0", "1", "2" }, { STR_SET_OFF, STR_SET_CROSSHAIRPOS, STR_SET_VITALS } },
 	{ ROW_SPIN, STR_SET_WEAPONBAR, STR_SET_WEAPONBAR_HELP, "cg_weaponBar", 4, { "0", "1", "2", "3" },
 		{ STR_SET_WB_COLUMN, STR_SET_WB_CENTRE, STR_SET_WB_HELD, STR_SET_WB_HIDDEN } },
 	{ ROW_SPIN, STR_SET_KILLFEED, STR_SET_KILLFEED_HELP, "cg_obituaryRowSize", 6, { "0", "1", "2", "3", "4", "5" }, { STR_SET_OFF } },
@@ -381,6 +397,9 @@ static void Settings_RowEvent( void *ptr, int event ) {
 	case ROW_INVERT:
 		v = it->spin.curvalue;
 		trap_Cvar_SetValue( "m_pitch", ( v ? -1 : 1 ) * fabs( trap_Cvar_VariableValue( "m_pitch" ) ) );
+		break;
+	case ROW_BIT:
+		Settings_SetBit( row->cvar, row->slot, it->spin.curvalue );
 		break;
 	case ROW_BIND:
 		s_settings.waitingBind = id;
@@ -711,6 +730,7 @@ static void Settings_AddRow( int i, int x, int y ) {
 	case ROW_SPIN:
 	case ROW_DISPLAY:
 	case ROW_INVERT:
+	case ROW_BIT:
 	case ROW_RESOLUTION:
 		g = &it->spin.generic;
 		g->type = MTYPE_SPINCONTROL;
@@ -728,6 +748,8 @@ static void Settings_AddRow( int i, int x, int y ) {
 					: trap_Cvar_VariableValue( "r_noborder" ) ? 2 : 1;
 			} else if ( row->type == ROW_INVERT ) {
 				it->spin.curvalue = trap_Cvar_VariableValue( "m_pitch" ) < 0;
+			} else if ( row->type == ROW_BIT ) {
+				it->spin.curvalue = ( (int)trap_Cvar_VariableValue( row->cvar ) & row->slot ) != 0;
 			} else {
 				trap_Cvar_VariableStringBuffer( row->cvar, value, sizeof( value ) );
 				it->spin.curvalue = Settings_FindValue( row, value );
@@ -921,6 +943,22 @@ place a setting is described. Its commands:
 ===============================================================================
 */
 
+/*
+=================
+Settings_SetBit
+
+Sets or clears one bit of a mask cvar, and the ui_bit_<cvar>_<bit> helper
+the page reads it from
+=================
+*/
+static void Settings_SetBit( const char *cvar, int bit, int on ) {
+	int		mask = (int)trap_Cvar_VariableValue( cvar );
+
+	mask = on ? ( mask | bit ) : ( mask & ~bit );
+	trap_Cvar_SetValue( cvar, mask );
+	trap_Cvar_Set( va( "ui_bit_%s_%i", cvar, bit ), on ? "1" : "0" );
+}
+
 #define RML_PAGE_SIZE	65536
 
 static char		rmlPage[RML_PAGE_SIZE];
@@ -1097,6 +1135,14 @@ static void Rml_Row( int tab, int r ) {
 		Rml_Option( row, "m_pitch>0", "ui_setInvert 0", BG_String( row->names[0] ) );
 		Rml_Option( row, "m_pitch<0", "ui_setInvert 1", BG_String( row->names[1] ) );
 		break;
+	case ROW_BIT:
+		// a helper cvar mirrors the bit so the page can show it
+		Settings_SetBit( row->cvar, row->slot, ( (int)trap_Cvar_VariableValue( row->cvar ) & row->slot ) != 0 );
+		Rml_Option( row, va( "ui_bit_%s_%i=0", row->cvar, row->slot ), va( "ui_setBit %s %i 0", row->cvar, row->slot ),
+			BG_String( row->names[0] ) );
+		Rml_Option( row, va( "ui_bit_%s_%i=1", row->cvar, row->slot ), va( "ui_setBit %s %i 1", row->cvar, row->slot ),
+			BG_String( row->names[1] ) );
+		break;
 	case ROW_READOUT:
 		Rml_Add( "<span class=\"sread\" data-text-cvar=\"ui_setTurn\"></span>" );
 		break;
@@ -1207,6 +1253,10 @@ qboolean UI_SettingsCommand( const char *cmd ) {
 			trap_Cvar_Set( "s_alInputDevice", name );
 			trap_Cvar_SetValue( "ui_setMic", atoi( UI_Argv( 1 ) ) );
 		}
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_setBit" ) ) {
+		Settings_SetBit( UI_Argv( 1 ), atoi( UI_Argv( 2 ) ), atoi( UI_Argv( 3 ) ) );
 		return qtrue;
 	}
 	if ( !Q_stricmp( cmd, "ui_setInvert" ) ) {

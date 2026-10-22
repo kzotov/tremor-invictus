@@ -1327,6 +1327,8 @@ extern	vmCvar_t		cg_obituaryRowSize;
 extern	vmCvar_t		cg_chatHistoryLength;
 extern	vmCvar_t		cg_specItemTimers;
 extern	vmCvar_t		cg_weaponBar;
+extern	vmCvar_t		cg_drawCooldown;
+extern	vmCvar_t		cg_drawPassive;
 extern	vmCvar_t		cg_followKiller;
 extern	vmCvar_t		cg_specFov;
 extern	vmCvar_t		cg_specThirdPerson;

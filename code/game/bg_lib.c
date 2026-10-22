@@ -2067,7 +2067,7 @@ int Q_vsnprintf(char *str, size_t length, const char *fmt, va_list args)
 int sscanf( const char *buffer, const char *fmt, ... ) {
 	int		cmd;
 	va_list		ap;
-	int		count;
+	int		count, empty;
 	size_t		len;
 
 	va_start (ap, fmt);
@@ -2090,14 +2090,23 @@ int sscanf( const char *buffer, const char *fmt, ... ) {
 			fmt++;
 		}
 
+		// once the input runs out the rest are still set (0 or empty, as
+		// before), but no longer counted
+		while ( isspace( *buffer ) ) {
+			buffer++;
+		}
+		empty = !*buffer;
+
 		switch ( cmd ) {
 		case 'i':
 		case 'd':
 		case 'u':
 			*(va_arg (ap, int *)) = _atoi( &buffer );
+			count += !empty;
 			break;
 		case 'f':
 			*(va_arg (ap, float *)) = _atof( &buffer );
+			count += !empty;
 			break;
 		case 's':
 			{
@@ -2107,6 +2116,7 @@ int sscanf( const char *buffer, const char *fmt, ... ) {
 			while (*buffer && !isspace (*buffer) && len-- > 0 )
 				*s++ = *buffer++;
 			*s++ = '\0';
+			count += !empty;
 			break;
 			}
 		}

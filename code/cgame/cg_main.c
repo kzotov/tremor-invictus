@@ -229,6 +229,8 @@ vmCvar_t	cg_obituaryRowSize;
 vmCvar_t	cg_chatHistoryLength;
 vmCvar_t	cg_specItemTimers;
 vmCvar_t	cg_weaponBar;
+vmCvar_t	cg_drawCooldown;
+vmCvar_t	cg_drawPassive;
 vmCvar_t	cg_followKiller;
 vmCvar_t	cg_specFov;
 vmCvar_t	cg_specThirdPerson;
@@ -294,7 +296,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_drawCrosshairNames, "cg_drawCrosshairNames", "1", CVAR_ARCHIVE },
 	{ &cg_drawItemPickups, "cg_drawItemPickups", "1", CVAR_ARCHIVE },	// 0 off, 1 the pickup feed
 	{ &cg_fragBanner, "cg_fragLine", "1", CVAR_ARCHIVE },
-	{ &cg_medals, "cg_medals", "1", CVAR_ARCHIVE },			// 0 hides the medal row; medals still count
+	{ &cg_medals, "cg_medals", "1", CVAR_ARCHIVE },			// 0 hides medals (they still count), 2 sound only
 	{ &cg_eventBanner, "cg_eventLine", "1", CVAR_ARCHIVE },
 	{ &cg_systemMessages, "cg_systemMessages", "1", CVAR_ARCHIVE },	// 0 hides connect and team lines
 	{ &cg_crosshairSize, "cg_crosshairSize", "24", CVAR_ARCHIVE },
@@ -435,7 +437,9 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_obituaryRowSize, "cg_obituaryRowSize", "5", CVAR_ARCHIVE},
 	{ &cg_chatHistoryLength, "cg_chatHistoryLength", "5", CVAR_ARCHIVE},
 	{ &cg_specItemTimers, "cg_specItemTimers", "15", CVAR_ARCHIVE},
-	{ &cg_weaponBar, "cg_weaponBar", "0", CVAR_ARCHIVE},		// 0 right column, 1 bottom centre, 2 held weapon only, 3 hidden
+	{ &cg_weaponBar, "cg_weaponBar", "0", CVAR_ARCHIVE},
+	{ &cg_drawCooldown, "cg_drawCooldown", "1", CVAR_ARCHIVE},	// the ability ring and its arc
+	{ &cg_drawPassive, "cg_drawPassive", "1", CVAR_ARCHIVE},		// the passive ring under the portrait		// 0 right column, 1 bottom centre, 2 held weapon only, 3 hidden
 	{ &cg_followKiller, "cg_followKiller", "0", CVAR_ARCHIVE},
 	{ &cg_specFov, "cg_specFov", "0", CVAR_ARCHIVE},		// spectating: this field of view, 0 = cg_fov
 	{ &cg_specThirdPerson, "cg_specThirdPerson", "0", CVAR_ARCHIVE},	// following: chase from behind

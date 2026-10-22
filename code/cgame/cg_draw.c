@@ -74,7 +74,7 @@ static const hudElement_t	hudDefaults[] = {
 	{ "abilitykey",		ANCHOR_CENTER,	qtrue,	0, 69, 1 },
 	{ "abilityname",	ANCHOR_CENTER,	qtrue,	0, 43, 1 },
 	{ "ammo",			ANCHOR_RIGHT,	qtrue,	103, 95, 1 },
-	{ "weaponbar",		ANCHOR_RIGHT,	qtrue,	30, 215, 1 },
+	{ "weaponbar",		ANCHOR_RIGHT,	qtrue,	198, 274, 1 },	// slot 1's top; slots go up 70 apart
 	{ "clock",			ANCHOR_CENTER,	qfalse,	0, 38, 1 },
 	{ "clockline",		ANCHOR_CENTER,	qfalse,	0, 97, 1 },
 	{ "killfeed",		ANCHOR_LEFT,	qfalse,	50, 150, 1 },
@@ -91,7 +91,9 @@ static const hudElement_t	hudDefaults[] = {
 };
 
 static hudElement_t	hudElements[ARRAY_LEN( hudDefaults )];
-static char	hudLayoutLoaded[32];
+#define HUD_LAYOUT_NAME_MAX		32
+
+static char	hudLayoutLoaded[MAX_CVAR_VALUE_STRING];	// the whole name, so a rejected one isn't retried
 static qboolean CG_BannerWordShowing( void );
 
 #define DP	( 480.0f / 1080.0f )	// design pixels to the 640 x 480 frame
@@ -110,13 +112,13 @@ static void CG_HudLayout( void ) {
 	int				len, i;
 	float			x, y, scale;
 
-	if ( hudLayoutLoaded[0] && !Q_strncmp( hudLayoutLoaded, cg_hudLayout.string, sizeof( hudLayoutLoaded ) ) ) {
+	if ( hudLayoutLoaded[0] && !strcmp( hudLayoutLoaded, cg_hudLayout.string ) ) {
 		return;
 	}
 	Q_strncpyz( hudLayoutLoaded, cg_hudLayout.string, sizeof( hudLayoutLoaded ) );
 	// every load starts from the defaults
 	memcpy( hudElements, hudDefaults, sizeof( hudElements ) );
-	if ( strlen( cg_hudLayout.string ) >= sizeof( hudLayoutLoaded ) ) {
+	if ( strlen( cg_hudLayout.string ) >= HUD_LAYOUT_NAME_MAX ) {
 		CG_Printf( S_COLOR_YELLOW "cg_hudLayout \"%s\" is too long; using modern\n", cg_hudLayout.string );
 		return;
 	}
@@ -1413,8 +1415,36 @@ static void CG_DrawWeaponBar( void ) {
 		} else if ( mode == 2 ) {
 			x = 612;
 			y = 400;
+		} else if ( CG_HudModern() ) {
+			// the layout's column: slot 1's top at the weaponbar place,
+			// the rest going up 70 dp apart, each with its ammo and a
+			// five-dot ammo bar
+			float	bx, by, size = 48 * DP, maxAmmo;
+			int		dots, d;
+			vec4_t	dotOn = { 1, 1, 1, 0.9f }, dotOff = { 1, 1, 1, 0.2f };
+
+			CG_HudPlace( "weaponbar", &bx, &by );
+			x = bx;
+			y = by - i * 70 * DP;
+			trap_R_SetColor( have ? NULL : dim );
+			CG_DrawPic( x, y, size, size, cg_weapons[w].weaponIcon );
+			trap_R_SetColor( NULL );
+			if ( have && ps->ammo[w] >= 0 ) {
+				s = va( "%i", ps->ammo[w] );
+				CG_DrawStringExt( x - 6 - CG_DrawStrlen( s ) * TINYCHAR_WIDTH, y + size / 2 - TINYCHAR_HEIGHT, s, colorWhite,
+					qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+				maxAmmo = BG_WeaponTuned( w ) ? BG_WeaponParam( w, WPP_AMMOMAX ) : 200;
+				dots = maxAmmo > 0 ? (int)( 5 * ps->ammo[w] / maxAmmo + 0.99f ) : 0;
+				for ( d = 0 ; d < 5 ; d++ ) {
+					CG_FillRect( x - 6 - ( 5 - d ) * 5, y + size / 2 + 2, 3, 3, d < dots ? dotOn : dotOff );
+				}
+			}
+			if ( w == ps->weapon ) {
+				CG_DrawRect( x - 2, y - 2, size + 4, size + 4, 1, frame );
+			}
+			continue;
 		} else {
-			// the column grows up from above the ammo, slot 1 lowest
+			// the classic column grows up from above the ammo, slot 1 lowest
 			x = 612;
 			y = 372 - i * 26;
 		}
@@ -1578,6 +1608,9 @@ static void CG_DrawPassiveState( void ) {
 	playerState_t	*ps = &cg.snap->ps;
 	char			*s;
 
+	if ( !cg_drawPassive.integer ) {
+		return;
+	}
 	if ( BG_Champion( ps->stats[STAT_CHAMPION] )->moveStyle == MOVE_SLIDE ) {
 		float	px = 320, py = 410;
 
@@ -1595,21 +1628,30 @@ static void CG_DrawPassiveState( void ) {
 =================
 CG_DrawSpeedometer
 
-cg_drawSpeed 1: horizontal speed under the crosshair
+Horizontal speed, 30 dp yellow: cg_drawSpeed 1 under the crosshair, 2 in
+the health and armour block
 =================
 */
 static void CG_DrawSpeedometer( void ) {
 	char	*s;
-	float	speed;
+	float	speed, x = 320, y = 290, h = 30 * DP, w = h * 0.8f;
+	int		mode = cgs.movementPractice && !cg_drawSpeed.integer ? 1 : cg_drawSpeed.integer;
 
-	if ( !cg_drawSpeed.integer && !cgs.movementPractice ) {
+	if ( !mode ) {
 		return;
 	}
 	speed = sqrt( cg.predictedPlayerState.velocity[0] * cg.predictedPlayerState.velocity[0]
 		+ cg.predictedPlayerState.velocity[1] * cg.predictedPlayerState.velocity[1] );
 	s = va( "%i", (int)speed );
-	CG_DrawStringExt( 320 - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH / 2, 290, s, colorWhite,
-		qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+	if ( mode == 2 ) {
+		CG_HudPlace( "health", &x, &y );		// beside the vitals
+		x += 330 * DP;		// right of the health value
+		y -= 20 * DP;
+		CG_DrawStringExt( x, y, s, colorYellow, qfalse, qtrue, w, h, 0 );
+		cg_hudAnchor = ANCHOR_CENTER;
+		return;
+	}
+	CG_DrawStringExt( x - CG_DrawStrlen( s ) * w / 2, y, s, colorYellow, qfalse, qtrue, w, h, 0 );
 }
 
 static void CG_DrawHud( void ) {
@@ -1638,7 +1680,9 @@ static void CG_DrawHud( void ) {
 
 	// the portrait, with the ability ring around it and charge pips below
 	CG_DrawStatusBarHead( 296 );
-	CG_DrawAbilityRing( 320, 452, 32, 0, 360, 24, 3 );
+	if ( cg_drawCooldown.integer ) {
+		CG_DrawAbilityRing( 320, 452, 32, 0, 360, 24, 3 );
+	}
 	maxCharges = BG_AbilityParam( BG_Champion( ps->stats[STAT_CHAMPION] )->active, AP_CHARGES );
 	charges = BG_AbilityCharges( ps );
 	if ( maxCharges > 1 ) {
@@ -1671,7 +1715,7 @@ static void CG_DrawHud( void ) {
 	cg_hudAnchor = ANCHOR_CENTER;
 
 	// the ability arc by the crosshair: 1 layout (bottom), 2 top, 3 right, 4 bottom, 5 left
-	switch ( cg_drawCooldownArc.integer ) {
+	switch ( cg_drawCooldown.integer ? cg_drawCooldownArc.integer : 0 ) {
 	case 1:		// the layout's place: under the crosshair
 	case 4:		CG_DrawAbilityRing( 320, 240, 26, 45, 90, 12, 2 ); break;
 	case 2:		CG_DrawAbilityRing( 320, 240, 26, 225, 90, 12, 2 ); break;
@@ -2605,6 +2649,9 @@ static void CG_DrawReward( void ) {
 			return;
 		}
 		t = 0;
+	}
+	if ( cg_medals.integer == 2 ) {
+		return;		// heard, not shown
 	}
 
 	color[3] = t > MEDAL_SHOW ? 1.0f - (float)( t - MEDAL_SHOW ) / MEDAL_FADE : 1;
@@ -4789,7 +4836,9 @@ static void CG_DrawModernHud( void ) {
 	// the ability: ring, charges above it, key and name under it
 	CG_HudPlace( "ability", &x, &y );
 	cg_hudAnchor = ANCHOR_CENTER;
-	CG_DrawAbilityRing( x, y, 30, 0, 360, 24, 3 );
+	if ( cg_drawCooldown.integer ) {
+		CG_DrawAbilityRing( x, y, 30, 0, 360, 24, 3 );
+	}
 	maxCharges = BG_AbilityParam( champ->active, AP_CHARGES );
 	if ( maxCharges > 1 ) {
 		chargeIconsY = y - 30 - 14;		// on top of the ring, clear of the name
@@ -4824,7 +4873,7 @@ static void CG_DrawModernHud( void ) {
 
 	// the crosshair arc repeats the ring
 	cg_hudAnchor = ANCHOR_CENTER;
-	switch ( cg_drawCooldownArc.integer ) {
+	switch ( cg_drawCooldown.integer ? cg_drawCooldownArc.integer : 0 ) {
 	case 1:		// the layout's place: under the crosshair
 	case 4:		CG_DrawAbilityRing( 320, 240, 26, 45, 90, 12, 2 ); break;
 	case 2:		CG_DrawAbilityRing( 320, 240, 26, 225, 90, 12, 2 ); break;
