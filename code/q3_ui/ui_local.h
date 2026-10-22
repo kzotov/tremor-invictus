@@ -345,6 +345,8 @@ void UI_ColorsRml( void );
 void UI_CreateServerRml( void );
 void UI_PracticeRml( void );
 void UI_SettingsRml( void );
+const char *UI_RmlText( const char *s );
+void UI_CreditsRml( void );
 void UI_FindServersRml( void );
 void UI_DemosRml( void );
 void UI_BotsRml( int tab );

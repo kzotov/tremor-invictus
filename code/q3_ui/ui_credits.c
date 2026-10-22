@@ -37,6 +37,23 @@ typedef struct {
 	int frame;
 } creditsmenu_t;
 
+static const char *ioq3Names[] = {
+	"Tim Angus",
+	"James Canete",
+	"Vincent Cojot",
+	"Ryan C. Gordon",
+	"Aaron Gyes",
+	"Zack Middleton",
+	"Ludwig Nussel",
+	"Julian Priestley",
+	"Scirocco Six",
+	"Thilo Schulz",
+	"Zachary J. Slater",
+	"Tony J. White",
+	"...and many, many others!",  // keep this one last.
+	NULL
+};
+
 static creditsmenu_t	s_credits;
 
 
@@ -52,31 +69,16 @@ static void UI_CreditMenu_Draw_ioq3( void ) {
 	// These are all people that have made commits to Subversion, and thus
 	//  probably incomplete.
 	// (These are in alphabetical order, for the defense of everyone's egos.)
-	static const char *names[] = {
-		"Tim Angus",
-		"James Canete",
-		"Vincent Cojot",
-		"Ryan C. Gordon",
-		"Aaron Gyes",
-		"Zack Middleton",
-		"Ludwig Nussel",
-		"Julian Priestley",
-		"Scirocco Six",
-		"Thilo Schulz",
-		"Zachary J. Slater",
-		"Tony J. White",
-		"...and many, many others!",  // keep this one last.
-		NULL
-	};
+
 
 	// Center text vertically on the screen
-	y = (SCREEN_HEIGHT - ARRAY_LEN(names) * (1.42 * PROP_HEIGHT * PROP_SMALL_SIZE_SCALE)) / 2;
+	y = (SCREEN_HEIGHT - ARRAY_LEN(ioq3Names) * (1.42 * PROP_HEIGHT * PROP_SMALL_SIZE_SCALE)) / 2;
 
 	UI_DrawProportionalString( 320, y, BG_String( STR_CR_IOQ3 ), UI_CENTER|UI_SMALLFONT, color_white );
 	y += 1.42 * PROP_HEIGHT * PROP_SMALL_SIZE_SCALE;
 
-	for (i = 0; names[i]; i++) {
-		UI_DrawProportionalString( 320, y, names[i], UI_CENTER|UI_SMALLFONT, color_white );
+	for (i = 0; ioq3Names[i]; i++) {
+		UI_DrawProportionalString( 320, y, ioq3Names[i], UI_CENTER|UI_SMALLFONT, color_white );
 		y += 1.42 * PROP_HEIGHT * PROP_SMALL_SIZE_SCALE;
 	}
 
@@ -162,4 +164,48 @@ void UI_CreditMenu( void ) {
 	s_credits.menu.key = UI_CreditMenu_Key;
 	s_credits.menu.fullscreen = qtrue;
 	UI_PushMenu ( &s_credits.menu );
+}
+
+/*
+===============
+UI_CreditsRml
+
+The credits as an RmlUi page, written from the same strings to
+ui-gen/credits.rml
+===============
+*/
+void UI_CreditsRml( void ) {
+	static const int	lines[] = {
+		STR_CR_ENGINE, STR_CR_IDCOPY, -1, STR_CR_GPL1, STR_CR_GPL2, -1, STR_CR_FONT, -1, STR_CR_THIRDPARTY,
+		STR_CR_LIB1, STR_CR_LIB2, STR_CR_LIB3, STR_CR_LIB4
+	};
+	static char		page[16384];
+	fileHandle_t	f;
+	int				i;
+
+	page[0] = 0;
+	Q_strcat( page, sizeof( page ), "<rml>\n<head>\n<title>Credits</title>\n<link type=\"text/rcss\" href=\"/ui/tremor.rcss\"/>\n</head>\n"
+		"<body data-escape=\"rml_show ui/main.rml\">\n<div class=\"credits\">\n" );
+	Q_strcat( page, sizeof( page ), va( "<h1>%s</h1>\n", UI_RmlText( BG_String( STR_CR_TITLE ) ) ) );
+	Q_strcat( page, sizeof( page ), va( "<div class=\"crgame\">%s</div>\n", UI_RmlText( BG_String( STR_CR_GAME ) ) ) );
+	Q_strcat( page, sizeof( page ), va( "<div class=\"crline\">%s</div>\n", UI_RmlText( BG_String( STR_CR_MADEBY ) ) ) );
+	Q_strcat( page, sizeof( page ), va( "<div class=\"crline red\">%s</div><br/>\n", UI_RmlText( BG_String( STR_CR_SITE ) ) ) );
+	for ( i = 0; i < ARRAY_LEN( lines ); i++ ) {
+		Q_strcat( page, sizeof( page ), lines[i] < 0 ? "<br/>\n" : va( "<div class=\"crline\">%s</div>\n", UI_RmlText( BG_String( lines[i] ) ) ) );
+	}
+	Q_strcat( page, sizeof( page ), va( "<br/><div class=\"crline white\">%s</div>\n", UI_RmlText( BG_String( STR_CR_IOQ3 ) ) ) );
+	Q_strcat( page, sizeof( page ), "<div class=\"crline\">" );
+	for ( i = 0; ioq3Names[i]; i++ ) {
+		Q_strcat( page, sizeof( page ), va( "%s%s", i ? ",  " : "", UI_RmlText( ioq3Names[i] ) ) );
+	}
+	Q_strcat( page, sizeof( page ), "</div>\n<div class=\"sactions\"><button onclick=\"rml_show ui/main.rml\">[menu_back]</button></div>\n</div>\n</body>\n</rml>\n" );
+
+	trap_FS_FOpenFile( "ui-gen/credits.rml", &f, FS_WRITE );
+	if ( !f ) {
+		UI_CreditMenu();
+		return;
+	}
+	trap_FS_Write( page, strlen( page ), f );
+	trap_FS_FCloseFile( f );
+	trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui-gen/credits.rml\n" );
 }

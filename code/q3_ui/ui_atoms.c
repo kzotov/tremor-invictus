@@ -1038,6 +1038,10 @@ qboolean UI_ConsoleCommand( int realTime ) {
 	}
 
 	if ( Q_stricmp (cmd, "ui_credits") == 0 ) {
+		if ( trap_Cvar_VariableValue( "rml_ok" ) ) {
+			UI_CreditsRml();
+			return qtrue;
+		}
 		UI_CreditMenu();
 		return qtrue;
 	}

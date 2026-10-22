@@ -900,7 +900,7 @@ place a setting is described. Its commands:
 static char		rmlPage[RML_PAGE_SIZE];
 
 // text for the document: & < > escaped, [ ] kept away from the string keys
-static const char *Rml_Text( const char *s ) {
+const char *UI_RmlText( const char *s ) {
 	static char	out[2][512];
 	static int	which;
 	char		*o = out[which ^= 1];
@@ -947,7 +947,7 @@ static void Rml_BindText( int tab, int r ) {
 
 static void Rml_Option( const settingRow_t *row, const char *condition, const char *command, const char *label ) {
 	Rml_Add( va( "<button class=\"opt\" data-class=\"on:%s\" onclick=\"%s%s\">%s</button>", condition, command,
-		row->restart ? "; set ui_setRestart 1" : "", Rml_Text( label ) ) );
+		row->restart ? "; set ui_setRestart 1" : "", UI_RmlText( label ) ) );
 }
 
 static void Rml_Row( int tab, int r ) {
@@ -959,7 +959,7 @@ static void Rml_Row( int tab, int r ) {
 	if ( row->slot ) {
 		Com_sprintf( label, sizeof( label ), BG_String( row->label ), row->slot );
 	}
-	Rml_Add( va( "<div class=\"srow\"><span class=\"slabel\">%s</span><span class=\"svalue\">", Rml_Text( label ) ) );
+	Rml_Add( va( "<div class=\"srow\"><span class=\"slabel\">%s</span><span class=\"svalue\">", UI_RmlText( label ) ) );
 
 	switch ( row->type ) {
 	case ROW_SPIN:
@@ -1016,10 +1016,10 @@ static void Rml_Row( int tab, int r ) {
 		Rml_BindText( tab, r );
 		Rml_Add( va( "<button class=\"opt bind\" data-when=\"ui_setWait!=%i_%i\" onclick=\"ui_setBind %i %i\"><span data-text-cvar=\"ui_bind%i_%i\"></span></button>",
 			tab, r, tab, r, tab, r ) );
-		Rml_Add( va( "<span class=\"sread wait\" data-when=\"ui_setWait=%i_%i\">%s</span>", tab, r, Rml_Text( BG_String( STR_SET_BIND_WAIT ) ) ) );
+		Rml_Add( va( "<span class=\"sread wait\" data-when=\"ui_setWait=%i_%i\">%s</span>", tab, r, UI_RmlText( BG_String( STR_SET_BIND_WAIT ) ) ) );
 		break;
 	}
-	Rml_Add( va( "</span><div class=\"shelp\">%s</div></div>\n", Rml_Text( BG_String( row->help ) ) ) );
+	Rml_Add( va( "</span><div class=\"shelp\">%s</div></div>\n", UI_RmlText( BG_String( row->help ) ) ) );
 }
 
 /*
@@ -1039,10 +1039,10 @@ void UI_SettingsRml( void ) {
 	rmlPage[0] = 0;
 	Rml_Add( "<rml>\n<head>\n<title>Settings</title>\n<link type=\"text/rcss\" href=\"/ui/tremor.rcss\"/>\n</head>\n" );
 	Rml_Add( "<body data-escape=\"rml_show ui/main.rml\">\n<div class=\"settings\">\n" );
-	Rml_Add( va( "<h1>%s</h1>\n<div class=\"tabs\">", Rml_Text( BG_String( STR_MENU_SETTINGS ) ) ) );
+	Rml_Add( va( "<h1>%s</h1>\n<div class=\"tabs\">", UI_RmlText( BG_String( STR_MENU_SETTINGS ) ) ) );
 	for ( tab = 0; tab < NUM_TABS; tab++ ) {
 		Rml_Add( va( "<button class=\"tab\" data-class=\"on:ui_setTab=%i\" onclick=\"ui_setTab %i\">%s</button>", tab, tab,
-			Rml_Text( BG_String( settingTabs[tab].name ) ) ) );
+			UI_RmlText( BG_String( settingTabs[tab].name ) ) ) );
 	}
 	Rml_Add( "</div>\n" );
 	for ( tab = 0; tab < NUM_TABS; tab++ ) {
@@ -1054,10 +1054,10 @@ void UI_SettingsRml( void ) {
 	}
 	Rml_Add( "<div class=\"sactions\">" );
 	Rml_Add( "<button onclick=\"rml_show ui/main.rml\">[menu_back]</button>" );
-	Rml_Add( va( "<button onclick=\"ui_setDefaults\">%s</button>", Rml_Text( BG_String( STR_SET_DEFAULTS ) ) ) );
+	Rml_Add( va( "<button onclick=\"ui_setDefaults\">%s</button>", UI_RmlText( BG_String( STR_SET_DEFAULTS ) ) ) );
 	Rml_Add( va( "<button class=\"apply\" data-when=\"ui_setRestart=1\" onclick=\"set ui_setRestart 0; vid_restart\">%s</button>",
-		Rml_Text( BG_String( STR_SET_APPLY ) ) ) );
-	Rml_Add( va( "<button onclick=\"rml_hide; ui_credits\">%s</button>", Rml_Text( BG_String( STR_SET_CREDITS ) ) ) );
+		UI_RmlText( BG_String( STR_SET_APPLY ) ) ) );
+	Rml_Add( va( "<button onclick=\"ui_credits\">%s</button>", UI_RmlText( BG_String( STR_SET_CREDITS ) ) ) );
 	Rml_Add( "</div>\n</div>\n</body>\n</rml>\n" );
 
 	trap_FS_FOpenFile( "ui-gen/settings.rml", &f, FS_WRITE );
