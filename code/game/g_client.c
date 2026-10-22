@@ -691,6 +691,32 @@ static void ClientCleanName(const char *in, char *out, int outSize)
 
 /*
 ===========
+G_PlayerModelExists
+
+True when "model" or "model/skin" names a player model the server can
+load, so a missing local model keeps the champion's own one
+============
+*/
+static qboolean G_PlayerModelExists( const char *model ) {
+	char			dir[MAX_QPATH];
+	char			*slash;
+	fileHandle_t	f;
+	int				len;
+
+	Q_strncpyz( dir, model, sizeof( dir ) );
+	slash = strchr( dir, '/' );
+	if ( slash ) {
+		*slash = 0;
+	}
+	len = trap_FS_FOpenFile( va( "models/players/%s/lower.md3", dir ), &f, FS_READ );
+	if ( f ) {
+		trap_FS_FCloseFile( f );
+	}
+	return len > 0;
+}
+
+/*
+===========
 G_ChampionModel
 
 The champion's player model, unless g_championModels names another one
@@ -717,7 +743,7 @@ static void G_ChampionModel( int champion, char *model, int size ) {
 			continue;
 		}
 		*eq = 0;
-		if ( !Q_stricmp( pair, name ) && eq[1] ) {
+		if ( !Q_stricmp( pair, name ) && eq[1] && G_PlayerModelExists( eq + 1 ) ) {
 			Q_strncpyz( model, eq + 1, size );
 		}
 	}
