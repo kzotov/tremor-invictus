@@ -12,3 +12,17 @@ gfx/tremor/logo
 		rgbGen vertex
 	}
 }
+
+// the dropped console: generated gunmetal with the heartbeat along its foot
+// (misc/art/make-console.py), the game a little visible through it
+tremor/console
+{
+	nopicmip
+	nomipmaps
+	{
+		clampmap gfx/tremor/console.tga
+		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		rgbGen identity
+		alphaGen const 0.94
+	}
+}

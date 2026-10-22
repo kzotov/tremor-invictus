@@ -3374,7 +3374,10 @@ void CL_InitRenderer( void ) {
 	// load character sets
 	cls.charSetShader = re.RegisterShader( "gfx/2d/bigchars" );
 	cls.whiteShader = re.RegisterShader( "white" );
-	cls.consoleShader = re.RegisterShader( "console" );
+	cls.consoleShader = re.RegisterShader( "tremor/console" );	// our own, generated
+	if ( !cls.consoleShader ) {
+		cls.consoleShader = re.RegisterShader( "console" );
+	}
 	g_console_field_width = cls.glconfig.vidWidth / g_smallchar_width - 2;
 	g_consoleField.widthInChars = g_console_field_width;
 #ifdef USE_RMLUI
