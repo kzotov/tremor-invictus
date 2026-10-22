@@ -205,68 +205,141 @@ void UI_CreateServerRml( void ) {
 /*
 =================
 CS_Start
+
+The game's commands are made ready, the players are shown on their pillars
+for a few seconds (CS_LINEUP_MSEC), then the server starts
+(UI_CreateServer_Frame). A dedicated server starts at once.
 =================
 */
+#define CS_LINEUP_MSEC	4000
+#define CS_MAX_SHOWN	8
+
+static char		csCommands[4096];
+static int		csLaunchTime;
+static int		csShown;
+
+static void CS_Cmd( const char *text ) {
+	Q_strcat( csCommands, sizeof( csCommands ), text );
+}
+
+// one pillar on the lineup page (the match-found page's cvars)
+static void CS_ShowPlayer( const char *name, int champion, const char *team ) {
+	if ( csShown >= CS_MAX_SHOWN || champion < 0 ) {
+		return;
+	}
+	trap_Cvar_Set( va( "mm_p%i_name", csShown ), name );
+	trap_Cvar_Set( va( "mm_p%i_champ", csShown ), bg_championList[champion].name );
+	trap_Cvar_Set( va( "mm_p%i_champName", csShown ), BG_String( bg_championList[champion].nameString ) );
+	trap_Cvar_Set( va( "mm_p%i_team", csShown ), team );
+	trap_Cvar_Set( va( "mm_p%i_rating", csShown ), "" );
+	csShown++;
+}
+
+static void CS_AddBot( const char *botName, int skill, const char *team ) {
+	char	bot[MAX_QPATH];
+	int		i;
+
+	Q_strncpyz( bot, botName, sizeof( bot ) );		// (botName may be a buffer the lookups below reuse)
+	CS_Cmd( va( "addbot %s %i%s%s\n", bot, skill, team[0] ? " " : "", team ) );
+	for ( i = 0; i < UI_GetNumBots(); i++ ) {
+		const char *info = UI_GetBotInfoByNumber( i );
+
+		if ( !Q_stricmp( Info_ValueForKey( info, "name" ), bot ) ) {
+			CS_ShowPlayer( bot, BG_ChampionForModel( Info_ValueForKey( info, "model" ) ), team[0] ? team : "red" );
+			return;
+		}
+	}
+}
+
 static void CS_Start( void ) {
 	const csMode_t	*m = &csModes[cs.mode];
 	const char		*info;
-	char			names[64][MAX_QPATH];
-	int				bots, skill, i, n, numNames = 0;
+	char			names[64][MAX_QPATH], name[64];
+	int				bots, skill, i, n, numNames = 0, dedicated;
 
 	if ( cs.picked < 0 || cs.picked >= cs.numMaps ) {
 		return;
 	}
 	info = UI_GetArenaInfoByNumber( cs.maps[cs.picked] );
+	csCommands[0] = 0;
+	csShown = 0;
+	skill = (int)trap_Cvar_VariableValue( "ui_csSkill" );
+	trap_Cvar_Set( "ui_csLastMode", m->preset );
+
+	// you first
+	trap_Cvar_VariableStringBuffer( "name", name, sizeof( name ) );
+	Q_CleanStr( name );
+	CS_ShowPlayer( name, BG_ChampionForName( UI_Cvar_VariableString( "champion" ) ), "red" );
+
+	CS_Cmd( va( "rml_hide\nexec presets/%s.cfg\n", m->preset ) );
+	CS_Cmd( va( "wait ; wait ; map %s\nwait 3\n", Info_ValueForKey( info, "map" ) ) );
+
 	if ( trap_Cvar_VariableValue( "ui_csPractice" ) ) {
 		int		opp = (int)trap_Cvar_VariableValue( "ui_prOpp" ), mates = m->teams ? (int)trap_Cvar_VariableValue( "ui_prMates" ) : 0;
 		int		champ = (int)trap_Cvar_VariableValue( "ui_prChamp" ) - 1;
 
-		skill = (int)trap_Cvar_VariableValue( "ui_csSkill" );
-		trap_Cvar_Set( "ui_csLastMode", m->preset );
-		trap_Cvar_SetValue( "dedicated", 0 );
+		dedicated = 0;
 		trap_Cvar_Set( "sv_public", "0" );
 		trap_Cvar_SetValue( "sv_maxclients", 1 + opp + mates );
 		if ( m->teams ) {
 			trap_Cvar_Set( "g_localTeamPref", "red" );
 		}
-		trap_Cmd_ExecuteText( EXEC_APPEND, va( "rml_hide\nexec presets/%s.cfg\n", m->preset ) );
-		trap_Cmd_ExecuteText( EXEC_APPEND, va( "wait ; wait ; map %s\nwait 3\n", Info_ValueForKey( info, "map" ) ) );
-		for ( i = 0; i < opp; i++ ) {
-			trap_Cmd_ExecuteText( EXEC_APPEND, va( "addbot %s %i%s\n", (char *)CS_BotFor( champ ), skill, m->teams ? " blue" : "" ) );
-		}
 		for ( i = 0; i < mates; i++ ) {
-			trap_Cmd_ExecuteText( EXEC_APPEND, va( "addbot %s %i red\n", (char *)CS_BotFor( -1 ), skill ) );
+			CS_AddBot( CS_BotFor( -1 ), skill, "red" );
+		}
+		for ( i = 0; i < opp; i++ ) {
+			CS_AddBot( CS_BotFor( champ ), skill, m->teams ? "blue" : "" );
 		}
 		if ( m->teams ) {
-			trap_Cmd_ExecuteText( EXEC_APPEND, "wait 5; team red\n" );
+			CS_Cmd( "wait 5; team red\n" );
 		}
-		// the menus go now, or the main menu comes back over the loading game
+	} else {
+		dedicated = (int)Com_Clamp( 0, 2, trap_Cvar_VariableValue( "ui_csDedicated" ) );
+		bots = (int)trap_Cvar_VariableValue( "ui_csBots" );
+		trap_Cvar_SetValue( "sv_maxclients", 16 );
+
+		// bots: random characters, alternating teams
+		for ( i = 0; i < UI_GetNumBots() && numNames < 64; i++ ) {
+			Q_strncpyz( names[numNames++], Info_ValueForKey( UI_GetBotInfoByNumber( i ), "name" ), MAX_QPATH );
+		}
+		for ( i = 0; i < bots && numNames > 0; i++ ) {
+			n = rand() % numNames;
+			CS_AddBot( names[n], skill, m->teams ? ( ( i & 1 ) ? "red" : "blue" ) : "" );
+			Q_strncpyz( names[n], names[--numNames], MAX_QPATH );
+		}
+	}
+	trap_Cvar_SetValue( "dedicated", dedicated );
+	trap_Cvar_SetValue( "mm_pcount", csShown );
+
+	if ( dedicated ) {
+		trap_Cmd_ExecuteText( EXEC_APPEND, csCommands );
 		UI_ForceMenuOff();
 		return;
 	}
-	bots = (int)trap_Cvar_VariableValue( "ui_csBots" );
-	skill = (int)trap_Cvar_VariableValue( "ui_csSkill" );
-	trap_Cvar_Set( "ui_csLastMode", m->preset );
+	// the lineup first, while the commands wait
+	trap_Cvar_Set( "ui_lnMode", m->preset );
+	trap_Cvar_Set( "ui_lnMap", Info_ValueForKey( info, "longname" )[0] ? Info_ValueForKey( info, "longname" ) : Info_ValueForKey( info, "map" ) );
+	csLaunchTime = uis.realtime + CS_LINEUP_MSEC;
+	trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/prelineup.rml\n" );
+}
 
-	trap_Cvar_SetValue( "dedicated", Com_Clamp( 0, 2, trap_Cvar_VariableValue( "ui_csDedicated" ) ) );
-	trap_Cvar_SetValue( "sv_maxclients", 16 );
-	trap_Cmd_ExecuteText( EXEC_APPEND, va( "rml_hide\nexec presets/%s.cfg\n", m->preset ) );
-	trap_Cmd_ExecuteText( EXEC_APPEND, va( "wait ; wait ; map %s\n", Info_ValueForKey( info, "map" ) ) );
+/*
+=================
+UI_CreateServer_Frame
 
-	// bots: random characters, alternating teams
-	for ( i = 0; i < UI_GetNumBots() && numNames < 64; i++ ) {
-		Q_strncpyz( names[numNames++], Info_ValueForKey( UI_GetBotInfoByNumber( i ), "name" ), MAX_QPATH );
+Starts the server once the lineup has shown
+=================
+*/
+void UI_CreateServer_Frame( void ) {
+	if ( !csLaunchTime ) {
+		return;
 	}
-	trap_Cmd_ExecuteText( EXEC_APPEND, "wait 3\n" );
-	for ( i = 0; i < bots && numNames > 0; i++ ) {
-		n = rand() % numNames;
-		if ( m->teams ) {
-			trap_Cmd_ExecuteText( EXEC_APPEND, va( "addbot %s %i %s\n", names[n], skill, ( i & 1 ) ? "red" : "blue" ) );
-		} else {
-			trap_Cmd_ExecuteText( EXEC_APPEND, va( "addbot %s %i\n", names[n], skill ) );
-		}
-		Q_strncpyz( names[n], names[--numNames], MAX_QPATH );
+	trap_Cvar_SetValue( "ui_lnSeconds", csLaunchTime > uis.realtime ? ( csLaunchTime - uis.realtime + 999 ) / 1000 : 0 );
+	if ( uis.realtime < csLaunchTime ) {
+		return;
 	}
+	csLaunchTime = 0;
+	trap_Cmd_ExecuteText( EXEC_APPEND, csCommands );
 	// the menus go now, or the main menu comes back over the loading game
 	UI_ForceMenuOff();
 }

@@ -1,0 +1,63 @@
+<rml>
+<head>
+	<title>Lineup</title>
+	<link type="text/rcss" href="tremor.rcss"/>
+</head>
+<body>
+	<div class="found">
+		<h1>[ln_title]</h1>
+		<div class="sub"><span data-when="ui_lnMode=ffa">[mode_ffa]</span><span data-when="ui_lnMode=duel">[mode_duel]</span><span data-when="ui_lnMode=tdm">[mode_tdm]</span><span data-when="ui_lnMode=tdm2v2">[mode_tdm2v2]</span><span data-when="ui_lnMode=ctf">[mode_ctf]</span><span data-when="ui_lnMode=ca">[mode_ca]</span><span data-when="ui_lnMode=sacrifice">[mode_sacrifice]</span><span data-when="ui_lnMode=roundduel">[mode_roundduel]</span><span data-when="ui_lnMode=instagib">[mode_instagib]</span><span data-when="ui_lnMode=unholytrinity">[mode_unholytrinity]</span>  -  <span data-text-cvar="ui_lnMap"></span></div>
+		<div class="lineup">
+		<div class="slot" data-when="mm_pcount>=1" data-class="blue:mm_p0_team=blue">
+			<div class="stage slotstage" data-stage="mm_p0_champ"></div>
+			<div class="pname" data-text-cvar="mm_p0_name"></div>
+			<div class="pchamp" data-text-cvar="mm_p0_champName"></div>
+			<div class="prating" data-text-cvar="mm_p0_rating"></div>
+		</div>
+		<div class="slot" data-when="mm_pcount>=2" data-class="blue:mm_p1_team=blue">
+			<div class="stage slotstage" data-stage="mm_p1_champ"></div>
+			<div class="pname" data-text-cvar="mm_p1_name"></div>
+			<div class="pchamp" data-text-cvar="mm_p1_champName"></div>
+			<div class="prating" data-text-cvar="mm_p1_rating"></div>
+		</div>
+		<div class="slot" data-when="mm_pcount>=3" data-class="blue:mm_p2_team=blue">
+			<div class="stage slotstage" data-stage="mm_p2_champ"></div>
+			<div class="pname" data-text-cvar="mm_p2_name"></div>
+			<div class="pchamp" data-text-cvar="mm_p2_champName"></div>
+			<div class="prating" data-text-cvar="mm_p2_rating"></div>
+		</div>
+		<div class="slot" data-when="mm_pcount>=4" data-class="blue:mm_p3_team=blue">
+			<div class="stage slotstage" data-stage="mm_p3_champ"></div>
+			<div class="pname" data-text-cvar="mm_p3_name"></div>
+			<div class="pchamp" data-text-cvar="mm_p3_champName"></div>
+			<div class="prating" data-text-cvar="mm_p3_rating"></div>
+		</div>
+		<div class="slot" data-when="mm_pcount>=5" data-class="blue:mm_p4_team=blue">
+			<div class="stage slotstage" data-stage="mm_p4_champ"></div>
+			<div class="pname" data-text-cvar="mm_p4_name"></div>
+			<div class="pchamp" data-text-cvar="mm_p4_champName"></div>
+			<div class="prating" data-text-cvar="mm_p4_rating"></div>
+		</div>
+		<div class="slot" data-when="mm_pcount>=6" data-class="blue:mm_p5_team=blue">
+			<div class="stage slotstage" data-stage="mm_p5_champ"></div>
+			<div class="pname" data-text-cvar="mm_p5_name"></div>
+			<div class="pchamp" data-text-cvar="mm_p5_champName"></div>
+			<div class="prating" data-text-cvar="mm_p5_rating"></div>
+		</div>
+		<div class="slot" data-when="mm_pcount>=7" data-class="blue:mm_p6_team=blue">
+			<div class="stage slotstage" data-stage="mm_p6_champ"></div>
+			<div class="pname" data-text-cvar="mm_p6_name"></div>
+			<div class="pchamp" data-text-cvar="mm_p6_champName"></div>
+			<div class="prating" data-text-cvar="mm_p6_rating"></div>
+		</div>
+		<div class="slot" data-when="mm_pcount>=8" data-class="blue:mm_p7_team=blue">
+			<div class="stage slotstage" data-stage="mm_p7_champ"></div>
+			<div class="pname" data-text-cvar="mm_p7_name"></div>
+			<div class="pchamp" data-text-cvar="mm_p7_champName"></div>
+			<div class="prating" data-text-cvar="mm_p7_rating"></div>
+		</div>
+		</div>
+		<div class="foot"><span>[ln_starting] <span data-text-cvar="ui_lnSeconds"></span></span></div>
+	</div>
+</body>
+</rml>

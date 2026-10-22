@@ -1430,6 +1430,7 @@ void UI_Refresh( int realtime )
 		// the champion stage an RmlUi document reserved, under the document
 		UI_DrawRmlStage();
 		UI_Champion_Frame();
+		UI_CreateServer_Frame();
 		if ( !Q_stricmp( UI_Cvar_VariableString( "rml_doc" ), "ui-gen/settings.rml" ) ) {
 			UI_Settings_Frame();
 		}
