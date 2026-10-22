@@ -585,3 +585,198 @@ void UI_FindServersMenu( void ) {
 	UI_PushMenu( &s_fs.menu );
 	FS_Refresh();
 }
+
+/*
+===============================================================================
+
+Find Servers in RmlUi (ui/findservers.rml)
+
+The same list and filters as above, driven by cvars: ui_fsSource,
+ui_fsMode, ui_fsFilters (empty 1, full 2, password 4, ping index << 3) and
+ui_fsSearch. Each visible row goes out as ui_fs<n>_name, _map, _mode,
+_players and _ping; ui_fsSel is the selected row on the page.
+Commands: ui_fsSet <cvar> <value>, ui_fsToggle <bit>, ui_fsPing <index>,
+ui_fsRefresh, ui_fsPick <row>, ui_fsScroll <+n|-n>, ui_fsConnect,
+ui_fsFavorite.
+
+===============================================================================
+*/
+
+static int	fsPublishTime;
+
+// the menu controls the filters read, from the cvars
+static void FS_LoadSettings( void ) {
+	int filters;
+
+	trap_Cvar_Register( NULL, "ui_fsSource", "0", CVAR_ARCHIVE );
+	trap_Cvar_Register( NULL, "ui_fsMode", "0", CVAR_ARCHIVE );
+	trap_Cvar_Register( NULL, "ui_fsFilters", "0", CVAR_ARCHIVE );
+	trap_Cvar_Register( NULL, "ui_fsSearch", "", CVAR_TEMP );
+	s_fs.source.curvalue = (int)trap_Cvar_VariableValue( "ui_fsSource" ) % 3;
+	s_fs.mode.curvalue = (int)trap_Cvar_VariableValue( "ui_fsMode" ) % NUM_MODES;
+	filters = (int)trap_Cvar_VariableValue( "ui_fsFilters" );
+	s_fs.hideEmpty.curvalue = filters & 1;
+	s_fs.hideFull.curvalue = ( filters >> 1 ) & 1;
+	s_fs.hidePass.curvalue = ( filters >> 2 ) & 1;
+	s_fs.maxPing.curvalue = ( filters >> 3 ) % ARRAY_LEN( fsPingLimits );
+	trap_Cvar_VariableStringBuffer( "ui_fsSearch", s_fs.search.field.buffer, sizeof( s_fs.search.field.buffer ) );
+	trap_Cvar_SetValue( "ui_fsPingIndex", s_fs.maxPing.curvalue );
+	trap_Cvar_SetValue( "ui_fsEmpty", s_fs.hideEmpty.curvalue );
+	trap_Cvar_SetValue( "ui_fsFull", s_fs.hideFull.curvalue );
+	trap_Cvar_SetValue( "ui_fsPass", s_fs.hidePass.curvalue );
+}
+
+/*
+=================
+UI_FindServersRml
+=================
+*/
+void UI_FindServersRml( void ) {
+	FS_LoadSettings();
+	s_fs.top = s_fs.selected = 0;
+	fsPublishTime = 0;
+	FS_Refresh();
+	trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/findservers.rml\n" );
+}
+
+/*
+=================
+UI_FindServers_Frame
+
+Pings, the filtered list and its visible page, four times a second
+=================
+*/
+void UI_FindServers_Frame( void ) {
+	const char	*status;
+	int			r, i;
+
+	if ( s_fs.pinging ) {
+		qboolean	busy;
+
+		trap_LAN_MarkServerVisible( FS_Source(), -1, qtrue );
+		busy = trap_LAN_UpdateVisiblePings( FS_Source() );
+		s_fs.pinging = busy || uis.realtime - s_fs.refreshTime < 5000;
+	}
+	if ( uis.realtime - fsPublishTime < 250 ) {
+		return;
+	}
+	fsPublishTime = uis.realtime;
+	FS_BuildList();
+	if ( s_fs.top > s_fs.selected ) {
+		s_fs.top = s_fs.selected;
+	}
+	if ( s_fs.top > s_fs.numListed - VISIBLE_ROWS ) {
+		s_fs.top = s_fs.numListed - VISIBLE_ROWS > 0 ? s_fs.numListed - VISIBLE_ROWS : 0;
+	}
+
+	for ( r = 0; r < VISIBLE_ROWS; r++ ) {
+		i = s_fs.top + r;
+		if ( i < s_fs.numListed ) {
+			fsServer_t	*f = &s_fs.listed[i];
+
+			trap_Cvar_Set( va( "ui_fs%i_name", r ), f->name );
+			trap_Cvar_Set( va( "ui_fs%i_map", r ), f->map );
+			trap_Cvar_Set( va( "ui_fs%i_mode", r ), f->mode );
+			trap_Cvar_Set( va( "ui_fs%i_players", r ), va( "%i / %i", f->clients, f->maxClients ) );
+			trap_Cvar_Set( va( "ui_fs%i_ping", r ), va( "%i", f->ping ) );
+		} else {
+			trap_Cvar_Set( va( "ui_fs%i_name", r ), "" );
+		}
+	}
+	trap_Cvar_SetValue( "ui_fsSel", s_fs.selected - s_fs.top );
+
+	if ( FS_Source() == AS_GLOBAL && !FS_HasMaster() ) {
+		status = BG_String( STR_FS_NOMASTER );
+	} else if ( s_fs.pinging ) {
+		status = BG_String( STR_FS_SCANNING );
+	} else if ( !s_fs.numListed ) {
+		status = BG_String( STR_FS_NONE );
+	} else {
+		status = va( (char *)BG_String( STR_FS_COUNT ), s_fs.numListed, s_fs.total );
+	}
+	trap_Cvar_Set( "ui_fsStatus", status );
+}
+
+/*
+=================
+UI_FindServersCommand
+=================
+*/
+qboolean UI_FindServersCommand( const char *cmd ) {
+	int		v;
+
+	if ( !Q_stricmp( cmd, "ui_fsSet" ) ) {
+		// ui_fsSet source|mode|search <value>
+		if ( !Q_stricmp( UI_Argv( 1 ), "source" ) ) {
+			trap_Cvar_Set( "ui_fsSource", UI_Argv( 2 ) );
+			FS_LoadSettings();
+			s_fs.top = s_fs.selected = 0;
+			FS_Refresh();
+		} else if ( !Q_stricmp( UI_Argv( 1 ), "mode" ) ) {
+			trap_Cvar_Set( "ui_fsMode", UI_Argv( 2 ) );
+		} else if ( !Q_stricmp( UI_Argv( 1 ), "search" ) ) {
+			trap_Cvar_Set( "ui_fsSearch", UI_Argv( 2 ) );
+		}
+		FS_LoadSettings();
+		fsPublishTime = 0;
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_fsToggle" ) || !Q_stricmp( cmd, "ui_fsPing" ) ) {
+		v = (int)trap_Cvar_VariableValue( "ui_fsFilters" );
+		if ( !Q_stricmp( cmd, "ui_fsToggle" ) ) {
+			v ^= atoi( UI_Argv( 1 ) ) & 7;
+		} else {
+			v = ( v & 7 ) | ( ( atoi( UI_Argv( 1 ) ) % ARRAY_LEN( fsPingLimits ) ) << 3 );
+		}
+		trap_Cvar_SetValue( "ui_fsFilters", v );
+		FS_LoadSettings();
+		fsPublishTime = 0;
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_fsRefresh" ) ) {
+		FS_Refresh();
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_fsPick" ) ) {
+		v = s_fs.top + atoi( UI_Argv( 1 ) );
+		if ( v < s_fs.numListed ) {
+			if ( v == s_fs.selected ) {
+				FS_Connect();		// a second click joins
+			}
+			s_fs.selected = v;
+		}
+		fsPublishTime = 0;
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_fsScroll" ) ) {
+		s_fs.top += atoi( UI_Argv( 1 ) );
+		if ( s_fs.top < 0 ) {
+			s_fs.top = 0;
+		}
+		if ( s_fs.selected < s_fs.top ) {
+			s_fs.selected = s_fs.top;
+		}
+		if ( s_fs.selected >= s_fs.top + VISIBLE_ROWS ) {
+			s_fs.selected = s_fs.top + VISIBLE_ROWS - 1;
+		}
+		fsPublishTime = 0;
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_fsConnect" ) ) {
+		FS_Connect();
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_fsFavorite" ) ) {
+		if ( s_fs.selected < s_fs.numListed ) {
+			fsServer_t	*f = &s_fs.listed[s_fs.selected];
+
+			if ( FS_Source() == AS_FAVORITES ) {
+				trap_LAN_RemoveServer( AS_FAVORITES, f->addr );
+			} else {
+				trap_LAN_AddServer( AS_FAVORITES, f->name, f->addr );
+			}
+		}
+		return qtrue;
+	}
+	return qfalse;
+}

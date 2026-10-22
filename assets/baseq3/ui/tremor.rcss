@@ -1050,3 +1050,100 @@ scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc {
 	width: 0dp;
 	height: 0dp;
 }
+
+/* find servers: sources and filters on top, the list below */
+.fs {
+	position: absolute;
+	left: 4%;
+	top: 4%;
+	width: 92%;
+}
+
+.fs h1 {
+	display: block;
+	font-family: "Arial Black";
+	font-size: 50dp;
+	color: #f2efe9;
+}
+
+.fsbar {
+	display: block;
+	margin-bottom: 8dp;
+	font-size: 22dp;
+	color: #8a8780;
+}
+
+.fsbar .label {
+	margin: 0 10dp 0 20dp;
+}
+
+.fsbar input {
+	font-size: 22dp;
+	color: #f2efe9;
+	background-color: #0e0f12;
+	border: 2dp #3a3b40;
+	padding: 2dp 8dp;
+	width: 260dp;
+}
+
+.fshead, .fsrow {
+	display: block;
+	font-size: 22dp;
+	padding: 4dp 10dp;
+}
+
+.fshead {
+	color: #8a8780;
+	margin-top: 10dp;
+}
+
+.fslist {
+	display: block;
+	height: 480dp;
+	background-color: #16171bf0;
+	border-left: 6dp #d3191f;
+}
+
+.fsrow {
+	color: #e8e4dc;
+	cursor: pointer;
+}
+
+.fsrow:hover {
+	background-color: #1f2026;
+}
+
+.fsrow.on {
+	background-color: #d3191f;
+	color: #ffffff;
+}
+
+.c1, .c2, .c3, .c4, .c5 {
+	display: inline-block;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.c1 { width: 40%; }
+.c2 { width: 18%; }
+.c3 { width: 18%; }
+.c4 { width: 12%; }
+.c5 { width: 10%; }
+
+.fsstatus {
+	display: block;
+	font-size: 22dp;
+	color: #8a8780;
+	margin: 8dp 0;
+}
+
+.fsactions button {
+	display: inline-block;
+	font-size: 34dp;
+	margin-right: 40dp;
+}
+
+.fsactions .go {
+	color: #f2efe9;
+	font-size: 46dp;
+}

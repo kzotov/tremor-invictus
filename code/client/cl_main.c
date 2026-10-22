@@ -2991,6 +2991,24 @@ void CL_Frame ( int msec ) {
 
 	CL_MM_Frame();
 
+#ifdef USE_RMLUI
+	// a main-menu page never stays over a game once the menus have closed
+	// (loading a map passes through the main menu)
+	if ( clc.state == CA_ACTIVE && !( Key_GetCatcher() & KEYCATCH_UI ) && RML_Active() ) {
+		static const char	*menuPages[] = { "ui/main.rml", "ui/findmatch.rml", "ui/createserver.rml",
+			"ui/findservers.rml", "ui/colors.rml", "ui-gen/settings.rml" };
+		const char			*doc = Cvar_VariableString( "rml_doc" );
+		int					i;
+
+		for ( i = 0; i < ARRAY_LEN( menuPages ); i++ ) {
+			if ( !Q_stricmp( doc, menuPages[i] ) ) {
+				RML_Hide();
+				break;
+			}
+		}
+	}
+#endif
+
 #ifdef USE_HTTP
 	if(clc.httpUsed) {
 		qboolean finished = CL_HTTP_PerformDownload();

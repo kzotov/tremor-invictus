@@ -1023,6 +1023,15 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	if ( Q_stricmp (cmd, "ui_servers") == 0 && trap_Cvar_VariableValue( "rml_ok" ) ) {
+		UI_FindServersRml();
+		return qtrue;
+	}
+
+	if ( UI_FindServersCommand( cmd ) ) {
+		return qtrue;
+	}
+
 	if ( Q_stricmp (cmd, "ui_servers") == 0 ) {
 		UI_FindServersMenu();
 		return qtrue;
@@ -1391,6 +1400,9 @@ void UI_Refresh( int realtime )
 		UI_Champion_Frame();
 		if ( !Q_stricmp( UI_Cvar_VariableString( "rml_doc" ), "ui-gen/settings.rml" ) ) {
 			UI_Settings_Frame();
+		}
+		if ( !Q_stricmp( UI_Cvar_VariableString( "rml_doc" ), "ui/findservers.rml" ) && trap_Cvar_VariableValue( "rml_active" ) ) {
+			UI_FindServers_Frame();
 		}
 
 		if( uis.firstdraw ) {

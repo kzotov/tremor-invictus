@@ -240,6 +240,8 @@ static void CS_Start( void ) {
 		if ( m->teams ) {
 			trap_Cmd_ExecuteText( EXEC_APPEND, "wait 5; team red\n" );
 		}
+		// the menus go now, or the main menu comes back over the loading game
+		UI_ForceMenuOff();
 		return;
 	}
 	bots = (int)trap_Cvar_VariableValue( "ui_csBots" );
@@ -265,6 +267,8 @@ static void CS_Start( void ) {
 		}
 		Q_strncpyz( names[n], names[--numNames], MAX_QPATH );
 	}
+	// the menus go now, or the main menu comes back over the loading game
+	UI_ForceMenuOff();
 }
 
 /*

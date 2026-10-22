@@ -1,0 +1,75 @@
+<rml>
+<head>
+	<title>Find servers</title>
+	<link type="text/rcss" href="tremor.rcss"/>
+</head>
+<body data-escape="rml_show ui/main.rml">
+	<div class="fs">
+		<h1>[menu_find_servers]</h1>
+		<div class="fsbar">
+			<button class="opt" data-class="on:ui_fsSource=0" onclick="ui_fsSet source 0">[fs_internet]</button>
+			<button class="opt" data-class="on:ui_fsSource=1" onclick="ui_fsSet source 1">[fs_lan]</button>
+			<button class="opt" data-class="on:ui_fsSource=2" onclick="ui_fsSet source 2">[fs_favorites]</button>
+			<span class="label">[fs_search]</span><input type="text" size="16" maxlength="24" data-value-cvar="ui_fsSearch" onchange="ui_fsSet search {value}"/>
+		</div>
+		<div class="fsbar"><button class="opt" data-class="on:ui_fsMode=0" onclick="ui_fsSet mode 0">[fs_all]</button><button class="opt" data-class="on:ui_fsMode=1" onclick="ui_fsSet mode 1">[mm_duel]</button><button class="opt" data-class="on:ui_fsMode=2" onclick="ui_fsSet mode 2">[mode_tdm]</button><button class="opt" data-class="on:ui_fsMode=3" onclick="ui_fsSet mode 3">[mode_ctf]</button><button class="opt" data-class="on:ui_fsMode=4" onclick="ui_fsSet mode 4">[mode_ca]</button><button class="opt" data-class="on:ui_fsMode=5" onclick="ui_fsSet mode 5">[mode_sacrifice]</button><button class="opt" data-class="on:ui_fsMode=6" onclick="ui_fsSet mode 6">[mode_roundduel]</button><button class="opt" data-class="on:ui_fsMode=7" onclick="ui_fsSet mode 7">[mode_ffa]</button><button class="opt" data-class="on:ui_fsMode=8" onclick="ui_fsSet mode 8">[mode_instagib]</button><button class="opt" data-class="on:ui_fsMode=9" onclick="ui_fsSet mode 9">[mode_unholytrinity]</button></div>
+		<div class="fsbar">
+			<button class="opt" data-class="on:ui_fsEmpty=1" onclick="ui_fsToggle 1">[fs_hide_empty]</button>
+			<button class="opt" data-class="on:ui_fsFull=1" onclick="ui_fsToggle 2">[fs_hide_full]</button>
+			<button class="opt" data-class="on:ui_fsPass=1" onclick="ui_fsToggle 4">[fs_hide_pass]</button>
+			<span class="label">[fs_maxping]</span><button class="opt" data-class="on:ui_fsPingIndex=0" onclick="ui_fsPing 0">[fs_any]</button><button class="opt" data-class="on:ui_fsPingIndex=1" onclick="ui_fsPing 1">50</button><button class="opt" data-class="on:ui_fsPingIndex=2" onclick="ui_fsPing 2">100</button><button class="opt" data-class="on:ui_fsPingIndex=3" onclick="ui_fsPing 3">150</button><button class="opt" data-class="on:ui_fsPingIndex=4" onclick="ui_fsPing 4">200</button>
+		</div>
+		<div class="fshead"><span class="c1">[fs_server]</span><span class="c2">[fs_map]</span><span class="c3">[fs_mode]</span><span class="c4">[fs_players]</span><span class="c5">[fs_ping]</span></div>
+		<div class="fslist">
+			<div class="fsrow" data-when="ui_fs0_name!=" data-class="on:ui_fsSel=0" onclick="ui_fsPick 0">
+				<span class="c1" data-text-cvar="ui_fs0_name"></span><span class="c2" data-text-cvar="ui_fs0_map"></span><span class="c3" data-text-cvar="ui_fs0_mode"></span><span class="c4" data-text-cvar="ui_fs0_players"></span><span class="c5" data-text-cvar="ui_fs0_ping"></span>
+			</div>
+			<div class="fsrow" data-when="ui_fs1_name!=" data-class="on:ui_fsSel=1" onclick="ui_fsPick 1">
+				<span class="c1" data-text-cvar="ui_fs1_name"></span><span class="c2" data-text-cvar="ui_fs1_map"></span><span class="c3" data-text-cvar="ui_fs1_mode"></span><span class="c4" data-text-cvar="ui_fs1_players"></span><span class="c5" data-text-cvar="ui_fs1_ping"></span>
+			</div>
+			<div class="fsrow" data-when="ui_fs2_name!=" data-class="on:ui_fsSel=2" onclick="ui_fsPick 2">
+				<span class="c1" data-text-cvar="ui_fs2_name"></span><span class="c2" data-text-cvar="ui_fs2_map"></span><span class="c3" data-text-cvar="ui_fs2_mode"></span><span class="c4" data-text-cvar="ui_fs2_players"></span><span class="c5" data-text-cvar="ui_fs2_ping"></span>
+			</div>
+			<div class="fsrow" data-when="ui_fs3_name!=" data-class="on:ui_fsSel=3" onclick="ui_fsPick 3">
+				<span class="c1" data-text-cvar="ui_fs3_name"></span><span class="c2" data-text-cvar="ui_fs3_map"></span><span class="c3" data-text-cvar="ui_fs3_mode"></span><span class="c4" data-text-cvar="ui_fs3_players"></span><span class="c5" data-text-cvar="ui_fs3_ping"></span>
+			</div>
+			<div class="fsrow" data-when="ui_fs4_name!=" data-class="on:ui_fsSel=4" onclick="ui_fsPick 4">
+				<span class="c1" data-text-cvar="ui_fs4_name"></span><span class="c2" data-text-cvar="ui_fs4_map"></span><span class="c3" data-text-cvar="ui_fs4_mode"></span><span class="c4" data-text-cvar="ui_fs4_players"></span><span class="c5" data-text-cvar="ui_fs4_ping"></span>
+			</div>
+			<div class="fsrow" data-when="ui_fs5_name!=" data-class="on:ui_fsSel=5" onclick="ui_fsPick 5">
+				<span class="c1" data-text-cvar="ui_fs5_name"></span><span class="c2" data-text-cvar="ui_fs5_map"></span><span class="c3" data-text-cvar="ui_fs5_mode"></span><span class="c4" data-text-cvar="ui_fs5_players"></span><span class="c5" data-text-cvar="ui_fs5_ping"></span>
+			</div>
+			<div class="fsrow" data-when="ui_fs6_name!=" data-class="on:ui_fsSel=6" onclick="ui_fsPick 6">
+				<span class="c1" data-text-cvar="ui_fs6_name"></span><span class="c2" data-text-cvar="ui_fs6_map"></span><span class="c3" data-text-cvar="ui_fs6_mode"></span><span class="c4" data-text-cvar="ui_fs6_players"></span><span class="c5" data-text-cvar="ui_fs6_ping"></span>
+			</div>
+			<div class="fsrow" data-when="ui_fs7_name!=" data-class="on:ui_fsSel=7" onclick="ui_fsPick 7">
+				<span class="c1" data-text-cvar="ui_fs7_name"></span><span class="c2" data-text-cvar="ui_fs7_map"></span><span class="c3" data-text-cvar="ui_fs7_mode"></span><span class="c4" data-text-cvar="ui_fs7_players"></span><span class="c5" data-text-cvar="ui_fs7_ping"></span>
+			</div>
+			<div class="fsrow" data-when="ui_fs8_name!=" data-class="on:ui_fsSel=8" onclick="ui_fsPick 8">
+				<span class="c1" data-text-cvar="ui_fs8_name"></span><span class="c2" data-text-cvar="ui_fs8_map"></span><span class="c3" data-text-cvar="ui_fs8_mode"></span><span class="c4" data-text-cvar="ui_fs8_players"></span><span class="c5" data-text-cvar="ui_fs8_ping"></span>
+			</div>
+			<div class="fsrow" data-when="ui_fs9_name!=" data-class="on:ui_fsSel=9" onclick="ui_fsPick 9">
+				<span class="c1" data-text-cvar="ui_fs9_name"></span><span class="c2" data-text-cvar="ui_fs9_map"></span><span class="c3" data-text-cvar="ui_fs9_mode"></span><span class="c4" data-text-cvar="ui_fs9_players"></span><span class="c5" data-text-cvar="ui_fs9_ping"></span>
+			</div>
+			<div class="fsrow" data-when="ui_fs10_name!=" data-class="on:ui_fsSel=10" onclick="ui_fsPick 10">
+				<span class="c1" data-text-cvar="ui_fs10_name"></span><span class="c2" data-text-cvar="ui_fs10_map"></span><span class="c3" data-text-cvar="ui_fs10_mode"></span><span class="c4" data-text-cvar="ui_fs10_players"></span><span class="c5" data-text-cvar="ui_fs10_ping"></span>
+			</div>
+			<div class="fsrow" data-when="ui_fs11_name!=" data-class="on:ui_fsSel=11" onclick="ui_fsPick 11">
+				<span class="c1" data-text-cvar="ui_fs11_name"></span><span class="c2" data-text-cvar="ui_fs11_map"></span><span class="c3" data-text-cvar="ui_fs11_mode"></span><span class="c4" data-text-cvar="ui_fs11_players"></span><span class="c5" data-text-cvar="ui_fs11_ping"></span>
+			</div>
+		</div>
+		<div class="fsstatus">
+			<button class="opt" onclick="ui_fsScroll -12">&lt;</button>
+			<span data-text-cvar="ui_fsStatus"></span>
+			<button class="opt" onclick="ui_fsScroll 12">&gt;</button>
+		</div>
+		<div class="fsactions">
+			<button onclick="rml_show ui/main.rml">[menu_back]</button>
+			<button onclick="ui_fsRefresh">[fs_refresh]</button>
+			<button data-when="ui_fsSource!=2" onclick="ui_fsFavorite">[fs_addfav]</button>
+			<button data-when="ui_fsSource=2" onclick="ui_fsFavorite">[fs_removefav]</button>
+			<button class="go" onclick="ui_fsConnect">[fs_connect]</button>
+		</div>
+	</div>
+</body>
+</rml>
