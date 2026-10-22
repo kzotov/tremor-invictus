@@ -1141,6 +1141,23 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	if ( Q_stricmp (cmd, "ui_startWeapon") == 0 ) {
+		// the starting weapon from the in-game menu: for the next spawn, and
+		// remembered for the champion being played
+		char	code[8], champion[64];
+
+		trap_Argv( 1, code, sizeof( code ) );
+		if ( Q_stricmp( code, "sg" ) && Q_stricmp( code, "ng" ) ) {
+			Q_strncpyz( code, "mg", sizeof( code ) );
+		}
+		trap_Cvar_Set( "cg_startWeapon", code );
+		trap_Cvar_VariableStringBuffer( "champion", champion, sizeof( champion ) );
+		if ( champion[0] ) {
+			trap_Cvar_Set( va( "ui_startWeapon_%s", champion ), code );
+		}
+		return qtrue;
+	}
+
 	if ( Q_stricmp (cmd, "ui_champions") == 0 ) {
 		if ( trap_Cvar_VariableValue( "rml_ok" ) ) {
 			UI_ChampionsRml();

@@ -3354,13 +3354,15 @@ victim large, then the score line; 2 s, fading 0.3 s; quick frags within
 #define FRAG_Y			134
 
 static struct {
+	char	fragger[MAX_QPATH];		// empty: YOU
 	char	victim[MAX_QPATH];
 	char	line[64];
 	int		time;
 	int		count;
 } fragBanner;
 
-void CG_FragBanner( const char *victim, const char *line ) {
+void CG_FragBanner( const char *fragger, const char *victim, const char *line ) {
+	Q_strncpyz( fragBanner.fragger, fragger ? fragger : "", sizeof( fragBanner.fragger ) );
 	fragBanner.count = fragBanner.time && cg.time - fragBanner.time < FRAG_QUICK ? fragBanner.count + 1 : 1;
 	Q_strncpyz( fragBanner.victim, victim, sizeof( fragBanner.victim ) );
 	Q_strncpyz( fragBanner.line, line, sizeof( fragBanner.line ) );
@@ -3377,8 +3379,8 @@ static void CG_DrawFragBanner( void ) {
 	}
 	color[3] = red[3] = t > FRAG_TIME ? 1.0f - ( t - FRAG_TIME ) / (float)FRAG_FADE : 1;
 	if ( CG_HudModern() ) {
-		// "YOU FRAGGED <name>" 30 dp tall at top + 412, fading in over
-		// 0.2 s; in FFA the place line under it, 18 dp grey at top + 444
+		// "YOU FRAGGED <name>" 30 dp tall, its top at + 412, fading in over
+		// 0.2 s; in FFA the place line under it, 18 dp grey, its top at + 444
 		float	fx, fy, ch = 30 * DP, cw = ch * 0.8f, ph = 18 * DP, pw = ph * 0.8f;
 		vec4_t	grey = { 0.74f, 0.74f, 0.74f, 1 };
 		char	line[128];
@@ -3386,19 +3388,23 @@ static void CG_DrawFragBanner( void ) {
 		if ( t < FRAG_FADE_IN ) {
 			color[3] = t / (float)FRAG_FADE_IN;
 		}
-		grey[3] = color[3];
+		grey[3] = red[3] = color[3];
 		CG_HudPlace( "fragline", &fx, &fy );
 		cg_hudAnchor = ANCHOR_CENTER;
-		Com_sprintf( line, sizeof( line ), "%s %s", BG_String( STR_MSG_YOUFRAGGED ), fragBanner.victim );
+		if ( fragBanner.fragger[0] ) {
+			Com_sprintf( line, sizeof( line ), "%s^7 %s %s", fragBanner.fragger, BG_String( STR_MSG_FRAGGED ), fragBanner.victim );
+		} else {
+			Com_sprintf( line, sizeof( line ), "%s %s", BG_String( STR_MSG_YOUFRAGGED ), fragBanner.victim );
+		}
 		w = CG_DrawStrlen( line ) * cw;
-		CG_DrawStringExt( fx - w / 2, fy - ch / 2, line, color, qfalse, qtrue, cw, ch, 0 );
+		CG_DrawStringExt( fx - w / 2, fy, line, color, qfalse, qtrue, cw, ch, 0 );
 		if ( fragBanner.count > 1 ) {
 			// quick frags within 3 s: x2, x3
-			CG_DrawStringExt( fx + w / 2 + 6, fy - ch / 2, va( "x%i", fragBanner.count ), red, qtrue, qtrue, cw, ch, 0 );
+			CG_DrawStringExt( fx + w / 2 + 6, fy, va( "x%i", fragBanner.count ), red, qtrue, qtrue, cw, ch, 0 );
 		}
 		if ( fragBanner.line[0] && cgs.gametype == GT_FFA ) {
 			w = CG_DrawStrlen( fragBanner.line ) * pw;
-			CG_DrawStringExt( fx - w / 2, fy + 32 * DP - ph / 2, fragBanner.line, grey, qtrue, qtrue, pw, ph, 0 );
+			CG_DrawStringExt( fx - w / 2, fy + 32 * DP, fragBanner.line, grey, qtrue, qtrue, pw, ph, 0 );
 		}
 		return;
 	}

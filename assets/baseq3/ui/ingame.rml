@@ -12,9 +12,9 @@
 			<button data-when="g_gametype!=1" onclick="rml_hide; ui_champions">[menu_champion]</button>
 			<div class="starter">
 				<div class="label">[ch_weapon]</div>
-				<button class="opt" data-class="on:cg_startWeapon=mg" onclick="set cg_startWeapon mg">[ch_mg_short]</button>
-				<button class="opt" data-class="on:cg_startWeapon=sg" onclick="set cg_startWeapon sg">[ch_sg_short]</button>
-				<button class="opt" data-class="on:cg_startWeapon=ng" onclick="set cg_startWeapon ng">[ch_ng_short]</button>
+				<button class="opt" data-class="on:cg_startWeapon=mg" onclick="ui_startWeapon mg">[ch_mg_short]</button>
+				<button class="opt" data-class="on:cg_startWeapon=sg" onclick="ui_startWeapon sg">[ch_sg_short]</button>
+				<button class="opt" data-class="on:cg_startWeapon=ng" onclick="ui_startWeapon ng">[ch_ng_short]</button>
 			</div>
 			<button onclick="ui_colors">[menu_player_colors]</button>
 			<button onclick="rml_hide; ui_settings">[menu_settings]</button>

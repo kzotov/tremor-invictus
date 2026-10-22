@@ -95,7 +95,7 @@ static pmoveCvar_t pmoveCvars[] = {
 
 	{ {0}, "pm_slideFriction",		"1.2",	&bg_pmoveSettings.slideFriction },
 	{ {0}, "pm_slideFrictionStrogg",	"2",	&bg_pmoveSettings.slideFrictionStrogg },
-	{ {0}, "pm_slideStopSpeed",		"1",	&bg_pmoveSettings.slideStopSpeed },
+	{ {0}, "pm_slideStopSpeed",		"100",	&bg_pmoveSettings.slideStopSpeed },
 	{ {0}, "pm_slideChargeRate",	"5",	&bg_pmoveSettings.slideChargeRate },
 	{ {0}, "pm_slideChargeMax",		"6000",	&bg_pmoveSettings.slideChargeMax },
 	{ {0}, "pm_slideDrain",			"1",	&bg_pmoveSettings.slideDrain },
@@ -566,8 +566,15 @@ The crouch or walk speed
 ==============
 */
 static float PM_SlowSpeed( void ) {
-	if ( ( pm->ps->pm_flags & PMF_DUCKED ) && pml.champion->moveStyle == MOVE_SLIDE && PM_IsSlash() ) {
-		return pml.runSpeed * bg_pmoveSettings.slideCrouchScale;
+	if ( pm->ps->pm_flags & PMF_DUCKED ) {
+		if ( pml.champion->moveStyle == MOVE_SLIDE && PM_IsSlash() ) {
+			return pml.runSpeed * bg_pmoveSettings.slideCrouchScale;
+		}
+		return pml.runSpeed * bg_pmoveSettings.crouchWalkScale;
+	}
+	// walking: B.J. walks at 280 (7/8 of the run speed), everyone else at half
+	if ( !Q_stricmp( pml.champion->name, "bj" ) ) {
+		return pml.runSpeed * 0.875f;
 	}
 	return pml.runSpeed * bg_pmoveSettings.crouchWalkScale;
 }
@@ -739,7 +746,8 @@ static qboolean PM_CheckJump( void ) {
 
 	// a crouched or walking jump keeps no more than the slow speed's worth
 	// of what it carries above it, halved
-	if ( PM_SlowMoving() && !( pm->ps->pm_flags & PMF_TIME_KNOCKBACK ) ) {
+	if ( PM_SlowMoving() && !( pm->ps->pm_flags & PMF_TIME_KNOCKBACK )
+		&& pm->ps->groundEntityNum != ENTITYNUM_NONE && !pml.stairJump ) {
 		float	h = PM_HorizontalSpeed(), slow = PM_SlowSpeed();
 
 		if ( h > slow ) {
@@ -1128,6 +1136,8 @@ A fresh jump press in the air jumps again, once per airtime
 ===================
 */
 static qboolean PM_CheckDoubleJump( void ) {
+	int		jt;
+
 	if ( !( pml.champion->abilities & MOVEABIL_DOUBLEJUMP ) ) {
 		return qfalse;
 	}
@@ -1140,11 +1150,20 @@ static qboolean PM_CheckDoubleJump( void ) {
 	if ( pm->ps->groundEntityNum != ENTITYNUM_NONE ) {
 		return qfalse;
 	}
-	if ( pm->ps->stats[STAT_JUMP_TIME] < 100 ) {
-		return qfalse;		// at least 0.1 s after the first jump
+	jt = pm->ps->stats[STAT_JUMP_TIME];
+	if ( jt < JUMP_REPEAT_MSEC ) {
+		return qfalse;		// at least 0.05 s after the last jump
 	}
 
+	// a jump like any other: lower from a crouch, and the chain bonus
 	pm->ps->velocity[2] = bg_pmoveSettings.doubleJumpVelocity;
+	if ( pm->ps->pm_flags & PMF_DUCKED ) {
+		pm->ps->velocity[2] *= bg_pmoveSettings.crouchJumpScale;
+	}
+	if ( jt < bg_pmoveSettings.chainTime ) {
+		pm->ps->velocity[2] *= 1.0f + bg_pmoveSettings.chainScale
+			* ( bg_pmoveSettings.chainTime - jt ) / bg_pmoveSettings.chainTime;
+	}
 	pm->ps->pm_flags |= PMF_AIRMOVE_USED | PMF_JUMP_HELD;
 	pm->ps->stats[STAT_JUMP_TIME] = 0;
 	pml.jumped = qtrue;
@@ -1449,14 +1468,10 @@ static void PM_WalkMove( void ) {
 	wishspeed = VectorNormalize(wishdir);
 	wishspeed *= scale;
 
-	// crouching is a fixed speed (for sliders a share of run speed), except while sliding
-	if ( ( pm->ps->pm_flags & PMF_DUCKED ) && !PM_IsSliding() ) {
-		float	crouch = pml.runSpeed * ( pml.champion->moveStyle == MOVE_SLIDE && PM_IsSlash()
-			? bg_pmoveSettings.slideCrouchScale : bg_pmoveSettings.crouchWalkScale );
-
-		if ( wishspeed > crouch ) {
-			wishspeed = crouch;
-		}
+	// crouching and walking are a fixed speed (for sliders a share of run
+	// speed, B.J. walks faster), except while sliding
+	if ( PM_SlowMoving() && wishspeed > 0 ) {
+		wishspeed = PM_SlowSpeed();
 	}
 
 	// clamp the speed lower if walking on the bottom; below the waist is dry
@@ -2638,6 +2653,10 @@ static void PM_MoveTimers( void ) {
 			charge += bg_pmoveSettings.slideChargeRate * pml.msec;
 		}
 		air += pml.msec;
+		// a slide over a bump keeps draining while within the grace time
+		if ( pm->cmd.upmove < 0 && air <= PM_SlideAirGrace() ) {
+			charge -= bg_pmoveSettings.slideDrain * pml.msec;
+		}
 		// a slide that stays in the air too long is over (a bump or small drop isn't)
 		if ( air > PM_SlideAirGrace() && air - pml.msec <= PM_SlideAirGrace()
 			&& pm->cmd.upmove < 0 ) {
@@ -3617,6 +3636,7 @@ void PmoveSingle (pmove_t *pmove) {
 	// stair jump: a step up with jump held jumps at once
 	pml.stairJump = qfalse;
 	if ( pm->ps->persistant[PERS_STEP_TIME] == 0 && pm->ps->pm_type == PM_NORMAL && pm->waterlevel <= 1
+		&& !pm->ps->powerups[PW_FLIGHT]
 		&& !PM_DroneActive() && BG_AbilityState( pm->ps ) != ABILITY_HOOK_PULL ) {
 		pml.stairJump = qtrue;
 		PM_CheckJump();

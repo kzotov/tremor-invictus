@@ -276,7 +276,8 @@ static void CG_Obituary( entityState_t *ent ) {
 			Com_sprintf( line, sizeof( line ), BG_String( STR_MSG_PLACE ),
 				CG_PlaceString( cg.snap->ps.persistant[PERS_RANK] + 1 ), own );
 		}
-		CG_FragBanner( targetName, line );
+		// a spectator following the fragger reads the fragger's name
+		CG_FragBanner( ( cg.snap->ps.pm_flags & PMF_FOLLOW ) ? cgs.clientinfo[attacker].name : NULL, targetName, line );
 	}
 
 	// check for double client messages
