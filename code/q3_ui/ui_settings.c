@@ -704,7 +704,8 @@ Settings_InitText
 */
 static void Settings_InitText( menutext_s *t, int id, int string, int x, int y, int style ) {
 	t->generic.type		= MTYPE_PTEXT;
-	t->generic.flags	= QMF_PULSEIFFOCUS | ( ( style & UI_CENTER ) ? QMF_CENTER_JUSTIFY : 0 );	// hit box around the text
+	t->generic.flags	= QMF_PULSEIFFOCUS | ( ( style & UI_CENTER ) ? QMF_CENTER_JUSTIFY : 0 )	// hit box around the text
+		| ( ( style & UI_RIGHT ) ? QMF_RIGHT_JUSTIFY : 0 );
 	t->generic.id		= id;
 	t->generic.callback	= Settings_Event;
 	t->generic.x		= x;
