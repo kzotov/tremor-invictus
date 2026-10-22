@@ -1147,3 +1147,34 @@ scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc {
 	color: #f2efe9;
 	font-size: 46dp;
 }
+
+.d1, .d2, .d3, .d4, .d5 {
+	display: inline-block;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.d1 { width: 22%; }
+.d2 { width: 14%; }
+.d3 { width: 16%; }
+.d4 { width: 8%; }
+.d5 { width: 38%; }
+
+.fsstatus input {
+	font-size: 22dp;
+	color: #f2efe9;
+	background-color: #0e0f12;
+	border: 2dp #3a3b40;
+	padding: 2dp 8dp;
+	width: 360dp;
+	margin: 0 10dp;
+}
+
+.fsstatus .label {
+	margin-left: 30dp;
+}
+
+.fslist.tall {
+	height: auto;
+	min-height: 300dp;
+}

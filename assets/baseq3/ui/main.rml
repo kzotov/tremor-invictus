@@ -16,7 +16,7 @@
 		<button onclick="ui_champions">[menu_champions]</button>
 		<button onclick="ui_colors">[menu_player_colors]</button>
 		<button onclick="rml_hide; ui_settings">[menu_settings]</button>
-		<button onclick="rml_hide; ui_demos">[menu_demos]</button>
+		<button onclick="ui_demos">[menu_demos]</button>
 		<button onclick="quit">[menu_quit]</button>
 	</div>
 	<div class="searchbar" data-when="mm_state=searching">

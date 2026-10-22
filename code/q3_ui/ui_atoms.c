@@ -1042,6 +1042,15 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	if ( Q_stricmp (cmd, "ui_demos") == 0 && trap_Cvar_VariableValue( "rml_ok" ) ) {
+		UI_DemosRml();
+		return qtrue;
+	}
+
+	if ( UI_DemosCommand( cmd ) ) {
+		return qtrue;
+	}
+
 	if ( Q_stricmp (cmd, "ui_demos") == 0 ) {
 		UI_DemosMenu();
 		return qtrue;

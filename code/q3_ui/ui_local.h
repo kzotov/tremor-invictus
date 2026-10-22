@@ -346,6 +346,8 @@ void UI_CreateServerRml( void );
 void UI_PracticeRml( void );
 void UI_SettingsRml( void );
 void UI_FindServersRml( void );
+void UI_DemosRml( void );
+qboolean UI_DemosCommand( const char *cmd );
 void UI_FindServers_Frame( void );
 qboolean UI_FindServersCommand( const char *cmd );
 void UI_Settings_Frame( void );

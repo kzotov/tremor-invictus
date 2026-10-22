@@ -597,3 +597,140 @@ void UI_DemosMenu( void ) {
 		Menu_SetCursorToItem( &s_demos.menu, &s_demos.back );
 	}
 }
+
+/*
+===============================================================================
+
+Demos in RmlUi (ui/demos.rml)
+
+The same list, a page at a time: ui_dm<n>_date, _map, _mode, _length and
+_players per row, ui_dmSel the selected row. Commands: ui_dmPick <row>
+(again to play), ui_dmPlay, ui_dmScroll <+n|-n>, ui_dmDelete (twice to
+confirm), ui_dmRename (to the name typed, ui_dmNewName).
+
+===============================================================================
+*/
+
+#define RML_DEMO_ROWS	14
+
+static void Demos_Publish( void ) {
+	int		r, i;
+	char	text[64];
+
+	for ( r = 0; r < RML_DEMO_ROWS; r++ ) {
+		i = s_demos.top + r;
+		if ( i >= s_demos.numDemos ) {
+			trap_Cvar_Set( va( "ui_dm%i_date", r ), "" );
+			continue;
+		}
+		{
+			demoEntry_t	*d = &s_demos.demos[i];
+
+			if ( !d->date[0] ) {
+				Q_strncpyz( text, d->file, sizeof( text ) );
+				trap_Cvar_Set( va( "ui_dm%i_date", r ), text );
+				trap_Cvar_Set( va( "ui_dm%i_map", r ), "" );
+				trap_Cvar_Set( va( "ui_dm%i_mode", r ), d->old ? BG_String( STR_DM_OLD ) : "" );
+				trap_Cvar_Set( va( "ui_dm%i_length", r ), "" );
+				trap_Cvar_Set( va( "ui_dm%i_players", r ), "" );
+				continue;
+			}
+			trap_Cvar_Set( va( "ui_dm%i_date", r ), d->date );
+			trap_Cvar_Set( va( "ui_dm%i_map", r ), d->map );
+			trap_Cvar_Set( va( "ui_dm%i_mode", r ), d->modeString ? BG_String( d->modeString ) : "" );
+			trap_Cvar_Set( va( "ui_dm%i_length", r ), d->duration > 0 ? va( "%i:%02i", d->duration / 60000, ( d->duration / 1000 ) % 60 ) : "" );
+			trap_Cvar_Set( va( "ui_dm%i_players", r ), d->players );
+		}
+	}
+	trap_Cvar_SetValue( "ui_dmSel", s_demos.selected - s_demos.top );
+	trap_Cvar_SetValue( "ui_dmCount", s_demos.numDemos );
+	trap_Cvar_Set( "ui_dmConfirm", "0" );
+	if ( s_demos.selected < s_demos.numDemos ) {
+		char	*dot;
+
+		Q_strncpyz( text, s_demos.demos[s_demos.selected].file, sizeof( text ) );
+		dot = strstr( text, "." DEMOEXT );
+		if ( dot ) {
+			*dot = 0;
+		}
+		trap_Cvar_Set( "ui_dmName", text );
+	}
+}
+
+/*
+===============
+UI_DemosRml
+===============
+*/
+void UI_DemosRml( void ) {
+	memset( &s_demos, 0, sizeof( s_demos ) );
+	s_demos.protocol = trap_Cvar_VariableValue( "com_protocol" );
+	if ( !s_demos.protocol ) {
+		s_demos.protocol = trap_Cvar_VariableValue( "protocol" );
+	}
+	Demos_Refresh();
+	Demos_Publish();
+	trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/demos.rml\n" );
+}
+
+/*
+===============
+UI_DemosCommand
+===============
+*/
+qboolean UI_DemosCommand( const char *cmd ) {
+	demoEntry_t	*d = s_demos.selected < s_demos.numDemos ? &s_demos.demos[s_demos.selected] : NULL;
+	int			i;
+
+	if ( !Q_stricmp( cmd, "ui_dmPick" ) ) {
+		i = s_demos.top + atoi( UI_Argv( 1 ) );
+		if ( i < s_demos.numDemos ) {
+			if ( i == s_demos.selected && !s_demos.demos[i].old ) {
+				UI_ForceMenuOff();
+				trap_Cmd_ExecuteText( EXEC_APPEND, va( "rml_hide\ndemo %s\n", s_demos.demos[i].file ) );
+				return qtrue;
+			}
+			s_demos.selected = i;
+		}
+		Demos_Publish();
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_dmPlay" ) ) {
+		if ( d && !d->old ) {
+			UI_ForceMenuOff();
+			trap_Cmd_ExecuteText( EXEC_APPEND, va( "rml_hide\ndemo %s\n", d->file ) );
+		}
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_dmScroll" ) ) {
+		Demos_Select( s_demos.selected + atoi( UI_Argv( 1 ) ) );
+		Demos_Publish();
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_dmDelete" ) ) {
+		if ( !d ) {
+			return qtrue;
+		}
+		if ( !trap_Cvar_VariableValue( "ui_dmConfirm" ) ) {
+			trap_Cvar_Set( "ui_dmConfirm", "1" );
+			return qtrue;
+		}
+		trap_Cmd_ExecuteText( EXEC_NOW, va( "demo_delete %s\n", d->file ) );
+		Demos_Refresh();
+		Demos_Publish();
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_dmRename" ) ) {
+		// the new name typed into the field (ui_dmNewName)
+		char	name[64];
+
+		trap_Cvar_VariableStringBuffer( "ui_dmNewName", name, sizeof( name ) );
+		if ( d && name[0] ) {
+			trap_Cmd_ExecuteText( EXEC_NOW, va( "demo_rename %s \"%s\"\n", d->file, name ) );
+			Demos_Refresh();
+			Demos_Publish();
+		}
+		return qtrue;
+	}
+	return qfalse;
+}

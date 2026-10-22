@@ -1,0 +1,69 @@
+<rml>
+<head>
+	<title>Demos</title>
+	<link type="text/rcss" href="tremor.rcss"/>
+</head>
+<body data-escape="rml_show ui/main.rml">
+	<div class="fs">
+		<h1>[menu_demos]</h1>
+		<div class="fshead"><span class="d1">[dm_date]</span><span class="d2">[fs_map]</span><span class="d3">[fs_mode]</span><span class="d4">[dm_length]</span><span class="d5">[fs_players]</span></div>
+		<div class="fslist tall">
+			<div class="fsrow" data-when="ui_dm0_date!=" data-class="on:ui_dmSel=0" onclick="ui_dmPick 0">
+				<span class="d1" data-text-cvar="ui_dm0_date"></span><span class="d2" data-text-cvar="ui_dm0_map"></span><span class="d3" data-text-cvar="ui_dm0_mode"></span><span class="d4" data-text-cvar="ui_dm0_length"></span><span class="d5" data-text-cvar="ui_dm0_players"></span>
+			</div>
+			<div class="fsrow" data-when="ui_dm1_date!=" data-class="on:ui_dmSel=1" onclick="ui_dmPick 1">
+				<span class="d1" data-text-cvar="ui_dm1_date"></span><span class="d2" data-text-cvar="ui_dm1_map"></span><span class="d3" data-text-cvar="ui_dm1_mode"></span><span class="d4" data-text-cvar="ui_dm1_length"></span><span class="d5" data-text-cvar="ui_dm1_players"></span>
+			</div>
+			<div class="fsrow" data-when="ui_dm2_date!=" data-class="on:ui_dmSel=2" onclick="ui_dmPick 2">
+				<span class="d1" data-text-cvar="ui_dm2_date"></span><span class="d2" data-text-cvar="ui_dm2_map"></span><span class="d3" data-text-cvar="ui_dm2_mode"></span><span class="d4" data-text-cvar="ui_dm2_length"></span><span class="d5" data-text-cvar="ui_dm2_players"></span>
+			</div>
+			<div class="fsrow" data-when="ui_dm3_date!=" data-class="on:ui_dmSel=3" onclick="ui_dmPick 3">
+				<span class="d1" data-text-cvar="ui_dm3_date"></span><span class="d2" data-text-cvar="ui_dm3_map"></span><span class="d3" data-text-cvar="ui_dm3_mode"></span><span class="d4" data-text-cvar="ui_dm3_length"></span><span class="d5" data-text-cvar="ui_dm3_players"></span>
+			</div>
+			<div class="fsrow" data-when="ui_dm4_date!=" data-class="on:ui_dmSel=4" onclick="ui_dmPick 4">
+				<span class="d1" data-text-cvar="ui_dm4_date"></span><span class="d2" data-text-cvar="ui_dm4_map"></span><span class="d3" data-text-cvar="ui_dm4_mode"></span><span class="d4" data-text-cvar="ui_dm4_length"></span><span class="d5" data-text-cvar="ui_dm4_players"></span>
+			</div>
+			<div class="fsrow" data-when="ui_dm5_date!=" data-class="on:ui_dmSel=5" onclick="ui_dmPick 5">
+				<span class="d1" data-text-cvar="ui_dm5_date"></span><span class="d2" data-text-cvar="ui_dm5_map"></span><span class="d3" data-text-cvar="ui_dm5_mode"></span><span class="d4" data-text-cvar="ui_dm5_length"></span><span class="d5" data-text-cvar="ui_dm5_players"></span>
+			</div>
+			<div class="fsrow" data-when="ui_dm6_date!=" data-class="on:ui_dmSel=6" onclick="ui_dmPick 6">
+				<span class="d1" data-text-cvar="ui_dm6_date"></span><span class="d2" data-text-cvar="ui_dm6_map"></span><span class="d3" data-text-cvar="ui_dm6_mode"></span><span class="d4" data-text-cvar="ui_dm6_length"></span><span class="d5" data-text-cvar="ui_dm6_players"></span>
+			</div>
+			<div class="fsrow" data-when="ui_dm7_date!=" data-class="on:ui_dmSel=7" onclick="ui_dmPick 7">
+				<span class="d1" data-text-cvar="ui_dm7_date"></span><span class="d2" data-text-cvar="ui_dm7_map"></span><span class="d3" data-text-cvar="ui_dm7_mode"></span><span class="d4" data-text-cvar="ui_dm7_length"></span><span class="d5" data-text-cvar="ui_dm7_players"></span>
+			</div>
+			<div class="fsrow" data-when="ui_dm8_date!=" data-class="on:ui_dmSel=8" onclick="ui_dmPick 8">
+				<span class="d1" data-text-cvar="ui_dm8_date"></span><span class="d2" data-text-cvar="ui_dm8_map"></span><span class="d3" data-text-cvar="ui_dm8_mode"></span><span class="d4" data-text-cvar="ui_dm8_length"></span><span class="d5" data-text-cvar="ui_dm8_players"></span>
+			</div>
+			<div class="fsrow" data-when="ui_dm9_date!=" data-class="on:ui_dmSel=9" onclick="ui_dmPick 9">
+				<span class="d1" data-text-cvar="ui_dm9_date"></span><span class="d2" data-text-cvar="ui_dm9_map"></span><span class="d3" data-text-cvar="ui_dm9_mode"></span><span class="d4" data-text-cvar="ui_dm9_length"></span><span class="d5" data-text-cvar="ui_dm9_players"></span>
+			</div>
+			<div class="fsrow" data-when="ui_dm10_date!=" data-class="on:ui_dmSel=10" onclick="ui_dmPick 10">
+				<span class="d1" data-text-cvar="ui_dm10_date"></span><span class="d2" data-text-cvar="ui_dm10_map"></span><span class="d3" data-text-cvar="ui_dm10_mode"></span><span class="d4" data-text-cvar="ui_dm10_length"></span><span class="d5" data-text-cvar="ui_dm10_players"></span>
+			</div>
+			<div class="fsrow" data-when="ui_dm11_date!=" data-class="on:ui_dmSel=11" onclick="ui_dmPick 11">
+				<span class="d1" data-text-cvar="ui_dm11_date"></span><span class="d2" data-text-cvar="ui_dm11_map"></span><span class="d3" data-text-cvar="ui_dm11_mode"></span><span class="d4" data-text-cvar="ui_dm11_length"></span><span class="d5" data-text-cvar="ui_dm11_players"></span>
+			</div>
+			<div class="fsrow" data-when="ui_dm12_date!=" data-class="on:ui_dmSel=12" onclick="ui_dmPick 12">
+				<span class="d1" data-text-cvar="ui_dm12_date"></span><span class="d2" data-text-cvar="ui_dm12_map"></span><span class="d3" data-text-cvar="ui_dm12_mode"></span><span class="d4" data-text-cvar="ui_dm12_length"></span><span class="d5" data-text-cvar="ui_dm12_players"></span>
+			</div>
+			<div class="fsrow" data-when="ui_dm13_date!=" data-class="on:ui_dmSel=13" onclick="ui_dmPick 13">
+				<span class="d1" data-text-cvar="ui_dm13_date"></span><span class="d2" data-text-cvar="ui_dm13_map"></span><span class="d3" data-text-cvar="ui_dm13_mode"></span><span class="d4" data-text-cvar="ui_dm13_length"></span><span class="d5" data-text-cvar="ui_dm13_players"></span>
+			</div>
+			<div class="fsrow" data-when="ui_dmCount=0">[dm_none]</div>
+		</div>
+		<div class="fsstatus">
+			<button class="opt" onclick="ui_dmScroll -14">&lt;</button>
+			<button class="opt" onclick="ui_dmScroll 14">&gt;</button>
+			<span class="label">[dm_rename]</span><input type="text" size="24" maxlength="48" data-value-cvar="ui_dmName" onchange="set ui_dmNewName {value}"/>
+			<button class="opt" onclick="ui_dmRename">[dm_rename_go]</button>
+		</div>
+		<div class="fsactions">
+			<button onclick="rml_show ui/main.rml">[menu_back]</button>
+			<button data-when="ui_dmConfirm!=1" onclick="ui_dmDelete">[dm_delete]</button>
+			<button data-when="ui_dmConfirm=1" onclick="ui_dmDelete">[dm_delete_sure]</button>
+			<button class="go" onclick="ui_dmPlay">[dm_play]</button>
+		</div>
+	</div>
+</body>
+</rml>
