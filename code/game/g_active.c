@@ -428,7 +428,7 @@ static void G_Regeneration( gentity_t *ent, int msec ) {
 	gclient_t	*client = ent->client;
 	int			top, add;
 
-	if ( !( BG_Champion( client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_REGENERATION ) ) {
+	if ( !( BG_Champion( client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_REGENERATION ) || !g_passiveRegen.integer ) {
 		return;
 	}
 	if ( ent->health <= 0 || level.time - client->lastDamageTime < g_regenDelay.integer ) {
@@ -663,6 +663,9 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed ) 
 		G_Damage( other, ent, ent, dir, other->r.currentOrigin, damage,
 			DAMAGE_NO_KNOCKBACK, MOD_HEAVYWEIGHT );
 		if ( other->health > 0 ) {
+			if ( G_AbilityActive( ent, ACTIVE_BULLRUSH ) ) {
+				G_Slow( other, 0.7f, 1000 );		// spirit slow
+			}
 			VectorMA( other->client->ps.velocity, ( champ->abilities & MOVEABIL_HEAVYWEIGHT )
 				? g_hwKnockback.value : g_hookKnockback.value, dir, other->client->ps.velocity );
 			// a survivor stops the bull rush; a kill does not
@@ -1230,9 +1233,12 @@ void ClientThink_real( gentity_t *ent ) {
 
 	// set speed
 	client->ps.speed = BG_Champion( client->ps.stats[STAT_CHAMPION] )->runSpeed;
-	// Klesk's spines slow the run
+	// slows (spines, Bull Rush hits, Plasma Trail) and Ranger's haste
 	if ( client->slowEndTime > level.time ) {
-		client->ps.speed *= 0.7f;
+		client->ps.speed *= client->slowScale > 0 ? client->slowScale : 0.7f;
+	}
+	if ( client->hasteEndTime > level.time ) {
+		client->ps.speed *= 1.1f;
 	}
 
 #ifdef MISSIONPACK
@@ -1294,6 +1300,10 @@ void ClientThink_real( gentity_t *ent ) {
 		}
 	}
 #endif
+
+	if ( client->stunEndTime > level.time ) {
+		ucmd->buttons &= ~( BUTTON_ATTACK | BUTTON_ABILITY );
+	}
 
 	pm.ps = &client->ps;
 	pm.cmd = *ucmd;

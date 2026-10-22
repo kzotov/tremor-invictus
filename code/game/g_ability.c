@@ -241,7 +241,7 @@ static void G_DamageOverTimeTick( gentity_t *ent, int *endTime, int *nextTime, i
 	int total, int duration, int mod ) {
 	int		interval;
 
-	if ( *endTime <= level.time || total <= 0 ) {
+	if ( *endTime <= level.time || total <= 0 || !g_damageOverTime.integer ) {
 		return;
 	}
 	interval = duration / total;
@@ -355,6 +355,7 @@ An enemy at the spot takes telefrag damage.
 */
 static void G_OrbTeleport( gentity_t *ent ) {
 	gentity_t	*orb = ent->client->abilityEnt;
+
 	gentity_t	*tent, *other;
 	trace_t		tr;
 	vec3_t		spot, mins, maxs;
@@ -364,6 +365,11 @@ static void G_OrbTeleport( gentity_t *ent ) {
 	if ( !orb ) {
 		G_AbilityDone( ent );
 		return;
+	}
+
+	// inhuman haste: faster for a while after each teleport
+	if ( BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_HASTE ) {
+		ent->client->hasteEndTime = level.time + 3000;
 	}
 
 	VectorCopy( orb->r.currentOrigin, spot );
@@ -1106,6 +1112,7 @@ static void G_TrailThink( gentity_t *seg ) {
 			continue;
 		}
 		other->client->trailBurnTime = level.time + TRAIL_BURN_MSEC;
+		G_Slow( other, 0.75f, TRAIL_BURN_MSEC + 50 );		// slowed while in it
 		G_Damage( other, seg, seg->parent, NULL, NULL, g_trailDamage.integer, DAMAGE_NO_KNOCKBACK, MOD_PLASMATRAIL );
 	}
 	seg->nextthink = level.time + ABILITY_FRAME;
@@ -1474,6 +1481,24 @@ void G_AbilityClientThink( gentity_t *ent ) {
 			G_AbilityEnded( ent );
 		}
 	}
+	// Strogg's drone shows the enemies it sees
+	if ( G_AbilityActive( ent, ACTIVE_DRONE ) ) {
+		gentity_t	*other;
+		trace_t		tr;
+		int			i;
+
+		for ( i = 0, other = g_entities ; i < level.maxclients ; i++, other++ ) {
+			if ( !other->inuse || !other->client || other == ent || other->health <= 0 || !G_AbilityEnemy( ent, other )
+				|| Distance( other->r.currentOrigin, client->ps.origin ) > 2000 ) {
+				continue;
+			}
+			trap_Trace( &tr, client->ps.origin, NULL, NULL, other->r.currentOrigin, ent->s.number, MASK_SOLID );
+			if ( tr.fraction == 1.0f ) {
+				other->client->revealEndTime = level.time + 300;
+			}
+		}
+	}
+
 	if ( G_AbilityActive( ent, ACTIVE_PLASMATRAIL ) ) {
 		while ( level.time >= client->trailTime ) {
 			G_DropTrail( ent );

@@ -811,7 +811,7 @@ typedef enum {
 	STR_ABILDESC_HOUND,
 	STR_ABILDESC_RIFTANCHOR,
 	STR_PASSIVE_REGENERATION,
-	STR_PASSIVE_SELFDAMAGE,
+	STR_PASSIVE_HASTE,
 	STR_PASSIVE_SPLASHRESIST,
 	STR_PASSIVE_FIREPROOF,
 	STR_PASSIVE_ACIDPROOF,
@@ -1108,7 +1108,7 @@ void	BG_ShotgunPelletOffset( int weapon, int index, int count, int *seed, float 
 
 // passive champion traits, champion_t.passives bits
 #define	PASSIVE_REGENERATION	1		// refill to the top of the 25 HP block
-#define	PASSIVE_SELFDAMAGE		2		// less self-damage
+#define	PASSIVE_HASTE			2		// Ranger: +10% run speed for 3 s after each teleport
 #define	PASSIVE_SPLASHRESIST	4		// less splash damage
 #define	PASSIVE_FIREPROOF		8		// immune to fire and lava
 #define	PASSIVE_ACIDPROOF		16		// immune to acid and slime

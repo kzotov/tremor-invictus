@@ -658,6 +658,20 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	// duel and TDM: attack respawns from 2.1 s, and it happens anyway at 2.4 s
 	self->client->respawnTime = level.time + ( G_Sacrifice() ? 5000 : G_MatchMode() ? 2100 : 1700 );
 
+	// Scalebearer's death stun (g_deathStun): enemies close by can't fire or
+	// use abilities for half a second
+	if ( g_deathStun.integer && BG_ChampionForName( "scalebearer" ) == self->client->ps.stats[STAT_CHAMPION] ) {
+		gentity_t	*other;
+		int			k;
+
+		for ( k = 0, other = g_entities ; k < level.maxclients ; k++, other++ ) {
+			if ( other->inuse && other->client && other != self && other->health > 0 && !OnSameTeam( other, self )
+				&& Distance( other->r.currentOrigin, self->r.currentOrigin ) <= 120 ) {
+				other->client->stunEndTime = level.time + 500;
+			}
+		}
+	}
+
 	// the death screen: who, with what, what they have left, the damage both
 	// ways this life, and when the respawn comes
 	if ( attacker && attacker->client && attacker != self && attacker->s.number < MAX_CLIENTS ) {
@@ -1070,6 +1084,10 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if ( G_WarmupPractice() && targ->client && ( targ == attacker || mod == MOD_FALLING ) ) {
 		return;
 	}
+	// a mode without self damage: your own blasts only push
+	if ( !g_selfDamage.integer && targ->client && targ == attacker ) {
+		return;
+	}
 
 	// check for completely getting out of the damage
 	if ( !(dflags & DAMAGE_NO_PROTECTION) ) {
@@ -1152,9 +1170,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if ( client ) {
 		int		passives = BG_Champion( client->ps.stats[STAT_CHAMPION] )->passives;
 
-		if ( ( passives & PASSIVE_SELFDAMAGE ) && targ == attacker ) {
-			damage *= g_selfDamageScale.value;
-		}
+
 		if ( passives & PASSIVE_SPLASHRESIST ) {
 			if ( targ == attacker ) {
 				damage *= g_reinforcedSelfScale.value;
@@ -1177,7 +1193,8 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
 	// just spawned: less damage until the protection runs out or the player fires
 	if ( client && level.time < client->spawnProtectEnd && attacker && attacker->client && attacker != targ && mod != MOD_TELEFRAG ) {
-		take = damage * g_spawnProtectionScale.value;
+		// 67% off, nearly all in the arcade modes
+		take = damage * ( g_instagib.integer || g_unholyTrinity.integer ? 0.01f : g_spawnProtectionScale.value );
 		damage = take < 1 ? 1 : take;
 	}
 

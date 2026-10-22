@@ -376,6 +376,10 @@ int Pickup_Armor( gentity_t *ent, gentity_t *other ) {
 
 		if ( amount < 25 ) {
 			amount = g_shardArmor.integer;
+			// Eisen repairs from shards: double
+			if ( BG_Champion( other->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_ARMORREGEN ) {
+				amount *= 2;
+			}
 		} else if ( amount < 100 ) {
 			cap = G_ClassInfo( other->client )->baseArmor;
 		}

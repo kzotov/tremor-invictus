@@ -1036,7 +1036,7 @@ const classInfo_t bg_classInfo[CLASS_NUM_CLASSES] = {
 const champion_t bg_championList[] = {
 	// name, body class, run speed, jump speed cap, style, movement abilities, active ability, passives,
 	// player model, display name
-	{ "ranger", CLASS_MEDIUM, 320, 900, MOVE_STANDARD, 0, ACTIVE_ORB, PASSIVE_SELFDAMAGE, "ranger", STR_CHAMPION_RANGER },	// default, must stay first
+	{ "ranger", CLASS_MEDIUM, 320, 900, MOVE_STANDARD, 0, ACTIVE_ORB, PASSIVE_HASTE, "ranger", STR_CHAMPION_RANGER },	// default, must stay first
 	{ "anarki", CLASS_LIGHT, 320, 620, MOVE_AIRCONTROL, 0, ACTIVE_INJECTION, 0, "anarki", STR_CHAMPION_ANARKI },
 	{ "athena", CLASS_LIGHT, 320, 750, MOVE_STANDARD, MOVEABIL_RAMPJUMP, ACTIVE_HOOK, 0, "crash", STR_CHAMPION_ATHENA },
 	{ "nyx", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, MOVEABIL_WALLJUMP | MOVEABIL_EASYSTRAFE, ACTIVE_GHOSTWALK, 0, "mynx", STR_CHAMPION_NYX },
@@ -1044,7 +1044,7 @@ const champion_t bg_championList[] = {
 	{ "bj", CLASS_MEDIUM, 320, 900, MOVE_STANDARD, 0, ACTIVE_DUALWIELD, PASSIVE_REGENERATION, "bitterman", STR_CHAMPION_BJ },
 	{ "deathknight", CLASS_MEDIUM, 320, 900, MOVE_STANDARD, 0, ACTIVE_FLAMESTRIKE, PASSIVE_FIREPROOF | PASSIVE_CHARRING, "bones", STR_CHAMPION_DEATHKNIGHT },
 	{ "doomslayer", CLASS_MEDIUM, 320, 700, MOVE_STANDARD, MOVEABIL_DOUBLEJUMP, ACTIVE_BERSERK, 0, "doom", STR_CHAMPION_DOOMSLAYER },
-	{ "eisen", CLASS_MEDIUM, 320, 700, MOVE_STANDARD, 0, ACTIVE_TURRET, PASSIVE_ARMORCOOLDOWN | PASSIVE_ARMORREGEN, "biker", STR_CHAMPION_EISEN },
+	{ "eisen", CLASS_MEDIUM, 320, 700, MOVE_STANDARD, 0, ACTIVE_TURRET, PASSIVE_ARMORREGEN, "biker", STR_CHAMPION_EISEN },
 	{ "galena", CLASS_MEDIUM, 320, 900, MOVE_STANDARD, 0, ACTIVE_TOTEM, PASSIVE_HEALTHCOOLDOWN | PASSIVE_SLOWDECAY, "lucy", STR_CHAMPION_GALENA },
 	{ "strogg", CLASS_MEDIUM, 320, 650, MOVE_SLIDE, 0, ACTIVE_DRONE, PASSIVE_STROYENT, "grunt", STR_CHAMPION_STROGG },
 	{ "visor", CLASS_MEDIUM, 320, 0, MOVE_STANDARD, 0, ACTIVE_PIERCINGSIGHT, PASSIVE_FULLSPRINT, "visor", STR_CHAMPION_VISOR },
@@ -1582,7 +1582,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Releases a hound that hunts the nearest enemy.",
 	"Sets an anchor; press again to return to it.",
 	"Health refills to the top of its 25-point block.",
-	"Decorated Airman: full air control in every direction.",
+	"Inhuman haste: 10% faster for 3 s after each teleport.",
 	"Takes less splash damage.",
 	"Fire and lava do no harm.",
 	"Acid and slime do no harm.",
@@ -1592,7 +1592,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Keeps more speed in the air.",
 	"Melee hits set the target burning.",
 	"Kills drop cells that heal this champion.",
-	"Own blasts hurt less and push harder.",
+	"Decorated Airman: full air control in every direction.",
 	"Health comes back to base after a quiet while.",
 	"Once a life, a killing hit leaves 1 health.",
 	"Switches weapons faster.",

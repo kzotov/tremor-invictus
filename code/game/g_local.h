@@ -363,6 +363,10 @@ struct gclient_s {
 	int			slowEndTime;		// spines: run speed cut until then
 	int			markEndTime;		// marked prey / storm: shown through walls until then
 	int			trailBurnTime;		// Plasma Trail: no burn again before this
+	float		slowScale;			// run speed while slowEndTime holds
+	int			hasteEndTime;		// Ranger: +10% run speed after a teleport
+	int			stunEndTime;		// no firing and no ability until then
+	int			revealEndTime;		// seen by an enemy drone: shown through walls
 	int			markTeam;			// team (or client + 1000 in free for all) whose hits are stronger
 	qboolean	undyingUsed;
 	int			invulnEndTime;		// no damage until then
@@ -756,6 +760,7 @@ int			G_ArenaCount( void );
 const char	*G_ArenaInfo( int n );
 qboolean	G_DuelPlayersReady( void );
 qboolean	G_WarmupPractice( void );
+void		G_Slow( gentity_t *target, float scale, int msec );
 void		G_WarmupLoadout( gentity_t *ent );
 void		G_WarmupAmmo( gentity_t *ent );
 qboolean	G_WarmupKill( gentity_t *ent );
@@ -1000,6 +1005,10 @@ extern	vmCvar_t	g_restarted;
 extern	vmCvar_t	g_overtime;
 extern	vmCvar_t	g_duelReadyUp;
 extern	vmCvar_t	g_readyUp;
+extern	vmCvar_t	g_passiveRegen;
+extern	vmCvar_t	g_selfDamage;
+extern	vmCvar_t	g_damageOverTime;
+extern	vmCvar_t	g_deathStun;
 extern	vmCvar_t	g_readyUpShare;
 extern	vmCvar_t	g_warmupTime;
 extern	vmCvar_t	g_duelFraglimit;

@@ -199,8 +199,8 @@ static void G_SpineImpact( gentity_t *spine, trace_t *trace ) {
 	if ( other->takedamage ) {
 		BG_EvaluateTrajectoryDelta( &spine->s.pos, level.time, velocity );
 		G_Damage( other, spine, spine->parent, velocity, trace->endpos, 20, 0, MOD_SPINES );
-		if ( other->client && other->client->slowEndTime < level.time + 1500 ) {
-			other->client->slowEndTime = level.time + 1500;
+		if ( other->client ) {
+			G_Slow( other, 0.7f, 1500 );
 		}
 	}
 	G_FreeEntity( spine );
@@ -329,6 +329,27 @@ HUNTER: MARK PREY, RAINE: DOWNPOUR
 
 ==============================================================================
 */
+
+/*
+=================
+G_Slow
+
+Run speed times scale for msec; the stronger or longer slow wins
+=================
+*/
+void G_Slow( gentity_t *target, float scale, int msec ) {
+	gclient_t	*cl = target->client;
+
+	if ( !cl ) {
+		return;
+	}
+	if ( cl->slowEndTime <= level.time || scale < cl->slowScale ) {
+		cl->slowScale = scale;
+	}
+	if ( cl->slowEndTime < level.time + msec ) {
+		cl->slowEndTime = level.time + msec;
+	}
+}
 
 static int G_MarkTeam( gentity_t *ent ) {
 	if ( g_gametype.integer >= GT_TEAM ) {
@@ -607,8 +628,9 @@ void G_ChampionClientThink( gentity_t *ent ) {
 	int			passives = G_Passives( ent );
 	int			add;
 
-	// marked: everyone else is sent this player, and sees them through walls
-	if ( client->markEndTime > level.time && ent->health > 0 ) {
+	// marked (or seen by an enemy drone): everyone else is sent this player,
+	// and sees them through walls
+	if ( ( client->markEndTime > level.time || client->revealEndTime > level.time ) && ent->health > 0 ) {
 		client->ps.eFlags |= EF_MARKED;
 	} else {
 		client->ps.eFlags &= ~EF_MARKED;
@@ -625,7 +647,7 @@ void G_ChampionClientThink( gentity_t *ent ) {
 	}
 
 	// Hive Regeneration: 3 s after the last hit, 5 health a second up to base health
-	if ( ( passives & PASSIVE_HIVEREGEN ) && level.time - client->lastDamageTime >= 3000 && ent->health < 100 ) {
+	if ( ( passives & PASSIVE_HIVEREGEN ) && g_passiveRegen.integer && level.time - client->lastDamageTime >= 3000 && ent->health < 100 ) {
 		client->hiveResidual += 5 * CHAMP_FRAME;
 		add = client->hiveResidual / 1000;
 		client->hiveResidual -= add * 1000;
@@ -637,7 +659,7 @@ void G_ChampionClientThink( gentity_t *ent ) {
 	}
 
 	// Armour Regen: 3 s after the last hit, 5 armour a second up to 50
-	if ( ( passives & PASSIVE_ARMORREGEN ) && level.time - client->lastDamageTime >= 3000
+	if ( ( passives & PASSIVE_ARMORREGEN ) && g_passiveRegen.integer && level.time - client->lastDamageTime >= 3000
 		&& client->ps.stats[STAT_ARMOR] < 50 ) {
 		client->armorRegenResidual += 5 * CHAMP_FRAME;
 		add = client->armorRegenResidual / 1000;

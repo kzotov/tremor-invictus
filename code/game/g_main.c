@@ -209,6 +209,10 @@ vmCvar_t	g_restarted;
 vmCvar_t	g_overtime;
 vmCvar_t	g_duelReadyUp;
 vmCvar_t	g_readyUp;
+vmCvar_t	g_passiveRegen;
+vmCvar_t	g_selfDamage;
+vmCvar_t	g_damageOverTime;
+vmCvar_t	g_deathStun;
 vmCvar_t	g_readyUpShare;
 vmCvar_t	g_warmupTime;
 vmCvar_t	g_duelFraglimit;
@@ -286,6 +290,12 @@ static cvarTable_t		gameCvarTable[] = {
 	// seconds after the players are in (matchmade); g_readyUpShare percent
 	// must be ready (0: 100 in duel, 75 in team modes)
 	{ &g_readyUp, "g_readyUp", "1", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qtrue },
+	// mode settings: champions' regeneration passives, self damage, burning and poison
+	{ &g_passiveRegen, "g_passiveRegen", "1", 0, 0, qtrue },
+	{ &g_selfDamage, "g_selfDamage", "1", 0, 0, qtrue },
+	{ &g_damageOverTime, "g_damageOverTime", "1", 0, 0, qtrue },
+	// Scalebearer's death stun, off by default
+	{ &g_deathStun, "g_deathStun", "0", 0, 0, qtrue },
 	{ &g_readyUpShare, "g_readyUpShare", "0", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_warmupTime, "g_warmupTime", "20", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_duelFraglimit, "g_duelFraglimit", "0", CVAR_ARCHIVE, 0, qtrue },
@@ -294,8 +304,8 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_championDuplicates, "g_championDuplicates", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue },	// 0: one of each champion per team
 	{ &g_instagib, "g_instagib", "0", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse },		// arcade: free-for-all or TDM with one-hit rails
 	{ &g_unholyTrinity, "g_unholyTrinity", "0", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse },	// arcade: RL, LG and RG for everyone
-	{ &g_spawnProtection, "g_spawnProtection", "1000", 0, 0, qtrue },		// msec after spawning
-	{ &g_spawnProtectionScale, "g_spawnProtectionScale", "0.5", 0, 0, qtrue },
+	{ &g_spawnProtection, "g_spawnProtection", "2000", 0, 0, qtrue },		// msec after spawning, ended by firing
+	{ &g_spawnProtectionScale, "g_spawnProtectionScale", "0.33", 0, 0, qtrue },	// damage taken: 67% off
 	{ &g_teamSize, "g_teamSize", "0", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue },		// players per team, 0 = no limit
 	{ &g_voteTypes, "g_voteTypes", "map nextmap map_restart kick shuffle teamsize timelimit fraglimit capturelimit roundlimit mode cointoss", CVAR_ARCHIVE, 0, qfalse },
 	{ &g_mapVote, "g_mapVote", "1", CVAR_ARCHIVE, 0, qtrue },			// end-of-match map vote; 0 = the rotation decides
