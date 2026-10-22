@@ -2645,7 +2645,9 @@ static void CG_DrawReward( void ) {
 			medalOutShader = medalRow[0].shader;
 			medalOutCount = medalRow[0].count;
 			medalOutTime = cg.time;
-			medalOutAlpha = t < MEDAL_ONE_IN ? (float)t / MEDAL_ONE_IN : 1;
+			// as it showed then: fading in, full, or fading out
+			medalOutAlpha = t < MEDAL_ONE_IN ? (float)t / MEDAL_ONE_IN
+				: t > MEDAL_ONE_TIME - MEDAL_ONE_OUT ? (float)( MEDAL_ONE_TIME - t ) / MEDAL_ONE_OUT : 1;
 		}
 		medalRowCount = 0;
 		while ( cg.rewardStack > 0 && medalRowCount < ( CG_HudModern() ? 1 : MEDAL_ROW ) ) {
