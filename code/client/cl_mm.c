@@ -32,6 +32,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define MM_KEY_FILE		"mmplayer.key"
 #define MM_POLL_MSEC	1000
+#define MM_FOUND_MSEC	6000	// the match-found screen before connecting
+#define MM_MAX_SHOWN	8
 
 static cvar_t	*mm_url;
 
@@ -45,6 +47,9 @@ static struct {
 	int			nextPoll;
 	qboolean	polling;		// searching, in a ready check, or connecting
 	char		lastState[32];
+	int			foundTime;		// the match-found screen went up; 0 when not showing
+	char		address[128];	// the reserved server, connected to after the screen
+	char		token[64];
 } mm;
 
 static const char *mmModes[] = { "duel", "tdm", "tdm2v2", "ctf", "ca", "ca2v2", "sacrifice", "roundduel" };
@@ -56,6 +61,8 @@ static void SetState( const char *state ) {
 	Cvar_Set( "mm_state", state );
 	if ( !strcmp( state, "ready_check" ) && strcmp( mm.lastState, "ready_check" ) ) {
 		Cbuf_ExecuteText( EXEC_NOW, "rml_show ui/readycheck.rml\n" );
+	} else if ( !strcmp( state, "found" ) && strcmp( mm.lastState, "found" ) ) {
+		Cbuf_ExecuteText( EXEC_NOW, "rml_show ui/matchfound.rml\n" );
 	} else if ( strcmp( state, "ready_check" ) && !strcmp( mm.lastState, "ready_check" ) ) {
 		if ( !Q_stricmp( Cvar_VariableString( "rml_doc" ), "ui/readycheck.rml" ) ) {
 			Cbuf_ExecuteText( EXEC_NOW, "rml_hide\n" );
@@ -217,6 +224,51 @@ static void ReadParty( const char *body ) {
 	Cvar_Set( "mm_party_size", va( "%d", members ) );
 }
 
+/*
+=================
+ReadPlayers
+
+The match's players for the match-found screen: mm_p<n>_name, _champ (the
+stage draws it), _champName, _team and _rating, reds first; mm_pcount
+=================
+*/
+static void ReadPlayers( const char *body ) {
+	char		players[4096], obj[512], value[64];
+	const char	*p, *end;
+	int			pass, n = 0;
+
+	if ( !MM_JsonValue( body, "players", players, sizeof( players ) ) ) {
+		return;
+	}
+	for ( pass = 0; pass < 2; pass++ ) {
+		for ( p = players; ( p = strchr( p, '{' ) ) != NULL && n < MM_MAX_SHOWN; p = end ) {
+			end = strchr( p, '}' );
+			if ( !end ) {
+				break;
+			}
+			Q_strncpyz( obj, p, end - p + 2 < (int)sizeof( obj ) ? end - p + 2 : (int)sizeof( obj ) );
+			MM_JsonValue( obj, "team", value, sizeof( value ) );
+			if ( strcmp( value, pass ? "blue" : "red" ) ) {
+				continue;
+			}
+			Cvar_Set( va( "mm_p%i_team", n ), value );
+			MM_JsonValue( obj, "name", value, sizeof( value ) );
+			Cvar_Set( va( "mm_p%i_name", n ), value );
+			MM_JsonValue( obj, "champion", value, sizeof( value ) );
+			if ( !value[0] ) {
+				Q_strncpyz( value, "ranger", sizeof( value ) );
+			}
+			Cvar_Set( va( "mm_p%i_champ", n ), value );
+			value[0] = toupper( (unsigned char)value[0] );
+			Cvar_Set( va( "mm_p%i_champName", n ), value );
+			MM_JsonValue( obj, "rating", value, sizeof( value ) );
+			Cvar_Set( va( "mm_p%i_rating", n ), strcmp( value, "null" ) ? value : "" );
+			n++;
+		}
+	}
+	Cvar_Set( "mm_pcount", va( "%i", n ) );
+}
+
 static void ReadStatus( const char *body ) {
 	char state[32], value[256];
 
@@ -245,13 +297,13 @@ static void ReadStatus( const char *body ) {
 			SetState( "waiting_server" );		// accepted; no server free yet
 			return;
 		}
-		SetState( "connecting" );
-		mm.polling = qfalse;
-		Cvar_Set( "mmtoken", token );
-		Com_Printf( "matchmaker: match on %s\n", address );
-		// now, ahead of anything waiting in the command buffer
-		Cbuf_ExecuteText( EXEC_NOW, "rml_hide\n" );
-		Cbuf_ExecuteText( EXEC_NOW, va( "connect %s\n", address ) );
+		ReadPlayers( body );
+		Q_strncpyz( mm.address, address, sizeof( mm.address ) );
+		Q_strncpyz( mm.token, token, sizeof( mm.token ) );
+		if ( !mm.foundTime ) {
+			mm.foundTime = cls.realtime ? cls.realtime : 1;
+		}
+		SetState( "found" );
 	} else {
 		// idle: the search ended (cancelled, or declined and blocked);
 		// party members keep listening for the leader's search
@@ -322,9 +374,45 @@ void CL_MM_Frame( void ) {
 		}
 		return;
 	}
+	if ( mm.foundTime ) {
+		int left = MM_FOUND_MSEC - ( cls.realtime - mm.foundTime );
+
+		Cvar_Set( "mm_seconds", va( "%i", left > 0 ? ( left + 999 ) / 1000 : 0 ) );
+		if ( left <= 0 ) {
+			mm.foundTime = 0;
+			mm.polling = qfalse;
+			SetState( "connecting" );
+			Cvar_Set( "mmtoken", mm.token );
+			Com_Printf( "matchmaker: match on %s\n", mm.address );
+			// now, ahead of anything waiting in the command buffer
+			Cbuf_ExecuteText( EXEC_NOW, "rml_hide\n" );
+			Cbuf_ExecuteText( EXEC_NOW, va( "connect %s\n", mm.address ) );
+			return;
+		}
+	}
 	if ( mm.polling && cls.realtime >= mm.nextPoll ) {
+		char	name[64], champion[32], body[160];
+		int		i, j;
+
 		mm.nextPoll = cls.realtime + MM_POLL_MSEC;
-		Queue( "status", "" );
+		// what the others see on the match-found screen
+		Q_strncpyz( name, Cvar_VariableString( "name" ), sizeof( name ) );
+		Q_CleanStr( name );
+		for ( i = j = 0; name[i]; i++ ) {
+			if ( name[i] != '"' && name[i] != '\\' ) {
+				name[j++] = name[i];
+			}
+		}
+		name[j] = 0;
+		Q_strncpyz( champion, Cvar_VariableString( "champion" ), sizeof( champion ) );
+		for ( i = 0; champion[i]; i++ ) {
+			if ( !isalnum( (unsigned char)champion[i] ) ) {
+				champion[i] = 0;
+				break;
+			}
+		}
+		Com_sprintf( body, sizeof( body ), "{\"name\":\"%s\",\"champion\":\"%s\"}", name, champion );
+		Queue( "status", body );
 	}
 }
 
@@ -346,6 +434,7 @@ void CL_MM_Init( void ) {
 	Cvar_Get( "mm_error", "", CVAR_TEMP );
 	Cvar_Get( "mm_id", "", CVAR_TEMP );
 	Cvar_Get( "mm_party_code", "", CVAR_TEMP );
+	Cvar_Get( "mm_pcount", "0", CVAR_TEMP );
 	Cvar_Get( "mm_party_size", "0", CVAR_TEMP );
 	Cvar_Get( "mm_party_leader", "1", CVAR_TEMP );
 	Cvar_Get( "mmtoken", "", CVAR_USERINFO | CVAR_TEMP );

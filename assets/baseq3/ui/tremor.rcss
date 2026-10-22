@@ -805,3 +805,88 @@ button.small {
 	color: #f2efe9;
 	font-size: 54dp;
 }
+
+/* match found: every player's champion on a pillar, reds left, blues right */
+.found {
+	position: absolute;
+	left: 3%;
+	top: 4%;
+	width: 94%;
+	height: 92%;
+	text-align: center;
+}
+
+.found h1 {
+	display: block;
+	font-family: "Arial Black";
+	font-size: 60dp;
+	color: #f2efe9;
+}
+
+.found .sub {
+	display: block;
+	font-size: 30dp;
+	color: #8a8780;
+	margin-bottom: 20dp;
+}
+
+.found .lineup {
+	display: block;
+	height: 70%;
+}
+
+.found .slot {
+	display: inline-block;
+	position: relative;
+	width: 11.5%;
+	height: 100%;
+	margin: 0 0.4%;
+	border-top: 6dp #d3191f;
+}
+
+.found .slot.blue {
+	border-top-color: #2850dc;
+}
+
+.found .slotstage {
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 78%;
+}
+
+.found .pname {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 80%;
+	font-size: 24dp;
+	color: #f2efe9;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.found .pchamp, .found .prating {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 87%;
+	font-size: 20dp;
+	color: #8a8780;
+}
+
+.found .prating {
+	top: 93%;
+}
+
+.found .foot {
+	display: block;
+	margin-top: 20dp;
+	font-size: 28dp;
+	color: #f2efe9;
+}
+
+.found .foot button {
+	display: inline-block;
+	margin-left: 40dp;
+}

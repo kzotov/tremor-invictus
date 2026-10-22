@@ -53,6 +53,14 @@ Rml::String		documentPath;
 int				screenWidth, screenHeight;
 
 // the champion stage (see UpdateStage)
+#define MAX_STAGES		8
+
+static const char *va_stage( int i ) {
+	static char	name[16];
+
+	snprintf( name, sizeof( name ), "rml_stage%i", i );
+	return name;
+}
 Rml::Element	*stageElement;
 bool			stageDragging;
 float			stageYaw;
@@ -670,7 +678,9 @@ extern "C" void RML_Hide( void ) {
 	}
 	stageElement = nullptr;
 	stageDragging = false;
-	imp.SetCvar( "rml_stage", "" );
+	for ( int i = 0; i < MAX_STAGES; i++ ) {
+		imp.SetCvar( i ? va_stage( i ) : "rml_stage", "" );
+	}
 	imp.SetCvar( "rml_active", "0" );
 }
 
@@ -711,48 +721,59 @@ An element with data-stage="<cvar>" only reserves a box: the menu module
 draws the champion named by that cvar into it, before the document. Its box
 goes out as rml_stage ("x y w h" in screen pixels, empty when there is
 none), the cvar's name as rml_stageCvar, and the drag turn as rml_stageYaw.
+Further stages (a lineup) are rml_stage1..7 with their own cvars; only the
+first turns.
 =================
 */
 
-Rml::Element *FindStage( Rml::Element *element ) {
+// every visible stage element, in document order
+void FindStages( Rml::Element *element, std::vector<Rml::Element *> &found ) {
 	for ( int i = 0 ; i < element->GetNumChildren() ; i++ ) {
 		Rml::Element	*child = element->GetChild( i );
 
 		if ( child->GetAttribute( "data-stage" ) ) {
-			return child;
+			if ( child->IsVisible( true ) ) {
+				found.push_back( child );
+			}
+			continue;
 		}
-		if ( Rml::Element *found = FindStage( child ) ) {
-			return found;
-		}
+		FindStages( child, found );
 	}
-	return nullptr;
 }
 
 void UpdateStage( void ) {
+	std::vector<Rml::Element *>	stages;
 	int		now = imp.Milliseconds();
 	char	text[128];
+	size_t	i;
 
-	stageElement = FindStage( document );
-	if ( !stageElement || !stageElement->IsVisible( true ) ) {
-		stageElement = nullptr;
-		imp.SetCvar( "rml_stage", "" );
-		return;
-	}
+	FindStages( document, stages );
+	stageElement = stages.empty() ? nullptr : stages[0];
+
 	// back toward the front 3 s after the mouse lets go
 	if ( !stageDragging && now - stageRelease > 3000 ) {
 		stageYaw *= expf( -( now - stageLastFrame ) / 250.0f );
 	}
 	stageLastFrame = now;
-
-	Rml::Vector2f	pos = stageElement->GetAbsoluteOffset( Rml::BoxArea::Border );
-	Rml::Vector2f	size = stageElement->GetBox().GetSize( Rml::BoxArea::Border );
-
-	snprintf( text, sizeof( text ), "%.0f %.0f %.0f %.0f", pos.x, pos.y, size.x, size.y );
-	imp.SetCvar( "rml_stage", text );
-	imp.SetCvar( "rml_stageCvar", stageElement->GetAttribute<Rml::String>( "data-stage", "" ).c_str() );
-	imp.SetCvar( "rml_stageTint", stageElement->GetAttribute<Rml::String>( "data-stage-tint", "" ).c_str() );
 	snprintf( text, sizeof( text ), "%.1f", stageYaw );
 	imp.SetCvar( "rml_stageYaw", text );
+
+	// the first stage is rml_stage, the rest rml_stage1..rml_stage7
+	for ( i = 0; i < MAX_STAGES; i++ ) {
+		Rml::String	suffix = i ? std::to_string( i ) : "";
+
+		if ( i >= stages.size() ) {
+			imp.SetCvar( ( "rml_stage" + suffix ).c_str(), "" );
+			continue;
+		}
+		Rml::Vector2f	pos = stages[i]->GetAbsoluteOffset( Rml::BoxArea::Border );
+		Rml::Vector2f	size = stages[i]->GetBox().GetSize( Rml::BoxArea::Border );
+
+		snprintf( text, sizeof( text ), "%.0f %.0f %.0f %.0f", pos.x, pos.y, size.x, size.y );
+		imp.SetCvar( ( "rml_stage" + suffix ).c_str(), text );
+		imp.SetCvar( ( "rml_stageCvar" + suffix ).c_str(), stages[i]->GetAttribute<Rml::String>( "data-stage", "" ).c_str() );
+		imp.SetCvar( ( "rml_stageTint" + suffix ).c_str(), stages[i]->GetAttribute<Rml::String>( "data-stage-tint", "" ).c_str() );
+	}
 }
 
 extern "C" void RML_Frame( void ) {

@@ -730,35 +730,19 @@ void UI_Champion_Frame( void ) {
 	if ( trap_Cvar_VariableValue( "sv_running" ) || UI_Cvar_VariableString( "cl_currentServerAddress" )[0] ) {
 		trap_Cmd_ExecuteText( EXEC_NOW, "rml_hide\n" );
 		UI_ForceMenuOff();
+	} else if ( !Q_stricmp( UI_Cvar_VariableString( "mm_state" ), "found" ) ) {
+		trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/matchfound.rml\n" );	// back to the match about to start
 	} else {
 		trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/main.rml\n" );
 	}
 }
 
-/*
-=================
-UI_DrawRmlStage
+static void UI_DrawOneStage( uiStage_t *stage, const char *suffix, qboolean turns ) {
+	char	box[128], cvar[64], name[MAX_QPATH], *p;
+	float	x, y, w, h;
+	int		i;
 
-The champion into the box the RmlUi document reserved for it
-=================
-*/
-void UI_DrawRmlStage( void ) {
-	static uiStage_t	stage;
-	static qboolean		started;
-	char				box[128], cvar[64], name[MAX_QPATH], *p;
-	float				x, y, w, h;
-	int					i;
-
-	if ( !started ) {
-		memset( &stage, 0, sizeof( stage ) );
-		stage.champion = stage.oldChampion = -1;
-		started = qtrue;
-	}
-
-	if ( !trap_Cvar_VariableValue( "rml_active" ) ) {
-		return;
-	}
-	trap_Cvar_VariableStringBuffer( "rml_stage", box, sizeof( box ) );
+	trap_Cvar_VariableStringBuffer( va( "rml_stage%s", suffix ), box, sizeof( box ) );
 	if ( !box[0] ) {
 		return;
 	}
@@ -775,14 +759,46 @@ void UI_DrawRmlStage( void ) {
 	y /= uis.yscale;
 	w /= uis.xscale;
 	h /= uis.yscale;
-	trap_Cvar_VariableStringBuffer( "rml_stageCvar", cvar, sizeof( cvar ) );
+
+	trap_Cvar_VariableStringBuffer( va( "rml_stageCvar%s", suffix ), cvar, sizeof( cvar ) );
 	trap_Cvar_VariableStringBuffer( cvar[0] ? cvar : "champion", name, sizeof( name ) );
 	i = BG_ChampionForName( name );
 	if ( i < 0 ) {
 		i = 0;
 	}
-	trap_Cvar_VariableStringBuffer( "rml_stageTint", cvar, sizeof( cvar ) );
-	UI_Stage_Tint( &stage, UI_Cvar_VariableString( cvar ) );
-	UI_Stage_Draw( &stage, x, y, w, h, i, UI_StartWeapon( UI_Cvar_VariableString( Champion_WeaponCvar( i ) ) ),
-		trap_Cvar_VariableValue( "rml_stageYaw" ) );
+	trap_Cvar_VariableStringBuffer( va( "rml_stageTint%s", suffix ), cvar, sizeof( cvar ) );
+	UI_Stage_Tint( stage, UI_Cvar_VariableString( cvar ) );
+	UI_Stage_Draw( stage, x, y, w, h, i, UI_StartWeapon( UI_Cvar_VariableString( Champion_WeaponCvar( i ) ) ),
+		turns ? trap_Cvar_VariableValue( "rml_stageYaw" ) : 0 );
+}
+
+/*
+=================
+UI_DrawRmlStage
+
+The champions into the boxes the RmlUi document reserved for them
+=================
+*/
+void UI_DrawRmlStage( void ) {
+	static uiStage_t	stages[8];
+	static qboolean		started;
+	int					i;
+
+	if ( !started ) {
+		memset( stages, 0, sizeof( stages ) );
+		for ( i = 0; i < 8; i++ ) {
+			stages[i].champion = stages[i].oldChampion = -1;
+		}
+		started = qtrue;
+	}
+	if ( !trap_Cvar_VariableValue( "rml_active" ) ) {
+		return;
+	}
+	for ( i = 0; i < 8; i++ ) {
+		char	suffix[4];
+
+		suffix[0] = i ? '0' + i : 0;
+		suffix[1] = 0;
+		UI_DrawOneStage( &stages[i], suffix, i == 0 );
+	}
 }

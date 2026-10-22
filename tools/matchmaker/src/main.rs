@@ -109,6 +109,15 @@ struct Inner {
     servers: HashMap<String, GameServer>, // server key -> server
     matches: HashMap<String, Match>,
     player_match: HashMap<String, String>,
+    profiles: HashMap<String, Profile>, // what others see on the match-found screen
+}
+
+#[derive(Default, Clone, Deserialize)]
+struct Profile {
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    champion: String,
 }
 
 struct App {
@@ -220,7 +229,16 @@ async fn status(State(app): State<Shared>, method: Method, uri: Uri, headers: He
         Ok(p) => p,
         Err(r) => return r,
     };
-    let inner = app.inner.lock().unwrap();
+    let mut inner = app.inner.lock().unwrap();
+    // the body may carry the player's name and champion
+    if !body.is_empty() {
+        if let Ok(p) = serde_json::from_slice::<Profile>(&body) {
+            let name: String = p.name.chars().filter(|c| !c.is_control()).take(32).collect();
+            let champion: String = p.champion.chars().filter(|c| c.is_ascii_alphanumeric()).take(32).collect();
+            inner.profiles.insert(player.clone(), Profile { name, champion });
+        }
+    }
+    let inner = inner;
     let party = party_json(&inner, &player);
     if let Some(q) = inner.queue.get(&queue_key(&inner, &player)) {
         return Json(json!({ "state": "searching", "modes": q.modes, "waiting": now() - q.since, "party": party }))
@@ -228,9 +246,24 @@ async fn status(State(app): State<Shared>, method: Method, uri: Uri, headers: He
     }
     if let Some(m) = inner.player_match.get(&player).and_then(|id| inner.matches.get(id)) {
         let team = if m.red.contains(&player) { "red" } else { "blue" };
+        let store = app.store.lock().unwrap();
+        let players: Vec<Value> = m
+            .players()
+            .map(|p| {
+                let profile = inner.profiles.get(p).cloned().unwrap_or_default();
+                let (rating, games) = store.rating(p, &m.mode);
+                json!({
+                    "key": p, "name": profile.name, "champion": profile.champion,
+                    "team": if m.red.contains(p) { "red" } else { "blue" },
+                    "accepted": m.accepted.contains(p),
+                    "rating": if games >= 10 { json!(rating.rating.round()) } else { json!(null) },
+                })
+            })
+            .collect();
+        drop(store);
         let mut out = json!({
             "match": m.id, "mode": m.mode, "map": m.map, "team": team,
-            "red": m.red, "blue": m.blue, "party": party,
+            "red": m.red, "blue": m.blue, "party": party, "players": players,
         });
         match m.state {
             MatchState::ReadyCheck => {
