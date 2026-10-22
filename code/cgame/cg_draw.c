@@ -3348,7 +3348,9 @@ static void CG_DrawDeathScreen( void ) {
 		// a weapon, or the champion's ability for ability deaths
 		if ( cg.deathMod >= MOD_HEAVYWEIGHT && champ >= 0 && BG_Champion( champ )->active > ACTIVE_NONE ) {
 			how = BG_String( bg_abilityInfo[BG_Champion( champ )->active].nameString );
-		} else if ( ( item = BG_FindItemForWeapon( cg.deathWeapon ) ) != NULL ) {
+		} else if ( cg.deathWeapon > WP_NONE && cg.deathWeapon < WP_NUM_WEAPONS && cg_weapons[cg.deathWeapon].item ) {
+			// (a killer already dead holds no weapon: a trade kill)
+			item = cg_weapons[cg.deathWeapon].item;
 			how = item->pickup_name;
 		}
 		Com_sprintf( line, sizeof( line ), BG_String( STR_DEATH_KILLEDBY ), ci->name );

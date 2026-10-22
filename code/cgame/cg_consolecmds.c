@@ -570,6 +570,15 @@ void CG_InitConsoleCommands( void ) {
 	// forwarded to the server after they are not recognized locally
 	//
 	trap_AddCommand ("kill");
+	// server commands of ours, so they complete in the console
+	trap_AddCommand ("readyup");
+	trap_AddCommand ("timeout");
+	trap_AddCommand ("timein");
+	trap_AddCommand ("pick");
+	trap_AddCommand ("next");
+	trap_AddCommand ("dstats");
+	trap_AddCommand ("acc");
+	trap_AddCommand ("dropsoul");
 	trap_AddCommand ("say");
 	trap_AddCommand ("say_team");
 	trap_AddCommand ("tell");

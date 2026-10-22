@@ -669,6 +669,11 @@ static void CG_RegisterSounds( void ) {
 	char	name[MAX_QPATH];
 	const char	*soundName;
 
+	// hit tones by what the shot hit (tremor-assets.pk3)
+	cgs.media.hitArmorSound = trap_S_RegisterSound( "sound/tremor/hit_armor.wav", qfalse );
+	cgs.media.hitHealthSound = trap_S_RegisterSound( "sound/tremor/hit_health.wav", qfalse );
+	cgs.media.hitArmorBreakSound = trap_S_RegisterSound( "sound/tremor/armor_break.wav", qfalse );
+
 	// voice commands
 #ifdef MISSIONPACK
 	CG_LoadVoiceChats();

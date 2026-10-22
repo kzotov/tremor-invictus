@@ -850,6 +850,7 @@ typedef struct {
 	qhandle_t	sportShader;
 	qhandle_t	tintShader;
 	qhandle_t	outlineShader;
+	sfxHandle_t	hitArmorSound, hitHealthSound, hitArmorBreakSound;	// tremor-assets.pk3; 0 when missing
 	qhandle_t	regenShader;
 	qhandle_t	battleSuitShader;
 	qhandle_t	battleWeaponShader;

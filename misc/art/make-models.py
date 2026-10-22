@@ -20,10 +20,14 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
                                             champion's hue, the monogram; the game
                                             prefers gfx/champions/<champion> (a
                                             portrait pack), then the model's icon
+  sound/tremor/hit_armor.wav, hit_health.wav, armor_break.wav
+                                            hit tones: a bright ping on armour, a
+                                            dull knock on health, a crack when the
+                                            armour breaks (synthesised)
   scripts/tremor-assets.shader              the shaders above
 All shapes are built here from lathes and boxes; textures from noise.
 """
-import math, os, struct, sys, zipfile
+import math, os, random, struct, sys, zipfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tremorart import *
 
@@ -344,6 +348,36 @@ def portraits(out):
             write_tga(path, size, size, c.px)
 
 
+# ---------------------------------------------------------------- sounds
+
+def write_wav(path, samples, rate=22050):
+    """16-bit mono PCM; samples in -1..1."""
+    data = b"".join(struct.pack("<h", int(max(-1.0, min(1.0, v)) * 32000)) for v in samples)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "wb") as f:
+        f.write(b"RIFF" + struct.pack("<I", 36 + len(data)) + b"WAVEfmt ")
+        f.write(struct.pack("<IHHIIHH", 16, 1, 1, rate, rate * 2, 2, 16))
+        f.write(b"data" + struct.pack("<I", len(data)) + data)
+
+
+def tone(freqs, seconds, decay, noise=0.0, rate=22050, seed=5):
+    rnd = random.Random(seed)
+    out = []
+    for i in range(int(seconds * rate)):
+        t = i / rate
+        env = math.exp(-t * decay) * min(1.0, t * 400)
+        v = sum(a * math.sin(2 * math.pi * f * t) for f, a in freqs)
+        v += noise * (rnd.random() * 2 - 1)
+        out.append(v * env * 0.6)
+    return out
+
+
+def sounds(out):
+    write_wav(os.path.join(out, "sound/tremor/hit_armor.wav"), tone([(2400, 0.6), (3600, 0.3), (5100, 0.15)], 0.12, 38))
+    write_wav(os.path.join(out, "sound/tremor/hit_health.wav"), tone([(520, 0.7), (780, 0.25)], 0.12, 45, noise=0.15))
+    write_wav(os.path.join(out, "sound/tremor/armor_break.wav"), tone([(1800, 0.4), (2700, 0.3), (900, 0.3)], 0.35, 14, noise=0.5))
+
+
 SHADERS = """// tremor-invictus generated assets (misc/art/make-models.py)
 // Replaceable: a pack loaded later may define these names again.
 
@@ -445,6 +479,7 @@ def main():
     orb(src)
     claw(src)
     portraits(src)
+    sounds(src)
     texture(os.path.join(src, "gfx/abilities/plasmatrail.tga"), 128, 64, trail, False)
     os.makedirs(os.path.join(src, "scripts"), exist_ok=True)
     with open(os.path.join(src, "scripts/tremor-assets.shader"), "w") as f:

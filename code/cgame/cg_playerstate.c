@@ -333,7 +333,18 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 		}
 #else
 		if ( cg_hitBeep.integer ) {
-			trap_S_StartLocalSound( cgs.media.hitSound, CHAN_LOCAL_SOUND );
+			int	hit = ps->persistant[PERS_ATTACKEE_ARMOR];
+
+			// a tone for armour, another for health, a crack when armour breaks
+			if ( ( hit & 0x400 ) && cgs.media.hitArmorBreakSound ) {
+				trap_S_StartLocalSound( cgs.media.hitArmorBreakSound, CHAN_LOCAL_SOUND );
+			} else if ( ( hit & 0x200 ) && cgs.media.hitArmorSound ) {
+				trap_S_StartLocalSound( cgs.media.hitArmorSound, CHAN_LOCAL_SOUND );
+			} else if ( cgs.media.hitHealthSound ) {
+				trap_S_StartLocalSound( cgs.media.hitHealthSound, CHAN_LOCAL_SOUND );
+			} else {
+				trap_S_StartLocalSound( cgs.media.hitSound, CHAN_LOCAL_SOUND );
+			}
 		}
 #endif
 	} else if ( ps->persistant[PERS_HITS] < ops->persistant[PERS_HITS] ) {

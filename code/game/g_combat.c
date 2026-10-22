@@ -676,7 +676,8 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	// ways this life, and when the respawn comes
 	if ( attacker && attacker->client && attacker != self && attacker->s.number < MAX_CLIENTS ) {
 		trap_SendServerCommand( self - g_entities, va( "deathinfo %i %i %i %i %i %i %i %i", attacker->s.number,
-			meansOfDeath, attacker->client->ps.weapon, attacker->health > 0 ? attacker->health : 0,
+			meansOfDeath, inflictor && inflictor->s.weapon > WP_NONE && inflictor->s.weapon < WP_NUM_WEAPONS
+				? inflictor->s.weapon : attacker->client->ps.weapon, attacker->health > 0 ? attacker->health : 0,
 			attacker->client->ps.stats[STAT_ARMOR], self->client->pers.lifeDealt[attacker->s.number],
 			self->client->pers.lifeTaken[attacker->s.number], self->client->respawnTime - level.time ) );
 	} else {
@@ -935,6 +936,8 @@ void G_SplashParams( float minDamage, float knock, float knockSelf ) {
 
 void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			   vec3_t dir, vec3_t point, int damage, int dflags, int mod ) {
+	int			hitArmorBefore = 0;
+	gentity_t	*hitAttacker = NULL;
 	gclient_t	*client;
 	int			take;
 	int			asave;
@@ -1158,6 +1161,8 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			attacker->client->ps.persistant[PERS_HITS]++;
 		}
 		attacker->client->ps.persistant[PERS_ATTACKEE_ARMOR] = (targ->health<<8)|(client->ps.stats[STAT_ARMOR]);
+		hitArmorBefore = client->ps.stats[STAT_ARMOR];
+		hitAttacker = attacker;
 	}
 
 	// always give half damage if hurting self
@@ -1241,6 +1246,15 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if ( g_debugDamage.integer ) {
 		G_Printf( "%i: client:%i health:%i damage:%i armor:%i\n", level.time, targ->s.number,
 			targ->health, take, asave );
+	}
+
+	// the attacker's hit tone: on armour, or the armour breaking
+	// (PERS_ATTACKEE_ARMOR: armour left, 0x200 had armour, 0x400 it broke)
+	if ( hitAttacker && client ) {
+		int armorAfter = client->ps.stats[STAT_ARMOR] > 0 ? client->ps.stats[STAT_ARMOR] : 0;
+
+		hitAttacker->client->ps.persistant[PERS_ATTACKEE_ARMOR] = ( armorAfter & 0x1ff )
+			| ( hitArmorBefore > 0 && asave > 0 ? 0x200 : 0 ) | ( hitArmorBefore > 0 && armorAfter == 0 ? 0x400 : 0 );
 	}
 
 	if ( G_ClanArena() ) {
