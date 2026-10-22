@@ -391,6 +391,36 @@ static void CG_AddMoveScaleFade( localEntity_t *le ) {
 
 /*
 ===================
+CG_AddSpark
+===================
+*/
+static void CG_AddSpark( localEntity_t *le ) {
+	refEntity_t	*re = &le->refEntity;
+	float		c = ( le->endTime - cg.time ) * le->lifeRate;
+
+	BG_EvaluateTrajectory( &le->pos, cg.time, re->origin );
+	re->shaderRGBA[0] = 255 * le->color[0] * c;
+	re->shaderRGBA[1] = 255 * le->color[1] * c;
+	re->shaderRGBA[2] = 255 * le->color[2] * c;
+	re->shaderRGBA[3] = 255;
+	trap_R_AddRefEntityToScene( re );
+}
+
+/*
+===================
+CG_AddGroundRing
+===================
+*/
+static void CG_AddGroundRing( localEntity_t *le ) {
+	float	c = ( le->endTime - cg.time ) * le->lifeRate;
+	float	radius = le->radius * ( 0.25f + 0.75f * ( 1 - c * c ) );
+
+	CG_VfxGroundRing( le->pos.trBase, radius, le->startTime * 0.1f,
+		255 * le->color[0] * c, 255 * le->color[1] * c, 255 * le->color[2] * c );
+}
+
+/*
+===================
 CG_AddScaleFade
 
 For rocket smokes that hang in place, fade out, and are
@@ -858,6 +888,14 @@ void CG_AddLocalEntities( void ) {
 
 		case LE_SCOREPLUM:
 			CG_AddScorePlum( le );
+			break;
+
+		case LE_SPARK:
+			CG_AddSpark( le );
+			break;
+
+		case LE_GROUND_RING:
+			CG_AddGroundRing( le );
 			break;
 
 #ifdef MISSIONPACK

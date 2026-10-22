@@ -378,6 +378,7 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace ) {
 		vec3_t v;
 
 		nent = G_Spawn();
+		nent->s.weapon = WP_GRAPPLING_HOOK;		// the bite's sparks
 		if ( other->takedamage && other->client ) {
 
 			G_AddEvent( nent, EV_MISSILE_HIT, DirToByte( trace->plane.normal ) );

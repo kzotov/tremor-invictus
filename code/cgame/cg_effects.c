@@ -164,6 +164,68 @@ localEntity_t *CG_SmokePuff( const vec3_t p, const vec3_t vel,
 
 /*
 ==================
+CG_VfxSparks
+
+Glowing specks thrown out around dir (a hemisphere when dir is zero),
+falling and dimming over half a second
+==================
+*/
+void CG_VfxSparks( const vec3_t origin, const vec3_t dir, int count, float speed, const vec3_t color ) {
+	localEntity_t	*le;
+	vec3_t			vel;
+	int				i;
+
+	for ( i = 0 ; i < count ; i++ ) {
+		le = CG_AllocLocalEntity();
+		le->leType = LE_SPARK;
+		le->startTime = cg.time;
+		le->endTime = cg.time + 300 + ( rand() % 300 );
+		le->lifeRate = 1.0f / ( le->endTime - le->startTime );
+		VectorCopy( color, le->color );
+		le->radius = 1.5f + random() * 1.5f;
+
+		vel[0] = crandom();
+		vel[1] = crandom();
+		vel[2] = crandom();
+		VectorNormalize( vel );
+		if ( DotProduct( vel, dir ) < 0 ) {
+			VectorMA( vel, -2 * DotProduct( vel, dir ), dir, vel );
+		}
+		VectorAdd( vel, dir, vel );
+		VectorNormalize( vel );
+		VectorScale( vel, speed * ( 0.5f + random() * 0.5f ), le->pos.trDelta );
+		le->pos.trType = TR_GRAVITY;
+		le->pos.trTime = cg.time;
+		VectorCopy( origin, le->pos.trBase );
+
+		le->refEntity.reType = RT_SPRITE;
+		le->refEntity.customShader = cgs.media.glowBallShader;
+		le->refEntity.radius = le->radius;
+	}
+}
+
+/*
+==================
+CG_VfxRingBurst
+
+A flat ring of light on the floor widening to radius and dimming
+==================
+*/
+void CG_VfxRingBurst( const vec3_t origin, float radius, int duration, const vec3_t color ) {
+	localEntity_t	*le;
+
+	le = CG_AllocLocalEntity();
+	le->leType = LE_GROUND_RING;
+	le->startTime = cg.time;
+	le->endTime = cg.time + duration;
+	le->lifeRate = 1.0f / duration;
+	le->radius = radius;
+	VectorCopy( color, le->color );
+	VectorCopy( origin, le->pos.trBase );
+}
+
+/*
+==================
 CG_SpawnEffect
 
 Player teleporting in or out

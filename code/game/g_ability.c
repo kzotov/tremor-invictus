@@ -390,8 +390,10 @@ static void G_OrbTeleport( gentity_t *ent ) {
 
 	tent = G_TempEntity( ent->client->ps.origin, EV_PLAYER_TELEPORT_OUT );
 	tent->s.clientNum = ent->s.clientNum;
+	tent->s.eventParm = 1;		// the orb's rings
 	tent = G_TempEntity( spot, EV_PLAYER_TELEPORT_IN );
 	tent->s.clientNum = ent->s.clientNum;
+	tent->s.eventParm = 1;
 
 	trap_UnlinkEntity( ent );
 	VectorCopy( spot, ent->client->ps.origin );

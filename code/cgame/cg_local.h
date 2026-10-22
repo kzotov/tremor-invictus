@@ -232,6 +232,8 @@ typedef enum {
 	LE_FADE_RGB,
 	LE_SCALE_FADE,
 	LE_SCOREPLUM,
+	LE_SPARK,				// a glowing speck falling and dimming
+	LE_GROUND_RING,			// a flat ring of light widening and dimming
 #ifdef MISSIONPACK
 	LE_KAMIKAZE,
 	LE_INVULIMPACT,
@@ -1568,6 +1570,8 @@ void	CG_AddLocalEntities( void );
 //
 // cg_effects.c
 //
+void CG_VfxSparks( const vec3_t origin, const vec3_t dir, int count, float speed, const vec3_t color );
+void CG_VfxRingBurst( const vec3_t origin, float radius, int duration, const vec3_t color );
 localEntity_t *CG_SmokePuff( const vec3_t p, 
 				   const vec3_t vel, 
 				   float radius,
@@ -1579,6 +1583,7 @@ localEntity_t *CG_SmokePuff( const vec3_t p,
 				   qhandle_t hShader );
 void CG_BubbleTrail( vec3_t start, vec3_t end, float spacing );
 void CG_SpawnEffect( vec3_t org );
+void CG_VfxGroundRing( const vec3_t center, float radius, float phase, byte r, byte g, byte b );
 #ifdef MISSIONPACK
 void CG_KamikazeEffect( vec3_t org );
 void CG_ObeliskExplode( vec3_t org, int entityNum );

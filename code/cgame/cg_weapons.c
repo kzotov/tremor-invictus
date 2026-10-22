@@ -1879,6 +1879,17 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, im
 	duration = 600;
 
 	switch ( BG_WeaponVisual( weapon ) ) {
+	case WP_GRAPPLING_HOOK:
+		// the claw biting: sparks and a scratch
+		{
+			static const vec3_t	steel = { 1, 0.75f, 0.4f };
+
+			CG_VfxSparks( origin, dir, 10, 220, steel );
+		}
+		sfx = cgs.media.sfx_ric1;
+		mark = cgs.media.bulletMarkShader;
+		radius = 6;
+		break;
 	default:
 #ifdef MISSIONPACK
 	case WP_NAILGUN:

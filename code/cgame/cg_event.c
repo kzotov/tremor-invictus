@@ -602,6 +602,28 @@ void CG_PainEvent( centity_t *cent, int health ) {
 
 /*
 ==============
+CG_OrbTeleportRings
+
+The dire orb's teleport (eventParm 1): purple rings widening on the floor
+at both ends
+==============
+*/
+static void CG_OrbTeleportRings( entityState_t *es, const vec3_t position ) {
+	static const vec3_t	dire = { 0.6f, 0.15f, 0.95f };
+	vec3_t				floor;
+
+	if ( es->eventParm != 1 ) {
+		return;
+	}
+	VectorCopy( position, floor );
+	floor[2] += MINS_Z + 2;
+	CG_VfxRingBurst( floor, 56, 500, dire );
+	floor[2] += 24;
+	CG_VfxRingBurst( floor, 36, 400, dire );
+}
+
+/*
+==============
 CG_EntityEvent
 
 An entity has an event value
@@ -997,12 +1019,14 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		DEBUGNAME("EV_PLAYER_TELEPORT_IN");
 		trap_S_StartSound (NULL, es->number, CHAN_AUTO, cgs.media.teleInSound );
 		CG_SpawnEffect( position);
+		CG_OrbTeleportRings( es, position );
 		break;
 
 	case EV_PLAYER_TELEPORT_OUT:
 		DEBUGNAME("EV_PLAYER_TELEPORT_OUT");
 		trap_S_StartSound (NULL, es->number, CHAN_AUTO, cgs.media.teleOutSound );
 		CG_SpawnEffect(  position);
+		CG_OrbTeleportRings( es, position );
 		break;
 
 	case EV_ITEM_POP:
@@ -1088,6 +1112,16 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		DEBUGNAME("EV_MISSILE_MISS");
 		ByteToDir( es->eventParm, dir );
 		CG_MissileHitWall( es->weapon, 0, position, dir, IMPACTSOUND_DEFAULT );
+		if ( es->generic1 == AV_TRAIL ) {
+			// a plasma trail piece bursting: sparks and a flash ring on the floor
+			static const vec3_t	plasma = { 0.85f, 0.35f, 1 };
+			vec3_t				floor;
+
+			CG_VfxSparks( position, dir, 6, 180, plasma );
+			VectorCopy( position, floor );
+			floor[2] -= 8;
+			CG_VfxRingBurst( floor, 48, 350, plasma );
+		}
 		break;
 
 	case EV_MISSILE_MISS_METAL:
