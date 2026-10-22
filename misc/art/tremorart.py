@@ -375,10 +375,12 @@ class Canvas:
 
 
 def write_tga(path, w, h, px, alpha=True):
-    """Uncompressed TGA, top-left origin; px is a flat list of [r, g, b, a] in 0..1."""
+    """Uncompressed TGA; px is a flat list of [r, g, b, a] in 0..1, rows top to bottom.
+    Written bottom-up, the TGA default: the engine ignores the top-down flag."""
     bpp = 32 if alpha else 24
-    out = bytearray(struct.pack("<BBBHHBHHHHBB", 0, 0, 2, 0, 0, 0, 0, 0, w, h, bpp, 0x28 if alpha else 0x20))
-    for p in px:
+    out = bytearray(struct.pack("<BBBHHBHHHHBB", 0, 0, 2, 0, 0, 0, 0, 0, w, h, bpp, 0x08 if alpha else 0x00))
+    rows = [px[y * w:(y + 1) * w] for y in range(h)]
+    for p in [q for row in reversed(rows) for q in row]:
         b, g, r = (int(clamp(c) * 255 + 0.5) for c in (p[2], p[1], p[0]))
         out += bytes((b, g, r, int(clamp(p[3]) * 255 + 0.5))) if alpha else bytes((b, g, r))
     with open(path, "wb") as f:

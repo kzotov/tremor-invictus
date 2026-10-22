@@ -85,8 +85,9 @@ def seg_dist(px, py, ax, ay, bx, by):
 
 def write_tga(path, w, h, pixels):
     """24-bit uncompressed TGA; `pixels` is rows top to bottom of (r, g, b) in 0..1."""
-    out = bytearray(struct.pack("<BBBHHBHHHHBB", 0, 0, 2, 0, 0, 0, 0, 0, w, h, 24, 0x20))
-    for row in pixels:
+    # bottom-up, the TGA default: the engine ignores the top-down flag
+    out = bytearray(struct.pack("<BBBHHBHHHHBB", 0, 0, 2, 0, 0, 0, 0, 0, w, h, 24, 0x00))
+    for row in reversed(pixels):
         for r, g, b in row:
             out += bytes((int(clamp(b) * 255 + 0.5), int(clamp(g) * 255 + 0.5), int(clamp(r) * 255 + 0.5)))
     with open(path, "wb") as f:
