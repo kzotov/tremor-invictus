@@ -1304,6 +1304,10 @@ void ClientThink_real( gentity_t *ent ) {
 	if ( client->stunEndTime > level.time ) {
 		ucmd->buttons &= ~( BUTTON_ATTACK | BUTTON_ABILITY );
 	}
+	// Master of Death holds his fire for its first half second
+	if ( client->modStartTime && level.time - client->modStartTime < 500 ) {
+		ucmd->buttons &= ~BUTTON_ATTACK;
+	}
 
 	pm.ps = &client->ps;
 	pm.cmd = *ucmd;
@@ -1316,7 +1320,7 @@ void ClientThink_real( gentity_t *ent ) {
 	else {
 		pm.tracemask = MASK_PLAYERSOLID;
 	}
-	if ( G_AbilityActive( ent, ACTIVE_GHOSTWALK ) || G_WarmupPractice() ) {
+	if ( G_AbilityActive( ent, ACTIVE_GHOSTWALK ) || G_WarmupPractice() || client->kickEndTime > level.time ) {
 		pm.tracemask &= ~CONTENTS_BODY;		// ghost walk and warm-up pass through players
 	}
 	pm.trace = trap_Trace;

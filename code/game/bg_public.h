@@ -645,7 +645,7 @@ typedef enum {
 	STR_CHAMPION_UNUMREY,
 	STR_ABILITY_SHELLSHOCK,
 	STR_ABILITY_SPINEVOLLEY,
-	STR_ABILITY_ETERNAL,
+	STR_ABILITY_MASTEROFDEATH,
 	STR_ABILITY_SUPPLYDROP,
 	STR_ABILITY_MARKPREY,
 	STR_ABILITY_DOWNPOUR,
@@ -804,7 +804,7 @@ typedef enum {
 	STR_ABILDESC_PIERCINGSIGHT,
 	STR_ABILDESC_SHELLSHOCK,
 	STR_ABILDESC_SPINEVOLLEY,
-	STR_ABILDESC_ETERNAL,
+	STR_ABILDESC_MASTEROFDEATH,
 	STR_ABILDESC_SUPPLYDROP,
 	STR_ABILDESC_MARKPREY,
 	STR_ABILDESC_DOWNPOUR,
@@ -823,7 +823,7 @@ typedef enum {
 	STR_PASSIVE_STROYENT,
 	STR_PASSIVE_DECORATEDAIRMAN,
 	STR_PASSIVE_HIVEREGEN,
-	STR_PASSIVE_UNDYING,
+	STR_PASSIVE_LEAPINGKICK,
 	STR_PASSIVE_DRILLSERGEANT,
 	STR_PASSIVE_LIGHTFEET,
 	STR_PASSIVE_SLIPSTREAM,
@@ -1063,7 +1063,7 @@ typedef enum {
 	ACTIVE_PIERCINGSIGHT,			// see enemies through walls
 	ACTIVE_SHELLSHOCK,				// zone that cancels and blocks enemy abilities
 	ACTIVE_SPINEVOLLEY,				// fan of slowing spines
-	ACTIVE_ETERNAL,					// more damage dealt and taken for a while
+	ACTIVE_MASTEROFDEATH,			// below 50 health: cheat death for a few seconds
 	ACTIVE_SUPPLYDROP,				// crate of armour and ammo for the team
 	ACTIVE_MARKPREY,				// dart that marks an enemy
 	ACTIVE_DOWNPOUR,				// storm column at a point
@@ -1143,7 +1143,7 @@ void	BG_ShotgunPelletOffset( int weapon, int index, int count, int *seed, float 
 #define	PASSIVE_STROYENT		1024	// kills drop cells that heal this champion
 #define	PASSIVE_DECORATEDAIRMAN	2048	// names Wrack's isotropic air control (MOVEABIL_ISOAIR); no effect of its own
 #define	PASSIVE_HIVEREGEN		4096	// regains health to base after a quiet while
-#define	PASSIVE_UNDYING			8192	// once a life, a killing hit leaves 1 health
+#define	PASSIVE_LEAPINGKICK		8192	// Xaero: medals bank kicks (a leap through enemies)
 #define	PASSIVE_DRILLSERGEANT	16384	// faster weapon switch
 #define	PASSIVE_LIGHTFEET		32768	// no falling damage, silent steps and landings
 #define	PASSIVE_SLIPSTREAM		65536	// more air acceleration
@@ -1309,6 +1309,15 @@ typedef enum {
 	STAT_ABILITY_TIME,				// msec, meaning depends on the ability state
 	STAT_ABILITY_RECHARGE			// tenths of a second until the next charge, 0 when full
 } statIndex_t;
+
+// Xaero's Leaping Kick in STAT_TAPS (free for champions without air-dodge):
+// kicks banked in bits 0-1, air control left in 100 ms units in bits 2-7,
+// bit 8 while the kick passes through players
+#define	STAT_KICK				STAT_TAPS
+#define	KICK_COUNT( ps )		( (ps)->stats[STAT_KICK] & 3 )
+#define	KICK_AIR( ps )			( ( (ps)->stats[STAT_KICK] >> 2 ) & 63 )
+#define	KICK_PASSING			256
+#define	KICK_MAX				3
 
 // crouch slide state in STAT_MOVE_STATE (stats travel as 16 bits): the charge
 // in 8 ms units in the low 10 bits, time in the air in 64 ms units above

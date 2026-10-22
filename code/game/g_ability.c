@@ -1376,6 +1376,9 @@ Called by the upkeep when a timed ability starts or stops running
 */
 void G_AbilityStarted( gentity_t *ent ) {
 	ent->client->trailTime = level.time;
+	if ( BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_MASTEROFDEATH ) {
+		G_MasterOfDeathStart( ent );
+	}
 }
 
 void G_AbilityEnded( gentity_t *ent ) {
@@ -1383,6 +1386,9 @@ void G_AbilityEnded( gentity_t *ent ) {
 
 	client->barrierMode = 0;
 	client->ps.eFlags &= ~EF_BARRIER;
+	if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_MASTEROFDEATH ) {
+		G_MasterOfDeathEnd( ent );
+	}
 	if ( client->droneBody ) {
 		G_DroneEnd( ent, qfalse );
 	}
@@ -1510,6 +1516,7 @@ void G_AbilityClientThink( gentity_t *ent ) {
 		return;
 	}
 	G_ChampionClientThink( ent );
+	G_XaeroThink( ent );
 
 	G_DamageOverTimeTick( ent, &client->burnEndTime, &client->burnNextTime, client->burnAttacker,
 		g_burnDamage.integer, g_burnTime.integer, MOD_BURN );

@@ -1226,6 +1226,9 @@ static void PM_AirMove( void ) {
 
 	if ( pml.champion->moveStyle == MOVE_AIRCONTROL && fmove != 0 && smove == 0 ) {
 		PM_AirControl( wishdir, wishspeed, bg_pmoveSettings.acAirControl );
+	} else if ( ( pml.champion->passives & PASSIVE_LEAPINGKICK ) && KICK_AIR( pm->ps ) > 0 ) {
+		// after a Leaping Kick: air control for a while
+		PM_AirControl( wishdir, wishspeed, bg_pmoveSettings.acAirControl );
 	}
 
 	// isotropic: steering works with any keys, and speed over the cap bleeds off fast

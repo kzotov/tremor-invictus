@@ -958,7 +958,7 @@ static qboolean BotWantsAbility(bot_state_t *bs) {
 	case ACTIVE_SUPPLYDROP:		want = bs->enemy < 0 && armor < 50; break;
 	case ACTIVE_SPINEVOLLEY:	want = seen && dist > 300 && dist < 800; break;
 	case ACTIVE_MARKPREY:		want = seen; break;
-	case ACTIVE_ETERNAL:		want = seen && dist < 500; break;
+	case ACTIVE_MASTEROFDEATH:	want = bs->inventory[INVENTORY_HEALTH] < 45 && seen; break;
 	case ACTIVE_DOWNPOUR:		want = seen && dist < 1000; break;
 	case ACTIVE_HOUND:			want = bs->enemy >= 0 && dist < 1500; break;
 	case ACTIVE_RIFTANCHOR:		want = seen && health > 70; break;

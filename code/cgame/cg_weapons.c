@@ -1710,6 +1710,15 @@ void CG_Weapon_f( void ) {
 
 	cg.weaponSelectTime = cg.time;
 
+	// Xaero: the key of the weapon in hand, with a kick banked, leaps
+	if ( ( BG_Champion( cg.snap->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_LEAPINGKICK ) && KICK_COUNT( &cg.snap->ps ) > 0
+		&& BG_WeaponSlot( cg.snap->ps.weapon ) == num
+		&& ( cg.snap->ps.weapon == WP_SHOTGUN || cg.snap->ps.weapon == WP_SUPER_SHOTGUN
+			|| cg.snap->ps.weapon == WP_ROCKET_LAUNCHER || cg.snap->ps.weapon == WP_RAILGUN ) ) {
+		trap_SendClientCommand( "leapkick" );
+		return;
+	}
+
 	// keys are slots: pick the slot's weapon, the upgrade first; pressing
 	// again while holding one switches to the other in the same slot
 	{

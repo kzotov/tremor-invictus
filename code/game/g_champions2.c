@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "g_local.h"
 
 #define CHAMP_FRAME			50
+#define MOD_WINDUP_MSEC		500		// Master of Death: no fire for this long first
 
 // Wrack: Shell Shock
 vmCvar_t	g_shockRadius;
@@ -723,12 +724,6 @@ int G_ChampionDamageScale( gentity_t *targ, gentity_t *attacker, int damage, int
 		return 0;
 	}
 	// Xaero's Eternal Champion
-	if ( attacker && attacker != targ && G_AbilityActive( attacker, ACTIVE_ETERNAL ) ) {
-		scale *= 1.5f;
-	}
-	if ( targ != attacker && G_AbilityActive( targ, ACTIVE_ETERNAL ) ) {
-		scale *= 1.25f;
-	}
 	// marked prey takes more from the team that marked it
 	if ( targ->client && attacker && attacker->client && targ->client->markEndTime > level.time
 		&& G_MarkTeam( attacker ) == targ->client->markTeam ) {
@@ -771,17 +766,17 @@ void G_ChampionDamaged( gentity_t *targ, int take ) {
 =================
 G_UndyingSave
 
-Xaero survives one killing hit a life at 1 health with a second of
-invulnerability; telefrags and the world still kill
+Master of Death (Xaero): while it runs, a killing blow leaves him at 120
+health for 3 s instead; telefrags and the world still kill
 =================
 */
-int G_UndyingSave( gentity_t *targ, int take, int mod ) {
+int G_UndyingSave( gentity_t *targ, gentity_t *attacker, int take, int mod ) {
 	gclient_t	*client = targ->client;
 
-	if ( !client || !( G_Passives( targ ) & PASSIVE_UNDYING ) || client->undyingUsed ) {
+	if ( !client || !G_AbilityActive( targ, ACTIVE_MASTEROFDEATH ) || client->modDeferred ) {
 		return take;
 	}
-	if ( targ->health - take > 0 ) {
+	if ( level.time - client->modStartTime < MOD_WINDUP_MSEC || targ->health - take > 0 ) {
 		return take;
 	}
 	switch ( mod ) {
@@ -791,9 +786,165 @@ int G_UndyingSave( gentity_t *targ, int take, int mod ) {
 	default:
 		break;
 	}
-	client->undyingUsed = qtrue;
-	client->invulnEndTime = level.time + 1000;
-	return targ->health - 1;
+	client->modDeferred = qtrue;
+	client->modDeferEnd = level.time + 3000;
+	client->modKiller = attacker && attacker->client ? attacker->s.number : ENTITYNUM_WORLD;
+	client->modFragged = qfalse;
+	targ->health = client->ps.stats[STAT_HEALTH] = 120;
+	return 0;
+}
+
+/*
+=================
+Master of Death
+
+Usable below 50 health. The first half second holds his fire (and is
+heard); a death in the next 3 s is held off (G_UndyingSave) and becomes
+real unless he frags someone meanwhile; if nothing kills him he ends at 1
+health.
+=================
+*/
+void G_MasterOfDeathStart( gentity_t *ent ) {
+	gclient_t	*client = ent->client;
+
+	if ( ent->health >= 50 ) {
+		// not hurt enough: the charge comes back
+		BG_SetAbility( &client->ps, ABILITY_IDLE, BG_AbilityCharges( &client->ps ) + 1 );
+		client->ps.stats[STAT_ABILITY_TIME] = 0;
+		return;
+	}
+	client->modStartTime = level.time;
+	client->modDeferred = qfalse;
+	G_Sound( ent, CHAN_AUTO, G_SoundIndex( "sound/items/protect3.wav" ) );
+}
+
+void G_MasterOfDeathEnd( gentity_t *ent ) {
+	gclient_t	*client = ent->client;
+
+	if ( client->modStartTime && !client->modDeferred && ent->health > 0 ) {
+		ent->health = client->ps.stats[STAT_HEALTH] = 1;
+	}
+	client->modStartTime = 0;
+}
+
+void G_MasterOfDeathFrag( gentity_t *attacker ) {
+	if ( attacker && attacker->client && attacker->client->modDeferred ) {
+		attacker->client->modFragged = qtrue;
+	}
+}
+
+/*
+=================
+Leaping Kick
+
+Medals bank kicks (up to 3, 10 s each); pressing the weapon's key again
+spends one: a leap of 600 forward and at least 150 up that passes through
+enemies for 25, then 5 s of air control
+=================
+*/
+void G_BankKick( gentity_t *ent ) {
+	gclient_t	*client = ent->client;
+	int			i;
+
+	if ( !client || !( G_Passives( ent ) & PASSIVE_LEAPINGKICK ) ) {
+		return;
+	}
+	for ( i = 0; i < KICK_MAX; i++ ) {
+		if ( client->kickExpire[i] <= level.time ) {
+			client->kickExpire[i] = level.time + 10000;
+			return;
+		}
+	}
+}
+
+void G_LeapingKick( gentity_t *ent ) {
+	gclient_t	*client = ent->client;
+	vec3_t		forward;
+	int			i, w = ent->s.weapon;
+
+	if ( !( G_Passives( ent ) & PASSIVE_LEAPINGKICK ) || ent->health <= 0
+		|| ( w != WP_SHOTGUN && w != WP_SUPER_SHOTGUN && w != WP_ROCKET_LAUNCHER && w != WP_RAILGUN ) ) {
+		return;
+	}
+	for ( i = 0; i < KICK_MAX; i++ ) {
+		if ( client->kickExpire[i] > level.time ) {
+			break;
+		}
+	}
+	if ( i == KICK_MAX ) {
+		return;
+	}
+	client->kickExpire[i] = 0;
+	AngleVectors( client->ps.viewangles, forward, NULL, NULL );
+	VectorScale( forward, 600, client->ps.velocity );
+	if ( client->ps.velocity[2] < 150 ) {
+		client->ps.velocity[2] = 150;
+	}
+	client->ps.groundEntityNum = ENTITYNUM_NONE;
+	client->kickEndTime = level.time + 700;
+	client->kickAirEnd = level.time + 5000;
+	client->kickHits[0] = client->kickHits[1] = 0;
+	G_AddEvent( ent, EV_JUMP, 0 );
+}
+
+/*
+=================
+G_XaeroThink
+
+Kicks run out, the kick passes through players and hurts them once, the
+held death is settled, and the state goes out in STAT_KICK
+=================
+*/
+void G_XaeroThink( gentity_t *ent ) {
+	gclient_t	*client = ent->client;
+	int			i, count = 0, air;
+
+	if ( !( G_Passives( ent ) & PASSIVE_LEAPINGKICK ) && !client->modStartTime ) {
+		return;
+	}
+	if ( client->modDeferred && level.time >= client->modDeferEnd ) {
+		client->modDeferred = qfalse;
+		if ( !client->modFragged && ent->health > 0 ) {
+			gentity_t *killer = client->modKiller < MAX_CLIENTS ? &g_entities[client->modKiller] : NULL;
+
+			ent->health = client->ps.stats[STAT_HEALTH] = -999;
+			player_die( ent, killer, killer, 100000, MOD_UNKNOWN );
+			return;
+		}
+	}
+	// the kick: through players, 25 to each enemy it meets
+	if ( client->kickEndTime > level.time ) {
+		int			touch[MAX_GENTITIES], num;
+		vec3_t		mins, maxs;
+
+		VectorAdd( client->ps.origin, ent->r.mins, mins );
+		VectorAdd( client->ps.origin, ent->r.maxs, maxs );
+		num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
+		for ( i = 0; i < num; i++ ) {
+			gentity_t	*other = &g_entities[touch[i]];
+			int			n = touch[i];
+
+			if ( n >= MAX_CLIENTS || other == ent || !other->client || other->health <= 0 || OnSameTeam( ent, other )
+				|| ( client->kickHits[n >> 5] & ( 1 << ( n & 31 ) ) ) ) {
+				continue;
+			}
+			client->kickHits[n >> 5] |= 1 << ( n & 31 );
+			G_Damage( other, ent, ent, client->ps.velocity, other->r.currentOrigin, 25, DAMAGE_NO_KNOCKBACK, MOD_UNKNOWN );
+		}
+	}
+	if ( !( G_Passives( ent ) & PASSIVE_LEAPINGKICK ) ) {
+		return;
+	}
+	for ( i = 0; i < KICK_MAX; i++ ) {
+		if ( client->kickExpire[i] > level.time ) {
+			count++;
+		}
+	}
+	air = client->kickAirEnd > level.time ? ( client->kickAirEnd - level.time + 99 ) / 100 : 0;
+	if ( air > 63 ) {
+		air = 63;
+	}
+	client->ps.stats[STAT_KICK] = count | ( air << 2 ) | ( client->kickEndTime > level.time ? KICK_PASSING : 0 );
 }
 
 /*

@@ -54,6 +54,12 @@ static void G_Medal( gentity_t *ent, int medal ) {
 		return;
 	}
 	count = ++client->medals[medal];
+
+	// Xaero banks a Leaping Kick on these medals with the matching weapon
+	if ( ( medal == MEDAL_POINTBLANK && ( ent->s.weapon == WP_SHOTGUN || ent->s.weapon == WP_SUPER_SHOTGUN ) )
+		|| ( ( medal == MEDAL_MIDAIR || medal == MEDAL_AIRBORNE || medal == MEDAL_PRECISE ) && ent->s.weapon == WP_ROCKET_LAUNCHER ) ) {
+		G_BankKick( ent );
+	}
 	G_LogPrintf( "Medal: %i %i: %s %s\n", (int)( ent - g_entities ), medal, client->pers.netname, bg_medalInfo[medal].key );
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
 		gclient_t	*cl = &level.clients[i];

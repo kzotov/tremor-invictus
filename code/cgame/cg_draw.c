@@ -1195,6 +1195,10 @@ static void CG_DrawHud( void ) {
 	if ( maxCharges > 1 ) {
 		CG_DrawChargeIcons( BG_Champion( ps->stats[STAT_CHAMPION] )->active, charges, maxCharges );
 	}
+	// Xaero's banked Leaping Kicks
+	if ( ( BG_Champion( ps->stats[STAT_CHAMPION] )->passives & PASSIVE_LEAPINGKICK ) && KICK_COUNT( ps ) > 0 ) {
+		CG_DrawSmallStringColor( 344 + 8, 470, va( "KICK x%i", KICK_COUNT( ps ) ), colorYellow );
+	}
 
 	// armour, right of the centre
 	value = ps->stats[STAT_ARMOR];

@@ -1309,7 +1309,10 @@ void ClientSpawn(gentity_t *ent) {
 	client->abilityRecharge = 0;
 	client->abilityPrevState = ABILITY_IDLE;
 	client->lastDamageTime = 0;
-	client->undyingUsed = qfalse;
+	memset( client->kickExpire, 0, sizeof( client->kickExpire ) );
+	client->kickEndTime = client->kickAirEnd = 0;
+	client->modStartTime = client->modDeferEnd = 0;
+	client->modDeferred = client->modFragged = qfalse;
 	client->ps.generic1 = 40;		// Clutch starts with one dodge
 	client->invulnEndTime = 0;
 	client->markEndTime = 0;

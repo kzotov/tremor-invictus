@@ -672,6 +672,8 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 		}
 	}
 
+	G_MasterOfDeathFrag( attacker );
+
 	// the death screen: who, with what, what they have left, the damage both
 	// ways this life, and when the respawn comes
 	if ( attacker && attacker->client && attacker != self && attacker->s.number < MAX_CLIENTS ) {
@@ -1344,7 +1346,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if (take) {
 		if ( targ->client ) {
 			targ->client->lastDamageTime = level.time;
-			take = G_UndyingSave( targ, take, mod );
+			take = G_UndyingSave( targ, attacker, take, mod );
 			G_ChampionDamaged( targ, take );
 		}
 		targ->health = targ->health - take;

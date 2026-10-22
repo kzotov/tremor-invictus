@@ -463,6 +463,10 @@ void CG_PredictPlayerState( void ) {
 		&& BG_AbilityState( cg_pmove.ps ) == ABILITY_ACTIVE ) {
 		cg_pmove.tracemask &= ~CONTENTS_BODY;	// ghost walk passes through players
 	}
+	if ( ( BG_Champion( cg_pmove.ps->stats[STAT_CHAMPION] )->passives & PASSIVE_LEAPINGKICK )
+		&& ( cg_pmove.ps->stats[STAT_KICK] & KICK_PASSING ) ) {
+		cg_pmove.tracemask &= ~CONTENTS_BODY;	// a Leaping Kick passes through players
+	}
 	if ( cg.warmup && ( cgs.gametype == GT_TOURNAMENT || cgs.gametype == GT_TEAM || cgs.gametype == GT_CTF ) ) {
 		cg_pmove.tracemask &= ~CONTENTS_BODY;	// warm-up: players pass through each other
 	}

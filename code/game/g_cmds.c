@@ -1859,6 +1859,10 @@ void ClientCommand( int clientNum ) {
 		Cmd_Next_f( ent );
 		return;
 	}
+	if ( Q_stricmp( cmd, "leapkick" ) == 0 ) {
+		G_LeapingKick( ent );
+		return;
+	}
 	if (Q_stricmp (cmd, "readyup") == 0) {
 		Cmd_ReadyUp_f( ent );
 		return;

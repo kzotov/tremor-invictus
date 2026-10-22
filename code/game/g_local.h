@@ -368,7 +368,16 @@ struct gclient_s {
 	int			stunEndTime;		// no firing and no ability until then
 	int			revealEndTime;		// seen by an enemy drone: shown through walls
 	int			markTeam;			// team (or client + 1000 in free for all) whose hits are stronger
-	qboolean	undyingUsed;
+	// Xaero
+	int			kickExpire[KICK_MAX];	// banked Leaping Kicks, level.time each runs out
+	int			kickEndTime;			// passing through players until then
+	int			kickHits[2];			// players already kicked this leap (client bits)
+	int			kickAirEnd;				// kick air control until then
+	int			modStartTime;			// Master of Death began
+	int			modDeferEnd;			// a death held off until then
+	int			modKiller;				// who would have killed him
+	qboolean	modFragged;				// he fragged someone while held
+	qboolean	modDeferred;
 	int			invulnEndTime;		// no damage until then
 	int			echoLeft;			// health still to heal back
 	int			echoEndTime;
@@ -821,7 +830,13 @@ gentity_t	*G_AbilityMissile( gentity_t *owner, const char *classname, vec3_t sta
 void		G_AbilityStop( gentity_t *ent, vec3_t point );
 void		G_RegisterChampionCvars( void );
 void		G_UpdateChampionCvars( void );
-int			G_UndyingSave( gentity_t *targ, int take, int mod );
+int			G_UndyingSave( gentity_t *targ, gentity_t *attacker, int take, int mod );
+void		G_BankKick( gentity_t *ent );
+void		G_LeapingKick( gentity_t *ent );
+void		G_XaeroThink( gentity_t *ent );
+void		G_MasterOfDeathStart( gentity_t *ent );
+void		G_MasterOfDeathEnd( gentity_t *ent );
+void		G_MasterOfDeathFrag( gentity_t *attacker );
 void		G_ShellShock( gentity_t *ent );
 void		G_SpineVolley( gentity_t *ent );
 void		G_SupplyDrop( gentity_t *ent );
