@@ -11,6 +11,7 @@ home folder. Plain Python 3, no packages.
 | `make-splash.py` | `splash/back` behind the connect and loading screens, `splash/nomap` for maps without a levelshot |
 | `make-medals.py` | `medals/<key>`: every match medal, the classic awards and the end-of-match ones |
 | `make-abilities.py` | `abilities/<name>` HUD icons and the `fx/` effect textures (shaders in `assets/baseq3/scripts/tremor-fx.shader`) |
+| `portraits.py` | `gfx/champions/<name>` portraits for the champions that have none elsewhere, packed by `make-models.py` |
 | `tremorart.py` | shared: the logo's palette, shapes, noise, glow, TGA output |
 
 The pillar and podium textures come from `misc/textures/make-pillar-textures.py`.

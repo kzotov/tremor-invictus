@@ -20,6 +20,11 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
                                             champion's hue, the monogram; the game
                                             prefers gfx/champions/<champion> (a
                                             portrait pack), then the model's icon
+  gfx/champions/<champion>.tga, _small.tga   real portraits (256 and 64 px) for the
+                                            champions that have none elsewhere:
+                                            Athena, Beastmaster, Galena,
+                                            Scalebearer, Unumrey, Wrack and Xaero
+                                            (portraits.py)
   sound/tremor/hit_armor.wav, hit_health.wav, armor_break.wav
   sound/tremor/slide_start.wav, slide_loop.wav, slide_stop.wav   the crouch slide
   sound/tremor/dodge.wav                    Clutch's dodge
@@ -64,6 +69,7 @@ import math, os, random, struct, sys, zipfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tremorart import *
 import tremorart as art
+import portraits as champion_portraits
 
 
 # ---------------------------------------------------------------- meshes
@@ -1350,6 +1356,7 @@ def main():
     hud_icons(src)
     hud_badges(src)
     portraits(src)
+    champion_portraits.write_portraits(src)
     sounds(src)
     texture(os.path.join(src, "gfx/abilities/plasmatrail.tga"), 128, 64, trail, False)
     texture(os.path.join(src, "gfx/tremor/blood_edge.tga"), 256, 256, blood_edge)

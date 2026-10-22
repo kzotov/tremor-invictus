@@ -118,6 +118,12 @@ class Shape:
         return Shape(lambda x, y: a(cx + (x - cx) * c + (y - cy) * s, cy - (x - cx) * s + (y - cy) * c),
                      (cx - r, cy - r, cx + r, cy + r))
 
+    def scaled(self, k, cx=0.5, cy=0.5):
+        a = self.sdf
+        x0, y0, x1, y1 = self.box
+        return Shape(lambda x, y: a(cx + (x - cx) / k, cy + (y - cy) / k) * k,
+                     (cx + (x0 - cx) * k, cy + (y0 - cy) * k, cx + (x1 - cx) * k, cy + (y1 - cy) * k))
+
     def mirrored(self, cx=0.5):
         a = self.sdf
         x0, y0, x1, y1 = self.box
@@ -376,6 +382,25 @@ class Canvas:
             else:
                 k = mix(base, dark, edge * -facing)
             return (color[0] * k, color[1] * k, color[2] * k)
+        self.fill(shape, f)
+
+    def fill_lit(self, shape, base, rim, light=(0.7, -0.7), rim_width=0.02, seed=0, grain=0.18):
+        """A solid lit like a rounded form: worn `base` colour, darker towards
+        the bottom, and a `rim` of light along the edges that face `light`."""
+        n = Fbm(seed, 3, 18)
+        sdf = shape.sdf
+        lx, ly = light
+        e = 0.5 / self.k
+
+        def f(x, y):
+            d = sdf(x, y)
+            gx = sdf(x + e, y) - sdf(x - e, y)
+            gy = sdf(x, y + e) - sdf(x, y - e)
+            gl = math.hypot(gx, gy) or 1.0
+            facing = clamp((gx * lx + gy * ly) / gl)
+            k = (0.75 + (n.at(x, y) - 0.5) * 2 * grain) * mix(1.15, 0.55, clamp(y))
+            r = facing * smooth(-rim_width, 0.0, d)
+            return tuple(clamp(b * k + c * r) for b, c in zip(base, rim))
         self.fill(shape, f)
 
     def glow(self, shape, color, radius, strength=1.0):
