@@ -367,8 +367,8 @@ class CommandListener : public Rml::EventListener {
 public:
 	explicit CommandListener( const Rml::String &command ) : command( command ) {}
 
-	// {value} becomes a form control's value, kept to letters, digits and
-	// a few marks so it can't add commands
+	// {value} becomes a form control's value, kept to letters, digits,
+	// spaces and a few marks so it can't add commands
 	void ProcessEvent( Rml::Event &event ) override {
 		Rml::String	text = command;
 		size_t		at = text.find( "{value}" );
@@ -377,7 +377,7 @@ public:
 			Rml::String	value = event.GetParameter<Rml::String>( "value", "" ), safe;
 
 			for ( char c : value ) {
-				if ( isalnum( (unsigned char)c ) || c == '-' || c == '_' || c == '.' || c == ':' ) {
+				if ( isalnum( (unsigned char)c ) || c == '-' || c == '_' || c == '.' || c == ':' || c == ' ' ) {
 					safe += c;
 				}
 			}
@@ -613,6 +613,28 @@ void ApplyConditions( Rml::Element *element ) {
 	}
 }
 
+/*
+=================
+FillValues
+
+Form controls with data-value-cvar start with that cvar's value
+=================
+*/
+void FillValues( Rml::Element *element ) {
+	for ( int i = 0 ; i < element->GetNumChildren() ; i++ ) {
+		Rml::Element	*child = element->GetChild( i );
+		Rml::Variant	*cvar = child->GetAttribute( "data-value-cvar" );
+
+		if ( cvar ) {
+			char	value[256];
+
+			imp.GetCvar( cvar->Get<Rml::String>().c_str(), value, sizeof( value ) );
+			child->SetAttribute( "value", Rml::String( value ) );
+		}
+		FillValues( child );
+	}
+}
+
 extern "C" void RML_Show( const char *path ) {
 	if ( !initialised ) {
 		return;
@@ -636,6 +658,7 @@ extern "C" void RML_Show( const char *path ) {
 	}
 	documentPath = path;
 	imp.SetCvar( "rml_doc", path );
+	FillValues( document );
 	ApplyConditions( document );
 	document->Show();
 	imp.SetCvar( "rml_active", "1" );

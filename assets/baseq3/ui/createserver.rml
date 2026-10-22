@@ -1,0 +1,83 @@
+<rml>
+<head>
+	<title>Create server</title>
+	<link type="text/rcss" href="tremor.rcss"/>
+</head>
+<body data-escape="rml_show ui/main.rml">
+	<div class="create">
+		<h1>[cs_title]</h1>
+		<div class="modes">
+			<button class="opt mode" data-class="on:ui_csModeShown=ffa" onclick="ui_csMode ffa">[mode_ffa]</button>
+			<button class="opt mode" data-class="on:ui_csModeShown=duel" onclick="ui_csMode duel">[mode_duel]</button>
+			<button class="opt mode" data-class="on:ui_csModeShown=tdm" onclick="ui_csMode tdm">[mode_tdm]</button>
+			<button class="opt mode" data-class="on:ui_csModeShown=tdm2v2" onclick="ui_csMode tdm2v2">[mode_tdm2v2]</button>
+			<button class="opt mode" data-class="on:ui_csModeShown=ctf" onclick="ui_csMode ctf">[mode_ctf]</button>
+			<button class="opt mode" data-class="on:ui_csModeShown=ca" onclick="ui_csMode ca">[mode_ca]</button>
+			<button class="opt mode" data-class="on:ui_csModeShown=sacrifice" onclick="ui_csMode sacrifice">[mode_sacrifice]</button>
+			<button class="opt mode" data-class="on:ui_csModeShown=roundduel" onclick="ui_csMode roundduel">[mode_roundduel]</button>
+			<button class="opt mode" data-class="on:ui_csModeShown=instagib" onclick="ui_csMode instagib">[mode_instagib]</button>
+			<button class="opt mode" data-class="on:ui_csModeShown=unholytrinity" onclick="ui_csMode unholytrinity">[mode_unholytrinity]</button>
+		</div>
+		<div class="maps">
+			<div class="map" data-when="ui_csMap0!=" data-class="on:ui_csPicked=0" onclick="ui_csPick 0">
+				<img data-src-cvar="ui_csShot0"/><span data-text-cvar="ui_csMap0"></span>
+			</div>
+			<div class="map" data-when="ui_csMap1!=" data-class="on:ui_csPicked=1" onclick="ui_csPick 1">
+				<img data-src-cvar="ui_csShot1"/><span data-text-cvar="ui_csMap1"></span>
+			</div>
+			<div class="map" data-when="ui_csMap2!=" data-class="on:ui_csPicked=2" onclick="ui_csPick 2">
+				<img data-src-cvar="ui_csShot2"/><span data-text-cvar="ui_csMap2"></span>
+			</div>
+			<div class="map" data-when="ui_csMap3!=" data-class="on:ui_csPicked=3" onclick="ui_csPick 3">
+				<img data-src-cvar="ui_csShot3"/><span data-text-cvar="ui_csMap3"></span>
+			</div>
+			<div class="map" data-when="ui_csMap4!=" data-class="on:ui_csPicked=4" onclick="ui_csPick 4">
+				<img data-src-cvar="ui_csShot4"/><span data-text-cvar="ui_csMap4"></span>
+			</div>
+			<div class="map" data-when="ui_csMap5!=" data-class="on:ui_csPicked=5" onclick="ui_csPick 5">
+				<img data-src-cvar="ui_csShot5"/><span data-text-cvar="ui_csMap5"></span>
+			</div>
+			<div class="map" data-when="ui_csMap6!=" data-class="on:ui_csPicked=6" onclick="ui_csPick 6">
+				<img data-src-cvar="ui_csShot6"/><span data-text-cvar="ui_csMap6"></span>
+			</div>
+			<div class="map" data-when="ui_csMap7!=" data-class="on:ui_csPicked=7" onclick="ui_csPick 7">
+				<img data-src-cvar="ui_csShot7"/><span data-text-cvar="ui_csMap7"></span>
+			</div>
+			<div class="map" data-when="ui_csMap8!=" data-class="on:ui_csPicked=8" onclick="ui_csPick 8">
+				<img data-src-cvar="ui_csShot8"/><span data-text-cvar="ui_csMap8"></span>
+			</div>
+			<div class="map" data-when="ui_csMap9!=" data-class="on:ui_csPicked=9" onclick="ui_csPick 9">
+				<img data-src-cvar="ui_csShot9"/><span data-text-cvar="ui_csMap9"></span>
+			</div>
+			<div class="map" data-when="ui_csMap10!=" data-class="on:ui_csPicked=10" onclick="ui_csPick 10">
+				<img data-src-cvar="ui_csShot10"/><span data-text-cvar="ui_csMap10"></span>
+			</div>
+			<div class="map" data-when="ui_csMap11!=" data-class="on:ui_csPicked=11" onclick="ui_csPick 11">
+				<img data-src-cvar="ui_csShot11"/><span data-text-cvar="ui_csMap11"></span>
+			</div>
+		</div>
+		<div class="pager">
+			<button class="opt" onclick="ui_csPage -1">&lt;</button>
+			<span data-text-cvar="ui_csPageText"></span>
+			<button class="opt" onclick="ui_csPage 1">&gt;</button>
+		</div>
+	</div>
+	<div class="csopts">
+		<div class="row"><span class="label">[cs_map]</span><span class="value" data-text-cvar="ui_csMapName"></span></div>
+		<div class="row"><span class="label">[cs_name]</span><input type="text" maxlength="31" size="20" data-value-cvar="sv_hostname" onchange="set sv_hostname {value}"/></div>
+		<div class="row"><span class="label">[cs_bots]</span>
+			<button class="opt" onclick="ui_csBotsAdd -1">-</button><span class="value" data-text-cvar="ui_csBots"></span><button class="opt" onclick="ui_csBotsAdd 1">+</button></div>
+		<div class="row"><span class="label">[cs_skill]</span><button class="opt" data-class="on:ui_csSkill=1" onclick="set ui_csSkill 1">1</button><button class="opt" data-class="on:ui_csSkill=2" onclick="set ui_csSkill 2">2</button><button class="opt" data-class="on:ui_csSkill=3" onclick="set ui_csSkill 3">3</button><button class="opt" data-class="on:ui_csSkill=4" onclick="set ui_csSkill 4">4</button><button class="opt" data-class="on:ui_csSkill=5" onclick="set ui_csSkill 5">5</button></div>
+		<div class="row"><span class="label">[cs_server]</span>
+			<button class="opt" data-class="on:ui_csDedicated=0" onclick="set ui_csDedicated 0">[cs_play]</button>
+			<button class="opt" data-class="on:ui_csDedicated=1" onclick="set ui_csDedicated 1">[cs_lan]</button>
+			<button class="opt" data-class="on:ui_csDedicated=2" onclick="set ui_csDedicated 2">[cs_internet]</button>
+		</div>
+		<div class="note">[cs_note]</div>
+		<div class="csactions">
+			<button onclick="rml_show ui/main.rml">[menu_back]</button>
+			<button class="go" onclick="ui_csStart">[cs_start]</button>
+		</div>
+	</div>
+</body>
+</rml>

@@ -1081,6 +1081,11 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	if ( Q_stricmp (cmd, "ui_createServer") == 0 && trap_Cvar_VariableValue( "rml_ok" ) ) {
+		UI_CreateServerRml();
+		return qtrue;
+	}
+
 	if ( Q_stricmp (cmd, "ui_createServer") == 0 ) {
 		UI_StartServerMenu( qtrue );
 		return qtrue;
@@ -1092,6 +1097,10 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		} else {
 			UI_ChampionMenu();
 		}
+		return qtrue;
+	}
+
+	if ( UI_CreateServerCommand( cmd ) ) {
 		return qtrue;
 	}
 
