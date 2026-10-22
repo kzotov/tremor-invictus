@@ -433,81 +433,147 @@ button.small {
 }
 
 /* the Champions screen: portraits left, the stage in the middle, details right */
-.champs {
+/* the Champions screen (menu.md section 10), laid out on a 1280 x 720 grid:
+   1 grid unit = 1.5dp */
+.roster {
 	position: absolute;
-	left: 3%;
-	top: 4%;
-	width: 36%;
+	left: 60dp;
+	top: 45dp;
+	width: 620dp;
 }
 
-.champs h1 {
+.roster h1 {
 	display: block;
 	font-family: "Arial Black";
 	font-size: 50dp;
 	color: #f2efe9;
-	margin-bottom: 14dp;
+	height: 70dp;
 }
 
-.champs .cell {
+.roster .tiles {
+	display: block;
+	width: 620dp;
+}
+
+.roster .tile {
 	display: inline-block;
 	position: relative;
-	width: 18%;
-	margin: 0 1% 1% 0;
+	width: 112dp;
+	height: 112dp;
+	margin: 0 10dp 10dp 0;
 	background-color: #16171bf0;
-	border: 3dp #26272c;
+	border: 1dp #3a3b40;
 	cursor: pointer;
 }
 
-.champs .cell:hover {
-	border-color: #8a8780;
+.roster .tile:hover {
+	border: 3dp #8a8780;
 }
 
-.champs .cell.shown {
-	border-color: #d3191f;
+.roster .tile:hover img {
+	image-color: #ffffff;
 }
 
-.champs .cell img {
+.roster .tile.shown {
+	border: 3dp #d3191f;
+}
+
+/* recreated champions: a lighter hairline and a faint stripe (no dashed
+   borders in the menu renderer) */
+.roster .tile.rec {
+	border: 1dp #6a6b70;
+	decorator: horizontal-gradient( #16171bf0 #24252bf0 );
+}
+
+.roster .tile.rec:hover {
+	border: 3dp #8a8780;
+}
+
+.roster .tile.rec.shown {
+	border: 3dp #d3191f;
+}
+
+.roster .tile img {
 	display: block;
 	width: 100%;
-	height: 110dp;
+	height: 100%;
+	image-color: #d8d8d8;
 }
 
-.champs .cname {
-	display: block;
-	font-size: 18dp;
-	color: #c8c4bc;
+.roster .tname {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	width: 100%;
+	height: 26dp;
+	background-color: #0b0c0edd;
+	font-size: 17dp;
+	color: #e8e4dc;
 	text-align: center;
 	white-space: nowrap;
 	overflow: hidden;
 }
 
-.champs .mark {
+.roster .cls, .roster .rmark {
 	position: absolute;
-	right: 4dp;
+	font-family: "Arial Black";
+	font-size: 16dp;
+	color: #f2efe9;
+	background-color: #0b0c0ecc;
+	padding: 0 5dp;
+}
+
+.roster .cls {
+	left: 4dp;
 	top: 4dp;
-	width: 16dp;
-	height: 16dp;
+}
+
+.roster .rmark {
+	right: 4dp;
+	bottom: 30dp;
+	color: #d3191f;
+}
+
+.roster .flag {
+	position: absolute;
+	right: 0;
+	top: 0;
+	width: 18dp;
+	height: 18dp;
 	background-color: #d3191f;
 }
 
-.champs .bio {
+.roster .recreated {
 	display: block;
-	margin-top: 14dp;
-	font-size: 22dp;
+	margin-top: 22dp;
+	margin-bottom: 10dp;
+	width: 540dp;
+}
+
+.roster .reclabel {
+	display: block;
+	font-family: "Arial Black";
+	font-size: 20dp;
+	color: #d3191f;
+}
+
+.roster .recnote {
+	display: block;
+	font-size: 17dp;
 	color: #8a8780;
 }
 
 .champstage {
-	left: 40%;
-	top: 8%;
-	width: 28%;
-	height: 72%;
+	left: 40.6%;
+	top: 10%;
+	width: 25%;
+	height: 66%;
 }
 
 .chinfo {
 	position: absolute;
-	left: 69%;
-	top: 8%;
+	left: 68.75%;
+	top: 6%;
 	width: 28%;
 	font-size: 24dp;
 	color: #e8e4dc;
@@ -537,6 +603,49 @@ button.small {
 	margin-top: 16dp;
 }
 
+.chinfo .bar {
+	display: inline-block;
+	margin-right: 10dp;
+}
+
+.chinfo .seg {
+	display: inline-block;
+	width: 18dp;
+	height: 12dp;
+	margin-right: 3dp;
+	background-color: #2a2b30;
+}
+
+.chinfo .seg.on {
+	background-color: #d3191f;
+}
+
+.chinfo .num {
+	color: #8a8780;
+}
+
+.chinfo .bio {
+	display: block;
+	margin-top: 16dp;
+	font-size: 21dp;
+	color: #b8b4ac;
+}
+
+.chinfo .note {
+	display: block;
+	margin-top: 12dp;
+	padding-left: 12dp;
+	border-left: 3dp #d3191f;
+	font-size: 18dp;
+	color: #8a8780;
+}
+
+.chinfo .noteend {
+	display: block;
+	margin-top: 6dp;
+	color: #c8c4bc;
+}
+
 .chinfo .weapon {
 	display: block;
 	margin-top: 20dp;
@@ -559,14 +668,16 @@ button.small {
 
 .chactions {
 	position: absolute;
-	left: 40%;
-	bottom: 6%;
-	width: 57%;
+	left: 36%;
+	bottom: 5%;
+	width: 34%;
+	text-align: center;
+	white-space: nowrap;
 }
 
 .chactions button {
 	display: inline-block;
-	margin-right: 60dp;
+	margin: 0 30dp;
 }
 
 .chactions .select {

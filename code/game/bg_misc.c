@@ -1789,7 +1789,16 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"System default",
 	"MUTE",
 	"UNMUTE",
-	"READY"
+	"READY",
+	"From the original material: the field that shuts down enemy abilities and turns their cooldowns back, his air-control passive, his class and speed. Recreated: the numbers the original left unfinished, his look and his voice.",
+	"From the original material: the name and the character. Recreated: the whole kit, built on a concept by evmadic, a veteran arena player.",
+	"From the original material: the name, the character and her animations. Recreated: her abilities and numbers.",
+	"From the original material: the name and the character. Recreated: his abilities and numbers.",
+	"From the original material: the name only. Recreated: his abilities and numbers.",
+	"From the original material: the name and the animations. Recreated: everything else.",
+	"From the original material: the name and a rough silhouette. Recreated: everything else, including the hound.",
+	"From the original material: the name only. Recreated: everything else.",
+	"This is a starting point for discussion. All suggestions are welcome."
 };
 
 /*

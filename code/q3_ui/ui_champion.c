@@ -562,6 +562,67 @@ static void Champion_SetText( const char *cvar, const char *text ) {
 	trap_Cvar_Set( cvar, value );
 }
 
+// the recreated section, in the order of their notes (STR_RECR_*)
+static const char *recreatedChampions[] = { "wrack", "xaero", "hunter", "klesk", "sarge", "raine", "beastmaster", "unumrey" };
+
+/*
+=================
+Champion_Bars
+
+Health, armour and speed as 0-10 segments against the roster's highest
+(ui_chHpSeg, ui_chArSeg, ui_chSpSeg)
+=================
+*/
+static void Champion_Bars( const champion_t *c ) {
+	int		i, bestHp = 1, bestAr = 1, bestSp = 1;
+
+	for ( i = 0; i < bg_numChampions; i++ ) {
+		const classInfo_t	*ci = &bg_classInfo[bg_championList[i].bodyClass];
+
+		bestHp = MAX( bestHp, 100 + ci->maxHealthBonus );
+		bestAr = MAX( bestAr, ci->maxArmor );
+		bestSp = MAX( bestSp, bg_championList[i].runSpeed );
+	}
+	trap_Cvar_SetValue( "ui_chHpSeg", ( 10 * ( 100 + bg_classInfo[c->bodyClass].maxHealthBonus ) + bestHp / 2 ) / bestHp );
+	trap_Cvar_SetValue( "ui_chArSeg", ( 10 * bg_classInfo[c->bodyClass].maxArmor + bestAr / 2 ) / bestAr );
+	trap_Cvar_SetValue( "ui_chSpSeg", ( 10 * c->runSpeed + bestSp / 2 ) / bestSp );
+}
+
+/*
+=================
+Champion_Pictures
+
+Each tile's picture (ui_pic_<champion>): a portrait pack's
+gfx/champions/<champion>, else the model's icon, else our generated badge
+=================
+*/
+static void Champion_Pictures( void ) {
+	char	model[MAX_QPATH], path[MAX_QPATH], cvar[64], *skin;
+	int		i;
+
+	for ( i = 0; i < bg_numChampions; i++ ) {
+		const champion_t	*c = &bg_championList[i];
+
+		Com_sprintf( path, sizeof( path ), "gfx/champions/%s", c->name );
+		if ( !trap_R_RegisterShaderNoMip( path ) ) {
+			Q_strncpyz( model, c->model, sizeof( model ) );
+			skin = strchr( model, '/' );
+			if ( skin ) {
+				*skin++ = 0;
+			}
+			Com_sprintf( path, sizeof( path ), "models/players/%s/icon_%s", model, skin ? skin : "default" );
+			if ( !trap_R_RegisterShaderNoMip( path ) ) {
+				Com_sprintf( path, sizeof( path ), "gfx/champions-generated/%s", c->name );
+			}
+		}
+		Com_sprintf( cvar, sizeof( cvar ), "ui_pic_%s", c->name );
+		trap_Cvar_Set( cvar, va( "/%s", path ) );
+		// the class mark in the tile's corner
+		Com_sprintf( cvar, sizeof( cvar ), "ui_cls_%s", c->name );
+		trap_Cvar_SetValue( cvar, c->bodyClass );
+	}
+}
+
 /*
 =================
 Champion_Publish
@@ -573,7 +634,7 @@ static void Champion_Publish( int i ) {
 	const champion_t	*c = &bg_championList[i];
 	const classInfo_t	*ci = &bg_classInfo[c->bodyClass];
 	char				text[256], weapon[16];
-	int					bit, charges, recharge;
+	int					bit, charges, recharge, n;
 
 	trap_Cvar_Register( NULL, Champion_WeaponCvar( i ), "mg", CVAR_ARCHIVE );
 	trap_Cvar_VariableStringBuffer( Champion_WeaponCvar( i ), weapon, sizeof( weapon ) );
@@ -605,11 +666,28 @@ static void Champion_Publish( int i ) {
 	}
 	trap_Cvar_Set( "ui_chAbilityEvery", text );
 
-	trap_Cvar_Set( "ui_chPassive", "" );
-	for ( bit = 0; bit < NUM_PASSIVES; bit++ ) {
+	// up to three passives, a line each
+	n = 0;
+	for ( bit = 0; bit < NUM_PASSIVES && n < 3; bit++ ) {
 		if ( c->passives & ( 1 << bit ) ) {
-			Champion_SetText( "ui_chPassive", BG_String( STR_PASSIVE_REGENERATION + bit ) );
-			break;
+			Champion_SetText( va( "ui_chPassive%i", n++ ), BG_String( STR_PASSIVE_REGENERATION + bit ) );
+		}
+	}
+	trap_Cvar_Set( "ui_chPassive", n ? "1" : "" );
+	for ( ; n < 3; n++ ) {
+		trap_Cvar_Set( va( "ui_chPassive%i", n ), "" );
+	}
+
+	// the stat bars, ten segments against the best of the roster
+	Champion_Bars( c );
+
+	// recreated champions: where each part came from
+	trap_Cvar_Set( "ui_chNote", "" );
+	trap_Cvar_Set( "ui_chNoteEnd", "" );
+	for ( n = 0; n < ARRAY_LEN( recreatedChampions ); n++ ) {
+		if ( !Q_stricmp( c->name, recreatedChampions[n] ) ) {
+			Champion_SetText( "ui_chNote", BG_String( STR_RECR_WRACK + n ) );
+			Champion_SetText( "ui_chNoteEnd", BG_String( STR_RECR_DISCUSS ) );
 		}
 	}
 	if ( i < STR_BIO_UNUMREY - STR_BIO_RANGER + 1 ) {
@@ -657,9 +735,11 @@ void UI_ChampionsRml( void ) {
 	int		i;
 
 	UI_Champion_PublishCurrent();
+	Champion_Pictures();
 	trap_Cvar_VariableStringBuffer( "champion", name, sizeof( name ) );
 	i = BG_ChampionForName( name );
 	Champion_Publish( i >= 0 ? i : 0 );
+	trap_Cvar_Set( "ui_chPicked", bg_championList[i >= 0 ? i : 0].name );
 	trap_Cvar_Set( "ui_chFlash", "0" );
 	trap_Cvar_Set( "ui_chLocked", Champion_Locked() ? "1" : "0" );
 	selectedTime = 0;
@@ -678,8 +758,25 @@ qboolean UI_ChampionCommand( const char *cmd ) {
 	int		i;
 
 	if ( !Q_stricmp( cmd, "ui_champPreview" ) ) {
+		// a click: shown until another is clicked
 		i = BG_ChampionForName( UI_Argv( 1 ) );
 		if ( i >= 0 ) {
+			Champion_Publish( i );
+			trap_Cvar_Set( "ui_chPicked", bg_championList[i].name );
+		}
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_champHover" ) ) {
+		// hovering previews without picking
+		i = BG_ChampionForName( UI_Argv( 1 ) );
+		if ( i >= 0 && Q_stricmp( UI_Cvar_VariableString( "ui_chShown" ), bg_championList[i].name ) ) {
+			Champion_Publish( i );
+		}
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_champHoverEnd" ) ) {
+		i = BG_ChampionForName( UI_Cvar_VariableString( "ui_chPicked" ) );
+		if ( i >= 0 && Q_stricmp( UI_Cvar_VariableString( "ui_chShown" ), bg_championList[i].name ) ) {
 			Champion_Publish( i );
 		}
 		return qtrue;

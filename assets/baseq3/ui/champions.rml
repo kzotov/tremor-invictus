@@ -4,123 +4,160 @@
 	<link type="text/rcss" href="tremor.rcss"/>
 </head>
 <body data-escape="rml_show ui/main.rml">
-	<div class="champs">
+	<!-- the roster: released champions, then the recreated section (menu.md section 10) -->
+	<div class="roster">
 		<h1>[ch_title]</h1>
-		<div class="grid">
-			<div class="cell" data-class="shown:ui_chShown=ranger" onclick="ui_champPreview ranger">
-				<img src="/models/players/ranger/icon_default"/><span class="cname">[champ_ranger]</span>
-				<span class="mark" data-when="champion=ranger"></span>
+		<div class="tiles">
+			<div class="tile" data-class="shown:ui_chShown=anarki" onclick="ui_champPreview anarki" ondblclick="ui_champPreview anarki; ui_champSelect" onmouseover="ui_champHover anarki" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_anarki"/><span class="tname">[champ_anarki]</span>
+				<span class="cls" data-when="ui_cls_anarki=0">[ch_cls_l]</span><span class="cls" data-when="ui_cls_anarki=1">[ch_cls_m]</span><span class="cls" data-when="ui_cls_anarki=2">[ch_cls_h]</span>
+				<span class="flag" data-when="champion=anarki"></span>
 			</div>
-			<div class="cell" data-class="shown:ui_chShown=anarki" onclick="ui_champPreview anarki">
-				<img src="/models/players/anarki/icon_default"/><span class="cname">[champ_anarki]</span>
-				<span class="mark" data-when="champion=anarki"></span>
+			<div class="tile" data-class="shown:ui_chShown=athena" onclick="ui_champPreview athena" ondblclick="ui_champPreview athena; ui_champSelect" onmouseover="ui_champHover athena" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_athena"/><span class="tname">[champ_athena]</span>
+				<span class="cls" data-when="ui_cls_athena=0">[ch_cls_l]</span><span class="cls" data-when="ui_cls_athena=1">[ch_cls_m]</span><span class="cls" data-when="ui_cls_athena=2">[ch_cls_h]</span>
+				<span class="flag" data-when="champion=athena"></span>
 			</div>
-			<div class="cell" data-class="shown:ui_chShown=athena" onclick="ui_champPreview athena">
-				<img src="/models/players/crash/icon_default"/><span class="cname">[champ_athena]</span>
-				<span class="mark" data-when="champion=athena"></span>
+			<div class="tile" data-class="shown:ui_chShown=bj" onclick="ui_champPreview bj" ondblclick="ui_champPreview bj; ui_champSelect" onmouseover="ui_champHover bj" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_bj"/><span class="tname">[champ_bj]</span>
+				<span class="cls" data-when="ui_cls_bj=0">[ch_cls_l]</span><span class="cls" data-when="ui_cls_bj=1">[ch_cls_m]</span><span class="cls" data-when="ui_cls_bj=2">[ch_cls_h]</span>
+				<span class="flag" data-when="champion=bj"></span>
 			</div>
-			<div class="cell" data-class="shown:ui_chShown=nyx" onclick="ui_champPreview nyx">
-				<img src="/models/players/mynx/icon_default"/><span class="cname">[champ_nyx]</span>
-				<span class="mark" data-when="champion=nyx"></span>
+			<div class="tile" data-class="shown:ui_chShown=clutch" onclick="ui_champPreview clutch" ondblclick="ui_champPreview clutch; ui_champSelect" onmouseover="ui_champHover clutch" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_clutch"/><span class="tname">[champ_clutch]</span>
+				<span class="cls" data-when="ui_cls_clutch=0">[ch_cls_l]</span><span class="cls" data-when="ui_cls_clutch=1">[ch_cls_m]</span><span class="cls" data-when="ui_cls_clutch=2">[ch_cls_h]</span>
+				<span class="flag" data-when="champion=clutch"></span>
 			</div>
-			<div class="cell" data-class="shown:ui_chShown=slash" onclick="ui_champPreview slash">
-				<img src="/models/players/slash/icon_default"/><span class="cname">[champ_slash]</span>
-				<span class="mark" data-when="champion=slash"></span>
+			<div class="tile" data-class="shown:ui_chShown=deathknight" onclick="ui_champPreview deathknight" ondblclick="ui_champPreview deathknight; ui_champSelect" onmouseover="ui_champHover deathknight" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_deathknight"/><span class="tname">[champ_deathknight]</span>
+				<span class="cls" data-when="ui_cls_deathknight=0">[ch_cls_l]</span><span class="cls" data-when="ui_cls_deathknight=1">[ch_cls_m]</span><span class="cls" data-when="ui_cls_deathknight=2">[ch_cls_h]</span>
+				<span class="flag" data-when="champion=deathknight"></span>
 			</div>
-			<div class="cell" data-class="shown:ui_chShown=bj" onclick="ui_champPreview bj">
-				<img src="/models/players/bitterman/icon_default"/><span class="cname">[champ_bj]</span>
-				<span class="mark" data-when="champion=bj"></span>
+			<div class="tile" data-class="shown:ui_chShown=doomslayer" onclick="ui_champPreview doomslayer" ondblclick="ui_champPreview doomslayer; ui_champSelect" onmouseover="ui_champHover doomslayer" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_doomslayer"/><span class="tname">[champ_doomslayer]</span>
+				<span class="cls" data-when="ui_cls_doomslayer=0">[ch_cls_l]</span><span class="cls" data-when="ui_cls_doomslayer=1">[ch_cls_m]</span><span class="cls" data-when="ui_cls_doomslayer=2">[ch_cls_h]</span>
+				<span class="flag" data-when="champion=doomslayer"></span>
 			</div>
-			<div class="cell" data-class="shown:ui_chShown=deathknight" onclick="ui_champPreview deathknight">
-				<img src="/models/players/bones/icon_default"/><span class="cname">[champ_deathknight]</span>
-				<span class="mark" data-when="champion=deathknight"></span>
+			<div class="tile" data-class="shown:ui_chShown=eisen" onclick="ui_champPreview eisen" ondblclick="ui_champPreview eisen; ui_champSelect" onmouseover="ui_champHover eisen" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_eisen"/><span class="tname">[champ_eisen]</span>
+				<span class="cls" data-when="ui_cls_eisen=0">[ch_cls_l]</span><span class="cls" data-when="ui_cls_eisen=1">[ch_cls_m]</span><span class="cls" data-when="ui_cls_eisen=2">[ch_cls_h]</span>
+				<span class="flag" data-when="champion=eisen"></span>
 			</div>
-			<div class="cell" data-class="shown:ui_chShown=doomslayer" onclick="ui_champPreview doomslayer">
-				<img src="/models/players/doom/icon_default"/><span class="cname">[champ_doomslayer]</span>
-				<span class="mark" data-when="champion=doomslayer"></span>
+			<div class="tile" data-class="shown:ui_chShown=galena" onclick="ui_champPreview galena" ondblclick="ui_champPreview galena; ui_champSelect" onmouseover="ui_champHover galena" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_galena"/><span class="tname">[champ_galena]</span>
+				<span class="cls" data-when="ui_cls_galena=0">[ch_cls_l]</span><span class="cls" data-when="ui_cls_galena=1">[ch_cls_m]</span><span class="cls" data-when="ui_cls_galena=2">[ch_cls_h]</span>
+				<span class="flag" data-when="champion=galena"></span>
 			</div>
-			<div class="cell" data-class="shown:ui_chShown=eisen" onclick="ui_champPreview eisen">
-				<img src="/models/players/biker/icon_default"/><span class="cname">[champ_eisen]</span>
-				<span class="mark" data-when="champion=eisen"></span>
+			<div class="tile" data-class="shown:ui_chShown=keel" onclick="ui_champPreview keel" ondblclick="ui_champPreview keel; ui_champSelect" onmouseover="ui_champHover keel" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_keel"/><span class="tname">[champ_keel]</span>
+				<span class="cls" data-when="ui_cls_keel=0">[ch_cls_l]</span><span class="cls" data-when="ui_cls_keel=1">[ch_cls_m]</span><span class="cls" data-when="ui_cls_keel=2">[ch_cls_h]</span>
+				<span class="flag" data-when="champion=keel"></span>
 			</div>
-			<div class="cell" data-class="shown:ui_chShown=galena" onclick="ui_champPreview galena">
-				<img src="/models/players/lucy/icon_default"/><span class="cname">[champ_galena]</span>
-				<span class="mark" data-when="champion=galena"></span>
+			<div class="tile" data-class="shown:ui_chShown=nyx" onclick="ui_champPreview nyx" ondblclick="ui_champPreview nyx; ui_champSelect" onmouseover="ui_champHover nyx" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_nyx"/><span class="tname">[champ_nyx]</span>
+				<span class="cls" data-when="ui_cls_nyx=0">[ch_cls_l]</span><span class="cls" data-when="ui_cls_nyx=1">[ch_cls_m]</span><span class="cls" data-when="ui_cls_nyx=2">[ch_cls_h]</span>
+				<span class="flag" data-when="champion=nyx"></span>
 			</div>
-			<div class="cell" data-class="shown:ui_chShown=strogg" onclick="ui_champPreview strogg">
-				<img src="/models/players/grunt/icon_default"/><span class="cname">[champ_strogg]</span>
-				<span class="mark" data-when="champion=strogg"></span>
+			<div class="tile" data-class="shown:ui_chShown=ranger" onclick="ui_champPreview ranger" ondblclick="ui_champPreview ranger; ui_champSelect" onmouseover="ui_champHover ranger" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_ranger"/><span class="tname">[champ_ranger]</span>
+				<span class="cls" data-when="ui_cls_ranger=0">[ch_cls_l]</span><span class="cls" data-when="ui_cls_ranger=1">[ch_cls_m]</span><span class="cls" data-when="ui_cls_ranger=2">[ch_cls_h]</span>
+				<span class="flag" data-when="champion=ranger"></span>
 			</div>
-			<div class="cell" data-class="shown:ui_chShown=visor" onclick="ui_champPreview visor">
-				<img src="/models/players/visor/icon_default"/><span class="cname">[champ_visor]</span>
-				<span class="mark" data-when="champion=visor"></span>
+			<div class="tile" data-class="shown:ui_chShown=scalebearer" onclick="ui_champPreview scalebearer" ondblclick="ui_champPreview scalebearer; ui_champSelect" onmouseover="ui_champHover scalebearer" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_scalebearer"/><span class="tname">[champ_scalebearer]</span>
+				<span class="cls" data-when="ui_cls_scalebearer=0">[ch_cls_l]</span><span class="cls" data-when="ui_cls_scalebearer=1">[ch_cls_m]</span><span class="cls" data-when="ui_cls_scalebearer=2">[ch_cls_h]</span>
+				<span class="flag" data-when="champion=scalebearer"></span>
 			</div>
-			<div class="cell" data-class="shown:ui_chShown=clutch" onclick="ui_champPreview clutch">
-				<img src="/models/players/tankjr/icon_default"/><span class="cname">[champ_clutch]</span>
-				<span class="mark" data-when="champion=clutch"></span>
+			<div class="tile" data-class="shown:ui_chShown=slash" onclick="ui_champPreview slash" ondblclick="ui_champPreview slash; ui_champSelect" onmouseover="ui_champHover slash" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_slash"/><span class="tname">[champ_slash]</span>
+				<span class="cls" data-when="ui_cls_slash=0">[ch_cls_l]</span><span class="cls" data-when="ui_cls_slash=1">[ch_cls_m]</span><span class="cls" data-when="ui_cls_slash=2">[ch_cls_h]</span>
+				<span class="flag" data-when="champion=slash"></span>
 			</div>
-			<div class="cell" data-class="shown:ui_chShown=keel" onclick="ui_champPreview keel">
-				<img src="/models/players/keel/icon_default"/><span class="cname">[champ_keel]</span>
-				<span class="mark" data-when="champion=keel"></span>
+			<div class="tile" data-class="shown:ui_chShown=sorlag" onclick="ui_champPreview sorlag" ondblclick="ui_champPreview sorlag; ui_champSelect" onmouseover="ui_champHover sorlag" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_sorlag"/><span class="tname">[champ_sorlag]</span>
+				<span class="cls" data-when="ui_cls_sorlag=0">[ch_cls_l]</span><span class="cls" data-when="ui_cls_sorlag=1">[ch_cls_m]</span><span class="cls" data-when="ui_cls_sorlag=2">[ch_cls_h]</span>
+				<span class="flag" data-when="champion=sorlag"></span>
 			</div>
-			<div class="cell" data-class="shown:ui_chShown=scalebearer" onclick="ui_champPreview scalebearer">
-				<img src="/models/players/razor/icon_default"/><span class="cname">[champ_scalebearer]</span>
-				<span class="mark" data-when="champion=scalebearer"></span>
+			<div class="tile" data-class="shown:ui_chShown=strogg" onclick="ui_champPreview strogg" ondblclick="ui_champPreview strogg; ui_champSelect" onmouseover="ui_champHover strogg" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_strogg"/><span class="tname">[champ_strogg]</span>
+				<span class="cls" data-when="ui_cls_strogg=0">[ch_cls_l]</span><span class="cls" data-when="ui_cls_strogg=1">[ch_cls_m]</span><span class="cls" data-when="ui_cls_strogg=2">[ch_cls_h]</span>
+				<span class="flag" data-when="champion=strogg"></span>
 			</div>
-			<div class="cell" data-class="shown:ui_chShown=sorlag" onclick="ui_champPreview sorlag">
-				<img src="/models/players/sorlag/icon_default"/><span class="cname">[champ_sorlag]</span>
-				<span class="mark" data-when="champion=sorlag"></span>
-			</div>
-			<div class="cell" data-class="shown:ui_chShown=wrack" onclick="ui_champPreview wrack">
-				<img src="/models/players/ranger/icon_wrack"/><span class="cname">[champ_wrack]</span>
-				<span class="mark" data-when="champion=wrack"></span>
-			</div>
-			<div class="cell" data-class="shown:ui_chShown=sarge" onclick="ui_champPreview sarge">
-				<img src="/models/players/sarge/icon_default"/><span class="cname">[champ_sarge]</span>
-				<span class="mark" data-when="champion=sarge"></span>
-			</div>
-			<div class="cell" data-class="shown:ui_chShown=klesk" onclick="ui_champPreview klesk">
-				<img src="/models/players/klesk/icon_default"/><span class="cname">[champ_klesk]</span>
-				<span class="mark" data-when="champion=klesk"></span>
-			</div>
-			<div class="cell" data-class="shown:ui_chShown=hunter" onclick="ui_champPreview hunter">
-				<img src="/models/players/hunter/icon_default"/><span class="cname">[champ_hunter]</span>
-				<span class="mark" data-when="champion=hunter"></span>
-			</div>
-			<div class="cell" data-class="shown:ui_chShown=xaero" onclick="ui_champPreview xaero">
-				<img src="/models/players/xaero/icon_default"/><span class="cname">[champ_xaero]</span>
-				<span class="mark" data-when="champion=xaero"></span>
-			</div>
-			<div class="cell" data-class="shown:ui_chShown=raine" onclick="ui_champPreview raine">
-				<img src="/models/players/major/icon_default"/><span class="cname">[champ_raine]</span>
-				<span class="mark" data-when="champion=raine"></span>
-			</div>
-			<div class="cell" data-class="shown:ui_chShown=beastmaster" onclick="ui_champPreview beastmaster">
-				<img src="/models/players/uriel/icon_default"/><span class="cname">[champ_beastmaster]</span>
-				<span class="mark" data-when="champion=beastmaster"></span>
-			</div>
-			<div class="cell" data-class="shown:ui_chShown=unumrey" onclick="ui_champPreview unumrey">
-				<img src="/models/players/orbb/icon_default"/><span class="cname">[champ_unumrey]</span>
-				<span class="mark" data-when="champion=unumrey"></span>
+			<div class="tile" data-class="shown:ui_chShown=visor" onclick="ui_champPreview visor" ondblclick="ui_champPreview visor; ui_champSelect" onmouseover="ui_champHover visor" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_visor"/><span class="tname">[champ_visor]</span>
+				<span class="cls" data-when="ui_cls_visor=0">[ch_cls_l]</span><span class="cls" data-when="ui_cls_visor=1">[ch_cls_m]</span><span class="cls" data-when="ui_cls_visor=2">[ch_cls_h]</span>
+				<span class="flag" data-when="champion=visor"></span>
 			</div>
 		</div>
-		<div class="bio" data-text-cvar="ui_chBio"></div>
+		<div class="recreated">
+			<div class="reclabel">[ch_recreated]</div>
+			<div class="recnote">[ch_recreated_note]</div>
+		</div>
+		<div class="tiles">
+			<div class="tile rec" data-class="shown:ui_chShown=wrack" onclick="ui_champPreview wrack" ondblclick="ui_champPreview wrack; ui_champSelect" onmouseover="ui_champHover wrack" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_wrack"/><span class="tname">[champ_wrack]</span>
+				<span class="rmark">[ch_cls_r]</span>
+				<span class="flag" data-when="champion=wrack"></span>
+			</div>
+			<div class="tile rec" data-class="shown:ui_chShown=xaero" onclick="ui_champPreview xaero" ondblclick="ui_champPreview xaero; ui_champSelect" onmouseover="ui_champHover xaero" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_xaero"/><span class="tname">[champ_xaero]</span>
+				<span class="rmark">[ch_cls_r]</span>
+				<span class="flag" data-when="champion=xaero"></span>
+			</div>
+			<div class="tile rec" data-class="shown:ui_chShown=hunter" onclick="ui_champPreview hunter" ondblclick="ui_champPreview hunter; ui_champSelect" onmouseover="ui_champHover hunter" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_hunter"/><span class="tname">[champ_hunter]</span>
+				<span class="rmark">[ch_cls_r]</span>
+				<span class="flag" data-when="champion=hunter"></span>
+			</div>
+			<div class="tile rec" data-class="shown:ui_chShown=klesk" onclick="ui_champPreview klesk" ondblclick="ui_champPreview klesk; ui_champSelect" onmouseover="ui_champHover klesk" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_klesk"/><span class="tname">[champ_klesk]</span>
+				<span class="rmark">[ch_cls_r]</span>
+				<span class="flag" data-when="champion=klesk"></span>
+			</div>
+			<div class="tile rec" data-class="shown:ui_chShown=sarge" onclick="ui_champPreview sarge" ondblclick="ui_champPreview sarge; ui_champSelect" onmouseover="ui_champHover sarge" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_sarge"/><span class="tname">[champ_sarge]</span>
+				<span class="rmark">[ch_cls_r]</span>
+				<span class="flag" data-when="champion=sarge"></span>
+			</div>
+			<div class="tile rec" data-class="shown:ui_chShown=raine" onclick="ui_champPreview raine" ondblclick="ui_champPreview raine; ui_champSelect" onmouseover="ui_champHover raine" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_raine"/><span class="tname">[champ_raine]</span>
+				<span class="rmark">[ch_cls_r]</span>
+				<span class="flag" data-when="champion=raine"></span>
+			</div>
+			<div class="tile rec" data-class="shown:ui_chShown=beastmaster" onclick="ui_champPreview beastmaster" ondblclick="ui_champPreview beastmaster; ui_champSelect" onmouseover="ui_champHover beastmaster" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_beastmaster"/><span class="tname">[champ_beastmaster]</span>
+				<span class="rmark">[ch_cls_r]</span>
+				<span class="flag" data-when="champion=beastmaster"></span>
+			</div>
+			<div class="tile rec" data-class="shown:ui_chShown=unumrey" onclick="ui_champPreview unumrey" ondblclick="ui_champPreview unumrey; ui_champSelect" onmouseover="ui_champHover unumrey" onmouseout="ui_champHoverEnd">
+				<img data-src-cvar="ui_pic_unumrey"/><span class="tname">[champ_unumrey]</span>
+				<span class="rmark">[ch_cls_r]</span>
+				<span class="flag" data-when="champion=unumrey"></span>
+			</div>
+		</div>
 	</div>
 	<div class="stage champstage" data-stage="ui_chShown"></div>
 	<div class="chinfo">
 		<div class="chname" data-text-cvar="ui_chName"></div>
 		<div class="chclass" data-text-cvar="ui_chClass"></div>
-		<div class="stat"><span class="label">[ch_health]</span> <span data-text-cvar="ui_chHealth"></span></div>
-		<div class="stat"><span class="label">[ch_armor]</span> <span data-text-cvar="ui_chArmor"></span></div>
-		<div class="stat"><span class="label">[ch_speed]</span> <span data-text-cvar="ui_chSpeed"></span></div>
-		<div class="stat"><span class="label">[ch_movement]</span> <span data-text-cvar="ui_chMove"></span></div>
+		<div class="stat"><span class="label">[ch_health]</span><span class="bar"><span class="seg" data-class="on:ui_chHpSeg>=1"></span><span class="seg" data-class="on:ui_chHpSeg>=2"></span><span class="seg" data-class="on:ui_chHpSeg>=3"></span><span class="seg" data-class="on:ui_chHpSeg>=4"></span><span class="seg" data-class="on:ui_chHpSeg>=5"></span><span class="seg" data-class="on:ui_chHpSeg>=6"></span><span class="seg" data-class="on:ui_chHpSeg>=7"></span><span class="seg" data-class="on:ui_chHpSeg>=8"></span><span class="seg" data-class="on:ui_chHpSeg>=9"></span><span class="seg" data-class="on:ui_chHpSeg>=10"></span></span><span class="num" data-text-cvar="ui_chHealth"></span></div>
+		<div class="stat"><span class="label">[ch_armor]</span><span class="bar"><span class="seg" data-class="on:ui_chArSeg>=1"></span><span class="seg" data-class="on:ui_chArSeg>=2"></span><span class="seg" data-class="on:ui_chArSeg>=3"></span><span class="seg" data-class="on:ui_chArSeg>=4"></span><span class="seg" data-class="on:ui_chArSeg>=5"></span><span class="seg" data-class="on:ui_chArSeg>=6"></span><span class="seg" data-class="on:ui_chArSeg>=7"></span><span class="seg" data-class="on:ui_chArSeg>=8"></span><span class="seg" data-class="on:ui_chArSeg>=9"></span><span class="seg" data-class="on:ui_chArSeg>=10"></span></span><span class="num" data-text-cvar="ui_chArmor"></span></div>
+		<div class="stat"><span class="label">[ch_speed]</span><span class="bar"><span class="seg" data-class="on:ui_chSpSeg>=1"></span><span class="seg" data-class="on:ui_chSpSeg>=2"></span><span class="seg" data-class="on:ui_chSpSeg>=3"></span><span class="seg" data-class="on:ui_chSpSeg>=4"></span><span class="seg" data-class="on:ui_chSpSeg>=5"></span><span class="seg" data-class="on:ui_chSpSeg>=6"></span><span class="seg" data-class="on:ui_chSpSeg>=7"></span><span class="seg" data-class="on:ui_chSpSeg>=8"></span><span class="seg" data-class="on:ui_chSpSeg>=9"></span><span class="seg" data-class="on:ui_chSpSeg>=10"></span></span><span class="num" data-text-cvar="ui_chSpeed"></span></div>
+		<div class="stat"><span class="label">[ch_movement]</span><span data-text-cvar="ui_chMove"></span></div>
 		<div class="ability" data-when="ui_chAbility!=">
 			<span class="aname" data-text-cvar="ui_chAbility"></span> <span class="label" data-text-cvar="ui_chAbilityEvery"></span>
 			<div data-text-cvar="ui_chAbilityDesc"></div>
 		</div>
 		<div class="ability" data-when="ui_chPassive!=">
 			<span class="aname">[ch_passive]</span>
-			<div data-text-cvar="ui_chPassive"></div>
+			<div data-when="ui_chPassive0!=" data-text-cvar="ui_chPassive0"></div>
+			<div data-when="ui_chPassive1!=" data-text-cvar="ui_chPassive1"></div>
+			<div data-when="ui_chPassive2!=" data-text-cvar="ui_chPassive2"></div>
+		</div>
+		<div class="bio" data-text-cvar="ui_chBio"></div>
+		<div class="note" data-when="ui_chNote!=">
+			<div data-text-cvar="ui_chNote"></div>
+			<div class="noteend" data-text-cvar="ui_chNoteEnd"></div>
 		</div>
 		<div class="weapon">
 			<span class="label">[ch_weapon]</span>
@@ -131,7 +168,7 @@
 	</div>
 	<div class="chactions">
 		<button onclick="rml_show ui/main.rml">[menu_back]</button>
-		<button class="select" data-when="ui_chLocked=0&ui_chFlash=0" onclick="ui_champSelect">[ch_select]</button>
+		<button class="select" data-when="ui_chLocked=0&amp;ui_chFlash=0" onclick="ui_champSelect">[ch_select]</button>
 		<div class="selected" data-when="ui_chFlash=1"><span class="tick"></span>[ch_selected]</div>
 		<div class="locked" data-when="ui_chLocked=1">[ch_locked]</div>
 	</div>
