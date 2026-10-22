@@ -1038,6 +1038,11 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	if ( Q_stricmp (cmd, "ui_practice") == 0 && trap_Cvar_VariableValue( "rml_ok" ) ) {
+		UI_PracticeRml();
+		return qtrue;
+	}
+
 	if ( Q_stricmp (cmd, "ui_practice") == 0 ) {
 		UI_PracticeMenu();
 		if ( !Q_stricmp( UI_Argv( 1 ), "start" ) ) {
@@ -1082,6 +1087,7 @@ qboolean UI_ConsoleCommand( int realTime ) {
 	}
 
 	if ( Q_stricmp (cmd, "ui_createServer") == 0 && trap_Cvar_VariableValue( "rml_ok" ) ) {
+		trap_Cvar_Set( "ui_csPractice", "0" );
 		UI_CreateServerRml();
 		return qtrue;
 	}

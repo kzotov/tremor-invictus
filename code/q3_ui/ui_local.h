@@ -343,6 +343,7 @@ void UI_Champion_PublishCurrent( void );
 void UI_DrawRmlStage( void );
 void UI_ColorsRml( void );
 void UI_CreateServerRml( void );
+void UI_PracticeRml( void );
 qboolean UI_CreateServerCommand( const char *cmd );
 extern void UI_PlayMenu( void );
 

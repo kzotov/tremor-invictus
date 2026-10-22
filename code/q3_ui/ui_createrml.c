@@ -29,6 +29,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //   ui_csPick <slot>	pick the map in a slot of the page
 //   ui_csBotsAdd <+1|-1>	more or fewer bots (in ui_csBots)
 //   ui_csStart			start the server
+// Practice is the same document with ui_csPractice 1: opponents and
+// teammates (ui_prOpp, ui_prMates) instead of the server settings, and the
+// champion the opponents play (ui_prChamp <+1|-1>, shown in ui_prChampName).
 //
 
 #include "ui_local.h"
@@ -139,6 +142,43 @@ static void CS_SetMode( int mode ) {
 	CS_PublishPage();
 }
 
+// a bot that plays the champion (its model is the champion's), or any bot
+static const char *CS_BotFor( int champion ) {
+	int		i, n = UI_GetNumBots();
+
+	for ( i = 0 ; champion >= 0 && i < n ; i++ ) {
+		if ( BG_ChampionForModel( Info_ValueForKey( UI_GetBotInfoByNumber( i ), "model" ) ) == champion ) {
+			return Info_ValueForKey( UI_GetBotInfoByNumber( i ), "name" );
+		}
+	}
+	return n > 0 ? Info_ValueForKey( UI_GetBotInfoByNumber( rand() % n ), "name" ) : "sarge";
+}
+
+static void CS_PublishChampion( void ) {
+	int c = (int)trap_Cvar_VariableValue( "ui_prChamp" );
+
+	if ( c < 0 || c > bg_numChampions ) {
+		c = 0;
+	}
+	trap_Cvar_Set( "ui_prChampName", c ? BG_String( bg_championList[c - 1].nameString ) : BG_String( STR_PR_RANDOM ) );
+}
+
+/*
+=================
+UI_PracticeRml
+
+Practice: Create Server with bots on both sides and no server settings
+=================
+*/
+void UI_PracticeRml( void ) {
+	trap_Cvar_Register( NULL, "ui_prOpp", "3", CVAR_ARCHIVE );
+	trap_Cvar_Register( NULL, "ui_prMates", "0", CVAR_ARCHIVE );
+	trap_Cvar_Register( NULL, "ui_prChamp", "0", CVAR_ARCHIVE );
+	CS_PublishChampion();
+	trap_Cvar_Set( "ui_csPractice", "1" );
+	UI_CreateServerRml();
+}
+
 /*
 =================
 UI_CreateServerRml
@@ -147,6 +187,7 @@ UI_CreateServerRml
 void UI_CreateServerRml( void ) {
 	int i, mode = 0;
 
+	trap_Cvar_Register( NULL, "ui_csPractice", "0", CVAR_TEMP );
 	trap_Cvar_Register( NULL, "ui_csBots", "3", CVAR_ARCHIVE );
 	trap_Cvar_Register( NULL, "ui_csSkill", "3", CVAR_ARCHIVE );
 	trap_Cvar_Register( NULL, "ui_csDedicated", "0", CVAR_ARCHIVE );
@@ -176,6 +217,31 @@ static void CS_Start( void ) {
 		return;
 	}
 	info = UI_GetArenaInfoByNumber( cs.maps[cs.picked] );
+	if ( trap_Cvar_VariableValue( "ui_csPractice" ) ) {
+		int		opp = (int)trap_Cvar_VariableValue( "ui_prOpp" ), mates = m->teams ? (int)trap_Cvar_VariableValue( "ui_prMates" ) : 0;
+		int		champ = (int)trap_Cvar_VariableValue( "ui_prChamp" ) - 1;
+
+		skill = (int)trap_Cvar_VariableValue( "ui_csSkill" );
+		trap_Cvar_Set( "ui_csLastMode", m->preset );
+		trap_Cvar_SetValue( "dedicated", 0 );
+		trap_Cvar_Set( "sv_public", "0" );
+		trap_Cvar_SetValue( "sv_maxclients", 1 + opp + mates );
+		if ( m->teams ) {
+			trap_Cvar_Set( "g_localTeamPref", "red" );
+		}
+		trap_Cmd_ExecuteText( EXEC_APPEND, va( "rml_hide\nexec presets/%s.cfg\n", m->preset ) );
+		trap_Cmd_ExecuteText( EXEC_APPEND, va( "wait ; wait ; map %s\nwait 3\n", Info_ValueForKey( info, "map" ) ) );
+		for ( i = 0; i < opp; i++ ) {
+			trap_Cmd_ExecuteText( EXEC_APPEND, va( "addbot %s %i%s\n", (char *)CS_BotFor( champ ), skill, m->teams ? " blue" : "" ) );
+		}
+		for ( i = 0; i < mates; i++ ) {
+			trap_Cmd_ExecuteText( EXEC_APPEND, va( "addbot %s %i red\n", (char *)CS_BotFor( -1 ), skill ) );
+		}
+		if ( m->teams ) {
+			trap_Cmd_ExecuteText( EXEC_APPEND, "wait 5; team red\n" );
+		}
+		return;
+	}
 	bots = (int)trap_Cvar_VariableValue( "ui_csBots" );
 	skill = (int)trap_Cvar_VariableValue( "ui_csSkill" );
 	trap_Cvar_Set( "ui_csLastMode", m->preset );
@@ -240,6 +306,26 @@ qboolean UI_CreateServerCommand( const char *cmd ) {
 	if ( !Q_stricmp( cmd, "ui_csBotsAdd" ) ) {
 		i = (int)trap_Cvar_VariableValue( "ui_csBots" ) + atoi( UI_Argv( 1 ) );
 		trap_Cvar_SetValue( "ui_csBots", Com_Clamp( 0, 15, i ) );
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_prCount" ) ) {
+		// ui_prCount <cvar> <+1|-1>: opponents or teammates, 0 to 7
+		const char *cvar = !Q_stricmp( UI_Argv( 1 ), "mates" ) ? "ui_prMates" : "ui_prOpp";
+
+		i = (int)trap_Cvar_VariableValue( cvar ) + atoi( UI_Argv( 2 ) );
+		trap_Cvar_SetValue( cvar, Com_Clamp( !Q_stricmp( cvar, "ui_prOpp" ) ? 1 : 0, 7, i ) );
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_prChampStep" ) ) {
+		i = (int)trap_Cvar_VariableValue( "ui_prChamp" ) + atoi( UI_Argv( 1 ) );
+		if ( i < 0 ) {
+			i = bg_numChampions;
+		}
+		if ( i > bg_numChampions ) {
+			i = 0;
+		}
+		trap_Cvar_SetValue( "ui_prChamp", i );
+		CS_PublishChampion();
 		return qtrue;
 	}
 	if ( !Q_stricmp( cmd, "ui_csStart" ) ) {
