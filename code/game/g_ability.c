@@ -271,7 +271,10 @@ owner to it.
 static void G_OrbExplode( gentity_t *orb ) {
 	gentity_t	*owner = orb->parent;
 
-	// full in the middle, down to 10 at the edge, pushing as usual
+	// no longer shootable, then full in the middle, down to 10 at the edge
+	orb->takedamage = qfalse;
+	orb->die = NULL;
+	orb->r.contents = 0;
 	orb->splashDamage = g_orbSplashDamage.integer;
 	orb->splashRadius = g_orbSplashRadius.integer;
 	orb->splashMin = 10;
@@ -1313,6 +1316,10 @@ void G_DroneEnd( gentity_t *ent, qboolean launch ) {
 	}
 
 	client->droneBody = NULL;
+	// however the flight ends, the weapons stay locked a moment longer
+	if ( client->ps.weaponTime < BG_AbilityParam( ACTIVE_DRONE, AP_LOCKOUT ) ) {
+		client->ps.weaponTime = BG_AbilityParam( ACTIVE_DRONE, AP_LOCKOUT );
+	}
 	VectorCopy( body->r.currentOrigin, client->ps.origin );
 	VectorClear( client->ps.velocity );
 	client->ps.eFlags ^= EF_TELEPORT_BIT;

@@ -1470,8 +1470,15 @@ static void PM_WalkMove( void ) {
 
 	// crouching and walking are a fixed speed (for sliders a share of run
 	// speed, B.J. walks faster), except while sliding
-	if ( PM_SlowMoving() && wishspeed > 0 ) {
-		wishspeed = PM_SlowSpeed();
+	if ( PM_SlowMoving() ) {
+		float	slow = PM_SlowSpeed();
+
+		// walking is a light touch on the keys: it moves at the walk speed
+		if ( ( pm->cmd.buttons & BUTTON_WALKING ) && !( pm->ps->pm_flags & PMF_DUCKED ) && wishspeed > 0 ) {
+			wishspeed = slow;
+		} else if ( wishspeed > slow ) {
+			wishspeed = slow;
+		}
 	}
 
 	// clamp the speed lower if walking on the bottom; below the waist is dry
@@ -1762,7 +1769,7 @@ static int PM_CorrectAllSolid( trace_t *trace ) {
 				if ( !trace->allsolid ) {
 					point[0] = pm->ps->origin[0];
 					point[1] = pm->ps->origin[1];
-					point[2] = pm->ps->origin[2] - 0.25;
+					point[2] = pm->ps->origin[2] - GROUND_PROBE;
 
 					pm->trace (trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
 					pml.groundTrace = *trace;
@@ -1876,7 +1883,7 @@ static void PM_GroundTrace( void ) {
 
 	point[0] = pm->ps->origin[0];
 	point[1] = pm->ps->origin[1];
-	point[2] = pm->ps->origin[2] - 0.25;
+	point[2] = pm->ps->origin[2] - GROUND_PROBE;
 
 	pm->trace (&trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
 	pml.groundTrace = trace;

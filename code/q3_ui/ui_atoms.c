@@ -1153,6 +1153,7 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		trap_Cvar_Set( "cg_startWeapon", code );
 		trap_Cvar_VariableStringBuffer( "champion", champion, sizeof( champion ) );
 		if ( champion[0] ) {
+			trap_Cvar_Register( NULL, va( "ui_startWeapon_%s", champion ), "mg", CVAR_ARCHIVE );
 			trap_Cvar_Set( va( "ui_startWeapon_%s", champion ), code );
 		}
 		return qtrue;

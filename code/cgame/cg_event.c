@@ -273,7 +273,7 @@ static void CG_Obituary( entityState_t *ent ) {
 
 			Com_sprintf( line, sizeof( line ), "%i - %i", mine, theirs );
 		} else {
-			Com_sprintf( line, sizeof( line ), BG_String( STR_MSG_PLACE ),
+			Com_sprintf( line, sizeof( line ), BG_String( own == 1 ? STR_MSG_PLACE_ONE : STR_MSG_PLACE ),
 				CG_PlaceString( cg.snap->ps.persistant[PERS_RANK] + 1 ), own );
 		}
 		// a spectator following the fragger reads the fragger's name
@@ -1284,19 +1284,19 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 					break;
 				case GTS_RED_RETURN: // CTF: blue flag returned, 1FCTF: never used
 					if ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_RED )
-						CG_AddBufferedSound( cgs.media.returnYourTeamSound );
+						CG_AddBufferedSoundPriority( cgs.media.returnYourTeamSound, 6 );
 					else
-						CG_AddBufferedSound( cgs.media.returnOpponentSound );
+						CG_AddBufferedSoundPriority( cgs.media.returnOpponentSound, 6 );
 					//
-					CG_AddBufferedSound( cgs.media.blueFlagReturnedSound );
+					CG_AddBufferedSoundPriority( cgs.media.blueFlagReturnedSound, 6 );
 					break;
 				case GTS_BLUE_RETURN: // CTF red flag returned, 1FCTF: neutral flag returned
 					if ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_BLUE )
-						CG_AddBufferedSound( cgs.media.returnYourTeamSound );
+						CG_AddBufferedSoundPriority( cgs.media.returnYourTeamSound, 6 );
 					else
-						CG_AddBufferedSound( cgs.media.returnOpponentSound );
+						CG_AddBufferedSoundPriority( cgs.media.returnOpponentSound, 6 );
 					//
-					CG_AddBufferedSound( cgs.media.redFlagReturnedSound );
+					CG_AddBufferedSoundPriority( cgs.media.redFlagReturnedSound, 6 );
 					break;
 
 				case GTS_RED_TAKEN: // CTF: red team took blue flag, 1FCTF: blue team took the neutral flag
@@ -1365,13 +1365,13 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 					CG_AddBufferedSound(cgs.media.blueScoredSound);
 					break;
 				case GTS_REDTEAM_TOOK_LEAD:
-					CG_AddBufferedSound(cgs.media.redLeadsSound);
+					CG_AddBufferedSoundPriority( cgs.media.redLeadsSound, 4 );
 					break;
 				case GTS_BLUETEAM_TOOK_LEAD:
-					CG_AddBufferedSound(cgs.media.blueLeadsSound);
+					CG_AddBufferedSoundPriority( cgs.media.blueLeadsSound, 4 );
 					break;
 				case GTS_TEAMS_ARE_TIED:
-					CG_AddBufferedSound( cgs.media.teamsTiedSound );
+					CG_AddBufferedSoundPriority( cgs.media.teamsTiedSound, 4 );
 					break;
 #ifdef MISSIONPACK
 				case GTS_KAMIKAZE:

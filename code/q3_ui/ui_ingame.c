@@ -155,6 +155,7 @@ void InGame_Event( void *ptr, int notification ) {
 			// remembered for the champion being played, as the champion screen does
 			trap_Cvar_VariableStringBuffer( "champion", champion, sizeof( champion ) );
 			if ( champion[0] ) {
+				trap_Cvar_Register( NULL, va( "ui_startWeapon_%s", champion ), "mg", CVAR_ARCHIVE );
 				trap_Cvar_Set( va( "ui_startWeapon_%s", champion ), next );
 			}
 			InGame_StartWeaponText();

@@ -481,6 +481,7 @@ G_RunMissile
 ================
 */
 void G_RunMissile( gentity_t *ent ) {
+	float		*mins, *maxs;
 	vec3_t		origin;
 	trace_t		tr;
 	int			passent;
@@ -505,12 +506,19 @@ void G_RunMissile( gentity_t *ent ) {
 		// ignore interactions with the missile owner
 		passent = ent->r.ownerNum;
 	}
-	// trace a line from the previous position to the current position
-	trap_Trace( &tr, ent->r.currentOrigin, ent->r.mins, ent->r.maxs, origin, passent, ent->clipmask );
+	// trace a line from the previous position to the current position; a
+	// shootable missile (the Dire Orb) has a box for hits but flies as a point
+	if ( ent->takedamage ) {
+		mins = maxs = vec3_origin;
+	} else {
+		mins = ent->r.mins;
+		maxs = ent->r.maxs;
+	}
+	trap_Trace( &tr, ent->r.currentOrigin, mins, maxs, origin, passent, ent->clipmask );
 
 	if ( tr.startsolid || tr.allsolid ) {
 		// make sure the tr.entityNum is set to the entity we're stuck in
-		trap_Trace( &tr, ent->r.currentOrigin, ent->r.mins, ent->r.maxs, ent->r.currentOrigin, passent, ent->clipmask );
+		trap_Trace( &tr, ent->r.currentOrigin, mins, maxs, ent->r.currentOrigin, passent, ent->clipmask );
 		tr.fraction = 0;
 	}
 	else {

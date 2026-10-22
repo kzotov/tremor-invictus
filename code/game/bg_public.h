@@ -1044,6 +1044,7 @@ typedef enum {
 	STR_MSG_FRAGGED,
 	STR_MSG_PLACE,
 	STR_MSG_YOUFRAGGED,
+	STR_MSG_PLACE_ONE,				// "%s place with 1 frag"
 
 	STR_NUM_STRINGS
 } stringId_t;

@@ -243,7 +243,7 @@ PM_StepSlideMove
 */
 void PM_StepSlideMove( qboolean gravity ) {
 	vec3_t		start_o, start_v;
-//	vec3_t		down_o, down_v;
+	vec3_t		down_o, down_v;
 	trace_t		trace;
 //	float		down_dist, up_dist;
 //	vec3_t		delta, delta2;
@@ -267,8 +267,9 @@ void PM_StepSlideMove( qboolean gravity ) {
 		return;
 	}
 
-	//VectorCopy (pm->ps->origin, down_o);
-	//VectorCopy (pm->ps->velocity, down_v);
+	// the plain move, kept if the step up doesn't land on walkable ground
+	VectorCopy (pm->ps->origin, down_o);
+	VectorCopy (pm->ps->velocity, down_v);
 
 	VectorCopy (start_o, up);
 	up[2] += STEPSIZE;
@@ -295,6 +296,12 @@ void PM_StepSlideMove( qboolean gravity ) {
 	pm->trace (&trace, pm->ps->origin, pm->mins, pm->maxs, down, pm->ps->clientNum, pm->tracemask);
 	if ( !trace.allsolid ) {
 		VectorCopy (trace.endpos, pm->ps->origin);
+	}
+	if ( pm->ps->origin[2] - start_o[2] > 2 && ( trace.fraction == 1.0 || trace.plane.normal[2] < MIN_WALK_NORMAL ) ) {
+		// stepped up onto nothing walkable: keep the plain move
+		VectorCopy( down_o, pm->ps->origin );
+		VectorCopy( down_v, pm->ps->velocity );
+		return;
 	}
 	if ( trace.fraction < 1.0 ) {
 		PM_ClipVelocity( pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP );

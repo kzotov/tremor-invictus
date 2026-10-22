@@ -1809,7 +1809,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"This is a starting point for discussion. All suggestions are welcome.",
 	"FRAGGED",
 	"%s place with %i frags",
-	"YOU FRAGGED"
+	"YOU FRAGGED",
+	"%s place with 1 frag"
 };
 
 /*
