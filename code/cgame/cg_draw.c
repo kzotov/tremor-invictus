@@ -484,13 +484,16 @@ right edge, the clock and scores top centre and the kill feed top right
 */
 
 #define KILLFEED_QUEUE		16
-#define KILLFEED_TIME		3000
+#define KILLFEED_TIME		4000
 
 typedef struct {
 	char	killer[MAX_QPATH];
 	char	victim[MAX_QPATH];
 	int		weapon;			// icon, WP_NONE for none
 	qhandle_t	killerPic, victimPic;	// champion portraits, 0 for none
+	int		killerNum, victimNum;		// -1 for none
+	int		killerTeam, victimTeam;
+	qboolean	quad;				// the killer had Quad Damage
 	int		time;
 } killFeed_t;
 
@@ -517,19 +520,53 @@ void CG_AddKillFeed( const char *killer, const char *victim, int weapon, int kil
 	k->weapon = weapon;
 	k->killerPic = killer[0] ? CG_KillFeedPortrait( killerNum ) : 0;
 	k->victimPic = CG_KillFeedPortrait( victimNum );
+	k->killerNum = killer[0] ? killerNum : -1;
+	k->victimNum = victimNum;
+	k->killerTeam = killerNum >= 0 && killerNum < MAX_CLIENTS ? cgs.clientinfo[killerNum].team : TEAM_FREE;
+	k->victimTeam = victimNum >= 0 && victimNum < MAX_CLIENTS ? cgs.clientinfo[victimNum].team : TEAM_FREE;
+	k->quad = killerNum >= 0 && killerNum < MAX_CLIENTS && ( cg_entities[killerNum].currentState.powerups & ( 1 << PW_QUAD ) );
 	k->time = cg.time;
 }
 
-static void CG_DrawKillFeed( void ) {
-	killFeed_t	*k;
-	int			i, n, rows = cg_obituaryRowSize.integer, y = 40, w, x;
-	vec4_t		fade = { 1, 1, 1, 1 };
+/*
+=================
+CG_KillFeedName
 
-	if ( rows <= 0 ) {
+A name in the feed: our team cyan, enemies red in team modes, white in
+free-for-all (messages.md 2.1)
+=================
+*/
+static void CG_KillFeedName( int x, int y, const char *name, int team, const vec4_t fade ) {
+	vec4_t	c;
+
+	Vector4Copy( fade, c );
+	if ( cgs.gametype >= GT_TEAM && ( team == TEAM_RED || team == TEAM_BLUE ) ) {
+		if ( team == cg.snap->ps.persistant[PERS_TEAM] ) {
+			c[0] = 0.3f; c[1] = 0.9f; c[2] = 1;
+		} else {
+			c[0] = 1; c[1] = 0.3f; c[2] = 0.25f;
+		}
+		CG_DrawStringExt( x, y, name, c, qtrue, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+	} else {
+		CG_DrawStringExt( x, y, name, c, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+	}
+}
+
+static void CG_DrawKillFeed( void ) {
+	static qhandle_t	skull;
+	killFeed_t	*k;
+	int			i, n, rows = cg_obituaryRowSize.integer, y = 40, w, x, left;
+	vec4_t		fade = { 1, 1, 1, 1 }, band;
+	int			me = cg.snap->ps.clientNum;
+
+	if ( rows <= 0 || !cg_killFeed.integer ) {
 		return;
 	}
 	if ( rows > 5 ) {
 		rows = 5;
+	}
+	if ( !skull ) {
+		skull = trap_R_RegisterShaderNoMip( "gfx/tremor/skull.tga" );
 	}
 	for ( i = 0, n = 0 ; i < KILLFEED_QUEUE && n < rows ; i++ ) {
 		k = &killFeed[( killFeedHead - 1 - i + KILLFEED_QUEUE * 2 ) % KILLFEED_QUEUE];
@@ -537,10 +574,29 @@ static void CG_DrawKillFeed( void ) {
 			continue;
 		}
 		fade[3] = cg.time - k->time > KILLFEED_TIME - 500 ? ( KILLFEED_TIME - ( cg.time - k->time ) ) / 500.0f : 1;
+
+		// lay the row out right to left, then draw its band under it
+		w = CG_DrawStrlen( k->victim ) * TINYCHAR_WIDTH + ( k->victimPic ? 18 : 0 ) + 20
+			+ ( k->killer[0] ? CG_DrawStrlen( k->killer ) * TINYCHAR_WIDTH + 4 + ( k->killerPic ? 18 : 0 ) : 0 )
+			+ ( k->quad ? 12 : 0 );
+		left = 636 - w;
+		if ( k->killerNum == me && k->victimNum != me ) {
+			band[0] = 0.45f; band[1] = 0.05f; band[2] = 0.04f; band[3] = 0.6f * fade[3];
+			CG_FillRect( left - 4, y - 1, w + 6, 18, band );
+		} else if ( k->victimNum == me ) {
+			band[0] = band[1] = band[2] = 0.05f; band[3] = 0.7f * fade[3];
+			CG_FillRect( left - 22, y - 1, w + 24, 18, band );
+			if ( skull ) {
+				trap_R_SetColor( fade );
+				CG_DrawPic( left - 20, y, 16, 16, skull );
+				trap_R_SetColor( NULL );
+			}
+		}
+
 		x = 636;
 		w = CG_DrawStrlen( k->victim ) * TINYCHAR_WIDTH;
 		x -= w;
-		CG_DrawStringExt( x, y + 4, k->victim, fade, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+		CG_KillFeedName( x, y + 4, k->victim, k->victimTeam, fade );
 		trap_R_SetColor( fade );
 		if ( k->victimPic ) {
 			x -= 18;
@@ -548,17 +604,21 @@ static void CG_DrawKillFeed( void ) {
 		}
 		trap_R_SetColor( NULL );
 		x -= 20;
+		trap_R_SetColor( fade );
 		if ( k->weapon > WP_NONE && k->weapon < WP_NUM_WEAPONS && cg_weapons[k->weapon].weaponIcon ) {
-			trap_R_SetColor( fade );
 			CG_DrawPic( x + 2, y, 16, 16, cg_weapons[k->weapon].weaponIcon );
-			trap_R_SetColor( NULL );
-		} else {
-			CG_DrawStringExt( x + 4, y + 4, ">", fade, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+		} else if ( skull ) {
+			CG_DrawPic( x + 2, y, 16, 16, skull );		// suicide or the world
+		}
+		trap_R_SetColor( NULL );
+		if ( k->quad && cgs.media.quadShader ) {
+			x -= 12;
+			CG_DrawStringExt( x + 2, y + 4, "Q", colorBlue, qtrue, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
 		}
 		if ( k->killer[0] ) {
 			w = CG_DrawStrlen( k->killer ) * TINYCHAR_WIDTH;
 			x -= w + 4;
-			CG_DrawStringExt( x, y + 4, k->killer, fade, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+			CG_KillFeedName( x, y + 4, k->killer, k->killerTeam, fade );
 			if ( k->killerPic ) {
 				x -= 18;
 				trap_R_SetColor( fade );
@@ -590,6 +650,7 @@ holding +chathistory shows the whole history
 typedef struct {
 	char	text[MAX_SAY_TEXT];
 	int		time;
+	qboolean	system;		// grey, shorter-lived: connects, team changes, votes
 } chatLine_t;
 
 static chatLine_t	chatLines[CHAT_HISTORY];
@@ -608,6 +669,35 @@ static void CG_AddChatLine( const char *text, int len ) {
 	}
 	Q_strncpyz( c->text, text, len + 1 );
 	c->time = cg.time;
+	c->system = qfalse;
+}
+
+/*
+=================
+CG_AddSystemLine
+
+A server notice in the chat area: grey, 6 s (messages.md 2.6)
+=================
+*/
+#define SYSTEM_TIME		6000
+
+void CG_AddSystemLine( const char *text ) {
+	char	clean[MAX_SAY_TEXT];
+	char	*p;
+
+	Q_strncpyz( clean, text, sizeof( clean ) );
+	Q_CleanStr( clean );
+	while ( ( p = strchr( clean, '\n' ) ) != NULL ) {
+		*p = ' ';
+	}
+	for ( p = clean + strlen( clean ) - 1 ; p >= clean && *p == ' ' ; p-- ) {
+		*p = 0;
+	}
+	if ( !clean[0] || !cg_systemMessages.integer ) {
+		return;
+	}
+	CG_AddChatLine( clean, strlen( clean ) );
+	chatLines[( chatHead - 1 ) % CHAT_HISTORY].system = qtrue;
 }
 
 /*
@@ -663,7 +753,7 @@ CG_DrawChat
 */
 static void CG_DrawChat( void ) {
 	chatLine_t	*c;
-	int			i, rows, y = CHAT_Y;
+	int			i, rows, y = CHAT_Y, life;
 	vec4_t		color = { 1, 1, 1, 1 };
 
 	rows = cg.showChatHistory ? CHAT_HISTORY : cg_chatHistoryLength.integer;
@@ -675,13 +765,22 @@ static void CG_DrawChat( void ) {
 		if ( !c->time || c->time > cg.time ) {
 			break;
 		}
-		if ( !cg.showChatHistory && cg.time - c->time > CHAT_TIME ) {
-			break;
+		life = c->system ? SYSTEM_TIME : CHAT_TIME;
+		if ( !cg.showChatHistory && cg.time - c->time > life ) {
+			continue;
 		}
-		color[3] = !cg.showChatHistory && cg.time - c->time > CHAT_TIME - 500
-			? ( CHAT_TIME - ( cg.time - c->time ) ) / 500.0f : 1;
-		CG_DrawStringExt( 8, y, c->text, color, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
-		y -= SMALLCHAR_HEIGHT + 2;
+		color[3] = !cg.showChatHistory && cg.time - c->time > life - 500
+			? ( life - ( cg.time - c->time ) ) / 500.0f : 1;
+		if ( c->system ) {
+			// grey and smaller, under the colour the line carries
+			color[0] = color[1] = color[2] = 0.6f;
+			CG_DrawStringExt( 8, y + 2, c->text, color, qtrue, qfalse, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+			color[0] = color[1] = color[2] = 1;
+			y -= TINYCHAR_HEIGHT + 4;
+		} else {
+			CG_DrawStringExt( 8, y, c->text, color, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+			y -= SMALLCHAR_HEIGHT + 2;
+		}
 	}
 }
 
@@ -2575,99 +2674,89 @@ static void CG_DrawPersistantPowerup( void ) {
 CG_DrawReward
 ===================
 */
-static void CG_DrawReward( void ) { 
-	float	*color;
-	int		i, count;
-	float	x, y;
-	char	buf[32];
+#define MEDAL_ROW		4
+#define MEDAL_SHOW		2000
+#define MEDAL_FADE		300
+#define MEDAL_POP		150
+#define MEDAL_SIZE		44
+#define MEDAL_Y			60
 
-	if ( !cg_drawRewards.integer ) {
+static struct {
+	int			name;		// string id, 0 for the Quake III awards
+	qhandle_t	shader;
+	int			count;
+} medalRow[MEDAL_ROW];
+static int	medalRowCount, medalRowTime;
+
+static void CG_DrawReward( void ) {
+	static vec4_t	plate = { 0.65f, 0.08f, 0.06f, 0.9f };
+	vec4_t			color = { 1, 1, 1, 1 }, c;
+	int				i, t, x;
+	float			size, a;
+	const char		*name;
+
+	if ( !cg_drawRewards.integer || !cg_medals.integer ) {
+		cg.rewardStack = 0;
+		medalRowCount = 0;
 		return;
 	}
 
-	color = CG_FadeColor( cg.rewardTime, REWARD_TIME );
-	if ( !color ) {
-		if (cg.rewardStack > 0) {
-			for(i = 0; i < cg.rewardStack; i++) {
+	// the row is done: up to four waiting medals line up together; the
+	// first one's announcer line plays, the others chime
+	t = cg.time - medalRowTime;
+	if ( !medalRowCount || t >= MEDAL_SHOW + MEDAL_FADE || t < 0 ) {
+		medalRowCount = 0;
+		while ( cg.rewardStack > 0 && medalRowCount < MEDAL_ROW ) {
+			medalRow[medalRowCount].name = cg.rewardName[1];
+			medalRow[medalRowCount].shader = cg.rewardShader[1];
+			medalRow[medalRowCount].count = cg.rewardCount[1];
+			if ( medalRowCount == 0 ) {
+				trap_S_StartLocalSound( cg.rewardSound[1], CHAN_ANNOUNCER );
+			}
+			medalRowCount++;
+			for ( i = 1 ; i < cg.rewardStack ; i++ ) {
 				cg.rewardSound[i] = cg.rewardSound[i+1];
 				cg.rewardShader[i] = cg.rewardShader[i+1];
 				cg.rewardCount[i] = cg.rewardCount[i+1];
 				cg.rewardName[i] = cg.rewardName[i+1];
 			}
-			cg.rewardTime = cg.time;
 			cg.rewardStack--;
-			color = CG_FadeColor( cg.rewardTime, REWARD_TIME );
-			trap_S_StartLocalSound(cg.rewardSound[0], CHAN_ANNOUNCER);
-		} else {
+		}
+		medalRowTime = cg.time;
+		if ( !medalRowCount ) {
 			return;
 		}
+		t = 0;
 	}
 
-	// a medal: its icon (or a plate when the install has none), name and count
-	if ( cg.rewardName[0] ) {
-		static vec4_t	plate = { 0.65f, 0.08f, 0.06f, 0.9f };
-		vec4_t			c;
-		const char		*name = BG_String( cg.rewardName[0] );
-		const float		size = 56, top = 64;
-
-		Vector4Copy( plate, c );
-		c[3] *= color[3];
-		if ( cg.rewardShader[0] ) {
+	color[3] = t > MEDAL_SHOW ? 1.0f - (float)( t - MEDAL_SHOW ) / MEDAL_FADE : 1;
+	// pops in from 1.2 times its size over 150 ms
+	size = MEDAL_SIZE * ( t < MEDAL_POP ? 1.2f - 0.2f * t / MEDAL_POP : 1 );
+	for ( i = 0 ; i < medalRowCount ; i++ ) {
+		x = 320 + ( i - ( medalRowCount - 1 ) * 0.5f ) * ( MEDAL_SIZE + 36 );
+		name = medalRow[i].name ? BG_String( medalRow[i].name ) : "";
+		if ( medalRow[i].shader ) {
 			trap_R_SetColor( color );
-			CG_DrawPic( 320 - size / 2, top, size, size, cg.rewardShader[0] );
+			CG_DrawPic( x - size / 2, MEDAL_Y + ( MEDAL_SIZE - size ) / 2, size, size, medalRow[i].shader );
 			trap_R_SetColor( NULL );
 		} else {
-			CG_FillRect( 320 - size / 2, top, size, size, c );
-			CG_DrawStringExt( 320 - GIANTCHAR_WIDTH / 2, top + ( size - GIANTCHAR_HEIGHT ) / 2,
-				va( "%c", name[0] ), color, qfalse, qtrue, GIANTCHAR_WIDTH, GIANTCHAR_HEIGHT, 0 );
+			Vector4Copy( plate, c );
+			c[3] *= color[3];
+			CG_FillRect( x - size / 2, MEDAL_Y + ( MEDAL_SIZE - size ) / 2, size, size, c );
+			if ( name[0] ) {
+				CG_DrawStringExt( x - BIGCHAR_WIDTH / 2, MEDAL_Y + ( MEDAL_SIZE - BIGCHAR_HEIGHT ) / 2, va( "%c", name[0] ),
+					color, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+			}
 		}
-		UI_DrawProportionalString( 320, top + size + 4, name, UI_CENTER | UI_DROPSHADOW, color );
-		if ( cg.rewardCount[0] > 1 ) {
-			name = va( "x%i", cg.rewardCount[0] );
-			UI_DrawProportionalString( 320, top + size + 4 + PROP_HEIGHT, name, UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, color );
+		if ( name[0] ) {
+			a = CG_DrawStrlen( name ) * TINYCHAR_WIDTH;
+			CG_DrawStringExt( x - a / 2, MEDAL_Y + MEDAL_SIZE + 3, name, color, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
 		}
-		return;
-	}
-
-	trap_R_SetColor( color );
-
-	/*
-	count = cg.rewardCount[0]/10;				// number of big rewards to draw
-
-	if (count) {
-		y = 4;
-		x = 320 - count * ICON_SIZE;
-		for ( i = 0 ; i < count ; i++ ) {
-			CG_DrawPic( x, y, (ICON_SIZE*2)-4, (ICON_SIZE*2)-4, cg.rewardShader[0] );
-			x += (ICON_SIZE*2);
+		if ( medalRow[i].count > 1 ) {
+			CG_DrawStringExt( x + MEDAL_SIZE / 2 - 4, MEDAL_Y, va( "x%i", medalRow[i].count ), color, qfalse, qtrue,
+				TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
 		}
 	}
-
-	count = cg.rewardCount[0] - count*10;		// number of small rewards to draw
-	*/
-
-	if ( cg.rewardCount[0] >= 2 ) {
-		// one medal with its count, QL style
-		y = 56;
-		x = 320 - ICON_SIZE/2;
-		CG_DrawPic( x, y, ICON_SIZE-4, ICON_SIZE-4, cg.rewardShader[0] );
-		Com_sprintf(buf, sizeof(buf), "%d", cg.rewardCount[0]);
-		x = ( SCREEN_WIDTH - SMALLCHAR_WIDTH * CG_DrawStrlen( buf ) ) / 2;
-		CG_DrawStringExt( x, y+ICON_SIZE, buf, color, qfalse, qtrue,
-								SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
-	}
-	else {
-
-		count = cg.rewardCount[0];
-
-		y = 56;
-		x = 320 - count * ICON_SIZE/2;
-		for ( i = 0 ; i < count ; i++ ) {
-			CG_DrawPic( x, y, ICON_SIZE-4, ICON_SIZE-4, cg.rewardShader[0] );
-			x += ICON_SIZE;
-		}
-	}
-	trap_R_SetColor( NULL );
 }
 
 
@@ -2902,99 +2991,171 @@ CENTER PRINTING
 
 
 /*
-==============
-CG_CenterPrint
+==============================================================================
 
-Called for important messages that should stay in the center of the screen
-for a few moments
-==============
+FRAG BANNER
+
+Centre of the upper third when you frag someone: "FRAGGED" small, the
+victim large, then the score line; 2 s, fading 0.3 s; quick frags within
+3 s count up "x2", "x3" (messages.md 2.2)
+
+==============================================================================
 */
-void CG_CenterPrint( const char *str, int y, int charWidth ) {
-	char	*s;
 
-	Q_strncpyz( cg.centerPrint, str, sizeof(cg.centerPrint) );
+#define FRAG_TIME		2000
+#define FRAG_QUICK		3000
+#define FRAG_Y			134
 
-	cg.centerPrintTime = cg.time;
-	cg.centerPrintY = y;
-	cg.centerPrintCharWidth = charWidth;
+static struct {
+	char	victim[MAX_QPATH];
+	char	line[64];
+	int		time;
+	int		count;
+} fragBanner;
 
-	// count the number of lines for centering
-	cg.centerPrintLines = 1;
-	s = cg.centerPrint;
-	while( *s ) {
-		if (*s == '\n')
-			cg.centerPrintLines++;
-		s++;
+void CG_FragBanner( const char *victim, const char *line ) {
+	fragBanner.count = fragBanner.time && cg.time - fragBanner.time < FRAG_QUICK ? fragBanner.count + 1 : 1;
+	Q_strncpyz( fragBanner.victim, victim, sizeof( fragBanner.victim ) );
+	Q_strncpyz( fragBanner.line, line, sizeof( fragBanner.line ) );
+	fragBanner.time = cg.time;
+}
+
+static void CG_DrawFragBanner( void ) {
+	vec4_t		color = { 1, 1, 1, 1 }, red = { 0.83f, 0.1f, 0.12f, 1 };
+	const char	*fragged = BG_String( STR_MSG_FRAGGED );
+	int			t = cg.time - fragBanner.time, w;
+
+	if ( !cg_fragBanner.integer || !fragBanner.time || t < 0 || t >= FRAG_TIME + 300 ) {
+		return;
+	}
+	color[3] = red[3] = t > FRAG_TIME ? 1.0f - ( t - FRAG_TIME ) / 300.0f : 1;
+	w = CG_DrawStrlen( fragged ) * SMALLCHAR_WIDTH;
+	CG_DrawStringExt( 320 - w / 2, FRAG_Y, fragged, red, qtrue, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+	w = CG_DrawStrlen( fragBanner.victim ) * BIGCHAR_WIDTH;
+	CG_DrawStringExt( 320 - w / 2, FRAG_Y + 18, fragBanner.victim, color, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+	if ( fragBanner.count > 1 ) {
+		CG_DrawStringExt( 320 + w / 2 + 6, FRAG_Y + 18, va( "x%i", fragBanner.count ), red, qtrue, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+	}
+	if ( fragBanner.line[0] ) {
+		w = CG_DrawStrlen( fragBanner.line ) * SMALLCHAR_WIDTH;
+		CG_DrawStringExt( 320 - w / 2, FRAG_Y + 40, fragBanner.line, color, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
 	}
 }
 
+/*
+==============================================================================
+
+EVENT BANNER
+
+Top centre under the clock: one message at a time, 2.5 s each, queued by
+priority (1 match flow, 2 objectives, 3 power-ups, 4 lead and time, 5
+server and other text); a higher priority cuts a lower one short
+(messages.md 2.4)
+
+==============================================================================
+*/
+
+#define BANNER_QUEUE	8
+#define BANNER_TIME		2500
+#define BANNER_Y		34
+
+typedef struct {
+	char	text[256];
+	int		priority;
+	int		time;		// when shown; 0 while queued
+} banner_t;
+
+static banner_t	bannerShown;
+static banner_t	bannerQueue[BANNER_QUEUE];
+static int		bannerQueued;
+
+/*
+==============
+CG_EventBanner
+==============
+*/
+void CG_EventBanner( const char *text, int priority ) {
+	banner_t	*b;
+
+	if ( !text[0] ) {
+		return;
+	}
+	CG_Printf( "[skipnotify]%s\n", text );		// the console keeps every line
+	if ( bannerQueued == BANNER_QUEUE ) {
+		memmove( bannerQueue, bannerQueue + 1, sizeof( bannerQueue[0] ) * ( BANNER_QUEUE - 1 ) );
+		bannerQueued--;
+	}
+	b = &bannerQueue[bannerQueued++];
+	Q_strncpyz( b->text, text, sizeof( b->text ) );
+	b->priority = priority;
+	b->time = 0;
+}
+
+/*
+==============
+CG_CenterPrint
+
+Quake III's centre text, now an event banner: "FIGHT!" leads the match
+flow, everything else (server text) comes last
+==============
+*/
+void CG_CenterPrint( const char *str, int y, int charWidth ) {
+	CG_EventBanner( str, !Q_stricmp( str, "FIGHT!" ) ? 1 : 5 );
+}
 
 /*
 ===================
 CG_DrawCenterString
+
+The event banner: picks the next message and draws it
 ===================
 */
 static void CG_DrawCenterString( void ) {
-	char	*start;
-	int		l;
-	int		x, y, w;
-#ifdef MISSIONPACK
-	int h;
-#endif
-	float	*color;
+	int			i, best = -1, line, y, w;
+	const char	*start;
+	char		linebuffer[256];
+	vec4_t		color = { 1, 1, 1, 1 };
+	float		fade;
 
-	if ( !cg.centerPrintTime ) {
+	if ( !cg_eventBanner.integer ) {
+		bannerQueued = 0;
 		return;
 	}
-
-	color = CG_FadeColor( cg.centerPrintTime, 1000 * cg_centertime.value );
-	if ( !color ) {
-		return;
-	}
-
-	trap_R_SetColor( color );
-
-	start = cg.centerPrint;
-
-	y = cg.centerPrintY - cg.centerPrintLines * BIGCHAR_HEIGHT / 2;
-
-	while ( 1 ) {
-		char linebuffer[1024];
-
-		for ( l = 0; l < 50; l++ ) {
-			if ( !start[l] || start[l] == '\n' ) {
-				break;
-			}
-			linebuffer[l] = start[l];
+	for ( i = 0 ; i < bannerQueued ; i++ ) {
+		if ( best < 0 || bannerQueue[i].priority < bannerQueue[best].priority ) {
+			best = i;
 		}
-		linebuffer[l] = 0;
+	}
+	// the next one when the shown one is done, or at once if it matters more
+	if ( best >= 0 && ( !bannerShown.time || cg.time - bannerShown.time >= BANNER_TIME
+		|| bannerQueue[best].priority < bannerShown.priority ) ) {
+		bannerShown = bannerQueue[best];
+		bannerShown.time = cg.time;
+		memmove( bannerQueue + best, bannerQueue + best + 1, sizeof( bannerQueue[0] ) * ( bannerQueued - best - 1 ) );
+		bannerQueued--;
+	}
+	if ( !bannerShown.time || cg.time - bannerShown.time >= BANNER_TIME || bannerShown.time > cg.time ) {
+		bannerShown.time = 0;
+		return;
+	}
+	fade = BANNER_TIME - ( cg.time - bannerShown.time );
+	color[3] = fade < 300 ? fade / 300.0f : 1;
 
-#ifdef MISSIONPACK
-		w = CG_Text_Width(linebuffer, 0.5, 0);
-		h = CG_Text_Height(linebuffer, 0.5, 0);
-		x = (SCREEN_WIDTH - w) / 2;
-		CG_Text_Paint(x, y + h, 0.5, color, linebuffer, 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE);
-		y += h + 6;
-#else
-		w = cg.centerPrintCharWidth * CG_DrawStrlen( linebuffer );
-
-		x = ( SCREEN_WIDTH - w ) / 2;
-
-		CG_DrawStringExt( x, y, linebuffer, color, qfalse, qtrue,
-			cg.centerPrintCharWidth, (int)(cg.centerPrintCharWidth * 1.5), 0 );
-
-		y += cg.centerPrintCharWidth * 1.5;
-#endif
-		while ( *start && ( *start != '\n' ) ) {
+	y = BANNER_Y;
+	start = bannerShown.text;
+	for ( line = 0 ; line < 3 && *start ; line++ ) {
+		for ( i = 0 ; start[i] && start[i] != '\n' && i < (int)sizeof( linebuffer ) - 1 ; i++ ) {
+			linebuffer[i] = start[i];
+		}
+		linebuffer[i] = 0;
+		w = BIGCHAR_WIDTH * CG_DrawStrlen( linebuffer );
+		CG_DrawStringExt( ( SCREEN_WIDTH - w ) / 2, y, linebuffer, color, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+		y += BIGCHAR_HEIGHT + 4;
+		start += i;
+		while ( *start == '\n' ) {
 			start++;
 		}
-		if ( !*start ) {
-			break;
-		}
-		start++;
 	}
-
-	trap_R_SetColor( NULL );
 }
 
 
@@ -3773,6 +3934,7 @@ static void CG_DrawIntermission( void ) {
 #else
 	if ( cgs.gametype == GT_SINGLE_PLAYER ) {
 		CG_DrawCenterString();
+		CG_DrawFragBanner();
 		return;
 	}
 #endif
@@ -4760,6 +4922,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	cg.scoreBoardShowing = CG_DrawScoreboard();
 	if ( !cg.scoreBoardShowing) {
 		CG_DrawCenterString();
+		CG_DrawFragBanner();
 	}
 }
 

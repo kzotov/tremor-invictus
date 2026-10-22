@@ -108,6 +108,11 @@ vmCvar_t	cg_drawAmmoWarning;
 vmCvar_t	cg_drawCrosshair;
 vmCvar_t	cg_drawCrosshairNames;
 vmCvar_t	cg_drawRewards;
+vmCvar_t	cg_killFeed;
+vmCvar_t	cg_fragBanner;
+vmCvar_t	cg_medals;
+vmCvar_t	cg_eventBanner;
+vmCvar_t	cg_systemMessages;
 vmCvar_t	cg_crosshairSize;
 vmCvar_t	cg_crosshairX;
 vmCvar_t	cg_crosshairY;
@@ -288,6 +293,11 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_drawCrosshair, "cg_drawCrosshair", "4", CVAR_ARCHIVE },
 	{ &cg_drawCrosshairNames, "cg_drawCrosshairNames", "1", CVAR_ARCHIVE },
 	{ &cg_drawRewards, "cg_drawRewards", "1", CVAR_ARCHIVE },
+	{ &cg_killFeed, "cg_killFeed", "1", CVAR_ARCHIVE },
+	{ &cg_fragBanner, "cg_fragBanner", "1", CVAR_ARCHIVE },
+	{ &cg_medals, "cg_medals", "1", CVAR_ARCHIVE },			// 0 hides the medal row; medals still count
+	{ &cg_eventBanner, "cg_eventBanner", "1", CVAR_ARCHIVE },
+	{ &cg_systemMessages, "cg_systemMessages", "1", CVAR_ARCHIVE },	// 0 hides connect and team lines
 	{ &cg_crosshairSize, "cg_crosshairSize", "24", CVAR_ARCHIVE },
 	{ &cg_crosshairHealth, "cg_crosshairHealth", "1", CVAR_ARCHIVE },
 	{ &cg_crosshairX, "cg_crosshairX", "0", CVAR_ARCHIVE },

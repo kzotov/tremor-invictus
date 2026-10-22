@@ -1114,7 +1114,7 @@ static void CG_ServerCommand( void ) {
 	}
 
 	if ( !strcmp( cmd, "cp" ) ) {
-		CG_CenterPrint( CG_Argv(1), SCREEN_HEIGHT * 0.30, BIGCHAR_WIDTH );
+		CG_EventBanner( CG_Argv(1), 5 );
 		return;
 	}
 
@@ -1124,7 +1124,14 @@ static void CG_ServerCommand( void ) {
 	}
 
 	if ( !strcmp( cmd, "print" ) ) {
+		// server notices go to the chat area as grey system lines; the
+		// console keeps them all
+#ifndef MISSIONPACK
+		CG_Printf( "[skipnotify]%s", CG_Argv(1) );
+		CG_AddSystemLine( CG_Argv(1) );
+#else
 		CG_Printf( "%s", CG_Argv(1) );
+#endif
 #ifdef MISSIONPACK
 		cmd = CG_Argv(1);			// yes, this is obviously a hack, but so is the way we hear about
 									// votes passing or failing

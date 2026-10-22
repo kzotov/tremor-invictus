@@ -5,7 +5,8 @@ Usage: python3 make-voice.py OUT_DIR
 Writes OUT_DIR/gfx/tremor/speaker.tga (a speaker with two sound waves,
 shown for whoever is talking) and speaker_muted.tga (the speaker crossed
 out in red, for a muted player): 64 x 64 with alpha, bone white with a
-dark edge.
+dark edge. Also skull.tga, the kill feed's mark for suicides and for rows
+where you died.
 """
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -34,6 +35,12 @@ def main():
     c.fill(speaker(), SILVER)
     c.fill(cross, RED)
     write_tga(os.path.join(out, "speaker_muted.tga"), 64, 64, c.px)
+
+    bone, holes = skull(0.5, 0.45, 0.32)
+    c = Canvas(64, 64)
+    c.fill(bone.outline(0.05), INK)
+    c.fill(bone, SILVER)
+    write_tga(os.path.join(out, "skull.tga"), 64, 64, c.px)
 
 
 if __name__ == "__main__":

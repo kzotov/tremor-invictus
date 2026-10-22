@@ -1798,7 +1798,9 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"From the original material: the name and the animations. Recreated: everything else.",
 	"From the original material: the name and a rough silhouette. Recreated: everything else, including the hound.",
 	"From the original material: the name only. Recreated: everything else.",
-	"This is a starting point for discussion. All suggestions are welcome."
+	"This is a starting point for discussion. All suggestions are welcome.",
+	"FRAGGED",
+	"%s place with %i"
 };
 
 /*

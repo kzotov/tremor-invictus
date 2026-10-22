@@ -251,34 +251,32 @@ static void CG_Obituary( entityState_t *ent ) {
 	}
 
 	if (message) {
-		CG_Printf( "%s %s.\n", targetName, message);
+		CG_Printf( "[skipnotify]%s %s.\n", targetName, message);	// the console keeps the sentence
 #ifndef MISSIONPACK
 		CG_AddKillFeed( "", targetName, WP_NONE, -1, target );
 #endif
 		return;
 	}
 
-	// check for kill messages from the current clientNum
+	// your frag: the frag banner with the score as it stands
 	if ( attacker == cg.snap->ps.clientNum ) {
-		char	*s;
+		char	line[64];
+		int		own = cg.snap->ps.persistant[PERS_SCORE];
 
-		if ( cgs.gametype < GT_TEAM ) {
-			s = va("You fragged %s\n%s place with %i", targetName, 
-				CG_PlaceString( cg.snap->ps.persistant[PERS_RANK] + 1 ),
-				cg.snap->ps.persistant[PERS_SCORE] );
+		if ( cgs.gametype == GT_TOURNAMENT ) {
+			int		other = cgs.scores1 == own ? cgs.scores2 : cgs.scores1;
+
+			Com_sprintf( line, sizeof( line ), "%i - %i", own, other );
+		} else if ( cgs.gametype >= GT_TEAM ) {
+			int		mine = cg.snap->ps.persistant[PERS_TEAM] == TEAM_BLUE ? cg.teamScores[1] : cg.teamScores[0];
+			int		theirs = cg.snap->ps.persistant[PERS_TEAM] == TEAM_BLUE ? cg.teamScores[0] : cg.teamScores[1];
+
+			Com_sprintf( line, sizeof( line ), "%i - %i", mine, theirs );
 		} else {
-			s = va("You fragged %s", targetName );
+			Com_sprintf( line, sizeof( line ), BG_String( STR_MSG_PLACE ),
+				CG_PlaceString( cg.snap->ps.persistant[PERS_RANK] + 1 ), own );
 		}
-#ifdef MISSIONPACK
-		if (!(cg_singlePlayerActive.integer && cg_cameraOrbit.integer)) {
-			CG_CenterPrint( s, SCREEN_HEIGHT * 0.30, BIGCHAR_WIDTH );
-		} 
-#else
-		// under the medal area (y 64-160), so a medal never covers it
-		CG_CenterPrint( s, SCREEN_HEIGHT * 0.375, BIGCHAR_WIDTH );
-#endif
-
-		// print the text message as well
+		CG_FragBanner( targetName, line );
 	}
 
 	// check for double client messages
@@ -412,7 +410,7 @@ static void CG_Obituary( entityState_t *ent ) {
 		}
 
 		if (message) {
-			CG_Printf( "%s %s %s%s\n", 
+			CG_Printf( "[skipnotify]%s %s %s%s\n", 
 				targetName, message, attackerName, message2);
 #ifndef MISSIONPACK
 			CG_AddKillFeed( attackerName, targetName, CG_WeaponForMod( mod ), attacker, target );
@@ -422,7 +420,7 @@ static void CG_Obituary( entityState_t *ent ) {
 	}
 
 	// we don't know what it was
-	CG_Printf( "%s died.\n", targetName );
+	CG_Printf( "[skipnotify]%s died.\n", targetName );
 }
 
 //==========================================================================

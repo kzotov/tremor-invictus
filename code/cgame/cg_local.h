@@ -1200,6 +1200,11 @@ extern	vmCvar_t		cg_drawAmmoWarning;
 extern	vmCvar_t		cg_drawCrosshair;
 extern	vmCvar_t		cg_drawCrosshairNames;
 extern	vmCvar_t		cg_drawRewards;
+extern	vmCvar_t		cg_killFeed;
+extern	vmCvar_t		cg_fragBanner;
+extern	vmCvar_t		cg_medals;
+extern	vmCvar_t		cg_eventBanner;
+extern	vmCvar_t		cg_systemMessages;
 extern	vmCvar_t		cg_drawTeamOverlay;
 extern	vmCvar_t		cg_teamOverlayUserinfo;
 extern	vmCvar_t		cg_crosshairX;
@@ -1886,6 +1891,9 @@ void CG_AddOwnMissiles( void );
 // cg_demo.c
 //
 void CG_DemoFrame( void );
+void CG_EventBanner( const char *text, int priority );
+void CG_FragBanner( const char *victim, const char *line );
+void CG_AddSystemLine( const char *text );
 void CG_AddKillFeed( const char *killer, const char *victim, int weapon, int killerNum, int victimNum );
 void CG_AddChat( const char *text );
 void CG_DrawDuelBoard( void );
