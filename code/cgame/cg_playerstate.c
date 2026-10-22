@@ -142,9 +142,10 @@ void CG_DamageFeedback( int yawByte, int pitchByte, int damage ) {
 		cg.damageY = up / dist;
 
 		// the arc around the crosshair: where the hit came from, in the view
-		cg.damageArcYaw = atan2( left, front ) * 180 / M_PI;
-		cg.damageArcTime = cg.time;
-		cg.damageArcValue = damage;
+		cg.damageArcYaw[cg.damageArcNext] = atan2( left, front ) * 180 / M_PI;
+		cg.damageArcTime[cg.damageArcNext] = cg.time;
+		cg.damageArcValue[cg.damageArcNext] = damage;
+		cg.damageArcNext = ( cg.damageArcNext + 1 ) % DAMAGE_ARCS;
 	}
 
 	// clamp the position

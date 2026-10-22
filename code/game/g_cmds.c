@@ -1364,6 +1364,24 @@ static qboolean G_VoteAllowed( const char *type ) {
 
 /*
 ==================
+G_CountHumans
+
+Connected players who are not bots
+==================
+*/
+static int G_CountHumans( void ) {
+	int		i, n = 0;
+
+	for ( i = 0 ; i < level.maxclients ; i++ ) {
+		if ( level.clients[i].pers.connected == CON_CONNECTED && !( g_entities[i].r.svFlags & SVF_BOT ) ) {
+			n++;
+		}
+	}
+	return n;
+}
+
+/*
+==================
 G_VoteBuild
 
 The command a vote runs and the line players see; qfalse if the vote is bad
@@ -1408,6 +1426,21 @@ static qboolean G_VoteBuild( gentity_t *ent, const char *type, const char *arg )
 			trap_SendServerCommand( ent - g_entities, "print \"Cannot kick host player.\n\"" );
 			return qfalse;
 		}
+		if ( G_CountHumans() < 4 ) {
+			trap_SendServerCommand( ent-g_entities, va( "print \"%s\n\"", BG_String( STR_VOTE_KICKPLAYERS ) ) );
+			return qfalse;
+		}
+		if ( ent->client->pers.kickVotes >= 3 ) {
+			trap_SendServerCommand( ent-g_entities, va( "print \"%s\n\"", BG_String( STR_VOTE_KICKLIMIT ) ) );
+			return qfalse;
+		}
+		if ( level.clients[i].pers.kickVoteTime && level.time - level.clients[i].pers.kickVoteTime < VOTE_CALL_GAP ) {
+			trap_SendServerCommand( ent-g_entities, va( "print \"%s\n\"", BG_String( STR_VOTE_WAIT ) ) );
+			return qfalse;
+		}
+		ent->client->pers.kickVotes++;
+		level.clients[i].pers.kickVoteTime = level.time;
+		level.voteKick = qtrue;
 		Com_sprintf( level.voteString, sizeof( level.voteString ), "clientkick %d", i );
 		Com_sprintf( level.voteDisplayString, sizeof( level.voteDisplayString ), "kick %s", level.clients[i].pers.netname );
 	} else if ( !Q_stricmp( type, "shuffle" ) ) {
@@ -1513,6 +1546,7 @@ void Cmd_CallVote_f( gentity_t *ent ) {
 		trap_SendConsoleCommand( EXEC_APPEND, va("%s\n", level.voteString ) );
 	}
 
+	level.voteKick = qfalse;
 	if ( !G_VoteBuild( ent, arg1, arg2 ) ) {
 		return;
 	}

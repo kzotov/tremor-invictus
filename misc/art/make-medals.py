@@ -116,6 +116,32 @@ def p_triplekill():
     return None, union(*[line(0.37 + i * 0.13, 0.66, 0.43 + i * 0.13, 0.34, 0.06) for i in range(3)])
 
 
+def p_overkill():
+    return None, union(*[line(0.31 + i * 0.12, 0.66, 0.37 + i * 0.12, 0.34, 0.05) for i in range(4)])
+
+
+def p_crusher():
+    head = box(0.5, 0.36, 0.17, 0.08, 0.015)
+    handle = box(0.5, 0.58, 0.035, 0.16)
+    return handle, head
+
+
+def p_exterminator():
+    sight = ring(0.5, 0.5, 0.17, 0.035)
+    ticks = box(0.5, 0.27, 0.02, 0.07) | box(0.5, 0.73, 0.02, 0.07) | box(0.27, 0.5, 0.07, 0.02) | box(0.73, 0.5, 0.07, 0.02)
+    return sight | ticks, circle(0.5, 0.5, 0.045)
+
+
+def p_demolisher():
+    return burst(0.5, 0.5, 0.25, 0.11, 8) - box(0.5, 0.5, 0.09, 0.09).grow(0.02), box(0.5, 0.5, 0.09, 0.09, 0.01)
+
+
+def p_grimreaper():
+    staff = line(0.38, 0.76, 0.58, 0.26, 0.035)
+    blade = polygon([(0.56, 0.24), (0.3, 0.3), (0.2, 0.42), (0.36, 0.34), (0.58, 0.31)])
+    return staff, blade
+
+
 def p_fighter():
     b = line(0.3, 0.7, 0.7, 0.3, 0.05) | line(0.3, 0.3, 0.7, 0.7, 0.05)
     guards = line(0.33, 0.58, 0.42, 0.67, 0.045) | line(0.58, 0.67, 0.67, 0.58, 0.045)
@@ -271,7 +297,8 @@ def p_victory():
 MEDALS = [
     "firstblood", "midair", "airborne", "combokill", "collateral", "doublewhammy", "denied", "revenge",
     "partybreaker", "perforated", "pointblank", "precise", "ringout", "stopwatch", "tank", "diehard",
-    "fromthegrave", "kamikaze", "showstopper", "triplekill", "fighter", "avatarofdeath", "killingspree",
+    "fromthegrave", "kamikaze", "showstopper", "triplekill", "overkill", "fighter", "crusher", "exterminator", "demolisher",
+    "grimreaper", "avatarofdeath", "killingspree",
     "rage", "frenzy", "rampage", "dominating", "powerupmassacre", "gauntletgod", "machinegungod",
     "shotgungod", "nailgungod", "triboltgod", "rocketgod", "lightninggod", "railgod", "damagedealer",
     "netmaster", "assistant",

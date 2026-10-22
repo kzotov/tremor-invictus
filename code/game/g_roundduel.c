@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "g_local.h"
 
 #define RD_CHAMPIONS		3
-#define RD_PICK_MSEC		20000
+#define RD_PICK_MSEC		10000
 #define RD_COUNTDOWN_MSEC	5000
 #define RD_RESULT_MSEC		5000
 
@@ -398,7 +398,7 @@ void G_RoundDuelCheckRules( void ) {
 
 	case RD_DRAFT:
 		side = rdPickOrder[rd.numPicks];
-		// bots pick at once, people get 20 s
+		// bots pick at once, people get 10 s
 		if ( ( g_entities[rd.player[side]].r.svFlags & SVF_BOT ) || level.time >= rd.stateTime ) {
 			G_RDPickRandom( side );
 		} else if ( level.time >= rd.hudTime ) {

@@ -1088,7 +1088,11 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	case EV_ITEM_RESPAWN:
 		DEBUGNAME("EV_ITEM_RESPAWN");
 		cent->miscTime = cg.time;	// scale up from this
-		trap_S_StartSound (NULL, es->number, CHAN_AUTO, cgs.media.respawnSound );
+		// silent in duel, round duel and 2v2 team deathmatch
+		if ( cgs.gametype != GT_TOURNAMENT
+			&& !( cgs.gametype == GT_TEAM && atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_teamSize" ) ) == 2 ) ) {
+			trap_S_StartSound (NULL, es->number, CHAN_AUTO, cgs.media.respawnSound );
+		}
 		break;
 
 	case EV_GRENADE_BOUNCE:

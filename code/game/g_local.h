@@ -275,6 +275,8 @@ typedef struct {
 	playerTeamState_t teamState;	// status in teamplay games
 	int			voteCount;			// to prevent people from constantly calling votes
 	int			lastVoteTime;		// level.time this player last called a vote
+	int			kickVotes;			// kick votes called this match
+	int			kickVoteTime;		// level.time a kick vote last named this player
 	qboolean	motdShown;
 	int			teamVoteCount;		// to prevent people from constantly calling votes
 	qboolean	teamInfo;			// send team overlay updates?
@@ -485,6 +487,7 @@ typedef struct {
 	char		voteDisplayString[MAX_STRING_CHARS];
 	int			voteTime;				// level.time vote was called
 	int			voteExecuteTime;		// time the vote is executed
+	qboolean	voteKick;				// the running vote is a kick: 75% to pass
 	int			voteYes;
 	int			voteNo;
 	int			numVotingClients;		// set by CalculateRanks

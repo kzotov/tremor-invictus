@@ -339,7 +339,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_sacSoulReturn, "g_sacSoulReturn", "20", CVAR_ARCHIVE, 0, qtrue },
 	// round duel: three drafted champions each, one life apiece (g_gametype 1 with g_roundDuel 1)
 	{ &g_roundDuel, "g_roundDuel", "0", CVAR_SERVERINFO | CVAR_LATCH, 0, qtrue },
-	{ &g_rdRounds, "g_rdRounds", "2", CVAR_ARCHIVE, 0, qtrue },
+	{ &g_rdRounds, "g_rdRounds", "3", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_rdRoundTime, "g_rdRoundTime", "300", CVAR_ARCHIVE, 0, qtrue },
 
 	// latched vars
@@ -2149,8 +2149,9 @@ void CheckVote( void ) {
 		return;
 	}
 	if ( level.time - level.voteTime >= VOTE_TIME ) {
-		// time is up: more yes than no passes
-		if ( level.voteYes > level.voteNo ) {
+		// time is up: more yes than no passes, a kick needs 75% of the votes
+		if ( level.voteKick ? level.voteYes * 4 >= ( level.voteYes + level.voteNo ) * 3 && level.voteYes > 0
+			: level.voteYes > level.voteNo ) {
 			trap_SendServerCommand( -1, "print \"Vote passed.\n\"" );
 			level.voteExecuteTime = level.time + 3000;
 		} else {
@@ -2158,11 +2159,11 @@ void CheckVote( void ) {
 		}
 	} else {
 		// ATVI Q3 1.32 Patch #9, WNF
-		if ( level.voteYes > level.numVotingClients/2 ) {
+		if ( level.voteKick ? level.voteYes * 4 >= level.numVotingClients * 3 : level.voteYes > level.numVotingClients/2 ) {
 			// execute the command, then remove the vote
 			trap_SendServerCommand( -1, "print \"Vote passed.\n\"" );
 			level.voteExecuteTime = level.time + 3000;
-		} else if ( level.voteNo > level.numVotingClients/2 ) {
+		} else if ( level.voteKick ? level.voteNo * 4 > level.numVotingClients : level.voteNo > level.numVotingClients/2 ) {
 			// same behavior as a timeout
 			trap_SendServerCommand( -1, "print \"Vote failed.\n\"" );
 		} else {

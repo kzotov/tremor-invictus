@@ -840,7 +840,7 @@ holding +chathistory shows the whole history
 */
 
 #define CHAT_HISTORY		24
-#define CHAT_TIME			8000
+#define CHAT_TIME			7000
 #define CHAT_WIDTH			56		// characters a line, wrapped at spaces
 #define CHAT_Y				360		// bottom line
 
@@ -876,7 +876,7 @@ CG_AddSystemLine
 A server notice in the chat area: grey, 6 s (messages.md 2.6)
 =================
 */
-#define SYSTEM_TIME		6000
+#define SYSTEM_TIME		7000
 
 void CG_AddSystemLine( const char *text ) {
 	char	clean[MAX_SAY_TEXT];
@@ -966,8 +966,13 @@ static void CG_DrawChat( void ) {
 		if ( !cg.showChatHistory && cg.time - c->time > life ) {
 			continue;
 		}
-		color[3] = !cg.showChatHistory && cg.time - c->time > life - 500
-			? ( life - ( cg.time - c->time ) ) / 500.0f : 1;
+		// in over 0.4 s, out over 0.47 s
+		color[3] = 1;
+		if ( !cg.showChatHistory && cg.time - c->time > life - 470 ) {
+			color[3] = ( life - ( cg.time - c->time ) ) / 470.0f;
+		} else if ( !cg.showChatHistory && cg.time - c->time < 400 ) {
+			color[3] = ( cg.time - c->time ) / 400.0f;
+		}
 		if ( c->system ) {
 			// grey and smaller, under the colour the line carries
 			color[0] = color[1] = color[2] = 0.6f;
@@ -1300,6 +1305,7 @@ Top centre: the clock counting down to the limit, and the scores
 static void CG_DrawHudClock( void ) {
 	const char	*info = CG_ConfigString( CS_SERVERINFO );
 	int			limit = cgs.timelimit, msec, mins, secs, w, ty, sw;
+	qboolean	finalSeconds;
 	const char	*s;
 	vec4_t		red = { 1, 0.3f, 0.3f, 1 }, blue = { 0.3f, 0.5f, 1, 1 };
 
@@ -1319,6 +1325,7 @@ static void CG_DrawHudClock( void ) {
 			msec = 0;
 		}
 	}
+	finalSeconds = limit && !cg.warmup && msec < 10000;		// red for the last 10 s
 	secs = msec / 1000;
 	mins = secs / 60;
 	secs %= 60;
@@ -1331,7 +1338,7 @@ static void CG_DrawHudClock( void ) {
 		CG_HudPlace( "clock", &cx, &cy );
 		cg_hudAnchor = ANCHOR_CENTER;
 		w = CG_DrawStrlen( s ) * cw;
-		CG_DrawStringExt( 320 - w / 2, cy - ch / 2, s, colorWhite, qfalse, qtrue, cw, ch, 0 );
+		CG_DrawStringExt( 320 - w / 2, cy - ch / 2, s, finalSeconds ? red : colorWhite, qfalse, qtrue, cw, ch, 0 );
 		CG_HudPlace( "clockline", &cx, &cy );
 		cg_hudAnchor = ANCHOR_CENTER;
 		s = cg.warmup ? BG_String( STR_WARMUP ) : CG_ModeString();
@@ -1345,7 +1352,7 @@ static void CG_DrawHudClock( void ) {
 		sw = cw;
 	} else {
 		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
-		CG_DrawBigString( 320 - w / 2, 4, s, 1.0f );
+		CG_DrawBigStringColor( 320 - w / 2, 4, s, finalSeconds ? red : colorWhite );
 		ty = 4;
 		sw = BIGCHAR_WIDTH;
 	}
@@ -1469,7 +1476,7 @@ the same item again merging into a count (hud.md 7.6)
 =================
 */
 #define PICKUP_ROWS		5
-#define PICKUP_TIME		1500
+#define PICKUP_TIME		4600
 
 static struct {
 	int		item;
@@ -2941,7 +2948,9 @@ static void CG_DrawAbility( void ) {
 
 	tenths = ps->stats[STAT_ABILITY_RECHARGE];
 	if ( tenths > 0 ) {
-		s = va( (char *)BG_String( STR_ABILITY_RECHARGE ), ( tenths + 9 ) / 10 );
+		// whole seconds, tenths under 3 s
+		s = va( (char *)BG_String( STR_ABILITY_RECHARGE ),
+			tenths < 30 ? va( "%i.%i", tenths / 10, tenths % 10 ) : va( "%i", ( tenths + 9 ) / 10 ) );
 		CG_DrawStringExt( 640 - 8 - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH, y + SMALLCHAR_HEIGHT + 2, s,
 			colorMdGrey, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
 	}
@@ -3337,6 +3346,7 @@ victim large, then the score line; 2 s, fading 0.3 s; quick frags within
 */
 
 #define FRAG_TIME		2000
+#define FRAG_FADE		1000
 #define FRAG_QUICK		3000
 #define FRAG_Y			134
 
@@ -3359,10 +3369,10 @@ static void CG_DrawFragBanner( void ) {
 	const char	*fragged = BG_String( STR_MSG_FRAGGED );
 	int			t = cg.time - fragBanner.time, w;
 
-	if ( !cg_fragBanner.integer || !fragBanner.time || t < 0 || t >= FRAG_TIME + 300 ) {
+	if ( !cg_fragBanner.integer || !fragBanner.time || t < 0 || t >= FRAG_TIME + FRAG_FADE ) {
 		return;
 	}
-	color[3] = red[3] = t > FRAG_TIME ? 1.0f - ( t - FRAG_TIME ) / 300.0f : 1;
+	color[3] = red[3] = t > FRAG_TIME ? 1.0f - ( t - FRAG_TIME ) / (float)FRAG_FADE : 1;
 	if ( CG_HudModern() ) {
 		// "YOU FRAGGED <name>" on one line, the score or place under it
 		float	fx, fy;
@@ -3402,7 +3412,7 @@ static void CG_DrawFragBanner( void ) {
 
 EVENT BANNER
 
-Top centre under the clock: one message at a time, 2.5 s each, queued by
+Top centre under the clock: one message at a time, 3 s each, queued by
 priority (1 match flow, 2 objectives, 3 power-ups, 4 lead and time, 5
 server and other text); a higher priority cuts a lower one short
 (messages.md 2.4)
@@ -3411,7 +3421,7 @@ server and other text); a higher priority cuts a lower one short
 */
 
 #define BANNER_QUEUE	8
-#define BANNER_TIME		2500
+#define BANNER_TIME		3000
 #define BANNER_Y		34
 
 typedef struct {
@@ -3509,7 +3519,7 @@ static void CG_DrawCenterString( void ) {
 		return;
 	}
 	fade = BANNER_TIME - ( cg.time - bannerShown.time );
-	color[3] = fade < 300 ? fade / 300.0f : 1;
+	color[3] = fade < 100 ? fade / 100.0f : 1;
 
 	y = BANNER_Y;
 	if ( CG_HudModern() ) {
@@ -3799,32 +3809,39 @@ static void CG_DrawCrosshairNames( void ) {
 =================
 CG_DrawDamageArc
 
-A red arc around the crosshair toward where damage came from, fading over
-a second, brighter for bigger hits
+A red arc around the crosshair toward where damage came from, one for
+each of the last four hits, fading over 1.2 s, brighter for bigger hits
 =================
 */
-#define DAMAGE_ARC_TIME		1000
+#define DAMAGE_ARC_TIME		1200
 #define DAMAGE_ARC_RADIUS	56
 #define DAMAGE_ARC_SPAN		40		// degrees
 static void CG_DrawDamageArc( void ) {
 	vec4_t	color = { 0.9f, 0.08f, 0.05f, 1 };
-	float	t, a, rad, x, y;
-	int		i;
+	float	t, a, rad, x, y, value, dot;
+	int		i, n;
 
-	if ( !cg_damageArc.integer || !cg.damageArcTime ) {
+	if ( !cg_damageArc.integer ) {
 		return;
 	}
-	t = cg.time - cg.damageArcTime;
-	if ( t < 0 || t >= DAMAGE_ARC_TIME ) {
-		return;
-	}
-	color[3] = ( 1.0f - t / DAMAGE_ARC_TIME ) * ( 0.4f + 0.6f * ( cg.damageArcValue > 50 ? 1.0f : cg.damageArcValue / 50.0f ) );
-	for ( i = 0 ; i <= 10 ; i++ ) {
-		a = cg.damageArcYaw + DAMAGE_ARC_SPAN * ( i / 10.0f - 0.5f );
-		rad = DEG2RAD( a );
-		x = 320 - sin( rad ) * DAMAGE_ARC_RADIUS;
-		y = 240 - cos( rad ) * DAMAGE_ARC_RADIUS;
-		CG_FillRect( x - 2, y - 2, 4, 4, color );
+	for ( n = 0 ; n < DAMAGE_ARCS ; n++ ) {
+		if ( !cg.damageArcTime[n] ) {
+			continue;
+		}
+		t = cg.time - cg.damageArcTime[n];
+		if ( t < 0 || t >= DAMAGE_ARC_TIME ) {
+			continue;
+		}
+		value = cg.damageArcValue[n];
+		dot = value >= 50 ? 6 : 4;		// a hit of 50 or more draws the big arc
+		color[3] = ( 1.0f - t / DAMAGE_ARC_TIME ) * ( 0.4f + 0.6f * ( value > 50 ? 1.0f : value / 50.0f ) );
+		for ( i = 0 ; i <= 10 ; i++ ) {
+			a = cg.damageArcYaw[n] + DAMAGE_ARC_SPAN * ( i / 10.0f - 0.5f );
+			rad = DEG2RAD( a );
+			x = 320 - sin( rad ) * DAMAGE_ARC_RADIUS;
+			y = 240 - cos( rad ) * DAMAGE_ARC_RADIUS;
+			CG_FillRect( x - dot / 2, y - dot / 2, dot, dot, color );
+		}
 	}
 }
 
@@ -5056,6 +5073,9 @@ static void CG_DrawWarmup( void ) {
 		default:
 			break;
 		}
+	}
+	if ( sec > 2 ) {
+		return;		// "Starts in N" only for the last 3 s
 	}
 
 #ifdef MISSIONPACK

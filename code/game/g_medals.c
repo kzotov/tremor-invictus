@@ -207,9 +207,15 @@ static void G_MedalsKill( gentity_t *self, gentity_t *inflictor, gentity_t *atta
 		client->multiKills = 1;
 	}
 	client->medalKillTime = level.time;
+	// 2 is Excellent, the classic award
 	switch ( client->multiKills ) {
 	case 3:		G_Medal( attacker, MEDAL_TRIPLEKILL ); break;
+	case 4:		G_Medal( attacker, MEDAL_OVERKILL ); break;
 	case 5:		G_Medal( attacker, MEDAL_FIGHTER ); break;
+	case 6:		G_Medal( attacker, MEDAL_CRUSHER ); break;
+	case 7:		G_Medal( attacker, MEDAL_EXTERMINATOR ); break;
+	case 8:		G_Medal( attacker, MEDAL_DEMOLISHER ); break;
+	case 9:		G_Medal( attacker, MEDAL_GRIMREAPER ); break;
 	case 10:	G_Medal( attacker, MEDAL_AVATAR ); break;
 	}
 	switch ( ++client->streak ) {

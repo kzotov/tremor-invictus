@@ -747,6 +747,7 @@ void CG_AddBufferedSound( sfxHandle_t sfx ) {
 	if ( !sfx )
 		return;
 	cg.soundBuffer[cg.soundBufferIn] = sfx;
+	cg.soundBufferTime[cg.soundBufferIn] = cg.time;
 	cg.soundBufferIn = (cg.soundBufferIn + 1) % MAX_SOUNDBUFFER;
 	if (cg.soundBufferIn == cg.soundBufferOut) {
 		cg.soundBufferOut = (cg.soundBufferOut + 1) % MAX_SOUNDBUFFER;		// full: drop the oldest
@@ -759,6 +760,12 @@ CG_PlayBufferedSounds
 =====================
 */
 static void CG_PlayBufferedSounds( void ) {
+	// a line that cannot start within SOUNDBUFFER_WAIT is dropped
+	while ( cg.soundBufferOut != cg.soundBufferIn && cg.soundTime >= cg.time
+		&& cg.time - cg.soundBufferTime[cg.soundBufferOut] > SOUNDBUFFER_WAIT ) {
+		cg.soundBuffer[cg.soundBufferOut] = 0;
+		cg.soundBufferOut = (cg.soundBufferOut + 1) % MAX_SOUNDBUFFER;
+	}
 	if ( cg.soundTime < cg.time ) {
 		if (cg.soundBufferOut != cg.soundBufferIn && cg.soundBuffer[cg.soundBufferOut]) {
 			trap_S_StartLocalSound(cg.soundBuffer[cg.soundBufferOut], CHAN_ANNOUNCER);

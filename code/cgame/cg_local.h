@@ -39,6 +39,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define	DAMAGE_DEFLECT_TIME	100
 #define	DAMAGE_RETURN_TIME	400
 #define DAMAGE_TIME			500
+#define DAMAGE_ARCS			4		// damage direction arcs shown at once
 #define	LAND_DEFLECT_TIME	150
 #define	LAND_RETURN_TIME	300
 #define	STEP_TIME			200
@@ -459,7 +460,8 @@ typedef struct {
 #define MAX_REWARDSTACK		10
 #define MAX_REVEAL_MODELS	64
 #define MAX_AWARD_LINES		16
-#define MAX_SOUNDBUFFER		32		// announcer queue
+#define MAX_SOUNDBUFFER		16		// announcer queue
+#define SOUNDBUFFER_WAIT	250		// msec a queued line may wait to start
 
 //======================================================================
 
@@ -633,6 +635,7 @@ typedef struct {
 	int			soundBufferOut;
 	int			soundTime;
 	qhandle_t	soundBuffer[MAX_SOUNDBUFFER];
+	int			soundBufferTime[MAX_SOUNDBUFFER];	// when each line was queued
 
 #ifdef MISSIONPACK
 	// for voice chat buffer
@@ -658,9 +661,10 @@ typedef struct {
 	// blend blobs
 	float		damageTime;
 	float		damageX, damageY, damageValue;
-	float		damageArcYaw;		// degrees, 0 = ahead, positive = left
-	int			damageArcTime;
-	int			damageArcValue;
+	float		damageArcYaw[DAMAGE_ARCS];		// degrees, 0 = ahead, positive = left
+	int			damageArcTime[DAMAGE_ARCS];
+	int			damageArcValue[DAMAGE_ARCS];
+	int			damageArcNext;		// the slot the next hit takes
 	int			lowHealthBeat;		// cg.time of the last low-health heartbeat
 	int			abilityReadyTime;	// cg.time the active ability last became ready
 
