@@ -1844,7 +1844,10 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"FRAGGED",
 	"%s place with %i frags",
 	"YOU FRAGGED",
-	"%s place with 1 frag"
+	"%s place with 1 frag",
+	"RED",
+	"BLUE",
+	"TIED"
 };
 
 /*

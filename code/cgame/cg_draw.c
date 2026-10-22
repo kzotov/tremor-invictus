@@ -75,8 +75,8 @@ static const hudElement_t	hudDefaults[] = {
 	{ "abilityname",	ANCHOR_CENTER,	qtrue,	0, 43, 1 },
 	{ "ammo",			ANCHOR_RIGHT,	qtrue,	103, 95, 1 },
 	{ "weaponbar",		ANCHOR_RIGHT,	qtrue,	198, 274, 1 },	// slot 1's top; slots go up 70 apart
-	{ "clock",			ANCHOR_CENTER,	qfalse,	0, 38, 1 },
-	{ "clockline",		ANCHOR_CENTER,	qfalse,	0, 97, 1 },
+	{ "clock",			ANCHOR_CENTER,	qfalse,	0, 35, 1 },		// top
+	{ "clockline",		ANCHOR_CENTER,	qfalse,	0, 92, 1 },		// top
 	{ "killfeed",		ANCHOR_LEFT,	qfalse,	50, 150, 1 },
 	{ "pickups",		ANCHOR_RIGHT,	qfalse,	50, 150, 1 },
 	{ "medals",			ANCHOR_CENTER,	qfalse,	0, 234, 1 },		// the medal's top
@@ -1322,6 +1322,66 @@ static void CG_TopText( float x, float top, float size, const char *s, const flo
 
 /*
 =================
+CG_ClientScore
+
+A player's score: your own from the player state, others from the last
+score list, else whichever of the top two scores isn't yours
+=================
+*/
+static int CG_ClientScore( int client ) {
+	int		i;
+
+	if ( client == cg.snap->ps.clientNum && cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
+		return cg.snap->ps.persistant[PERS_SCORE];
+	}
+	for ( i = 0 ; i < cg.numScores ; i++ ) {
+		if ( cg.scores[i].client == client ) {
+			return cg.scores[i].score;
+		}
+	}
+	if ( cgs.scores1 == SCORE_NOT_PRESENT ) {
+		return 0;
+	}
+	if ( cgs.scores2 != SCORE_NOT_PRESENT && cgs.scores1 == cg.snap->ps.persistant[PERS_SCORE] ) {
+		return cgs.scores2;
+	}
+	return cgs.scores1;
+}
+
+/*
+=================
+CG_CapName
+
+A name cut to fit maxDp design units at the top bar's text size, ending
+in "..." when cut
+=================
+*/
+static const char *CG_CapName( const char *name, float size, float maxDp ) {
+	static char	out[64];
+	float		cw = size * 0.6f;
+	int			i, o = 0, visible = 0, maxChars = (int)( maxDp / cw );
+
+	if ( CG_DrawStrlen( name ) <= maxChars ) {
+		return name;
+	}
+	for ( i = 0 ; name[i] && o < (int)sizeof( out ) - 6 ; i++ ) {
+		if ( Q_IsColorString( name + i ) ) {
+			out[o++] = name[i++];
+			out[o++] = name[i];
+			continue;
+		}
+		if ( visible >= maxChars - 3 ) {
+			break;
+		}
+		out[o++] = name[i];
+		visible++;
+	}
+	Q_strncpyz( out + o, S_COLOR_WHITE "...", sizeof( out ) - o );
+	return out;
+}
+
+/*
+=================
 CG_DrawTopBar
 
 The modern layout's top centre (hud.md 9.1): the phase label, the clock
@@ -1333,19 +1393,30 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit )
 	static vec4_t	pale = { 1, 0.871f, 0.624f, 1 }, grey = { 0.75f, 0.75f, 0.75f, 1 }, darkGrey = { 0.6f, 0.6f, 0.6f, 1 };
 	static vec4_t	red = { 1, 0.3f, 0.3f, 1 }, ourBlue = { 0, 0.6f, 1, 1 }, theirRed = { 1, 0.22f, 0.22f, 1 };
 	static vec4_t	box = { 0, 0, 0, 0.45f };
-	float			clockX = 0;
+	float			clockX, clockTop, lineX, lineTop;
 	int				i, me = cg.snap->ps.clientNum;
+	qboolean		freeCam = cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR && !( cg.snap->ps.pm_flags & PMF_FOLLOW );
 
+	// the places come from the layout's clock and clockline (top 35 and 92)
+	CG_HudPlace( "clock", &clockX, &clockTop );
+	CG_HudPlace( "clockline", &lineX, &lineTop );
 	cg_hudAnchor = ANCHOR_CENTER;
+	clockX = ( clockX - 320 ) / DP;
+	clockTop /= DP;
+	lineX = ( lineX - 320 ) / DP;
+	lineTop /= DP;
 
 	// free-for-all: the clock moves left to make room for the standings
 	if ( cgs.gametype == GT_FFA ) {
-		clockX = -248;
+		clockX -= 248;
+		lineX -= 248;
 	}
-	CG_TopText( clockX, 16, 20, cg.warmup ? BG_String( STR_WARMUP ) : CG_ModeString(), cg.warmup ? pale : grey, 0 );
-	CG_TopText( clockX, 35, 45, clock, finalSeconds ? red : colorWhite, 0 );
-	if ( limit && !cg.warmup ) {
-		CG_TopText( clockX, 92, 18, va( "%i:00", limit ), grey, 0 );
+	CG_TopText( clockX, clockTop - 19, 20, cg.warmup ? BG_String( STR_WARMUP ) : CG_ModeString(), cg.warmup ? pale : grey, 0 );
+	if ( !cg.warmup ) {
+		CG_TopText( clockX, clockTop, 45, clock, finalSeconds ? red : colorWhite, 0 );
+		if ( limit ) {
+			CG_TopText( lineX, lineTop, 18, va( "%i:00", limit ), grey, 0 );
+		}
 	}
 
 	if ( cgs.gametype == GT_TOURNAMENT ) {
@@ -1353,10 +1424,29 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit )
 		// 129 x 69 with their inner edges at +-80, names under them
 		int		side, other = -1;
 
-		for ( i = 0 ; i < cgs.maxclients ; i++ ) {
-			if ( i != me && cgs.clientinfo[i].infoValid && cgs.clientinfo[i].team == TEAM_FREE ) {
-				other = i;
-				break;
+		if ( cg.scoresRequestTime + 2000 < cg.time ) {
+			cg.scoresRequestTime = cg.time;
+			trap_SendClientCommand( "score" );
+		}
+		// a free-camera spectator sees both players, the first to join left
+		if ( freeCam ) {
+			me = -1;
+			for ( i = 0 ; i < cgs.maxclients ; i++ ) {
+				if ( cgs.clientinfo[i].infoValid && cgs.clientinfo[i].team == TEAM_FREE ) {
+					if ( me < 0 ) {
+						me = i;
+					} else {
+						other = i;
+						break;
+					}
+				}
+			}
+		} else {
+			for ( i = 0 ; i < cgs.maxclients ; i++ ) {
+				if ( i != me && cgs.clientinfo[i].infoValid && cgs.clientinfo[i].team == TEAM_FREE ) {
+					other = i;
+					break;
+				}
 			}
 		}
 		for ( side = 0 ; side < 2 ; side++ ) {
@@ -1373,13 +1463,9 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit )
 				CG_DrawPic( 320 + ( 250 * sign - 30.5f ) * DP, 24 * DP, 61 * DP, 61 * DP, portrait );
 			}
 			CG_FillRect( 320 + ( side ? inner : outer ) * DP, 23 * DP, 129 * DP, 69 * DP, box );
-			score = va( "%i", side ? ( cgs.scores1 == cg.snap->ps.persistant[PERS_SCORE] ? cgs.scores2 : cgs.scores1 )
-				: cg.snap->ps.persistant[PERS_SCORE] );
-			if ( side && ( cgs.scores1 == SCORE_NOT_PRESENT || cgs.scores2 == SCORE_NOT_PRESENT ) ) {
-				score = "0";
-			}
+			score = va( "%i", CG_ClientScore( who ) );
 			CG_TopText( ( inner + outer ) / 2, 23, 70 * 0.9f, score, colorWhite, 0 );
-			CG_TopText( ( inner + outer ) / 2, 92, 15, cgs.clientinfo[who].name, darkGrey, 0 );
+			CG_TopText( ( inner + outer ) / 2, 92, 15, CG_CapName( cgs.clientinfo[who].name, 15, 200 ), darkGrey, 0 );
 		}
 		return;
 	}
@@ -1401,41 +1487,57 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit )
 		CG_FillRect( 320 + 48 * DP, 23 * DP, 236 * DP, 48 * DP, box );
 		CG_TopText( -272, 30, 32, va( "%i", leftScore == SCORE_NOT_PRESENT ? 0 : leftScore ), leftColor, -1 );
 		CG_TopText( 276, 30, 32, va( "%i", rightScore == SCORE_NOT_PRESENT ? 0 : rightScore ), rightColor, 1 );
-		CG_TopText( -290, 8, 20, leftName[0] ? leftName : ( blueLeft ? "BLUE" : "RED" ), leftColor, 1 );
-		CG_TopText( 294, 8, 20, rightName[0] ? rightName : ( blueLeft ? "RED" : "BLUE" ), rightColor, -1 );
+		CG_TopText( -290, 8, 20, leftName[0] ? leftName : BG_String( blueLeft ? STR_HUD_BLUE : STR_HUD_RED ), leftColor, 1 );
+		CG_TopText( 294, 8, 20, rightName[0] ? rightName : BG_String( blueLeft ? STR_HUD_RED : STR_HUD_BLUE ), rightColor, -1 );
 		return;
 	}
 
 	if ( cgs.gametype == GT_FFA ) {
-		// two rows right of centre: the leader, then the runner-up or you
-		int		rows = 0, shown[2] = { -1, -1 };
+		// two rows right of centre: the leader, then you (the runner-up when
+		// you lead; first and second in free camera); spectators skipped;
+		// equal scores share a rank and read TIED
+		int		order[MAX_CLIENTS], n = 0, rows[2], count = 0, mine = -1, r;
 
 		if ( cg.scoresRequestTime + 2000 < cg.time ) {
 			cg.scoresRequestTime = cg.time;
 			trap_SendClientCommand( "score" );
 		}
-		for ( i = 0 ; i < cg.numScores && rows < 2 ; i++ ) {
-			if ( rows == 1 && i > 0 && cg.scores[i].client != me ) {
-				// the second row is you when you aren't the leader
-				int		j;
+		for ( i = 0 ; i < cg.numScores ; i++ ) {
+			if ( cg.scores[i].team == TEAM_SPECTATOR ) {
+				continue;
+			}
+			if ( cg.scores[i].client == me && !freeCam ) {
+				mine = n;
+			}
+			order[n++] = i;
+		}
+		if ( n > 0 ) {
+			rows[count++] = 0;
+		}
+		if ( n > 1 ) {
+			rows[count++] = mine > 0 ? mine : 1;
+		}
+		for ( r = 0 ; r < count ; r++ ) {
+			score_t		*sc = &cg.scores[order[rows[r]]];
+			float		top = r ? 80 : 53;
+			const float	*c = sc->client == me && !freeCam ? colorWhite : grey;
+			int			rank = rows[r], k;
+			qboolean	tied = qfalse;
 
-				for ( j = 0 ; j < cg.numScores ; j++ ) {
-					if ( cg.scores[j].client == me && j > 0 ) {
-						i = j;
-						break;
+			for ( k = 0 ; k < n ; k++ ) {
+				if ( k != rows[r] && cg.scores[order[k]].score == sc->score ) {
+					tied = qtrue;
+					if ( k < rank ) {
+						rank = k;
 					}
 				}
 			}
-			shown[rows++] = i;
-		}
-		for ( i = 0 ; i < rows ; i++ ) {
-			score_t		*sc = &cg.scores[shown[i]];
-			float		top = i ? 80 : 53;
-			const float	*c = sc->client == me ? colorWhite : grey;
-
-			CG_TopText( -104, top, 18, va( "#%i", shown[i] + 1 ), c, -1 );
-			CG_TopText( -60, top, 19, cgs.clientinfo[sc->client].name, c, -1 );
+			CG_TopText( -104, top, 18, va( "#%i", rank + 1 ), c, -1 );
+			CG_TopText( -60, top, 19, CG_CapName( cgs.clientinfo[sc->client].name, 19, 160 ), c, -1 );
 			CG_TopText( 168, top, 18, va( "%i", sc->score ), c, -1 );
+			if ( tied ) {
+				CG_TopText( 210, top, 18, BG_String( STR_HUD_TIED ), grey, -1 );
+			}
 		}
 	}
 }
