@@ -748,13 +748,14 @@ static void UI_AddStagePillar( float dist, float top, float flash ) {
 		VectorCopy( glow, v[k].modulate );
 		v[k].modulate[3] = 255;
 	}
-	// sides, v running down from the top
+	// sides, v running down from the top, wound to face outward (the other
+	// way the renderer culls the near faces and shows the inside)
 	for ( i = 0 ; i < 6 ; i++ ) {
 		j = ( i + 1 ) % 6;
-		VectorCopy( corner[i], v[0].xyz );
-		VectorCopy( corner[j], v[1].xyz );
-		VectorCopy( corner[j], v[2].xyz );
-		VectorCopy( corner[i], v[3].xyz );
+		VectorCopy( corner[j], v[0].xyz );
+		VectorCopy( corner[i], v[1].xyz );
+		VectorCopy( corner[i], v[2].xyz );
+		VectorCopy( corner[j], v[3].xyz );
 		v[0].xyz[2] = v[1].xyz[2] = bottom;
 		v[0].st[0] = 0; v[0].st[1] = ( top - bottom ) / 128;
 		v[1].st[0] = 1; v[1].st[1] = ( top - bottom ) / 128;
