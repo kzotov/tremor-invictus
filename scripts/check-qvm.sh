@@ -14,13 +14,14 @@ check() {
 		status=1
 		return
 	fi
-	newer=$(find "$@" -name '*.c' -newer "$qvm" | head -3)
+	newer=$(find "$@" \( -name '*.c' -o -name '*.h' \) -newer "$qvm" | head -3)
 	if [ -n "$newer" ]; then
 		echo "check-qvm: $qvm is older than: $newer" >&2
 		status=1
 	fi
 }
-check cgame "$ROOT/code/cgame" "$ROOT"/code/game/bg_*.c "$ROOT/code/qcommon/q_shared.c" "$ROOT/code/qcommon/q_math.c"
-check qagame "$ROOT/code/game"
-check ui "$ROOT/code/q3_ui" "$ROOT"/code/game/bg_*.c "$ROOT/code/qcommon/q_shared.c" "$ROOT/code/qcommon/q_math.c"
+SHARED="$ROOT/code/qcommon/q_shared.c $ROOT/code/qcommon/q_math.c $ROOT/code/qcommon/q_shared.h $ROOT/code/qcommon/surfaceflags.h"
+check cgame "$ROOT/code/cgame" "$ROOT"/code/game/bg_*.c "$ROOT"/code/game/bg_*.h $SHARED
+check qagame "$ROOT/code/game" $SHARED
+check ui "$ROOT/code/q3_ui" "$ROOT"/code/game/bg_*.c "$ROOT"/code/game/bg_*.h $SHARED
 exit $status
