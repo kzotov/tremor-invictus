@@ -3033,9 +3033,10 @@ void CL_Frame ( int msec ) {
 	CL_MM_Frame();
 
 #ifdef USE_RMLUI
-	// a main-menu page never stays over a game once the menus have closed
-	// (loading a map passes through the main menu)
-	if ( clc.state == CA_ACTIVE && !( Key_GetCatcher() & KEYCATCH_UI ) && RML_Active() ) {
+	// a main-menu page never stays over a game once the menus have closed,
+	// nor over the loading screen (loading a map passes through the main menu)
+	if ( ( ( clc.state == CA_ACTIVE && !( Key_GetCatcher() & KEYCATCH_UI ) )
+		|| ( clc.state >= CA_CONNECTING && clc.state < CA_ACTIVE ) ) && RML_Active() ) {
 		static const char	*menuPages[] = { "ui/main.rml", "ui/findmatch.rml", "ui/createserver.rml",
 			"ui/findservers.rml", "ui/colors.rml", "ui-gen/settings.rml", "ui/demos.rml", "ui-gen/credits.rml", "ui/profile.rml",
 			"ui-gen/players.rml" };

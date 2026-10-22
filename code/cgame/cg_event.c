@@ -274,7 +274,8 @@ static void CG_Obituary( entityState_t *ent ) {
 			CG_CenterPrint( s, SCREEN_HEIGHT * 0.30, BIGCHAR_WIDTH );
 		} 
 #else
-		CG_CenterPrint( s, SCREEN_HEIGHT * 0.30, BIGCHAR_WIDTH );
+		// under the medal area (y 64-160), so a medal never covers it
+		CG_CenterPrint( s, SCREEN_HEIGHT * 0.375, BIGCHAR_WIDTH );
 #endif
 
 		// print the text message as well

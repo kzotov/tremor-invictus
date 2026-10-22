@@ -4601,8 +4601,10 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 		return;
 	}
 
-	// the countdown: everyone on pillars
-	if ( ( cg.warmup > cg.time && cg_drawLineup.integer ) || cg_showLineup.integer ) {
+	// everyone on pillars: only on request now (cg_showLineup); the
+	// countdown after ready-up stays in the game, the lineup comes before
+	// the server starts (the menu's pre-lineup)
+	if ( cg_showLineup.integer ) {
 		CG_DrawLineup();
 		lineupShown = qtrue;
 		CG_DrawWarmup();
