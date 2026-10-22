@@ -876,3 +876,293 @@ void UI_SettingsMenu( void ) {
 
 	UI_PushMenu( &s_settings.menu );
 }
+
+/*
+===============================================================================
+
+Settings in RmlUi
+
+The document is written from the row tables above to ui-gen/settings.rml
+in the home folder each time the page opens, so the tables stay the one
+place a setting is described. Its commands:
+  ui_setTab <n>				show a tab (ui_setTab cvar)
+  ui_setBind <tab> <row>	wait for a key for a bind row (rml_capture)
+  ui_setBindKey <tab> <row> <key>
+  ui_setInvert <0|1>
+  ui_setDefaults <tab>
+  ui_setPreset <name>		a config preset, then the page again
+
+===============================================================================
+*/
+
+#define RML_PAGE_SIZE	65536
+
+static char		rmlPage[RML_PAGE_SIZE];
+
+// text for the document: & < > escaped, [ ] kept away from the string keys
+static const char *Rml_Text( const char *s ) {
+	static char	out[2][512];
+	static int	which;
+	char		*o = out[which ^= 1];
+	int			n = 0;
+
+	for ( ; *s && n < (int)sizeof( out[0] ) - 8; s++ ) {
+		const char	*rep = *s == '&' ? "&amp;" : *s == '<' ? "&lt;" : *s == '>' ? "&gt;" : *s == '[' ? "(" : *s == ']' ? ")" : NULL;
+
+		if ( rep ) {
+			strcpy( o + n, rep );
+			n += strlen( rep );
+		} else {
+			o[n++] = *s;
+		}
+	}
+	o[n] = 0;
+	return o;
+}
+
+static void Rml_Add( const char *text ) {
+	Q_strcat( rmlPage, sizeof( rmlPage ), text );
+}
+
+static void Rml_BindText( int tab, int r ) {
+	const settingRow_t	*row = &settingTabs[tab].rows[r];
+	char				name[64], text[96];
+	int					keys[2];
+
+	Settings_KeysForCommand( row->cvar, keys );
+	text[0] = 0;
+	if ( keys[0] != -1 ) {
+		trap_Key_KeynumToStringBuf( keys[0], name, sizeof( name ) );
+		Q_strupr( name );
+		Q_strcat( text, sizeof( text ), name );
+	}
+	if ( keys[1] != -1 ) {
+		trap_Key_KeynumToStringBuf( keys[1], name, sizeof( name ) );
+		Q_strupr( name );
+		Q_strcat( text, sizeof( text ), "   " );
+		Q_strcat( text, sizeof( text ), name );
+	}
+	trap_Cvar_Set( va( "ui_bind%i_%i", tab, r ), text[0] ? text : "---" );
+}
+
+static void Rml_Option( const settingRow_t *row, const char *condition, const char *command, const char *label ) {
+	Rml_Add( va( "<button class=\"opt\" data-class=\"on:%s\" onclick=\"%s%s\">%s</button>", condition, command,
+		row->restart ? "; set ui_setRestart 1" : "", Rml_Text( label ) ) );
+}
+
+static void Rml_Row( int tab, int r ) {
+	const settingRow_t	*row = &settingTabs[tab].rows[r];
+	char				label[96];
+	int					i;
+
+	Q_strncpyz( label, BG_String( row->label ), sizeof( label ) );
+	if ( row->slot ) {
+		Com_sprintf( label, sizeof( label ), BG_String( row->label ), row->slot );
+	}
+	Rml_Add( va( "<div class=\"srow\"><span class=\"slabel\">%s</span><span class=\"svalue\">", Rml_Text( label ) ) );
+
+	switch ( row->type ) {
+	case ROW_SPIN:
+		for ( i = 0; i < row->numValues; i++ ) {
+			const char	*name = row->names[i] ? BG_String( row->names[i] ) : row->values[i];
+			const char	*cmd = !Q_stricmp( row->cvar, "ui_configPreset" )
+				? va( "ui_setPreset %s", row->values[i][0] ? row->values[i] : "\"\"" )
+				: va( "set %s %s", row->cvar, row->values[i][0] ? row->values[i] : "\"\"" );
+			char		cond[128], command[128];
+
+			Com_sprintf( cond, sizeof( cond ), "%s=%s", row->cvar, row->values[i] );
+			Q_strncpyz( command, cmd, sizeof( command ) );
+			Rml_Option( row, cond, command, name );
+		}
+		break;
+	case ROW_SLIDER:
+		Rml_Add( va( "<input type=\"range\" min=\"%g\" max=\"%g\" step=\"%g\" data-value-cvar=\"%s\" onchange=\"set %s {value}\"/>",
+			row->min, row->max, row->max - row->min > 5 ? 1.0f : 0.05f, row->cvar, row->cvar ) );
+		Rml_Add( va( "<span class=\"sread\" data-text-cvar=\"%s\"></span>", row->cvar ) );
+		break;
+	case ROW_FIELD:
+		Rml_Add( va( "<input type=\"text\" size=\"10\" maxlength=\"12\" data-value-cvar=\"%s\" onchange=\"set %s {value}\"/>",
+			row->cvar, row->cvar ) );
+		break;
+	case ROW_RESOLUTION:
+		Settings_GetResolutions();
+		Rml_Option( row, "r_mode=-2", "set r_mode -2", BG_String( STR_SET_DESKTOP ) );
+		for ( i = 1; i < s_settings.numResolutions; i++ ) {
+			const char	*res = s_settings.resolutions[i];
+			const char	*x = strchr( res, 'x' );
+			char		cond[96], command[128];
+
+			if ( !x ) {
+				continue;
+			}
+			Com_sprintf( cond, sizeof( cond ), "r_mode=-1&r_customwidth=%i&r_customheight=%i", atoi( res ), atoi( x + 1 ) );
+			Com_sprintf( command, sizeof( command ), "set r_mode -1; set r_customwidth %i; set r_customheight %i", atoi( res ), atoi( x + 1 ) );
+			Rml_Option( row, cond, command, res );
+		}
+		break;
+	case ROW_DISPLAY:
+		Rml_Option( row, "r_fullscreen=1", "set r_fullscreen 1; set r_noborder 0", BG_String( row->names[0] ) );
+		Rml_Option( row, "r_fullscreen=0&r_noborder=0", "set r_fullscreen 0; set r_noborder 0", BG_String( row->names[1] ) );
+		Rml_Option( row, "r_fullscreen=0&r_noborder=1", "set r_fullscreen 0; set r_noborder 1", BG_String( row->names[2] ) );
+		break;
+	case ROW_INVERT:
+		Rml_Option( row, "m_pitch>0", "ui_setInvert 0", BG_String( row->names[0] ) );
+		Rml_Option( row, "m_pitch<0", "ui_setInvert 1", BG_String( row->names[1] ) );
+		break;
+	case ROW_READOUT:
+		Rml_Add( "<span class=\"sread\" data-text-cvar=\"ui_setTurn\"></span>" );
+		break;
+	case ROW_BIND:
+		Rml_BindText( tab, r );
+		Rml_Add( va( "<button class=\"opt bind\" data-when=\"ui_setWait!=%i_%i\" onclick=\"ui_setBind %i %i\"><span data-text-cvar=\"ui_bind%i_%i\"></span></button>",
+			tab, r, tab, r, tab, r ) );
+		Rml_Add( va( "<span class=\"sread wait\" data-when=\"ui_setWait=%i_%i\">%s</span>", tab, r, Rml_Text( BG_String( STR_SET_BIND_WAIT ) ) ) );
+		break;
+	}
+	Rml_Add( va( "</span><div class=\"shelp\">%s</div></div>\n", Rml_Text( BG_String( row->help ) ) ) );
+}
+
+/*
+=================
+UI_SettingsRml
+=================
+*/
+void UI_SettingsRml( void ) {
+	fileHandle_t	f;
+	int				tab, r;
+
+	trap_Cvar_Register( NULL, "ui_setTab", "0", CVAR_TEMP );
+	trap_Cvar_Register( NULL, "ui_setRestart", "0", CVAR_TEMP );
+	trap_Cvar_Set( "ui_setWait", "" );
+	UI_Settings_Frame();
+
+	rmlPage[0] = 0;
+	Rml_Add( "<rml>\n<head>\n<title>Settings</title>\n<link type=\"text/rcss\" href=\"/ui/tremor.rcss\"/>\n</head>\n" );
+	Rml_Add( "<body data-escape=\"rml_show ui/main.rml\">\n<div class=\"settings\">\n" );
+	Rml_Add( va( "<h1>%s</h1>\n<div class=\"tabs\">", Rml_Text( BG_String( STR_MENU_SETTINGS ) ) ) );
+	for ( tab = 0; tab < NUM_TABS; tab++ ) {
+		Rml_Add( va( "<button class=\"tab\" data-class=\"on:ui_setTab=%i\" onclick=\"ui_setTab %i\">%s</button>", tab, tab,
+			Rml_Text( BG_String( settingTabs[tab].name ) ) ) );
+	}
+	Rml_Add( "</div>\n" );
+	for ( tab = 0; tab < NUM_TABS; tab++ ) {
+		Rml_Add( va( "<div class=\"spage\" data-when=\"ui_setTab=%i\">\n", tab ) );
+		for ( r = 0; r < settingTabs[tab].numRows; r++ ) {
+			Rml_Row( tab, r );
+		}
+		Rml_Add( "</div>\n" );
+	}
+	Rml_Add( "<div class=\"sactions\">" );
+	Rml_Add( "<button onclick=\"rml_show ui/main.rml\">[menu_back]</button>" );
+	Rml_Add( va( "<button onclick=\"ui_setDefaults\">%s</button>", Rml_Text( BG_String( STR_SET_DEFAULTS ) ) ) );
+	Rml_Add( va( "<button class=\"apply\" data-when=\"ui_setRestart=1\" onclick=\"set ui_setRestart 0; vid_restart\">%s</button>",
+		Rml_Text( BG_String( STR_SET_APPLY ) ) ) );
+	Rml_Add( va( "<button onclick=\"rml_hide; ui_credits\">%s</button>", Rml_Text( BG_String( STR_SET_CREDITS ) ) ) );
+	Rml_Add( "</div>\n</div>\n</body>\n</rml>\n" );
+
+	trap_FS_FOpenFile( "ui-gen/settings.rml", &f, FS_WRITE );
+	if ( !f ) {
+		UI_SettingsMenu();
+		return;
+	}
+	trap_FS_Write( rmlPage, strlen( rmlPage ), f );
+	trap_FS_FCloseFile( f );
+	trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui-gen/settings.rml\n" );
+}
+
+/*
+=================
+UI_Settings_Frame
+
+The turn readout for the page
+=================
+*/
+void UI_Settings_Frame( void ) {
+	float	cpi = trap_Cvar_VariableValue( "m_cpi" );
+	float	sens = trap_Cvar_VariableValue( "sensitivity" );
+
+	if ( cpi <= 0 || sens <= 0 ) {
+		trap_Cvar_Set( "ui_setTurn", BG_String( STR_SET_TURN_NEEDCPI ) );
+	} else {
+		trap_Cvar_Set( "ui_setTurn", va( (char *)BG_String( STR_SET_TURN_VALUE ), sens, 360.0f / sens ) );
+	}
+}
+
+/*
+=================
+UI_SettingsCommand
+=================
+*/
+qboolean UI_SettingsCommand( const char *cmd ) {
+	int		tab, r, key, keys[2];
+
+	if ( !Q_stricmp( cmd, "ui_setTab" ) ) {
+		trap_Cvar_Set( "ui_setTab", UI_Argv( 1 ) );
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_setInvert" ) ) {
+		trap_Cvar_SetValue( "m_pitch", ( atoi( UI_Argv( 1 ) ) ? -1 : 1 ) * fabs( trap_Cvar_VariableValue( "m_pitch" ) ) );
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_setPreset" ) ) {
+		trap_Cvar_Set( "ui_configPreset", UI_Argv( 1 ) );
+		if ( UI_Argv( 1 )[0] ) {
+			trap_Cmd_ExecuteText( EXEC_APPEND, va( "exec configs/%s.cfg\nui_settings\n", UI_Argv( 1 ) ) );
+		}
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_setDefaults" ) ) {
+		tab = (int)trap_Cvar_VariableValue( "ui_setTab" );
+		for ( r = 0; tab >= 0 && tab < NUM_TABS && r < settingTabs[tab].numRows; r++ ) {
+			const settingRow_t	*row = &settingTabs[tab].rows[r];
+
+			if ( row->type == ROW_RESOLUTION ) {
+				trap_Cmd_ExecuteText( EXEC_APPEND, "reset r_mode\n" );
+			} else if ( row->type == ROW_DISPLAY ) {
+				trap_Cmd_ExecuteText( EXEC_APPEND, "reset r_fullscreen; reset r_noborder\n" );
+			} else if ( row->type != ROW_BIND && row->type != ROW_READOUT ) {
+				trap_Cmd_ExecuteText( EXEC_APPEND, va( "reset %s\n", (char *)row->cvar ) );
+			}
+			if ( row->restart ) {
+				trap_Cvar_Set( "ui_setRestart", "1" );
+			}
+		}
+		trap_Cmd_ExecuteText( EXEC_APPEND, "ui_settings\n" );
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_setBind" ) ) {
+		tab = atoi( UI_Argv( 1 ) );
+		r = atoi( UI_Argv( 2 ) );
+		trap_Cvar_Set( "ui_setWait", va( "%i_%i", tab, r ) );
+		trap_Cmd_ExecuteText( EXEC_NOW, va( "rml_capture ui_setBindKey %i %i\n", tab, r ) );
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_setBindKey" ) ) {
+		tab = atoi( UI_Argv( 1 ) );
+		r = atoi( UI_Argv( 2 ) );
+		key = atoi( UI_Argv( 3 ) );
+		trap_Cvar_Set( "ui_setWait", "" );
+		if ( tab < 0 || tab >= NUM_TABS || r < 0 || r >= settingTabs[tab].numRows || settingTabs[tab].rows[r].type != ROW_BIND ) {
+			return qtrue;
+		}
+		if ( key == K_BACKSPACE || key == K_DEL ) {
+			// clear the row's keys
+			Settings_KeysForCommand( settingTabs[tab].rows[r].cvar, keys );
+			if ( keys[0] != -1 ) trap_Key_SetBinding( keys[0], "" );
+			if ( keys[1] != -1 ) trap_Key_SetBinding( keys[1], "" );
+		} else if ( key > 0 && key != K_ESCAPE ) {
+			// a third key replaces the first
+			Settings_KeysForCommand( settingTabs[tab].rows[r].cvar, keys );
+			if ( keys[1] != -1 && key != keys[0] && key != keys[1] ) {
+				trap_Key_SetBinding( keys[0], "" );
+			}
+			trap_Key_SetBinding( key, settingTabs[tab].rows[r].cvar );
+		}
+		// any row may have lost a key
+		for ( r = 0; r < settingTabs[TAB_CONTROLS].numRows; r++ ) {
+			Rml_BindText( TAB_CONTROLS, r );
+		}
+		return qtrue;
+	}
+	return qfalse;
+}

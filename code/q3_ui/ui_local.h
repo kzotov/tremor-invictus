@@ -344,6 +344,9 @@ void UI_DrawRmlStage( void );
 void UI_ColorsRml( void );
 void UI_CreateServerRml( void );
 void UI_PracticeRml( void );
+void UI_SettingsRml( void );
+void UI_Settings_Frame( void );
+qboolean UI_SettingsCommand( const char *cmd );
 qboolean UI_CreateServerCommand( const char *cmd );
 extern void UI_PlayMenu( void );
 

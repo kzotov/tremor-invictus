@@ -60,6 +60,7 @@ void	RML_Frame( void );
 int		RML_KeyEvent( int key, int down );				// nonzero when the interface took it
 int		RML_CharEvent( int ch );
 void	RML_MouseMove( int dx, int dy );
+void	RML_Capture( const char *command );		// the next key goes to this command
 
 #ifdef __cplusplus
 }

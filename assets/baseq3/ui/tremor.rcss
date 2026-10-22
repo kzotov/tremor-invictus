@@ -890,3 +890,163 @@ button.small {
 	display: inline-block;
 	margin-left: 40dp;
 }
+
+/* settings: tabs, then a row per setting with its help under the cursor */
+.settings {
+	position: absolute;
+	left: 4%;
+	top: 4%;
+	width: 92%;
+	height: 92%;
+}
+
+.settings h1 {
+	display: block;
+	font-family: "Arial Black";
+	font-size: 50dp;
+	color: #f2efe9;
+}
+
+.settings .tabs {
+	display: block;
+	margin-bottom: 16dp;
+}
+
+.settings .tab {
+	display: inline-block;
+	font-size: 32dp;
+	color: #8a8780;
+	margin-right: 30dp;
+	padding-left: 0dp;
+	border-left-width: 0dp;
+	border-bottom: 4dp transparent;
+}
+
+.settings .tab.on {
+	color: #f2efe9;
+	border-bottom-color: #d3191f;
+}
+
+.settings .spage {
+	display: block;
+	height: 72%;
+	overflow-y: auto;
+	padding: 10dp 20dp;
+	background-color: #16171bf0;
+	border-left: 6dp #d3191f;
+}
+
+.srow {
+	display: block;
+	position: relative;
+	padding: 5dp 0;
+	font-size: 22dp;
+}
+
+.srow:hover {
+	background-color: #1f2026;
+}
+
+.slabel {
+	display: inline-block;
+	width: 32%;
+	color: #8a8780;
+	text-align: right;
+	padding-right: 20dp;
+}
+
+.svalue {
+	display: inline-block;
+	width: 64%;
+}
+
+.svalue .opt {
+	font-size: 20dp;
+	padding: 2dp 8dp;
+	margin: 0 4dp 4dp 0;
+}
+
+.svalue input {
+	font-size: 22dp;
+	color: #f2efe9;
+	background-color: #0e0f12;
+	border: 2dp #3a3b40;
+	padding: 2dp 8dp;
+}
+
+.svalue input.range {
+	width: 300dp;
+	height: 20dp;
+}
+
+.sread {
+	margin-left: 12dp;
+	color: #f2efe9;
+}
+
+.sread.wait {
+	color: #e0a030;
+}
+
+.shelp {
+	display: none;
+}
+
+.srow:hover .shelp {
+	display: block;
+	padding-left: 34%;
+	font-size: 18dp;
+	color: #c8c4bc;
+}
+
+.settings .sactions {
+	display: block;
+	margin-top: 14dp;
+}
+
+.settings .sactions button {
+	display: inline-block;
+	font-size: 36dp;
+	margin-right: 50dp;
+}
+
+.settings .sactions .apply {
+	color: #f2efe9;
+}
+
+input.range slidertrack {
+	height: 6dp;
+	margin-top: 7dp;
+	background-color: #3a3b40;
+}
+
+input.range sliderbar {
+	width: 14dp;
+	height: 20dp;
+	background-color: #d3191f;
+}
+
+input.range sliderarrowdec, input.range sliderarrowinc {
+	width: 0dp;
+	height: 0dp;
+}
+
+scrollbarvertical {
+	width: 12dp;
+	margin-left: 4dp;
+}
+
+scrollbarvertical slidertrack {
+	background-color: #0e0f12;
+}
+
+scrollbarvertical sliderbar {
+	width: 12dp;
+	min-height: 30dp;
+	background-color: #3a3b40;
+}
+
+scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc {
+	width: 0dp;
+	height: 0dp;
+}

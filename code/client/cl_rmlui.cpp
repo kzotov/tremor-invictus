@@ -799,9 +799,24 @@ extern "C" void RML_Frame( void ) {
 	imp.SetColor( nullptr );
 }
 
+// rml_capture: the next key pressed runs "<command> <keynum>" (Escape: -1)
+Rml::String		captureCommand;
+
+extern "C" void RML_Capture( const char *command ) {
+	captureCommand = command;
+}
+
 extern "C" int RML_KeyEvent( int key, int down ) {
 	if ( !RML_Active() ) {
 		return 0;
+	}
+	if ( !captureCommand.empty() && down ) {
+		char	text[32];
+
+		snprintf( text, sizeof( text ), " %i\n", key == K_ESCAPE ? -1 : key );
+		imp.ExecuteText( ( captureCommand + text ).c_str() );
+		captureCommand.clear();
+		return 1;
 	}
 	// a mouse-only document (data-mouse-only) leaves the keys to the game
 	if ( document->GetAttribute( "data-mouse-only" ) && !( key >= K_MOUSE1 && key <= K_MWHEELUP ) ) {

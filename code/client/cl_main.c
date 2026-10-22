@@ -3226,6 +3226,10 @@ static void CL_RmlHide_f( void ) {
 static void CL_RmlReload_f( void ) {
 	RML_Reload();
 }
+static void CL_RmlCapture_f( void ) {
+	RML_Capture( Cmd_ArgsFrom( 1 ) );
+}
+
 static void CL_RmlToggle_f( void ) {
 	RML_Toggle( Cmd_Argv( 1 ), Cmd_Argc() > 2 ? Cmd_Argv( 2 ) : "open" );
 }
@@ -3266,6 +3270,7 @@ static void CL_RmlStart( void ) {
 	Cmd_AddCommand( "rml_show", CL_RmlShow_f );
 	Cmd_AddCommand( "rml_hide", CL_RmlHide_f );
 	Cmd_AddCommand( "rml_reload", CL_RmlReload_f );
+	Cmd_AddCommand( "rml_capture", CL_RmlCapture_f );
 	Cmd_AddCommand( "rml_toggle", CL_RmlToggle_f );
 	RML_Init( &imp, cls.glconfig.vidWidth, cls.glconfig.vidHeight );
 }

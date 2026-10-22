@@ -1114,6 +1114,18 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	if ( Q_stricmp (cmd, "ui_settings") == 0 && trap_Cvar_VariableValue( "rml_ok" ) ) {
+		if ( trap_Argc() > 1 ) {
+			trap_Cvar_Set( "ui_setTab", UI_Argv( 1 ) );
+		}
+		UI_SettingsRml();
+		return qtrue;
+	}
+
+	if ( UI_SettingsCommand( cmd ) ) {
+		return qtrue;
+	}
+
 	if ( Q_stricmp (cmd, "ui_settings") == 0 ) {
 		UI_SettingsMenu();
 		if ( trap_Argc() > 1 ) {
@@ -1377,6 +1389,9 @@ void UI_Refresh( int realtime )
 		// the champion stage an RmlUi document reserved, under the document
 		UI_DrawRmlStage();
 		UI_Champion_Frame();
+		if ( !Q_stricmp( UI_Cvar_VariableString( "rml_doc" ), "ui-gen/settings.rml" ) ) {
+			UI_Settings_Frame();
+		}
 
 		if( uis.firstdraw ) {
 			UI_MouseEvent( 0, 0 );
