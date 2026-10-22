@@ -27,9 +27,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "ui_local.h"
 
-#define SINK_MSEC	150
-#define RISE_MSEC	200
-#define SINK_DEPTH	64
+#define SINK_MSEC	150		// the old champion leaving
+#define RISE_MSEC	200		// the new one landing
+#define SWAP_HEIGHT	140		// units above the pillar the swap starts or ends
 
 /*
 =================
@@ -102,17 +102,21 @@ void UI_Stage_Draw( uiStage_t *st, float x, float y, float w, float h, int champ
 		st->nextGesture = uis.realtime + 8000 + rand() % 4000;
 	}
 
+	// the swap happens above the pillar, never through it: the old
+	// champion lifts off out of the box, the new one drops onto the top
 	t = uis.realtime - st->swapTime;
 	if ( t < SINK_MSEC && st->oldChampion >= 0 ) {
 		pi = &st->old;
-		pi->rise = -SINK_DEPTH * t / (float)SINK_MSEC;
+		pi->rise = SWAP_HEIGHT * t / (float)SINK_MSEC;
 		pi->flash = 0;
 	} else {
 		pi = &st->pi;
 		t -= SINK_MSEC;
 		if ( t < RISE_MSEC ) {
-			pi->rise = -SINK_DEPTH * ( 1.0f - t / (float)RISE_MSEC );
-			pi->flash = 1.0f - t / (float)RISE_MSEC;
+			float	f = 1.0f - t / (float)RISE_MSEC;
+
+			pi->rise = SWAP_HEIGHT * f * f;		// eases onto the pillar
+			pi->flash = f;
 		} else {
 			pi->rise = 0;
 			pi->flash = 0;

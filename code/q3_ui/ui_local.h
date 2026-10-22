@@ -588,7 +588,7 @@ typedef struct {
 	int				realWeapon;
 	// the champion stage: standing on a pillar, framed by height
 	qboolean		onPillar;
-	float			rise;			// units above (+) or into (-) the pillar
+	float			rise;			// units above the pillar while champions swap
 	float			flash;			// 0-1, a light burst as a champion arrives
 	int				tintMode;		// 0 none, 1 bright, 2 sport (player colours preview)
 	byte			tint[3][4];		// head, upper, lower
