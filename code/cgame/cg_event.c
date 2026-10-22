@@ -1272,15 +1272,15 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			switch( es->eventParm ) {
 				case GTS_RED_CAPTURE: // CTF: red team captured the blue flag, 1FCTF: red team captured the neutral flag
 					if ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_RED )
-						CG_AddBufferedSound( cgs.media.captureYourTeamSound );
+						CG_AddBufferedSoundPriority( cgs.media.captureYourTeamSound, 4 );
 					else
-						CG_AddBufferedSound( cgs.media.captureOpponentSound );
+						CG_AddBufferedSoundPriority( cgs.media.captureOpponentSound, 4 );
 					break;
 				case GTS_BLUE_CAPTURE: // CTF: blue team captured the red flag, 1FCTF: blue team captured the neutral flag
 					if ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_BLUE )
-						CG_AddBufferedSound( cgs.media.captureYourTeamSound );
+						CG_AddBufferedSoundPriority( cgs.media.captureYourTeamSound, 4 );
 					else
-						CG_AddBufferedSound( cgs.media.captureOpponentSound );
+						CG_AddBufferedSoundPriority( cgs.media.captureOpponentSound, 4 );
 					break;
 				case GTS_RED_RETURN: // CTF: blue flag returned, 1FCTF: never used
 					if ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_RED )
