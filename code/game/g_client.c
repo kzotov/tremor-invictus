@@ -1329,7 +1329,8 @@ void ClientSpawn(gentity_t *ent) {
 	// health will count down towards max_health
 	ent->health = client->ps.stats[STAT_HEALTH] = client->ps.stats[STAT_MAX_HEALTH] + 25;
 	G_MedalsSpawn( ent );
-	client->spawnProtectEnd = level.time + g_spawnProtection.integer;
+	// no spawn protection in duel
+	client->spawnProtectEnd = g_gametype.integer == GT_TOURNAMENT ? 0 : level.time + g_spawnProtection.integer;
 
 	// class spawn armor
 	if ( g_gametype.integer == GT_TOURNAMENT ) {

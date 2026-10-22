@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "g_local.h"
 
 #define SAC_SOUL_DELAY			10000	// after the round starts
-#define SAC_SOUL_WARNING		5000
+#define SAC_SOUL_WARNING		15000	// the soul is called 15 s before it appears
 #define SAC_RESULT_MSEC			3000
 #define SAC_ROUND_MSEC			600000
 #define SAC_POINT_MSEC			10000	// a point to each living teammate per 10 s at the obelisk
@@ -728,8 +728,10 @@ void G_SacrificeCheckRules( void ) {
 			if ( !sac.warned && level.time - sac.roundStart >= SAC_SOUL_DELAY - SAC_SOUL_WARNING ) {
 				char	msg[MAX_STRING_CHARS];
 
+				// 15 s ahead, or at the round start when the soul comes sooner
 				sac.warned = qtrue;
-				Com_sprintf( msg, sizeof( msg ), BG_String( STR_SAC_SOUL_SOON ), SAC_SOUL_WARNING / 1000 );
+				Com_sprintf( msg, sizeof( msg ), BG_String( STR_SAC_SOUL_SOON ),
+					( SAC_SOUL_DELAY - ( level.time - sac.roundStart ) + 999 ) / 1000 );
 				trap_SendServerCommand( -1, va( "cp \"%s\"", msg ) );
 			}
 			if ( level.time - sac.roundStart >= SAC_SOUL_DELAY ) {

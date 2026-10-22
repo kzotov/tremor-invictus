@@ -646,8 +646,13 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed ) 
 		}
 
 		if ( ( champ->abilities & MOVEABIL_HEAVYWEIGHT ) && BG_AbilityState( &client->ps ) == ABILITY_RUSH ) {
-			// a rush hits flat: full above the fast speed, less below
-			damage = impactSpeed >= g_rushFastSpeed.value ? g_rushDamage.integer : g_rushSlowDamage.integer;
+			// a rush hits from g_rushSlowDamage standing to g_rushDamage at the fast speed
+			float	f = g_rushFastSpeed.value > 0 ? impactSpeed / g_rushFastSpeed.value : 1;
+
+			if ( f > 1 ) {
+				f = 1;
+			}
+			damage = g_rushSlowDamage.integer + ( g_rushDamage.integer - g_rushSlowDamage.integer ) * f;
 		} else if ( champ->abilities & MOVEABIL_HEAVYWEIGHT ) {
 			damage = G_HeavyweightDamage( impactSpeed );
 		} else {

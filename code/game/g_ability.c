@@ -538,7 +538,8 @@ static void G_FireballBurst( gentity_t *ball, vec3_t origin, int damage, int rad
 	gentity_t	*other;
 	int			i, num;
 
-	G_SplashParams( damage * 0.4f, -1, -1 );		// 100% at the centre to 40% at the edge
+	// 100% at the centre to 40% at the edge; Death Knight pushed x1.467 by his own
+	G_SplashParams( damage * 0.4f, damage, damage * 1.467f );
 	G_RadiusDamage( origin, ball->parent, damage, radius, NULL, MOD_FIREBALL );
 
 	// set everything in the blast burning

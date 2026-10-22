@@ -51,7 +51,6 @@ under way waits, out of play, for the next one.
 void G_CALoadout( gentity_t *ent ) {
 	gclient_t		*client = ent->client;
 	const classInfo_t	*ci = G_ClassInfo( client );
-	gitem_t			*item;
 
 	if ( !level.warmupTime && !level.caSpawning && level.caState != CA_WAITING ) {
 		ent->health = client->ps.stats[STAT_HEALTH] = 0;
@@ -65,15 +64,23 @@ void G_CALoadout( gentity_t *ent ) {
 	ent->health = client->ps.stats[STAT_HEALTH] = client->ps.stats[STAT_MAX_HEALTH] + ci->maxHealthBonus;
 	client->ps.stats[STAT_ARMOR] = G_MaxArmor( client );
 
-	for ( item = bg_itemlist + 1 ; item->classname ; item++ ) {
-		if ( item->giType != IT_WEAPON || item->giTag == WP_GRAPPLING_HOOK ) {
-			continue;
+	// every pick-up weapon (the heavy ones take their starting weapon's
+	// slot), each at the mode's full ammo
+	{
+		static const int	caAmmo[][2] = {
+			{ WP_HEAVY_MACHINEGUN, 150 }, { WP_SUPER_SHOTGUN, 50 }, { WP_SUPER_NAILGUN, 150 },
+			{ WP_TRIBOLT, 25 }, { WP_ROCKET_LAUNCHER, 50 }, { WP_LIGHTNING, 200 }, { WP_RAILGUN, 25 }
+		};
+		int		k;
+
+		client->ps.stats[STAT_WEAPONS] = 1 << WP_GAUNTLET;
+		for ( k = 0 ; k < ARRAY_LEN( caAmmo ) ; k++ ) {
+			client->ps.stats[STAT_WEAPONS] |= 1 << caAmmo[k][0];
+			client->ps.ammo[caAmmo[k][0]] = caAmmo[k][1];
+			if ( BG_AmmoPartner( caAmmo[k][0] ) != WP_NONE ) {
+				client->ps.ammo[BG_AmmoPartner( caAmmo[k][0] )] = caAmmo[k][1];
+			}
 		}
-		client->ps.stats[STAT_WEAPONS] |= 1 << item->giTag;
-		if ( item->giTag == WP_GAUNTLET ) {
-			continue;
-		}
-		client->ps.ammo[item->giTag] = BG_WeaponTuned( item->giTag ) ? BG_WeaponParam( item->giTag, WPP_AMMOMAX ) : 200;
 	}
 	client->ps.weapon = WP_ROCKET_LAUNCHER;
 	client->ps.weaponstate = WEAPON_READY;

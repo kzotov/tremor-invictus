@@ -887,17 +887,18 @@ static qboolean	splashSparesOwner;
 
 /*
 ============
-G_PopUpHeight
+G_PushTilt
 
-How high a hit lifts a standing target, in units
+How far a hit's push direction is tilted up, in metres (40 u) added to the
+unit direction: explosives 0.6, the Lightning Gun and shotguns 0.25,
+bullets and the rail none
 ============
 */
-static float G_PopUpHeight( int mod ) {
+static float G_PushTilt( int mod ) {
 	switch ( mod ) {
-	case MOD_MACHINEGUN:
 	case MOD_SHOTGUN:
 	case MOD_LIGHTNING:
-		return 10;
+		return 0.25f;
 #ifdef MISSIONPACK
 	case MOD_NAIL:
 #endif
@@ -907,7 +908,10 @@ static float G_PopUpHeight( int mod ) {
 	case MOD_GRENADE_SPLASH:
 	case MOD_PLASMA:
 	case MOD_PLASMA_SPLASH:
-		return 24;
+	case MOD_FIREBALL:
+		return 0.6f;
+	case MOD_GRAPPLE:
+		return 0.3f;
 	default:
 		return 0;
 	}
@@ -1066,23 +1070,16 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		vec3_t	kvel;
 		float	mass;
 
+		vec3_t	push;
+
 		mass = 200;
 
-		VectorScale (dir, g_knockback.value * (float)knockback / mass, kvel);
+		// the push goes along the hit, tilted up for the weapon
+		VectorCopy( dir, push );
+		push[2] += G_PushTilt( mod );
+		VectorNormalize( push );
+		VectorScale (push, g_knockback.value * (float)knockback / mass, kvel);
 		VectorAdd (targ->client->ps.velocity, kvel, targ->client->ps.velocity);
-
-		// pop-up: a hit on someone standing lifts them at least this high
-		if ( targ->client->ps.groundEntityNum != ENTITYNUM_NONE ) {
-			float	lift = G_PopUpHeight( mod );
-
-			if ( lift > 0 ) {
-				float	up = sqrt( 2 * g_gravity.value * lift );
-
-				if ( targ->client->ps.velocity[2] < up ) {
-					targ->client->ps.velocity[2] = up;
-				}
-			}
-		}
 
 		// set the timer so that the other client can't cancel
 		// out the movement immediately
@@ -1502,10 +1499,11 @@ qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, floa
 			if( LogAccuracyHit( ent, attacker ) ) {
 				hitClient = qtrue;
 			}
-			VectorSubtract (ent->r.currentOrigin, origin, dir);
-			// push the center of mass higher than the origin so players
-			// get knocked into the air more
-			dir[2] += 24;
+			// pushed from the blast toward the middle of the box (the tilt
+			// is added in G_Damage)
+			VectorAdd( ent->r.absmin, ent->r.absmax, dir );
+			VectorScale( dir, 0.5f, dir );
+			VectorSubtract( dir, origin, dir );
 			if ( knock >= 0 && damage > 0 ) {
 				G_NextKnockback( ( ent == attacker && knockSelf >= 0 ? knockSelf : knock ) * points / damage );
 			}
