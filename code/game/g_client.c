@@ -759,8 +759,7 @@ void ClientUserinfoChanged( int clientNum ) {
 
 	if ( client->pers.connected == CON_CONNECTED ) {
 		if ( strcmp( oldname, client->pers.netname ) ) {
-			trap_SendServerCommand( -1, va("print \"%s" S_COLOR_WHITE " renamed to %s\n\"", oldname, 
-				client->pers.netname) );
+			G_SysMsg( -1, STR_SYS_RENAMED, oldname, client->pers.netname );
 		}
 	}
 
@@ -1018,7 +1017,7 @@ char *ClientConnect( int clientNum, qboolean firstTime, qboolean isBot ) {
 
 	// don't do the "xxx connected" messages if they were caried over from previous level
 	if ( firstTime ) {
-		trap_SendServerCommand( -1, va("print \"%s" S_COLOR_WHITE " connected\n\"", client->pers.netname) );
+		G_SysMsg( -1, STR_SYS_CONNECTED, client->pers.netname, NULL );
 	}
 
 	if ( g_gametype.integer >= GT_TEAM &&
@@ -1081,7 +1080,7 @@ void ClientBegin( int clientNum ) {
 
 	if ( client->sess.sessionTeam != TEAM_SPECTATOR ) {
 		if ( g_gametype.integer != GT_TOURNAMENT  ) {
-			trap_SendServerCommand( -1, va("print \"%s" S_COLOR_WHITE " entered the game\n\"", client->pers.netname) );
+			G_SysMsg( -1, STR_SYS_ENTERED, client->pers.netname, NULL );
 		}
 	}
 	G_LogPrintf( "ClientBegin: %i\n", clientNum );
@@ -1089,8 +1088,7 @@ void ClientBegin( int clientNum ) {
 	// the message of the day, once per connection
 	if ( g_motd.string[0] && !client->pers.motdShown && !( ent->r.svFlags & SVF_BOT ) ) {
 		client->pers.motdShown = qtrue;
-		trap_SendServerCommand( clientNum, va( "cp \"%s\"", g_motd.string ) );
-		trap_SendServerCommand( clientNum, va( "print \"%s\n\"", g_motd.string ) );
+		trap_SendServerCommand( clientNum, va( "sline \"%s\"", g_motd.string ) );	// the server line
 	}
 
 	// count current clients and rank for scoreboard

@@ -447,10 +447,10 @@ static void CG_UseItem( centity_t *cent ) {
 	// print a message if the local player
 	if ( es->number == cg.snap->ps.clientNum ) {
 		if ( !itemNum ) {
-			CG_CenterPrint( "No item to use", SCREEN_HEIGHT * 0.30, BIGCHAR_WIDTH );
+			CG_CenterPrint( BG_String( STR_SYS_NOITEM ), SCREEN_HEIGHT * 0.30, BIGCHAR_WIDTH );
 		} else {
 			item = BG_FindItemForHoldable( itemNum );
-			CG_CenterPrint( va("Use %s", item->pickup_name), SCREEN_HEIGHT * 0.30, BIGCHAR_WIDTH );
+			CG_CenterPrint( va( (char *)BG_String( STR_SYS_USEITEM ), item->pickup_name ), SCREEN_HEIGHT * 0.30, BIGCHAR_WIDTH );
 		}
 	}
 

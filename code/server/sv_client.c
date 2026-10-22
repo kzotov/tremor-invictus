@@ -680,8 +680,9 @@ void SV_DropClient( client_t *drop, const char *reason ) {
 	// will receive many server commands during the drop
 	drop->gamestateMessageNum = -1;
 
-	// tell everyone why they got dropped
-	SV_SendServerCommand( NULL, "print \"%s" S_COLOR_WHITE " %s\n\"", drop->name, reason );
+	// tell everyone why they got dropped: the client game words it (the
+	// top-right connect line)
+	SV_SendServerCommand( NULL, "cline \"%s\" \"%s\"", drop->name, reason );
 
 	// call the prog function for removing a client
 	// this will remove the body, among other things

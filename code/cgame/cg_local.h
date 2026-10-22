@@ -1902,6 +1902,8 @@ void CG_DemoFrame( void );
 void CG_EventBanner( const char *text, int priority );
 void CG_FragBanner( const char *fragger, const char *victim, const char *line );
 void CG_AddSystemLine( const char *text );
+void CG_ConnectLine( const char *text );
+void CG_ServerLine( const char *text );
 void CG_AddKillFeed( const char *killer, const char *victim, int weapon, int killerNum, int victimNum );
 void CG_AddChat( const char *text );
 void CG_DrawDuelBoard( void );

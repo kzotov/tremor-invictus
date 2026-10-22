@@ -87,6 +87,19 @@ void G_Announce( int clientNum, const char *key ) {
 
 /*
 =================
+G_SysMsg
+
+A system message by string id (with up to two arguments): the clients
+show it in their own words, connect lines at the top right, the rest as
+grey chat lines; -1 sends to everyone
+=================
+*/
+void G_SysMsg( int clientNum, int id, const char *a, const char *b ) {
+	trap_SendServerCommand( clientNum, va( "sysmsg %i \"%s\" \"%s\"", id, a ? a : "", b ? b : "" ) );
+}
+
+/*
+=================
 G_MedalWeapon
 
 The weapon behind a kill: the missile's, or the attacker's in hand

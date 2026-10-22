@@ -491,7 +491,7 @@ static void CG_MapRestart( void ) {
 	// play the "fight" sound if this is a restart without warmup
 	if ( cg.warmup == 0 /* && cgs.gametype == GT_TOURNAMENT */) {
 		trap_S_StartLocalSound( cgs.media.countFightSound, CHAN_ANNOUNCER );
-		CG_CenterPrint( "FIGHT!", 120, GIANTCHAR_WIDTH*2 );
+		CG_CenterPrint( BG_String( STR_SYS_FIGHT ), 120, GIANTCHAR_WIDTH*2 );
 	}
 #ifdef MISSIONPACK
 	if (cg_singlePlayerActive.integer) {
@@ -1140,12 +1140,55 @@ static void CG_ServerCommand( void ) {
 		return;
 	}
 
+	if ( !strcmp( cmd, "sysmsg" ) ) {
+		// a system message by string id: connect lines at the top right,
+		// the rest as grey chat lines; the console keeps them all
+		int		id = atoi( CG_Argv( 1 ) );
+		char	a[MAX_STRING_CHARS], b[MAX_STRING_CHARS];
+
+		if ( id > 0 && id < STR_NUM_STRINGS ) {
+			Q_strncpyz( a, CG_Argv( 2 ), sizeof( a ) );
+			Q_strncpyz( b, CG_Argv( 3 ), sizeof( b ) );
+			Com_sprintf( text, sizeof( text ), BG_String( id ), a, b );
+			CG_Printf( "[skipnotify]%s\n", text );
+#ifndef MISSIONPACK
+			if ( id == STR_SYS_CONNECTED || id == STR_SYS_ENTERED || id == STR_SYS_RENAMED ) {
+				CG_ConnectLine( text );
+			} else {
+				CG_AddSystemLine( text );
+			}
+#endif
+		}
+		return;
+	}
+
+	if ( !strcmp( cmd, "cline" ) ) {
+		// a player leaving, from the server: worded here
+		const char	*reason = CG_Argv( 2 );
+		int			id = !Q_stricmp( reason, "was kicked" ) ? STR_SYS_KICKED
+			: !Q_stricmp( reason, "timed out" ) ? STR_SYS_TIMEDOUT : STR_SYS_LEFT;
+
+		Com_sprintf( text, sizeof( text ), BG_String( id ), CG_Argv( 1 ) );
+		CG_Printf( "[skipnotify]%s (%s)\n", text, reason );
+#ifndef MISSIONPACK
+		CG_ConnectLine( text );
+#endif
+		return;
+	}
+
+	if ( !strcmp( cmd, "sline" ) ) {
+		// map and admin text: the server line
+		CG_Printf( "[skipnotify]%s\n", CG_Argv( 1 ) );
+#ifndef MISSIONPACK
+		CG_ServerLine( CG_Argv( 1 ) );
+#endif
+		return;
+	}
+
 	if ( !strcmp( cmd, "print" ) ) {
-		// server notices go to the chat area as grey system lines; the
-		// console keeps them all
+		// other server text is for the console only
 #ifndef MISSIONPACK
 		CG_Printf( "[skipnotify]%s", CG_Argv(1) );
-		CG_AddSystemLine( CG_Argv(1) );
 #else
 		CG_Printf( "%s", CG_Argv(1) );
 #endif

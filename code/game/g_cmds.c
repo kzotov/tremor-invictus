@@ -557,7 +557,7 @@ void BroadcastTeamChange( gclient_t *client, int oldTeam )
 	} else {
 		return;
 	}
-	trap_SendServerCommand( -1, va( "print \"%s\n\"", va( (char *)BG_String( id ), client->pers.netname ) ) );
+	G_SysMsg( -1, id, client->pers.netname, NULL );
 }
 
 /*
@@ -765,7 +765,7 @@ void Cmd_Team_f( gentity_t *ent ) {
 	}
 
 	if ( ent->client->switchTeamTime > level.time ) {
-		trap_SendServerCommand( ent-g_entities, "print \"May not switch teams more than once per 5 seconds.\n\"" );
+		G_SysMsg( ent-g_entities, STR_SYS_TEAMSWITCH_WAIT, NULL, NULL );
 		return;
 	}
 
@@ -1411,7 +1411,7 @@ static qboolean G_VoteBuild( gentity_t *ent, const char *type, const char *arg )
 	} else if ( !Q_stricmp( type, "nextmap" ) ) {
 		trap_Cvar_VariableStringBuffer( "nextmap", s, sizeof( s ) );
 		if ( !s[0] ) {
-			trap_SendServerCommand( ent-g_entities, "print \"nextmap not set.\n\"" );
+			G_SysMsg( ent-g_entities, STR_SYS_NEXTMAP_UNSET, NULL, NULL );
 			return qfalse;
 		}
 		Q_strncpyz( level.voteString, "vstr nextmap", sizeof( level.voteString ) );
@@ -1425,7 +1425,7 @@ static qboolean G_VoteBuild( gentity_t *ent, const char *type, const char *arg )
 			return qfalse;
 		}
 		if ( level.clients[i].pers.localClient ) {
-			trap_SendServerCommand( ent - g_entities, "print \"Cannot kick host player.\n\"" );
+			G_SysMsg( ent - g_entities, STR_SYS_KICK_HOST, NULL, NULL );
 			return qfalse;
 		}
 		if ( G_CountHumans() < 4 ) {
@@ -1497,12 +1497,12 @@ void Cmd_CallVote_f( gentity_t *ent ) {
 	char	arg2[MAX_STRING_TOKENS];
 
 	if ( !g_allowVote.integer ) {
-		trap_SendServerCommand( ent-g_entities, "print \"Voting not allowed here.\n\"" );
+		G_SysMsg( ent-g_entities, STR_SYS_VOTE_OFF, NULL, NULL );
 		return;
 	}
 
 	if ( level.voteTime ) {
-		trap_SendServerCommand( ent-g_entities, "print \"A vote is already in progress.\n\"" );
+		G_SysMsg( ent-g_entities, STR_SYS_VOTE_RUNNING, NULL, NULL );
 		return;
 	}
 	if ( ent->client->pers.lastVoteTime && level.time - ent->client->pers.lastVoteTime < VOTE_CALL_GAP ) {
@@ -1631,7 +1631,7 @@ void Cmd_CallTeamVote_f( gentity_t *ent ) {
 		return;
 
 	if ( !g_allowVote.integer ) {
-		trap_SendServerCommand( ent-g_entities, "print \"Voting not allowed here.\n\"" );
+		G_SysMsg( ent-g_entities, STR_SYS_VOTE_OFF, NULL, NULL );
 		return;
 	}
 

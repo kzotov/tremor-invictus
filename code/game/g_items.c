@@ -425,7 +425,6 @@ static void G_PowerupWarning( gentity_t *ent ) {
 	Com_sprintf( msg, sizeof( msg ), BG_String( STR_POWERUP_WARNING ), item->pickup_name, g_powerupWarning.integer );
 
 	trap_SendServerCommand( -1, va( "cp \"%s\"", msg ) );
-	trap_SendServerCommand( -1, va( "print \"%s\n\"", msg ) );
 	G_Announce( -1, item->giTag == PW_QUAD ? "quaddamagesoon" : "protectionsoon" );
 	ent->think = RespawnItem;
 	ent->nextthink = level.time + g_powerupWarning.integer * 1000;

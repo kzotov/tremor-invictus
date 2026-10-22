@@ -873,6 +873,82 @@ static void CG_AddChatLine( const char *text, int len ) {
 }
 
 /*
+==============================================================================
+
+CONNECT LINE AND SERVER LINE
+
+The connect line (top right, centred on right - 404, top 4, 24 dp) shows
+players joining and leaving one at a time, each for at least 1 s and at
+most 5 s. The server line (centre, bottom + 332, 24 dp) carries map and
+admin text for cg_centertime seconds, no wider than the room the chat
+leaves.
+
+==============================================================================
+*/
+
+#define CONNECT_QUEUE		8
+#define CONNECT_MIN			1000
+#define CONNECT_MAX			5000
+
+static char	connectQueue[CONNECT_QUEUE][MAX_SAY_TEXT];
+static int	connectQueued, connectShownTime;
+static char	serverLine[MAX_SAY_TEXT];
+static int	serverLineTime;
+
+void CG_ConnectLine( const char *text ) {
+	if ( connectQueued == CONNECT_QUEUE ) {
+		memmove( connectQueue, connectQueue + 1, sizeof( connectQueue[0] ) * ( CONNECT_QUEUE - 1 ) );
+		connectQueued--;
+	}
+	Q_strncpyz( connectQueue[connectQueued++], text, sizeof( connectQueue[0] ) );
+	if ( connectQueued == 1 ) {
+		connectShownTime = cg.time;
+	}
+}
+
+void CG_ServerLine( const char *text ) {
+	char	*nl;
+
+	Q_strncpyz( serverLine, text, sizeof( serverLine ) );
+	nl = strchr( serverLine, '\n' );
+	if ( nl ) {
+		*nl = 0;
+	}
+	serverLineTime = cg.time;
+}
+
+static void CG_DrawConnectAndServerLines( void ) {
+	float	h = 24 * DP, cw = h * 0.6f, w;
+
+	if ( connectQueued ) {
+		int		t = cg.time - connectShownTime;
+
+		// the next waiting entry replaces this one after 1 s; alone, it goes after 5 s
+		if ( t >= CONNECT_MAX || ( t >= CONNECT_MIN && connectQueued > 1 ) || t < 0 ) {
+			memmove( connectQueue, connectQueue + 1, sizeof( connectQueue[0] ) * ( CONNECT_QUEUE - 1 ) );
+			connectQueued--;
+			connectShownTime = cg.time;
+		}
+	}
+	if ( connectQueued && cg_systemMessages.integer ) {
+		cg_hudAnchor = ANCHOR_RIGHT;
+		w = CG_DrawStrlen( connectQueue[0] ) * cw;
+		CG_DrawStringExt( 640 - 404 * DP - w / 2, 4 * DP, connectQueue[0], colorLtGrey, qfalse, qtrue, cw, h, 0 );
+		cg_hudAnchor = ANCHOR_CENTER;
+	}
+	if ( serverLineTime && cg.time - serverLineTime < cg_centertime.value * 1000 && cg.time >= serverLineTime ) {
+		float	room = 640 - 2 * 300 * DP;		// the chat keeps the left 300 dp
+		int		len = CG_DrawStrlen( serverLine );
+
+		if ( len > 0 && len * cw > room ) {
+			cw = room / len;
+		}
+		w = len * cw;
+		CG_DrawStringExt( 320 - w / 2, 480 - 332 * DP, serverLine, colorWhite, qfalse, qtrue, cw, h, 0 );
+	}
+}
+
+/*
 =================
 CG_AddSystemLine
 
@@ -3364,7 +3440,7 @@ flow, everything else (server text) comes last
 ==============
 */
 void CG_CenterPrint( const char *str, int y, int charWidth ) {
-	CG_EventBanner( str, !Q_stricmp( str, "FIGHT!" ) ? 1 : 5 );
+	CG_EventBanner( str, !Q_stricmp( str, BG_String( STR_SYS_FIGHT ) ) ? 1 : 5 );
 }
 
 /*
@@ -5450,6 +5526,10 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	if ( !CG_DrawFollow() ) {
 		CG_DrawWarmup();
 	}
+
+#ifndef MISSIONPACK
+	CG_DrawConnectAndServerLines();
+#endif
 
 	// don't draw center string if scoreboard is up
 	cg.scoreBoardShowing = CG_DrawScoreboard();
