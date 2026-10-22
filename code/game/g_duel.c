@@ -103,7 +103,7 @@ A match mode's warm-up and countdown: moving only, no damage or items
 =================
 */
 qboolean G_WarmupPractice( void ) {
-	return G_MatchMode() && level.warmupTime != 0 && !level.intermissiontime;
+	return !g_warmupDamage.integer && G_MatchMode() && level.warmupTime != 0 && !level.intermissiontime;
 }
 
 /*

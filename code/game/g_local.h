@@ -1024,6 +1024,7 @@ extern	vmCvar_t	g_passiveRegen;
 extern	vmCvar_t	g_selfDamage;
 extern	vmCvar_t	g_damageOverTime;
 extern	vmCvar_t	g_deathStun;
+extern	vmCvar_t	g_warmupDamage;
 extern	vmCvar_t	g_readyUpShare;
 extern	vmCvar_t	g_warmupTime;
 extern	vmCvar_t	g_duelFraglimit;

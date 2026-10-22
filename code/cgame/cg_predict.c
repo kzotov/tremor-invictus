@@ -467,7 +467,8 @@ void CG_PredictPlayerState( void ) {
 		&& ( cg_pmove.ps->stats[STAT_KICK] & KICK_PASSING ) ) {
 		cg_pmove.tracemask &= ~CONTENTS_BODY;	// a Leaping Kick passes through players
 	}
-	if ( cg.warmup && ( cgs.gametype == GT_TOURNAMENT || cgs.gametype == GT_TEAM || cgs.gametype == GT_CTF ) ) {
+	if ( cg.warmup && !atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_warmupDamage" ) )
+		&& ( cgs.gametype == GT_TOURNAMENT || cgs.gametype == GT_TEAM || cgs.gametype == GT_CTF ) ) {
 		cg_pmove.tracemask &= ~CONTENTS_BODY;	// warm-up: players pass through each other
 	}
 	cg_pmove.noFootsteps = ( cgs.dmflags & DF_NO_FOOTSTEPS ) > 0;
@@ -517,7 +518,8 @@ void CG_PredictPlayerState( void ) {
 	cg_pmove.pmove_fixed = pmove_fixed.integer;// | cg_pmove_fixed.integer;
 	cg_pmove.pmove_msec = pmove_msec.integer;
 	cg_pmove.autoHop = cg_autoHop.integer != 0;
-	cg_pmove.movementOnly = cg.warmup && ( cgs.gametype == GT_TOURNAMENT || cgs.gametype == GT_TEAM || cgs.gametype == GT_CTF );
+	cg_pmove.movementOnly = cg.warmup && !atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_warmupDamage" ) )
+		&& ( cgs.gametype == GT_TOURNAMENT || cgs.gametype == GT_TEAM || cgs.gametype == GT_CTF );
 
 	// run cmds
 	moved = qfalse;

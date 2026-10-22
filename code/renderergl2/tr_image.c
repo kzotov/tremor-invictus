@@ -1674,7 +1674,8 @@ static qboolean RawImage_ScaleToPower2( byte **data, int *inout_width, int *inou
 	//
 	// perform optional picmip operation
 	//
-	if ( picmip ) {
+	// (the menus load at full size: r_picmip is for the game)
+	if ( picmip && !ri.Cvar_VariableIntegerValue( "cl_menuRegistration" ) ) {
 		scaled_width >>= r_picmip->integer;
 		scaled_height >>= r_picmip->integer;
 	}
@@ -2260,7 +2261,7 @@ image_t *R_CreateImage2( const char *name, byte *pic, int width, int height, GLe
 	{
 		if (rgba8)
 			scaled = RawImage_ScaleToPower2(&pic, &width, &height, type, flags, &resampledBuffer);
-		else if (pic && picmip)
+		else if (pic && picmip && !ri.Cvar_VariableIntegerValue( "cl_menuRegistration" ))
 		{
 			for (miplevel = r_picmip->integer; miplevel > 0 && numMips > 1; miplevel--, numMips--)
 			{

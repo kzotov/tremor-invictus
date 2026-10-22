@@ -44,20 +44,21 @@ typedef struct {
 	int			stringKey;		// unused when 0; names come from the document
 	int			gametype;		// which arenas suit it
 	qboolean	teams;
+	int			teamSize;		// players a side (free for all: opponents at most)
 } csMode_t;
 
 static const csMode_t	csModes[] = {
-	{ "ffa", 0, GT_FFA, qfalse },
-	{ "duel", 0, GT_TOURNAMENT, qfalse },
-	{ "tdm", 0, GT_TEAM, qtrue },
-	{ "tdm2v2", 0, GT_TEAM, qtrue },
-	{ "ctf", 0, GT_CTF, qtrue },
-	{ "ca", 0, GT_TEAM, qtrue },
-	{ "sacrifice", 0, GT_TEAM, qtrue },
-	{ "roundduel", 0, GT_TOURNAMENT, qfalse },
-	{ "instagib", 0, GT_FFA, qfalse },
-	{ "unholytrinity", 0, GT_FFA, qfalse },
-	{ "movement", 0, GT_FFA, qfalse }		// practice only: no bots
+	{ "ffa", 0, GT_FFA, qfalse, 7 },
+	{ "duel", 0, GT_TOURNAMENT, qfalse, 1 },
+	{ "tdm", 0, GT_TEAM, qtrue, 4 },
+	{ "tdm2v2", 0, GT_TEAM, qtrue, 2 },
+	{ "ctf", 0, GT_CTF, qtrue, 5 },
+	{ "ca", 0, GT_TEAM, qtrue, 4 },
+	{ "sacrifice", 0, GT_TEAM, qtrue, 4 },
+	{ "roundduel", 0, GT_TOURNAMENT, qfalse, 1 },
+	{ "instagib", 0, GT_FFA, qfalse, 7 },
+	{ "unholytrinity", 0, GT_FFA, qfalse, 7 },
+	{ "movement", 0, GT_FFA, qfalse, 0 }		// practice only: the map to yourself
 };
 
 static struct {
@@ -277,11 +278,18 @@ static void CS_Start( void ) {
 
 	if ( trap_Cvar_VariableValue( "ui_csPractice" ) ) {
 		int		opp = (int)trap_Cvar_VariableValue( "ui_prOpp" ), mates = m->teams ? (int)trap_Cvar_VariableValue( "ui_prMates" ) : 0;
-
-		if ( !Q_stricmp( m->preset, "movement" ) ) {
-			opp = mates = 0;		// the map to yourself
-		}
 		int		champ = (int)trap_Cvar_VariableValue( "ui_prChamp" ) - 1;
+
+		// no more than the mode holds: a duel is one opponent
+		if ( opp > m->teamSize ) {
+			opp = m->teamSize;
+		}
+		if ( mates > m->teamSize - 1 ) {
+			mates = m->teamSize - 1;
+		}
+		if ( mates < 0 ) {
+			mates = 0;
+		}
 
 		dedicated = 0;
 		trap_Cvar_Set( "sv_public", "0" );
@@ -301,6 +309,10 @@ static void CS_Start( void ) {
 	} else {
 		dedicated = (int)Com_Clamp( 0, 2, trap_Cvar_VariableValue( "ui_csDedicated" ) );
 		bots = (int)trap_Cvar_VariableValue( "ui_csBots" );
+		// a duel holds one bot; a team game fills both sides at most
+		if ( bots > ( m->teams ? m->teamSize * 2 - 1 : m->teamSize ) ) {
+			bots = m->teams ? m->teamSize * 2 - 1 : m->teamSize;
+		}
 		trap_Cvar_SetValue( "sv_maxclients", 16 );
 
 		// bots: random characters, alternating teams

@@ -591,7 +591,8 @@ static void Upload32( unsigned *data,
 	//
 	// perform optional picmip operation
 	//
-	if ( picmip ) {
+	// (the menus load at full size: r_picmip is for the game)
+	if ( picmip && !ri.Cvar_VariableIntegerValue( "cl_menuRegistration" ) ) {
 		scaled_width >>= r_picmip->integer;
 		scaled_height >>= r_picmip->integer;
 	}

@@ -3320,6 +3320,10 @@ CL_InitRenderer
 ============
 */
 void CL_InitRenderer( void ) {
+	// textures loaded for the menus (no game yet) ignore r_picmip
+	Cvar_Get( "cl_menuRegistration", "0", CVAR_ROM );
+	Cvar_Set( "cl_menuRegistration", clc.state < CA_CONNECTED && !clc.demoplaying ? "1" : "0" );
+
 	// this sets up the renderer and calls R_Init
 	re.BeginRegistration( &cls.glconfig );
 
