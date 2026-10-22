@@ -16,16 +16,7 @@ list(APPEND CLIENT_PLATFORM_SOURCES ${SOURCE_DIR}/sdl/sdl_rawmouse.c)
 list(APPEND RENDERER_LIBRARIES "-framework OpenGL")
 
 set(CMAKE_OSX_DEPLOYMENT_TARGET 11.0)
-# Universal builds need every library in both slices. RmlUi's FreeType comes
-# from Homebrew for now (one architecture), so builds with RmlUi are made for
-# this Mac only; TREMOR_UNIVERSAL builds both slices without RmlUi.
-option(TREMOR_UNIVERSAL "Build for arm64 and x86_64 (turns RmlUi off)" OFF)
-if(TREMOR_UNIVERSAL)
-    set(CMAKE_OSX_ARCHITECTURES arm64;x86_64)
-    set(USE_RMLUI OFF CACHE BOOL "" FORCE)
-else()
-    set(CMAKE_OSX_ARCHITECTURES ${CMAKE_HOST_SYSTEM_PROCESSOR})
-endif()
+set(CMAKE_OSX_ARCHITECTURES arm64;x86_64)
 
 if(BUILD_MACOS_APP)
     set(CLIENT_EXECUTABLE_OPTIONS MACOSX_BUNDLE)

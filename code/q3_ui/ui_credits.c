@@ -117,7 +117,7 @@ static void UI_CreditMenu_Draw( void ) {
 	static const int	lines[] = {
 		STR_CR_ENGINE, STR_CR_IDCOPY, -1, STR_CR_GPL1, STR_CR_GPL2, -1, STR_CR_FONT, -1
 	};
-	static const int	libs[] = { STR_CR_LIB1, STR_CR_LIB2, STR_CR_LIB3 };
+	static const int	libs[] = { STR_CR_LIB1, STR_CR_LIB2, STR_CR_LIB3, STR_CR_LIB4 };
 	int		y, i;
 
 	UI_DrawBannerString( 320, 16, BG_String( STR_CR_TITLE ), UI_CENTER, color_white );
