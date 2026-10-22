@@ -1407,6 +1407,9 @@ static void CG_DrawWeaponBar( void ) {
 		if ( !have && BG_AmmoPartner( w ) && ( ps->stats[STAT_WEAPONS] & ( 1 << BG_AmmoPartner( w ) ) ) ) {
 			continue;		// a pair sharing a slot shows the one held
 		}
+		if ( !have && BG_WeaponStarter( w ) ) {
+			continue;		// neither held: the slot shows the starting weapon
+		}
 		if ( mode == 2 && w != ps->weapon ) {
 			continue;
 		}
