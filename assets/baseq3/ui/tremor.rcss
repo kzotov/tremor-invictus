@@ -97,6 +97,24 @@ button.small {
 	margin-bottom: 4dp;
 }
 
+/* the in-game menu's starting weapon: from the next spawn */
+.panel .starter {
+	display: block;
+	margin: 6dp 0dp 10dp 0dp;
+}
+
+.panel .starter .label {
+	display: block;
+	font-size: 20dp;
+	color: #8a8780;
+	margin-bottom: 4dp;
+}
+
+.panel .starter .opt {
+	font-size: 24dp;
+	margin-bottom: 0dp;
+}
+
 .panel .gap {
 	display: block;
 	height: 30dp;

@@ -48,6 +48,7 @@ INGAME MENU
 #define ID_TEAMORDERS			19
 #define ID_CHAMPION				20
 #define ID_COLORS				21
+#define ID_STARTWEAPON			22
 
 
 typedef struct {
@@ -61,6 +62,8 @@ typedef struct {
 	menutext_s		restart;
 	menutext_s		champion;
 	menutext_s		colors;
+	menutext_s		startWeapon;
+	char			startWeaponText[64];
 	menutext_s		addbots;
 	menutext_s		removebots;
 	menutext_s		teamorders;
@@ -102,6 +105,23 @@ static void InGame_QuitAction( qboolean result ) {
 
 /*
 =================
+InGame_StartWeaponText
+
+The starting weapon entry's line, from cg_startWeapon
+=================
+*/
+static void InGame_StartWeaponText( void ) {
+	char	code[8];
+	int		weapon;
+
+	trap_Cvar_VariableStringBuffer( "cg_startWeapon", code, sizeof( code ) );
+	weapon = UI_StartWeapon( code );
+	Com_sprintf( s_ingame.startWeaponText, sizeof( s_ingame.startWeaponText ), BG_String( STR_MENU_START_WEAPON ),
+		weapon == WP_SHOTGUN ? "SG" : weapon == WP_NAILGUN ? "NG" : "MG" );
+}
+
+/*
+=================
 InGame_Event
 =================
 */
@@ -121,6 +141,24 @@ void InGame_Event( void *ptr, int notification ) {
 
 	case ID_COLORS:
 		UI_ColorsMenu();
+		break;
+
+	case ID_STARTWEAPON:
+		// machinegun, shotgun, nailgun in turn, from the next spawn
+		{
+			char		code[8], champion[64];
+			const char	*next;
+
+			trap_Cvar_VariableStringBuffer( "cg_startWeapon", code, sizeof( code ) );
+			next = !Q_stricmp( code, "sg" ) ? "ng" : !Q_stricmp( code, "ng" ) ? "mg" : "sg";
+			trap_Cvar_Set( "cg_startWeapon", next );
+			// remembered for the champion being played, as the champion screen does
+			trap_Cvar_VariableStringBuffer( "champion", champion, sizeof( champion ) );
+			if ( champion[0] ) {
+				trap_Cvar_Set( va( "ui_startWeapon_%s", champion ), next );
+			}
+			InGame_StartWeaponText();
+		}
 		break;
 
 	case ID_SETUP:
@@ -284,6 +322,8 @@ void InGame_MenuInit( void ) {
 	if ( trap_Cvar_VariableValue( "g_gametype" ) != GT_TOURNAMENT ) {
 		InGame_Add( &s_ingame.champion, ID_CHAMPION, BG_String( STR_MENU_CHAMPION ), &y );
 	}
+	InGame_StartWeaponText();
+	InGame_Add( &s_ingame.startWeapon, ID_STARTWEAPON, s_ingame.startWeaponText, &y );
 	InGame_Add( &s_ingame.colors, ID_COLORS, BG_String( STR_MENU_PLAYER_COLORS ), &y );
 	InGame_Add( &s_ingame.setup, ID_SETUP, BG_String( STR_MENU_SETTINGS ), &y );
 	InGame_Add( &s_ingame.team, ID_TEAM, BG_String( STR_MENU_JOIN_TEAM ), &y );

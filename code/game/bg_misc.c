@@ -1198,6 +1198,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"PLAY",
 	"CHAMPIONS",
 	"PLAYER COLORS",
+	"STARTER: %s",
 	"SETTINGS",
 	"DEMOS",
 	"QUIT",

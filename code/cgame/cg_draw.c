@@ -5380,7 +5380,10 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 			CG_DrawWorldItemTimers();
 #endif
 			CG_DrawLowHealth();
-			CG_DrawWeaponSelect();
+			// the classic pop-up weapon row; the modern layout has its bar on the right
+			if ( !CG_HudModern() ) {
+				CG_DrawWeaponSelect();
+			}
 
 #ifndef MISSIONPACK
 			CG_DrawHoldableItem();

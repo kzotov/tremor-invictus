@@ -861,6 +861,11 @@ void ClientUserinfoChanged( int clientNum ) {
 		client->pers.startWeapon = WP_SHOTGUN;
 	} else if ( !Q_stricmp( s, "ng" ) || !Q_stricmp( s, "nailgun" ) ) {
 		client->pers.startWeapon = WP_NAILGUN;
+	} else if ( !*s && ( ent->r.svFlags & SVF_BOT ) ) {
+		// bots pick their own, the same one each time
+		static const int	botStarters[] = { WP_MACHINEGUN, WP_SHOTGUN, WP_NAILGUN };
+
+		client->pers.startWeapon = botStarters[clientNum % ARRAY_LEN( botStarters )];
 	} else {
 		client->pers.startWeapon = WP_MACHINEGUN;
 	}
@@ -1299,21 +1304,21 @@ void ClientSpawn(gentity_t *ent) {
 	client->ps.stats[STAT_JUMP_TIME] = STAT_TIME_CAP;
 	client->ps.stats[STAT_LAND_TIME] = STAT_TIME_CAP;
 
-	// the gauntlet and all three starting weapons; the player's choice is
-	// the one held (weapons.md corrections)
+	// the gauntlet and the starting weapon the player chose (cg_startWeapon,
+	// picked on the champion screen or in the in-game menu)
 	memset( client->pers.lifeDealt, 0, sizeof( client->pers.lifeDealt ) );
 	memset( client->pers.lifeTaken, 0, sizeof( client->pers.lifeTaken ) );
 	client->ps.stats[STAT_WEAPONS] = 0;
 	{
-		static const int	starters[] = { WP_MACHINEGUN, WP_SHOTGUN, WP_NAILGUN };
-		int					k;
+		int		starter = client->pers.startWeapon;
 
-		for ( k = 0 ; k < ARRAY_LEN( starters ) ; k++ ) {
-			client->ps.stats[STAT_WEAPONS] |= ( 1 << starters[k] );
-			client->ps.ammo[starters[k]] = BG_WeaponParam( starters[k], WPP_AMMOSTART );
-			if ( BG_AmmoPartner( starters[k] ) != WP_NONE ) {
-				client->ps.ammo[BG_AmmoPartner( starters[k] )] = client->ps.ammo[starters[k]];
-			}
+		if ( starter != WP_SHOTGUN && starter != WP_NAILGUN ) {
+			starter = WP_MACHINEGUN;
+		}
+		client->ps.stats[STAT_WEAPONS] |= ( 1 << starter );
+		client->ps.ammo[starter] = BG_WeaponParam( starter, WPP_AMMOSTART );
+		if ( BG_AmmoPartner( starter ) != WP_NONE ) {
+			client->ps.ammo[BG_AmmoPartner( starter )] = client->ps.ammo[starter];
 		}
 	}
 
