@@ -1131,6 +1131,39 @@ void TeamplayInfoMessage( gentity_t *ent ) {
 	trap_SendServerCommand( ent-g_entities, va("tinfo %i %s", cnt, string) );
 }
 
+/*
+==================
+SpectatorAbilityMessage
+
+Every player's active ability state for free-flying spectators' strip:
+"abil <count> (<client> <STAT_ABILITY> <recharge tenths>)..."
+==================
+*/
+static void SpectatorAbilityMessage( void ) {
+	char		string[1024], entry[32];
+	int			i, cnt = 0;
+	gclient_t	*cl;
+
+	string[0] = 0;
+	for ( i = 0; i < g_maxclients.integer && cnt < 16; i++ ) {
+		cl = &level.clients[i];
+		if ( cl->pers.connected != CON_CONNECTED || cl->sess.sessionTeam == TEAM_SPECTATOR ) {
+			continue;
+		}
+		Com_sprintf( entry, sizeof( entry ), " %i %i %i", i, cl->ps.stats[STAT_ABILITY],
+			cl->ps.stats[STAT_ABILITY_RECHARGE] );
+		Q_strcat( string, sizeof( string ), entry );
+		cnt++;
+	}
+	for ( i = 0; i < g_maxclients.integer; i++ ) {
+		cl = &level.clients[i];
+		if ( cl->pers.connected == CON_CONNECTED && cl->sess.sessionTeam == TEAM_SPECTATOR
+			&& cl->sess.spectatorState != SPECTATOR_FOLLOW ) {
+			trap_SendServerCommand( i, va( "abil %i%s", cnt, string ) );
+		}
+	}
+}
+
 void CheckTeamStatus(void) {
 	int i;
 	gentity_t *loc, *ent;
@@ -1166,6 +1199,7 @@ void CheckTeamStatus(void) {
 				TeamplayInfoMessage( ent );
 			}
 		}
+		SpectatorAbilityMessage();
 	}
 }
 

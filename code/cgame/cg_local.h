@@ -688,6 +688,12 @@ typedef struct {
 	char			testModelName[MAX_QPATH];
 	qboolean		testGun;
 
+	// free-camera spectators: every player's ability state ("abil")
+	int			specAbilityCount;
+	int			specAbilityClient[16];
+	int			specAbilityStat[16];		// STAT_ABILITY
+	int			specAbilityRecharge[16];	// tenths of a second when received
+	int			specAbilityTime;			// cg.time it was received
 } cg_t;
 
 

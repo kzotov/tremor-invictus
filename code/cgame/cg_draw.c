@@ -3196,7 +3196,54 @@ static void CG_DrawLowHealth( void ) {
 CG_DrawSpectator
 =================
 */
+static void CG_DrawSpectatorAbilities( void ) {
+	int		i, x, y, w, state, charges, left;
+	float	*color;
+	char	name[MAX_QPATH];
+	vec4_t	back = { 0, 0, 0, 0.5f };
+	vec4_t	ready = { 0.3f, 1, 0.3f, 1 }, cooling = { 1, 0.8f, 0.2f, 1 }, active = { 0.4f, 0.7f, 1, 1 };
+
+	if ( !cg.specAbilityCount || cg.time - cg.specAbilityTime > 3000 ) {
+		return;
+	}
+	w = 640 / ( cg.specAbilityCount > 8 ? 8 : cg.specAbilityCount );
+	if ( w > 96 ) {
+		w = 96;
+	}
+	for ( i = 0; i < cg.specAbilityCount; i++ ) {
+		clientInfo_t *ci = &cgs.clientinfo[cg.specAbilityClient[i] & ( MAX_CLIENTS - 1 )];
+
+		x = 320 - ( ( cg.specAbilityCount > 8 ? 8 : cg.specAbilityCount ) * w ) / 2 + ( i % 8 ) * w;
+		y = 380 - ( i / 8 ) * 30;
+		CG_FillRect( x + 1, y, w - 2, 26, back );
+		Q_strncpyz( name, ci->name, sizeof( name ) );
+		Q_CleanStr( name );
+		name[8] = 0;
+		CG_DrawSmallStringColor( x + 4, y + 1, name,
+			ci->team == TEAM_RED ? colorRed : ci->team == TEAM_BLUE ? colorBlue : colorWhite );
+
+		state = ( cg.specAbilityStat[i] & 0xffff ) >> ABILITY_STATE_SHIFT;
+		charges = cg.specAbilityStat[i] & ABILITY_CHARGES_MASK;
+		left = cg.specAbilityRecharge[i] * 100 - ( cg.time - cg.specAbilityTime );
+		if ( state != ABILITY_IDLE ) {
+			color = active;
+			Q_strncpyz( name, "ACTIVE", sizeof( name ) );
+		} else if ( charges > 0 ) {
+			color = ready;
+			Q_strncpyz( name, charges > 1 ? va( "READY x%i", charges ) : "READY", sizeof( name ) );
+		} else {
+			color = cooling;
+			Com_sprintf( name, sizeof( name ), "%is", left > 0 ? ( left + 999 ) / 1000 : 0 );
+		}
+		CG_DrawSmallStringColor( x + 4, y + 13, name, color );
+	}
+}
+
 static void CG_DrawSpectator(void) {
+	// the ability strip only in free camera; following shows that player's HUD
+	if ( !( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
+		CG_DrawSpectatorAbilities();
+	}
 	CG_DrawBigString(320 - 9 * 8, 440, "SPECTATOR", 1.0F);
 	if ( cgs.gametype == GT_TOURNAMENT ) {
 		CG_DrawBigString(320 - 15 * 8, 460, "waiting to play", 1.0F);

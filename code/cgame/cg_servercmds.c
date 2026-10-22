@@ -1246,6 +1246,22 @@ static void CG_ServerCommand( void ) {
 		return;
 	}
 
+	if ( !strcmp( cmd, "abil" ) ) {
+		int n = atoi( CG_Argv( 1 ) ), j;
+
+		if ( n < 0 || n > 16 ) {
+			n = 0;
+		}
+		for ( j = 0; j < n; j++ ) {
+			cg.specAbilityClient[j] = atoi( CG_Argv( 2 + j * 3 ) );
+			cg.specAbilityStat[j] = atoi( CG_Argv( 3 + j * 3 ) );
+			cg.specAbilityRecharge[j] = atoi( CG_Argv( 4 + j * 3 ) );
+		}
+		cg.specAbilityCount = n;
+		cg.specAbilityTime = cg.time;
+		return;
+	}
+
 	if ( !strcmp( cmd, "tinfo" ) ) {
 		CG_ParseTeamInfo();
 		return;
