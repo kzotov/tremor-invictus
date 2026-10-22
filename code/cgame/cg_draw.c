@@ -5095,7 +5095,9 @@ static void CG_DrawStackBar( float x, float y, int value, int base, const vec4_t
 	}
 	// the number: red when low (not for armour on a class that starts
 	// without it), blue over the base, else the given tint
-	if ( lowRed && value <= 25 && tint[0] == 1 && tint[1] == 1 ) {
+	if ( pulse > 1 ) {
+		// rising: the tint stays (white armour, green health)
+	} else if ( lowRed && value <= 25 && tint[0] == 1 && tint[1] == 1 ) {
 		numColor = colorRed;
 	} else if ( value > base && tint[0] == 1 && tint[1] == 1 ) {
 		numColor = overBlue;
@@ -5156,7 +5158,7 @@ static void CG_DrawModernHud( void ) {
 		}
 		// a point at a time above the base is the decay, not a hit
 		if ( health != lastHealth ) {
-			if ( !( health == lastHealth - 1 && health >= 100 ) ) {
+			if ( !( health == lastHealth - 1 && health >= ps->stats[STAT_MAX_HEALTH] ) ) {
 				healthUp = health > lastHealth;
 				healthTime = cg.time;
 			}
@@ -5320,7 +5322,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 		CG_DrawWorldItemTimers();
 #endif
 	} else {
-		if ( !cg.showScores && !( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
+		if ( !cg.scoreBoardShowing && !( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
 			CG_DrawNextSpawn();
 		}
 		if ( !( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
