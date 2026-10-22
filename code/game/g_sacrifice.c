@@ -625,6 +625,7 @@ static void G_SacrificeObelisk( int msec ) {
 			sac.soul->r.currentOrigin[2] += 48;
 			trap_LinkEntity( sac.soul );
 			AddScore( planter, sac.obelisk[i], 5 );
+			planter->client->pers.modeStat[0]++;
 			G_SacrificeAnnounce( STR_SAC_PLANTED, planter->client->pers.netname );
 			break;
 		}
@@ -677,6 +678,7 @@ static void G_SacrificeObelisk( int msec ) {
 	if ( extractor && sac.extract >= g_sacExtractTime.integer ) {
 		G_SoulTake( extractor );
 		AddScore( extractor, sac.obelisk[i], 5 );
+		extractor->client->pers.modeStat[1]++;
 		G_SacrificeAnnounce( STR_SAC_EXTRACTED, extractor->client->pers.netname );
 	}
 }

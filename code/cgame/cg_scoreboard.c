@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "cg_local.h"
 
 static qboolean CG_FlagBoard( void );
+static int CG_ModeBoard( void );
 
 
 #define	SCOREBOARD_X		(0)
@@ -177,6 +178,16 @@ static void CG_DrawClientScore( int y, score_t *score, float *color, float fade,
 	} else if ( ci->team == TEAM_SPECTATOR ) {
 		Com_sprintf(string, sizeof(string),
 			" SPECT %3i %4i %s", score->ping, score->time, ci->name);
+	} else if ( CG_ModeBoard() == 1 ) {
+		// sacrifice: plants and extracts
+		Com_sprintf(string, sizeof(string),
+			"%4i %3i %5i %2i %2i %3i %s", score->score, score->deaths, score->damage, score->modeStat[0],
+			score->modeStat[1], score->ping, ci->name);
+	} else if ( CG_ModeBoard() == 2 ) {
+		// clan arena: rounds survived
+		Com_sprintf(string, sizeof(string),
+			"%4i %3i %5i %2i %3i %s", score->score, score->deaths, score->damage, score->modeStat[0],
+			score->ping, ci->name);
 	} else if ( CG_FlagBoard() ) {
 		// capture the flag: captures, assists and defends instead of damage
 		Com_sprintf(string, sizeof(string),
@@ -224,6 +235,19 @@ static void CG_DrawClientScore( int y, score_t *score, float *color, float fade,
 	}
 
 	CG_DrawBigString( SB_SCORELINE_X + (SB_RATING_WIDTH / 2), y, string, fade );
+
+	// the champion after the name, small, where it fits
+	if ( score->ping != -1 && ci->team != TEAM_SPECTATOR ) {
+		int			champ = BG_ChampionForModel( ci->modelName );
+		const char	*champName = champ >= 0 ? BG_String( BG_Champion( champ )->nameString ) : "";
+		int			x = SB_SCORELINE_X + ( SB_RATING_WIDTH / 2 ) + CG_DrawStrlen( string ) * BIGCHAR_WIDTH + 8;
+		vec4_t		gray = { 0.6f, 0.6f, 0.6f, 1 };
+
+		gray[3] = fade;
+		if ( champName[0] && x + CG_DrawStrlen( champName ) * SMALLCHAR_WIDTH <= 640 ) {
+			CG_DrawSmallStringColor( x, y + ( BIGCHAR_HEIGHT - SMALLCHAR_HEIGHT ) / 2, champName, gray );
+		}
+	}
 
 	// add the "ready" marker for intermission exiting
 	if ( cg.snap->ps.stats[ STAT_CLIENTS_READY ] & ( 1 << score->client ) ) {
@@ -440,9 +464,21 @@ qboolean CG_DrawOldScoreboard( void ) {
 		static const int	columns[] = { 0, 5, 9, 15, 19 };		// in big characters
 		static const int	flagTitles[] = { STR_SB_SCORE, STR_SB_DEATHS, STR_SB_CAPS, STR_SB_ASSISTS, STR_SB_DEFENDS, STR_SB_PING, STR_SB_NAME };
 		static const int	flagColumns[] = { 0, 5, 9, 12, 15, 18, 22 };
+		static const int	sacTitles[] = { STR_SB_SCORE, STR_SB_DEATHS, STR_SB_DAMAGE, STR_SB_PLANTS, STR_SB_EXTRACTS, STR_SB_PING, STR_SB_NAME };
+		static const int	sacColumns[] = { 0, 5, 9, 15, 18, 21, 25 };
+		static const int	caTitles[] = { STR_SB_SCORE, STR_SB_DEATHS, STR_SB_DAMAGE, STR_SB_ROUNDS, STR_SB_PING, STR_SB_NAME };
+		static const int	caColumns[] = { 0, 5, 9, 15, 18, 22 };
 		int					i, x0 = SB_SCORELINE_X + ( SB_RATING_WIDTH / 2 );
 
-		if ( CG_FlagBoard() ) {
+		if ( CG_ModeBoard() == 1 ) {
+			for ( i = 0 ; i < ARRAY_LEN( sacTitles ) ; i++ ) {
+				CG_DrawSmallString( x0 + sacColumns[i] * BIGCHAR_WIDTH, y + 12, BG_String( sacTitles[i] ), fade );
+			}
+		} else if ( CG_ModeBoard() == 2 ) {
+			for ( i = 0 ; i < ARRAY_LEN( caTitles ) ; i++ ) {
+				CG_DrawSmallString( x0 + caColumns[i] * BIGCHAR_WIDTH, y + 12, BG_String( caTitles[i] ), fade );
+			}
+		} else if ( CG_FlagBoard() ) {
 			for ( i = 0 ; i < ARRAY_LEN( flagTitles ) ; i++ ) {
 				CG_DrawSmallString( x0 + flagColumns[i] * BIGCHAR_WIDTH, y + 12, BG_String( flagTitles[i] ), fade );
 			}
@@ -643,6 +679,25 @@ CG_FlagBoard
 Capture the flag (not sacrifice) shows captures, assists and defends
 =================
 */
+/*
+=================
+CG_ModeBoard
+
+1 for sacrifice's columns, 2 for clan arena's, 0 for neither
+=================
+*/
+static int CG_ModeBoard( void ) {
+	const char *info = CG_ConfigString( CS_SERVERINFO );
+
+	if ( atoi( Info_ValueForKey( info, "g_sacrifice" ) ) ) {
+		return 1;
+	}
+	if ( atoi( Info_ValueForKey( info, "g_clanArena" ) ) ) {
+		return 2;
+	}
+	return 0;
+}
+
 static qboolean CG_FlagBoard( void ) {
 	return cgs.gametype == GT_CTF && !atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_sacrifice" ) );
 }

@@ -78,22 +78,24 @@ static void CG_ParseScores( void ) {
 	memset( cg.scores, 0, sizeof( cg.scores ) );
 	for ( i = 0 ; i < cg.numScores ; i++ ) {
 		//
-		cg.scores[i].client = atoi( CG_Argv( i * 16 + 4 ) );
-		cg.scores[i].score = atoi( CG_Argv( i * 16 + 5 ) );
-		cg.scores[i].ping = atoi( CG_Argv( i * 16 + 6 ) );
-		cg.scores[i].time = atoi( CG_Argv( i * 16 + 7 ) );
-		cg.scores[i].scoreFlags = atoi( CG_Argv( i * 16 + 8 ) );
-		powerups = atoi( CG_Argv( i * 16 + 9 ) );
-		cg.scores[i].accuracy = atoi(CG_Argv(i * 16 + 10));
-		cg.scores[i].impressiveCount = atoi(CG_Argv(i * 16 + 11));
-		cg.scores[i].excellentCount = atoi(CG_Argv(i * 16 + 12));
-		cg.scores[i].guantletCount = atoi(CG_Argv(i * 16 + 13));
-		cg.scores[i].defendCount = atoi(CG_Argv(i * 16 + 14));
-		cg.scores[i].assistCount = atoi(CG_Argv(i * 16 + 15));
-		cg.scores[i].perfect = atoi(CG_Argv(i * 16 + 16));
-		cg.scores[i].captures = atoi(CG_Argv(i * 16 + 17));
-		cg.scores[i].deaths = atoi(CG_Argv(i * 16 + 18));
-		cg.scores[i].damage = atoi(CG_Argv(i * 16 + 19));
+		cg.scores[i].client = atoi( CG_Argv( i * 18 + 4 ) );
+		cg.scores[i].score = atoi( CG_Argv( i * 18 + 5 ) );
+		cg.scores[i].ping = atoi( CG_Argv( i * 18 + 6 ) );
+		cg.scores[i].time = atoi( CG_Argv( i * 18 + 7 ) );
+		cg.scores[i].scoreFlags = atoi( CG_Argv( i * 18 + 8 ) );
+		powerups = atoi( CG_Argv( i * 18 + 9 ) );
+		cg.scores[i].accuracy = atoi(CG_Argv(i * 18 + 10));
+		cg.scores[i].impressiveCount = atoi(CG_Argv(i * 18 + 11));
+		cg.scores[i].excellentCount = atoi(CG_Argv(i * 18 + 12));
+		cg.scores[i].guantletCount = atoi(CG_Argv(i * 18 + 13));
+		cg.scores[i].defendCount = atoi(CG_Argv(i * 18 + 14));
+		cg.scores[i].assistCount = atoi(CG_Argv(i * 18 + 15));
+		cg.scores[i].perfect = atoi(CG_Argv(i * 18 + 16));
+		cg.scores[i].captures = atoi(CG_Argv(i * 18 + 17));
+		cg.scores[i].deaths = atoi(CG_Argv(i * 18 + 18));
+		cg.scores[i].damage = atoi(CG_Argv(i * 18 + 19));
+		cg.scores[i].modeStat[0] = atoi( CG_Argv( i * 18 + 20 ) );
+		cg.scores[i].modeStat[1] = atoi( CG_Argv( i * 18 + 21 ) );
 
 		if ( cg.scores[i].client < 0 || cg.scores[i].client >= MAX_CLIENTS ) {
 			cg.scores[i].client = 0;

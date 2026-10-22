@@ -307,6 +307,7 @@ typedef struct {
 	int				captures;
 	int				deaths;
 	int				damage;			// given to enemies
+	int				modeStat[2];	// sacrifice plants and extracts, clan arena rounds survived
 	qboolean	perfect;
 	int				team;
 } score_t;

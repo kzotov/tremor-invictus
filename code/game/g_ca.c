@@ -174,7 +174,17 @@ G_CAEndRound
 =================
 */
 static void G_CAEndRound( int winner ) {
-	int		id;
+	int		id, i;
+	gclient_t	*cl;
+
+	// the scoreboard counts the rounds each player lived through
+	for ( i = 0; i < level.maxclients; i++ ) {
+		cl = &level.clients[i];
+		if ( cl->pers.connected == CON_CONNECTED && cl->sess.sessionTeam != TEAM_SPECTATOR
+			&& cl->ps.stats[STAT_HEALTH] > 0 && cl->ps.pm_type != PM_DEAD ) {
+			cl->pers.modeStat[0]++;
+		}
+	}
 
 	// first, since the scores below check the rules again
 	level.caState = CA_RESULT;

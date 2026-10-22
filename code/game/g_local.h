@@ -265,6 +265,7 @@ typedef struct {
 	int			accShots[WP_NUM_WEAPONS];	// this match, per weapon
 	int			accHits[WP_NUM_WEAPONS];
 	int			damageGiven;		// to enemies, health and armour
+	int			modeStat[2];		// scoreboard mode columns: sacrifice plants and extracts, clan arena rounds survived
 	int			damageTaken;
 	int			pickups[4];			// mega health, heavy armour, light armour, power-ups
 	int			enterTime;			// level.time the client entered the game
