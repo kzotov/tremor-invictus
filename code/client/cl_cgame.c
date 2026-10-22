@@ -450,6 +450,8 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		return 0;
 	case CG_FS_SEEK:
 		return FS_Seek( args[1], args[2], args[3] );
+	case CG_S_SOUNDDURATION:
+		return S_SoundDuration( args[1] );
 	case CG_SENDCONSOLECOMMAND:
 		Cbuf_AddText( VMA(1) );
 		return 0;

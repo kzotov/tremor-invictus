@@ -2367,6 +2367,24 @@ void S_AL_ClearSoundBuffer( void )
 
 /*
 =================
+S_AL_SoundDuration
+=================
+*/
+static
+int S_AL_SoundDuration( sfxHandle_t sfx )
+{
+	alSfx_t	*curSfx;
+
+	if( sfx < 0 || sfx >= numSfx )
+		return 0;
+	curSfx = &knownSfx[sfx];
+	if( !curSfx->inMemory || curSfx->info.rate <= 0 )
+		return 0;
+	return (int)( (long long)curSfx->info.samples * 1000 / curSfx->info.rate );
+}
+
+/*
+=================
 S_AL_SoundList
 =================
 */
@@ -2737,6 +2755,7 @@ qboolean S_AL_Init( soundInterface_t *si )
 	si->ClearSoundBuffer = S_AL_ClearSoundBuffer;
 	si->SoundInfo = S_AL_SoundInfo;
 	si->SoundList = S_AL_SoundList;
+	si->SoundDuration = S_AL_SoundDuration;
 
 #ifdef USE_VOIP
 	si->StartCapture = S_AL_StartCapture;

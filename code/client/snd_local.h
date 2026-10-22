@@ -146,6 +146,7 @@ typedef struct
 	void (*ClearSoundBuffer)( void );
 	void (*SoundInfo)( void );
 	void (*SoundList)( void );
+	int (*SoundDuration)( sfxHandle_t sfx );	// msec, 0 if not loaded
 #ifdef USE_VOIP
 	void (*StartCapture)( void );
 	int (*AvailableCaptureSamples)( void );

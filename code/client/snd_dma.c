@@ -151,6 +151,24 @@ void S_Base_MasterGain( float val )
 
 /*
 =================
+S_Base_SoundDuration
+=================
+*/
+static int S_Base_SoundDuration( sfxHandle_t sfx ) {
+	sfx_t	*s;
+
+	if ( sfx < 0 || sfx >= s_numSfx || dma.speed <= 0 ) {
+		return 0;
+	}
+	s = &s_knownSfx[sfx];
+	if ( !s->inMemory ) {
+		return 0;
+	}
+	return (int)( (long long)s->soundLength * 1000 / dma.speed );
+}
+
+/*
+=================
 S_Base_SoundList
 =================
 */
@@ -1609,6 +1627,7 @@ qboolean S_Base_Init( soundInterface_t *si ) {
 	si->ClearSoundBuffer = S_Base_ClearSoundBuffer;
 	si->SoundInfo = S_Base_SoundInfo;
 	si->SoundList = S_Base_SoundList;
+	si->SoundDuration = S_Base_SoundDuration;
 
 #ifdef USE_VOIP
 	si->StartCapture = S_Base_StartCapture;

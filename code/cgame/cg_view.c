@@ -797,8 +797,10 @@ The most important waiting line plays next (the oldest of those); a line
 that cannot start within SOUNDBUFFER_WAIT is dropped
 =====================
 */
+#define ANNOUNCER_LINE_MAX	12000
+
 static void CG_PlayBufferedSounds( void ) {
-	int		i, best;
+	int		i, best, hold;
 
 	for ( i = 0 ; i < cg.soundBufferCount ; ) {
 		if ( cg.soundTime >= cg.time && cg.time - cg.soundBufferTime[i] > SOUNDBUFFER_WAIT ) {
@@ -816,9 +818,16 @@ static void CG_PlayBufferedSounds( void ) {
 			best = i;
 		}
 	}
+	// a line holds the announcer while it plays, up to 12 s (1.5 s when
+	// its length is unknown)
+	hold = trap_S_SoundDuration( cg.soundBuffer[best] );
+	hold = hold > 0 ? hold + 100 : 1500;
+	if ( hold > ANNOUNCER_LINE_MAX ) {
+		hold = ANNOUNCER_LINE_MAX;
+	}
 	trap_S_StartLocalSound( cg.soundBuffer[best], CHAN_ANNOUNCER );
 	CG_DropBufferedSound( best );
-	cg.soundTime = cg.time + 1500;		// each line holds the announcer this long
+	cg.soundTime = cg.time + hold;
 }
 
 //=========================================================================

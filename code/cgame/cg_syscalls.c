@@ -105,6 +105,10 @@ int trap_FS_Seek( fileHandle_t f, long offset, int origin ) {
 	return syscall( CG_FS_SEEK, f, offset, origin );
 }
 
+int trap_S_SoundDuration( sfxHandle_t sfx ) {
+	return syscall( CG_S_SOUNDDURATION, sfx );
+}
+
 void	trap_SendConsoleCommand( const char *text ) {
 	syscall( CG_SENDCONSOLECOMMAND, text );
 }

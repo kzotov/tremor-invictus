@@ -318,6 +318,21 @@ void S_SoundInfo( void )
 
 /*
 =================
+S_SoundDuration
+
+How long a registered sound plays, in msec; 0 if it isn't loaded
+=================
+*/
+int S_SoundDuration( sfxHandle_t sfx )
+{
+	if( si.SoundDuration ) {
+		return si.SoundDuration( sfx );
+	}
+	return 0;
+}
+
+/*
+=================
 S_SoundList
 =================
 */

@@ -62,6 +62,7 @@ void S_BeginRegistration( void );
 // has to create a placeholder.  This prevents continuous filesystem
 // checks for missing files
 sfxHandle_t	S_RegisterSound( const char *sample, qboolean compressed );
+int			S_SoundDuration( sfxHandle_t sfx );
 
 void S_DisplayFreeMemory(void);
 
