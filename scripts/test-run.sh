@@ -71,6 +71,8 @@ case "$cmd" in
 build)
 	cmake -S "$ROOT" -B "$BUILD" -DCMAKE_BUILD_TYPE=Release
 	cmake --build "$BUILD" -j"$(sysctl -n hw.ncpu)"
+	# quiet runs load the dylibs, so a failed QVM build would go unseen
+	"$ROOT/scripts/check-qvm.sh" "$RELEASE" || die "a QVM didn't build; see the errors above"
 	# own bundle id, accessory app (no Dock icon, never activated)
 	rm -rf "$APP"
 	cp -R "$RELEASE/tremor-invictus.app" "$APP"

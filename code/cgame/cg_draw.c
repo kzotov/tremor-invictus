@@ -844,7 +844,22 @@ holding +chathistory shows the whole history
 
 #define CHAT_HISTORY		24
 #define CHAT_TIME			7000
-#define CHAT_WIDTH			56		// characters a line, wrapped at spaces
+#define CHAT_WIDTH_DP		640		// the chat is at most this wide, or 35% of the page
+
+/*
+=================
+CG_ChatChars
+
+How many small characters fit a chat line: min(640 dp, 35% of the page)
+=================
+*/
+static int CG_ChatChars( void ) {
+	float	page = 1080.0f * cgs.glconfig.vidWidth / cgs.glconfig.vidHeight;
+	float	width = page * 0.35f < CHAT_WIDTH_DP ? page * 0.35f : CHAT_WIDTH_DP;
+	int		chars = (int)( width * DP / SMALLCHAR_WIDTH );
+
+	return chars < 16 ? 16 : chars;
+}
 #define CHAT_Y				360		// bottom line
 
 typedef struct {
@@ -942,16 +957,16 @@ static void CG_DrawConnectAndServerLines( void ) {
 		cg_hudAnchor = ANCHOR_CENTER;
 	}
 	if ( serverLineTime && cg.time - serverLineTime < cg_centertime.value * 1000 && cg.time >= serverLineTime ) {
-		// the room the chat leaves: the chat runs CHAT_WIDTH small characters
-		// from 8 units off the page's left edge
+		// the room the chat leaves: the chat runs CG_ChatChars() small
+		// characters from 8 units off the page's left edge
 		float	page = 480.0f * cgs.glconfig.vidWidth / cgs.glconfig.vidHeight;
-		float	chatRight = 320 - page / 2 + 8 + CHAT_WIDTH * SMALLCHAR_WIDTH;
+		float	chatRight = 320 - page / 2 + 8 + CG_ChatChars() * SMALLCHAR_WIDTH;
 		float	room = 2 * ( 320 - chatRight );
+		int		len = CG_DrawStrlen( serverLine );
 
 		if ( room < 160 ) {
 			room = 160;
 		}
-		int		len = CG_DrawStrlen( serverLine );
 
 		if ( len > 0 && len * cw > room ) {
 			cw = room / len;
@@ -971,8 +986,9 @@ A server notice in the chat area: grey, 6 s (messages.md 2.6)
 #define SYSTEM_TIME		7000
 
 void CG_AddSystemLine( const char *text ) {
-	char	clean[MAX_SAY_TEXT];
-	char	*p;
+	char	clean[MAX_SAY_TEXT], part[MAX_SAY_TEXT];
+	char	*p, *start;
+	int		width = CG_ChatChars(), len, cut, i;
 
 	Q_strncpyz( clean, text, sizeof( clean ) );
 	Q_CleanStr( clean );
@@ -985,8 +1001,27 @@ void CG_AddSystemLine( const char *text ) {
 	if ( !clean[0] || !cg_systemMessages.integer ) {
 		return;
 	}
-	CG_AddChatLine( clean, strlen( clean ) );
-	chatLines[( chatHead - 1 ) % CHAT_HISTORY].system = qtrue;
+	// wrapped at the chat width, at a space where there is one
+	for ( start = clean ; *start ; ) {
+		len = strlen( start );
+		cut = len;
+		if ( len > width ) {
+			cut = width;
+			for ( i = width ; i > width / 2 ; i-- ) {
+				if ( start[i] == ' ' ) {
+					cut = i;
+					break;
+				}
+			}
+		}
+		Q_strncpyz( part, start, cut + 1 );
+		CG_AddChatLine( part, strlen( part ) );
+		chatLines[( chatHead - 1 ) % CHAT_HISTORY].system = qtrue;
+		start += cut;
+		while ( *start == ' ' ) {
+			start++;
+		}
+	}
 }
 
 /*
@@ -1003,10 +1038,10 @@ void CG_AddChat( const char *text ) {
 	char		lastColor = COLOR_WHITE;
 
 	while ( *p ) {
-		// find where CHAT_WIDTH visible characters end
+		// find where a chat line's worth of visible characters ends
 		visible = 0;
 		cut = 0;
-		for ( i = 0 ; p[i] && visible < CHAT_WIDTH ; i++ ) {
+		for ( i = 0 ; p[i] && visible < CG_ChatChars() ; i++ ) {
 			if ( Q_IsColorString( p + i ) ) {
 				i++;
 				continue;

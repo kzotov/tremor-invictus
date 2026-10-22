@@ -1177,8 +1177,11 @@ static void CG_ServerCommand( void ) {
 			Q_strncpyz( a, CG_Argv( 2 ), sizeof( a ) );
 			Q_strncpyz( b, CG_Argv( 3 ), sizeof( b ) );
 			Com_sprintf( text, sizeof( text ), BG_String( id ), a, b );
-			if ( id < STR_SYS_FORFEIT || id > STR_SYS_BLUE_CAPLIMIT ) {
-				CG_Printf( "[skipnotify]%s\n", text );		// (the event line logs its own)
+#ifndef MISSIONPACK
+			if ( id < STR_SYS_FORFEIT || id > STR_SYS_BLUE_CAPLIMIT )		// (the event line logs its own)
+#endif
+			{
+				CG_Printf( "[skipnotify]%s\n", text );
 			}
 #ifndef MISSIONPACK
 			if ( id == STR_SYS_CONNECTED || id == STR_SYS_ENTERED || id == STR_SYS_RENAMED ) {

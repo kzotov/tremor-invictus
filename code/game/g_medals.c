@@ -87,11 +87,9 @@ void G_Announce( int clientNum, const char *key ) {
 
 /*
 =================
-G_SysMsg
+G_ServerLine
 
-A system message by string id (with up to two arguments): the clients
-show it in their own words, connect lines at the top right, the rest as
-grey chat lines; -1 sends to everyone
+Map and admin text for the server line, quotes made safe
 =================
 */
 void G_ServerLine( int clientNum, const char *text ) {
@@ -107,8 +105,32 @@ void G_ServerLine( int clientNum, const char *text ) {
 	trap_SendServerCommand( clientNum, va( "sline \"%s\"", safe ) );
 }
 
+/*
+=================
+G_SysMsg
+
+A system message by string id (with up to two arguments): the clients
+show it in their own words, connect lines at the top right, the rest as
+grey chat lines; -1 sends to everyone
+=================
+*/
 void G_SysMsg( int clientNum, int id, const char *a, const char *b ) {
-	trap_SendServerCommand( clientNum, va( "sysmsg %i \"%s\" \"%s\"", id, a ? a : "", b ? b : "" ) );
+	char	sa[MAX_STRING_CHARS], sb[MAX_STRING_CHARS], *p;
+
+	// quotes would end the arguments early
+	Q_strncpyz( sa, a ? a : "", sizeof( sa ) );
+	Q_strncpyz( sb, b ? b : "", sizeof( sb ) );
+	for ( p = sa ; *p ; p++ ) {
+		if ( *p == '"' ) {
+			*p = '\'';
+		}
+	}
+	for ( p = sb ; *p ; p++ ) {
+		if ( *p == '"' ) {
+			*p = '\'';
+		}
+	}
+	trap_SendServerCommand( clientNum, va( "sysmsg %i \"%s\" \"%s\"", id, sa, sb ) );
 }
 
 /*
