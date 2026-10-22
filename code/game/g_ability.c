@@ -791,7 +791,7 @@ static void G_TotemImpact( gentity_t *totem, trace_t *trace ) {
 	G_AbilityStop( totem, point );
 	totem->abilityImpact = NULL;
 	totem->s.eType = ET_GENERAL;
-	totem->s.modelindex = G_ModelIndex( "models/powerups/holdable/medkit.md3" );
+	totem->s.modelindex = G_ModelIndex( "models/abilities/totem/totem.md3" );
 	totem->r.contents = CONTENTS_CORPSE;
 	VectorSet( totem->r.mins, -8, -8, -8 );
 	VectorSet( totem->r.maxs, 8, 8, 16 );
@@ -969,7 +969,7 @@ static void G_PlaceTurret( gentity_t *ent ) {
 	turret = G_Spawn();
 	turret->classname = "sentry_turret";
 	turret->s.eType = ET_GENERAL;
-	turret->s.modelindex = G_ModelIndex( "models/weapons2/machinegun/machinegun.md3" );
+	turret->s.modelindex = G_ModelIndex( "models/abilities/turret/turret.md3" );
 	turret->parent = ent;
 	turret->r.ownerNum = ent->s.number;
 	turret->r.contents = CONTENTS_CORPSE;

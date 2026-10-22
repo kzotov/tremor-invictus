@@ -26,6 +26,17 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
                                             armour breaks (synthesised)
   sound/tremor/match_found.wav              the ready check's call: three rising
                                             bell tones
+  models/abilities/totem/totem.md3          the Unholy Totem: a bone post with a
+                                            skull knob and a glowing ring
+  models/abilities/turret/turret.md3        the sentry: a tripod, a turning head
+                                            and a barrel along +x
+  models/abilities/barrier/barrier.md3      the barrier: a faceted shell around a
+                                            standing player
+  gfx/abilities/acid_ball.tga, acid_mark.tga
+                                            the acid blob's sprite and its splash
+  sound/abilities/<ability>_cast.wav, _end.wav
+                                            a placeholder call per ability: a
+                                            swept tone pitched by its name
   scripts/tremor-assets.shader              the shaders above
 All shapes are built here from lathes and boxes; textures from noise.
 """
@@ -265,6 +276,63 @@ def claw(out):
     texture(os.path.join(out, "gfx/abilities/hookrope.tga"), 64, 32, rope)
 
 
+def totem(out):
+    post, ring = Mesh("ability/totem"), Mesh("ability/totemring")
+    # a foot, a tapering post and a round knob with two eye sockets
+    lathe(post, [(0, 0), (7, 0), (7, 2), (3, 4), (2.2, 18), (2.6, 19), (0.1, 19)], 10)
+    lathe(post, [(0.1, 18.5), (3.5, 19.5), (5, 23), (4.5, 26.5), (2.5, 28.5), (0.1, 29)], 12)
+    for side in (-1, 1):
+        box(post, (3.6, side * 2.2 - 0.9, 23.5), (4.9, side * 2.2 + 0.9, 25))
+    # a flat band of light around the post
+    lathe(ring, [(9, 11), (9, 13), (10.5, 13), (10.5, 11)], 24)
+    write_md3(os.path.join(out, "models/abilities/totem/totem.md3"), "totem", [post, ring])
+    texture(os.path.join(out, "models/abilities/totem/totem.tga"), 64, 64,
+            lambda u, v, n=Fbm(53, 4, 6): [c * (0.75 + 0.35 * n.at(u * 3, v * 6)) for c in (0.78, 0.72, 0.6)] + [1], False)
+
+
+def turret(out):
+    m = Mesh("ability/turret")
+    # three legs
+    for k in range(3):
+        start = len(m.xyz)
+        box(m, (0, -1, 0), (12, 1, 2))
+        transform(m, start, lambda p, a=k * 2 * math.pi / 3 + math.pi / 3:
+                  rotate_z((p[0], p[1], p[2] + (12 - p[0]) * 0.9), a))
+    lathe(m, [(0, 10), (3, 10), (3, 14), (0, 14)], 8)        # the mast
+    box(m, (-6, -5, 14), (6, 5, 22))                          # the head
+    start = len(m.xyz)                                        # the barrel, laid along +x
+    lathe(m, [(0, 0), (1.6, 0), (1.6, 18), (2.2, 18), (2.2, 20), (0, 20)], 8)
+    transform(m, start, lambda p: (p[2] + 4, p[1], 18 - p[0]))
+    write_md3(os.path.join(out, "models/abilities/turret/turret.md3"), "turret", [m])
+    texture(os.path.join(out, "models/abilities/turret/turret.tga"), 64, 64,
+            lambda u, v, n=Fbm(61, 4, 8): [0.42 * (0.75 + 0.4 * n.at(u * 4, v * 4))] * 3 + [1], False)
+
+
+def barrier(out):
+    m = Mesh("ability/barrier")
+    # a capsule of eight facets around a standing player (z from the player's
+    # origin: feet at -24, head near 32)
+    lathe(m, [(0.1, -27), (20, -23), (26, -10), (27, 8), (24, 24), (14, 33), (0.1, 36)], 8)
+    write_md3(os.path.join(out, "models/abilities/barrier/barrier.md3"), "barrier", [m])
+    texture(os.path.join(out, "gfx/abilities/barrier.tga"), 64, 64,
+            lambda u, v: [0.25, 0.6, 1.0, 1] if min(u % 0.125, v % 0.166) < 0.012 else [0.05, 0.15, 0.3, 1], False)
+
+
+def acid(out):
+    def ball(u, v, n=Fbm(71, 4, 6)):
+        d = math.hypot(u - 0.5, v - 0.5) * 2
+        a = max(0.0, 1 - d) ** 1.5 * (0.8 + 0.4 * n.at(u * 4, v * 4))
+        return [0.45 * a, 1.0 * a, 0.2 * a, min(1.0, a)]
+
+    def mark(u, v, n=Fbm(73, 5, 5)):
+        d = math.hypot(u - 0.5, v - 0.5) * 2 + 0.35 * (n.at(u * 3, v * 3) - 0.5)
+        a = 1.0 if d < 0.7 else max(0.0, 1 - (d - 0.7) / 0.25)
+        return [0.25, 0.6, 0.12, a * 0.85]
+
+    texture(os.path.join(out, "gfx/abilities/acid_ball.tga"), 64, 64, ball)
+    texture(os.path.join(out, "gfx/abilities/acid_mark.tga"), 128, 128, mark)
+
+
 # ---------------------------------------------------------------- portraits
 
 CHAMPIONS = [
@@ -374,6 +442,27 @@ def tone(freqs, seconds, decay, noise=0.0, rate=22050, seed=5):
     return out
 
 
+def sweep(f0, f1, seconds, decay, noise=0.12, rate=22050, seed=5):
+    """A tone gliding from f0 to f1 with a breath of noise."""
+    rnd = random.Random(seed)
+    out, phase = [], 0.0
+    for i in range(int(seconds * rate)):
+        t = i / rate
+        f = f0 + (f1 - f0) * t / seconds
+        phase += 2 * math.pi * f / rate
+        env = math.exp(-t * decay) * min(1.0, t * 300)
+        v = 0.7 * math.sin(phase) + 0.25 * math.sin(phase * 2.01) + noise * (rnd.random() * 2 - 1)
+        out.append(v * env * 0.55)
+    return out
+
+
+# the active abilities' names (bg_abilityInfo's cvarName)
+ABILITIES = ["hook", "bullrush", "injection", "dualwield", "barrier", "flamestrike", "berserk", "turret",
+             "totem", "grenades", "ghostwalk", "orb", "plasmatrail", "acidspit", "drone", "piercingsight",
+             "shellshock", "spinevolley", "masterofdeath", "supplydrop", "markprey", "downpour", "hound",
+             "riftanchor"]
+
+
 def sounds(out):
     write_wav(os.path.join(out, "sound/tremor/hit_armor.wav"), tone([(2400, 0.6), (3600, 0.3), (5100, 0.15)], 0.12, 38))
     write_wav(os.path.join(out, "sound/tremor/hit_health.wav"), tone([(520, 0.7), (780, 0.25)], 0.12, 45, noise=0.15))
@@ -386,6 +475,12 @@ def sounds(out):
         for i, v in enumerate(bell):
             call[start + i] += v * 0.6
     write_wav(os.path.join(out, "sound/tremor/match_found.wav"), call)
+    # each ability: a rising sweep on casting, a falling blip at the end,
+    # pitched by the name so they differ
+    for name in ABILITIES:
+        base = 300 + (sum(ord(c) * (i + 1) for i, c in enumerate(name)) % 500)
+        write_wav(os.path.join(out, "sound/abilities/%s_cast.wav" % name), sweep(base, base * 2.2, 0.32, 9, seed=len(name)))
+        write_wav(os.path.join(out, "sound/abilities/%s_end.wav" % name), sweep(base * 1.8, base * 0.9, 0.18, 18, seed=len(name) + 1))
 
 
 SHADERS = """// tremor-invictus generated assets (misc/art/make-models.py)
@@ -442,6 +537,67 @@ ability/orb
 	}
 }
 
+ability/totem
+{
+	{
+		map models/abilities/totem/totem.tga
+		rgbGen lightingDiffuse
+	}
+}
+
+ability/totemring
+{
+	cull none
+	sort additive
+	{
+		map $whiteimage
+		blendFunc GL_ONE GL_ONE
+		rgbGen wave sin 0.5 0.25 0 1.2
+	}
+}
+
+ability/turret
+{
+	{
+		map models/abilities/turret/turret.tga
+		rgbGen lightingDiffuse
+	}
+}
+
+ability/barrier
+{
+	cull none
+	sort additive
+	{
+		map gfx/abilities/barrier.tga
+		blendFunc GL_ONE GL_ONE
+		tcMod scroll 0 0.2
+		rgbGen wave sin 0.6 0.15 0 1.5
+	}
+}
+
+ability/acid_ball
+{
+	nopicmip
+	cull none
+	{
+		clampmap gfx/abilities/acid_ball.tga
+		blendFunc GL_ONE GL_ONE
+		rgbGen entity
+	}
+}
+
+ability/acid_mark
+{
+	polygonOffset
+	{
+		clampmap gfx/abilities/acid_mark.tga
+		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		rgbGen exactVertex
+		alphaGen vertex
+	}
+}
+
 ability/hookclaw
 {
 	{
@@ -488,6 +644,10 @@ def main():
     hourglass(src)
     orb(src)
     claw(src)
+    totem(src)
+    turret(src)
+    barrier(src)
+    acid(src)
     portraits(src)
     sounds(src)
     texture(os.path.join(src, "gfx/abilities/plasmatrail.tga"), 128, 64, trail, False)

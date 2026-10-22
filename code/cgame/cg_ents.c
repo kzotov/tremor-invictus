@@ -745,7 +745,11 @@ static void CG_AbilityVisual( centity_t *cent ) {
 		break;
 
 	case AV_ACID:
-		CG_VfxSprite( cent->lerpOrigin, 10, cgs.media.glowBallShader, 120, 255, 60, 0 );
+		if ( cgs.media.acidBallShader ) {
+			CG_VfxSprite( cent->lerpOrigin, 12, cgs.media.acidBallShader, 255, 255, 255, cg.time * 0.3f );
+		} else {
+			CG_VfxSprite( cent->lerpOrigin, 10, cgs.media.glowBallShader, 120, 255, 60, 0 );
+		}
 		CG_VfxSprite( cent->lerpOrigin, 18, cgs.media.glowBallShader, 40, 120, 20, 0 );
 		break;
 

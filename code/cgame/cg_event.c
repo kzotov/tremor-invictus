@@ -602,6 +602,34 @@ void CG_PainEvent( centity_t *cent, int health ) {
 
 /*
 ==============
+CG_AbilitySound
+
+The player's active ability being cast (which 0) or pressed again or
+ended (1): sound/abilities/<ability>_cast or _end
+==============
+*/
+static void CG_AbilitySound( entityState_t *es, int which ) {
+	int		champ, active;
+
+	if ( es->number < 0 || es->number >= MAX_CLIENTS ) {
+		return;
+	}
+	if ( es->number == cg.snap->ps.clientNum ) {
+		champ = cg.snap->ps.stats[STAT_CHAMPION];
+	} else {
+		champ = BG_ChampionForModel( cgs.clientinfo[es->number].modelName );
+	}
+	if ( champ < 0 ) {
+		return;
+	}
+	active = BG_Champion( champ )->active;
+	if ( active > 0 && active < ACTIVE_NUM_ABILITIES && cgs.media.abilitySounds[active][which] ) {
+		trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.abilitySounds[active][which] );
+	}
+}
+
+/*
+==============
 CG_OrbTeleportRings
 
 The dire orb's teleport (eventParm 1): purple rings widening on the floor
@@ -799,9 +827,11 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		break;
 	case EV_USE_ABILITY:
 		DEBUGNAME("EV_USE_ABILITY");
+		CG_AbilitySound( es, 0 );
 		break;
 	case EV_ABILITY_REPRESS:
 		DEBUGNAME("EV_ABILITY_REPRESS");
+		CG_AbilitySound( es, 1 );
 		break;
 	case EV_TAUNT:
 		DEBUGNAME("EV_TAUNT");
@@ -1112,6 +1142,9 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		DEBUGNAME("EV_MISSILE_MISS");
 		ByteToDir( es->eventParm, dir );
 		CG_MissileHitWall( es->weapon, 0, position, dir, IMPACTSOUND_DEFAULT );
+		if ( es->generic1 == AV_ACID && cgs.media.acidMarkShader ) {
+			CG_ImpactMark( cgs.media.acidMarkShader, position, dir, random() * 360, 1, 1, 1, 1, qtrue, 40, qfalse );
+		}
 		if ( es->generic1 == AV_TRAIL ) {
 			// a plasma trail piece bursting: sparks and a flash ring on the floor
 			static const vec3_t	plasma = { 0.85f, 0.35f, 1 };

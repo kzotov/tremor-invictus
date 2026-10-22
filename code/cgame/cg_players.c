@@ -2385,6 +2385,21 @@ void CG_Player( centity_t *cent ) {
 	CG_AddRefEntityWithPowerups( &legs, &cent->currentState, ci->team );
 	CG_ColorCorpse( cent, &legs );
 
+	// the barrier's shell around the whole player
+	if ( ( cent->currentState.eFlags & EF_BARRIER ) && cgs.media.abilityBarrierModel ) {
+		refEntity_t	shell;
+		vec3_t		yaw;
+
+		memset( &shell, 0, sizeof( shell ) );
+		VectorCopy( cent->lerpOrigin, shell.origin );
+		VectorCopy( shell.origin, shell.oldorigin );
+		VectorSet( yaw, 0, cent->lerpAngles[YAW], 0 );
+		AnglesToAxis( yaw, shell.axis );
+		shell.hModel = cgs.media.abilityBarrierModel;
+		shell.renderfx = renderfx;		// not in our own first-person view
+		trap_R_AddRefEntityToScene( &shell );
+	}
+
 	// if the model failed, allow the default nullmodel to be displayed
 	if (!legs.hModel) {
 		return;

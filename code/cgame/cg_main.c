@@ -675,6 +675,10 @@ static void CG_RegisterSounds( void ) {
 
 	// hit tones by what the shot hit (tremor-assets.pk3)
 	cgs.media.hitArmorSound = trap_S_RegisterSound( "sound/tremor/hit_armor.wav", qfalse );
+	for ( i = 1 ; i < ACTIVE_NUM_ABILITIES ; i++ ) {
+		cgs.media.abilitySounds[i][0] = trap_S_RegisterSound( va( "sound/abilities/%s_cast.wav", bg_abilityInfo[i].cvarName ), qfalse );
+		cgs.media.abilitySounds[i][1] = trap_S_RegisterSound( va( "sound/abilities/%s_end.wav", bg_abilityInfo[i].cvarName ), qfalse );
+	}
 	cgs.media.hitHealthSound = trap_S_RegisterSound( "sound/tremor/hit_health.wav", qfalse );
 	cgs.media.hitArmorBreakSound = trap_S_RegisterSound( "sound/tremor/armor_break.wav", qfalse );
 
@@ -1026,6 +1030,9 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.orbShader = trap_R_RegisterShader( "tremor/fx/orb" );
 	cgs.media.abilityOrbModel = trap_R_RegisterModel( "models/abilities/orb/orb.md3" );
 	cgs.media.abilityClawModel = trap_R_RegisterModel( "models/abilities/hook/claw.md3" );
+	cgs.media.abilityBarrierModel = trap_R_RegisterModel( "models/abilities/barrier/barrier.md3" );
+	cgs.media.acidBallShader = trap_R_RegisterShader( "ability/acid_ball" );
+	cgs.media.acidMarkShader = trap_R_RegisterShader( "ability/acid_mark" );
 	cgs.media.abilityRopeShader = trap_R_RegisterShader( "ability/hookrope" );
 	cgs.media.abilityTrailShader = trap_R_RegisterShader( "ability/plasmatrail" );
 

@@ -844,6 +844,9 @@ typedef struct {
 	// replaceable ability assets (tremor-assets.pk3); 0 when missing
 	qhandle_t	abilityOrbModel;
 	qhandle_t	abilityClawModel;
+	qhandle_t	abilityBarrierModel;	// the barrier's shell around its owner
+	qhandle_t	acidBallShader, acidMarkShader;
+	sfxHandle_t	abilitySounds[ACTIVE_NUM_ABILITIES][2];	// sound/abilities/<ability>_cast, _end
 	qhandle_t	abilityRopeShader;
 	qhandle_t	abilityTrailShader;
 	qhandle_t	portrait[32][2];			// per champion, big and small (CG_ChampionPortrait)
