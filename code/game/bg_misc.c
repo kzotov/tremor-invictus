@@ -2409,8 +2409,9 @@ qboolean BG_CanItemBeGrabbed( int gametype, const entityState_t *ent, const play
 		}
 		else
 #endif
-		// mega health up to the class bonus over max; the rest only below max
-		if ( item->quantity == 100 ) {
+		// mega health and the 5 health bubbles up to the class bonus over
+		// max; the rest only below max
+		if ( item->quantity == 100 || item->quantity == 5 ) {
 			if ( ps->stats[STAT_HEALTH] >= ps->stats[STAT_MAX_HEALTH]
 				+ bg_classInfo[BG_Champion( ps->stats[STAT_CHAMPION] )->bodyClass].maxHealthBonus ) {
 				return qfalse;
