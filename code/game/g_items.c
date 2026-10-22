@@ -1014,6 +1014,11 @@ void ClearRegisteredItems( void ) {
 	// players always start with the base weapon
 	RegisterItem( BG_FindItemForWeapon( WP_MACHINEGUN ) );
 	RegisterItem( BG_FindItemForWeapon( WP_GAUNTLET ) );
+	// the starting weapons, and the armour shards every death drops, even
+	// on maps that place none (else clients draw them as a bare axis)
+	RegisterItem( BG_FindItemForWeapon( WP_SHOTGUN ) );
+	RegisterItem( BG_FindItemForWeapon( WP_NAILGUN ) );
+	RegisterItem( BG_FindItem( "Armor Shard" ) );
 #ifdef MISSIONPACK
 	if( g_gametype.integer == GT_HARVESTER ) {
 		RegisterItem( BG_FindItem( "Red Cube" ) );
