@@ -54,4 +54,28 @@ print("b ratings", b.call("POST", "/ratings"))
 print("unsigned", urllib.request.urlopen(BASE + "/").read())
 bad = Who(); bad.pub = a.pub
 print("forged", bad.call("POST", "/status"))
+
+# a party of two and two players alone make a 2v2; the party stays together
+p1, p2, c, d = Who(), Who(), Who(), Who()
+code = p1.call("POST", "/party/create")["code"]
+print("party", code, p2.call("POST", "/party/join", {"code": code.lower()}))
+print("member queues", p2.call("POST", "/queue", {"modes": ["tdm2v2"]}))
+print("leader queues", p1.call("POST", "/queue", {"modes": ["tdm2v2", "duel"]}))
+st = p2.call("POST", "/status")
+assert st["state"] == "searching" and st["party"]["leader"] == p1.pub, st
+assert st["modes"] == ["tdm2v2"], st   # duel doesn't fit a party of two
+c.call("POST", "/queue", {"modes": ["tdm2v2"]})
+d.call("POST", "/queue", {"modes": ["tdm2v2"]})
+time.sleep(2)
+st = p1.call("POST", "/status")
+assert st["state"] == "ready_check", st
+team = st["red"] if p1.pub in st["red"] else st["blue"]
+assert p2.pub in team and len(team) == 2, st
+print("party on one team:", team == st["red"] and "red" or "blue")
+# one declines: the party (all accepted) goes back, the decliner is blocked
+p1.call("POST", "/ready", {"accept": True}); p2.call("POST", "/ready", {"accept": True})
+c.call("POST", "/ready", {"accept": True}); d.call("POST", "/ready", {"accept": False})
+time.sleep(2)
+print("party after decline", p2.call("POST", "/status")["state"], "| decliner", d.call("POST", "/queue", {"modes": ["tdm2v2"]}))
+print("leave", p2.call("POST", "/party/leave"), p1.call("POST", "/status")["party"]["members"] == [p1.pub])
 print("ok")

@@ -120,6 +120,31 @@ static void CL_MM_Profile_f( void ) {
 	Queue( "ratings", "" );
 }
 
+static void CL_MM_PartyCreate_f( void ) {
+	Queue( "party_create", "" );
+}
+
+// mm_party_join <code>; the menu's code field runs it on every edit, so
+// anything but a whole code is ignored
+static void CL_MM_PartyJoin_f( void ) {
+	const char	*code = Cmd_Argv( 1 );
+	int			i;
+
+	if ( strlen( code ) != 6 ) {
+		return;
+	}
+	for ( i = 0; i < 6; i++ ) {
+		if ( !isalnum( (unsigned char)code[i] ) ) {
+			return;
+		}
+	}
+	Queue( "party_join", va( "{\"code\":\"%s\"}", code ) );
+}
+
+static void CL_MM_PartyLeave_f( void ) {
+	Queue( "party_leave", "" );
+}
+
 static void StartNext( void ) {
 	const char *method = "POST", *path;
 
@@ -132,6 +157,12 @@ static void StartNext( void ) {
 		path = "/ready";
 	} else if ( !strcmp( mm.next, "ratings" ) ) {
 		path = "/ratings";
+	} else if ( !strcmp( mm.next, "party_create" ) ) {
+		path = "/party/create";
+	} else if ( !strcmp( mm.next, "party_join" ) ) {
+		path = "/party/join";
+	} else if ( !strcmp( mm.next, "party_leave" ) ) {
+		path = "/party/leave";
 	} else {
 		path = "/status";
 	}
@@ -160,9 +191,36 @@ static void ReadRatings( const char *body ) {
 	}
 }
 
+// "party":{"code":"ABC123","leader":"<key>","members":["<key>",...]} or null
+static void ReadParty( const char *body ) {
+	char		party[2048], value[128];
+	const char	*p;
+	int			members = 0;
+
+	if ( !MM_JsonValue( body, "party", party, sizeof( party ) ) || party[0] != '{' ) {
+		Cvar_Set( "mm_party_code", "" );
+		Cvar_Set( "mm_party_size", "0" );
+		Cvar_Set( "mm_party_leader", "1" );
+		return;
+	}
+	MM_JsonValue( party, "code", value, sizeof( value ) );
+	Cvar_Set( "mm_party_code", value );
+	MM_JsonValue( party, "leader", value, sizeof( value ) );
+	Cvar_Set( "mm_party_leader", !strcmp( value, mm.pub ) ? "1" : "0" );
+	// each member is a quoted key: count the opening quotes
+	p = strstr( party, "\"members\"" );
+	p = p ? strchr( p, '[' ) : NULL;
+	while ( p && ( p = strchr( p + 1, '"' ) ) != NULL ) {
+		members++;
+		p = strchr( p + 1, '"' );
+	}
+	Cvar_Set( "mm_party_size", va( "%d", members ) );
+}
+
 static void ReadStatus( const char *body ) {
 	char state[32], value[256];
 
+	ReadParty( body );
 	MM_JsonValue( body, "state", state, sizeof( state ) );
 	if ( !strcmp( state, "searching" ) ) {
 		MM_JsonValue( body, "waiting", value, sizeof( value ) );
@@ -195,8 +253,9 @@ static void ReadStatus( const char *body ) {
 		Cbuf_ExecuteText( EXEC_NOW, "rml_hide\n" );
 		Cbuf_ExecuteText( EXEC_NOW, va( "connect %s\n", address ) );
 	} else {
-		// idle: the search ended (cancelled, or declined and blocked)
-		mm.polling = qfalse;
+		// idle: the search ended (cancelled, or declined and blocked);
+		// party members keep listening for the leader's search
+		mm.polling = Cvar_VariableString( "mm_party_code" )[0] != 0;
 		SetState( "idle" );
 	}
 }
@@ -235,6 +294,10 @@ static void Done( void ) {
 	} else if ( !strcmp( what, "ratings" ) ) {
 		ReadRatings( mm.req.body );
 	} else if ( !strcmp( what, "ready" ) ) {
+		mm.nextPoll = 0;
+	} else if ( !strcmp( what, "party_create" ) || !strcmp( what, "party_join" ) || !strcmp( what, "party_leave" ) ) {
+		Cvar_Set( "mm_error", "" );
+		mm.polling = qtrue;		// the next status fills in the party
 		mm.nextPoll = 0;
 	}
 }
@@ -282,10 +345,18 @@ void CL_MM_Init( void ) {
 	Cvar_Get( "mm_accepted", "false", CVAR_TEMP );
 	Cvar_Get( "mm_error", "", CVAR_TEMP );
 	Cvar_Get( "mm_id", "", CVAR_TEMP );
+	Cvar_Get( "mm_party_code", "", CVAR_TEMP );
+	Cvar_Get( "mm_party_size", "0", CVAR_TEMP );
+	Cvar_Get( "mm_party_leader", "1", CVAR_TEMP );
 	Cvar_Get( "mmtoken", "", CVAR_USERINFO | CVAR_TEMP );
+	EnsureKey();		// so the menus can show the player id
+
 	Cmd_AddCommand( "mm_search", CL_MM_Search_f );
 	Cmd_AddCommand( "mm_cancel", CL_MM_Cancel_f );
 	Cmd_AddCommand( "mm_accept", CL_MM_Accept_f );
 	Cmd_AddCommand( "mm_decline", CL_MM_Decline_f );
 	Cmd_AddCommand( "mm_profile", CL_MM_Profile_f );
+	Cmd_AddCommand( "mm_party_create", CL_MM_PartyCreate_f );
+	Cmd_AddCommand( "mm_party_join", CL_MM_PartyJoin_f );
+	Cmd_AddCommand( "mm_party_leave", CL_MM_PartyLeave_f );
 }

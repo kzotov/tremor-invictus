@@ -344,3 +344,41 @@ button.small {
 	text-align: center;
 	margin-bottom: 20dp;
 }
+
+/* the party row under the modes */
+.findmatch .party {
+	display: block;
+	margin-top: 24dp;
+	font-size: 26dp;
+	color: #8a8780;
+}
+
+.findmatch .party button {
+	display: inline-block;
+	font-size: 30dp;
+	margin-right: 20dp;
+	margin-left: 20dp;
+}
+
+.findmatch .party div.label {
+	display: block;
+	margin-top: 6dp;
+}
+
+.findmatch .party .code {
+	margin: 0dp 10dp;
+	font-family: "Arial Black";
+	font-size: 34dp;
+	color: #f2efe9;
+}
+
+.findmatch .party input {
+	display: inline-block;
+	width: 160dp;
+	font-size: 30dp;
+	color: #f2efe9;
+	background-color: #0e0f12;
+	border: 2dp #3a3b40;
+	padding: 4dp 10dp;
+	margin-left: 10dp;
+}

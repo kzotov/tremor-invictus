@@ -360,8 +360,23 @@ class CommandListener : public Rml::EventListener {
 public:
 	explicit CommandListener( const Rml::String &command ) : command( command ) {}
 
-	void ProcessEvent( Rml::Event & ) override {
-		imp.ExecuteText( ( command + "\n" ).c_str() );
+	// {value} becomes a form control's value, kept to letters, digits and
+	// a few marks so it can't add commands
+	void ProcessEvent( Rml::Event &event ) override {
+		Rml::String	text = command;
+		size_t		at = text.find( "{value}" );
+
+		if ( at != Rml::String::npos ) {
+			Rml::String	value = event.GetParameter<Rml::String>( "value", "" ), safe;
+
+			for ( char c : value ) {
+				if ( isalnum( (unsigned char)c ) || c == '-' || c == '_' || c == '.' || c == ':' ) {
+					safe += c;
+				}
+			}
+			text.replace( at, 7, safe );
+		}
+		imp.ExecuteText( ( text + "\n" ).c_str() );
 	}
 
 	void OnDetach( Rml::Element * ) override {

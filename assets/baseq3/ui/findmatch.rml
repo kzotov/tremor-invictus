@@ -35,10 +35,23 @@
 		</div>
 		<div class="error" data-text-cvar="mm_error"></div>
 		<div class="actions">
-			<button data-when="mm_state=idle" onclick="mm_search">[mm_search]</button>
+			<button data-when="mm_state=idle&mm_party_leader=1" onclick="mm_search">[mm_search]</button>
 			<div class="searching" data-when="mm_state!=idle">[mm_searching] <span data-text-cvar="mm_elapsed">0:00</span></div>
 			<button data-when="mm_state=searching" onclick="mm_cancel">[mm_cancel]</button>
 			<button onclick="rml_show ui/main.rml">[menu_back]</button>
+		</div>
+		<div class="party">
+			<div data-when="mm_party_code=">
+				<button class="small" onclick="mm_party_create">[mm_party_create]</button>
+				<span class="label">[mm_party_join]</span>
+				<input type="text" maxlength="6" size="8" onchange="mm_party_join {value}"/>
+			</div>
+			<div data-when="mm_party_code!=">
+				<span class="label">[mm_party_code]</span> <span class="code" data-text-cvar="mm_party_code"></span>
+				<span class="label">(<span data-text-cvar="mm_party_size">1</span>/4)</span>
+				<button class="small" onclick="mm_party_leave">[mm_party_leave]</button>
+				<div class="label" data-when="mm_party_leader=0">[mm_party_wait]</div>
+			</div>
 		</div>
 		<div class="id">[mm_your_id] <span data-text-cvar="mm_id"></span></div>
 	</div>

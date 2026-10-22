@@ -22,6 +22,17 @@ self-hosted next to a few game servers.
    Glicko-2 rating is updated against the other side's average; leaving
    early counts as a loss. Ratings show after 10 placement matches.
 
+## Parties
+
+Up to four players share a six-letter code. The leader queues for the
+party, only for modes whose teams fit it; the party is rated as its best
+player less 10% of the gap to its average, and always lands on one team.
+If someone in a ready check declines, parties where everyone accepted go
+back to the front of the queue.
+
+A reserved match whose server stops checking in (60 s), or that never
+reports within two hours, is dropped without ratings.
+
 ## Identity and signatures
 
 Players and servers are ed25519 key pairs made on first start. Every request
@@ -37,6 +48,9 @@ carries `X-Key` (public key, hex), `X-Time` (unix seconds, within 60 s) and
 | player | `POST /status`              |                                            |
 | player | `POST /ready`               | `{"accept": true}`                         |
 | player | `POST /ratings`             |                                            |
+| player | `POST /party/create`        | gives `{"code"}`                           |
+| player | `POST /party/join`          | `{"code": "ABC234"}`                       |
+| player | `POST /party/leave`         |                                            |
 | server | `POST /servers/register`    | `{"address", "name", "maps": {mode: [..]}}`|
 | server | `POST /servers/reservation` |                                            |
 | server | `POST /servers/result`      | `{"match", "winner", "left_early": [..]}`  |
