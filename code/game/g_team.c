@@ -1115,10 +1115,9 @@ void TeamplayInfoMessage( gentity_t *ent ) {
 			if (a < 0) a = 0;
 
 			Com_sprintf (entry, sizeof(entry),
-				" %i %i %i %i %i %i", 
-//				level.sortedClients[i], player->client->pers.teamState.location, h, a, 
+				" %i %i %i %i %i %i %i", 
 				i, player->client->pers.teamState.location, h, a, 
-				player->client->ps.weapon, player->s.powerups);
+				player->client->ps.weapon, player->s.powerups, player->client->ps.stats[STAT_ABILITY]);
 			j = strlen(entry);
 			if (stringlength + j >= sizeof(string))
 				break;
@@ -1136,7 +1135,7 @@ void TeamplayInfoMessage( gentity_t *ent ) {
 SpectatorAbilityMessage
 
 Every player's active ability state for free-flying spectators' strip:
-"abil <count> (<client> <STAT_ABILITY> <recharge tenths>)..."
+"abil <count> (<client> <STAT_ABILITY> <recharge tenths> <health> <armour>)..."
 ==================
 */
 static void SpectatorAbilityMessage( void ) {
@@ -1150,8 +1149,9 @@ static void SpectatorAbilityMessage( void ) {
 		if ( cl->pers.connected != CON_CONNECTED || cl->sess.sessionTeam == TEAM_SPECTATOR ) {
 			continue;
 		}
-		Com_sprintf( entry, sizeof( entry ), " %i %i %i", i, cl->ps.stats[STAT_ABILITY],
-			cl->ps.stats[STAT_ABILITY_RECHARGE] );
+		Com_sprintf( entry, sizeof( entry ), " %i %i %i %i %i", i, cl->ps.stats[STAT_ABILITY],
+			cl->ps.stats[STAT_ABILITY_RECHARGE], cl->ps.stats[STAT_HEALTH] > 0 ? cl->ps.stats[STAT_HEALTH] : 0,
+			cl->ps.stats[STAT_ARMOR] );
 		Q_strcat( string, sizeof( string ), entry );
 		cnt++;
 	}

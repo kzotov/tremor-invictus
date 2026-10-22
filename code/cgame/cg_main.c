@@ -999,6 +999,32 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.abilityClawModel = trap_R_RegisterModel( "models/abilities/hook/claw.md3" );
 	cgs.media.abilityRopeShader = trap_R_RegisterShader( "ability/hookrope" );
 	cgs.media.abilityTrailShader = trap_R_RegisterShader( "ability/plasmatrail" );
+
+	// champion portraits: a portrait pack's (gfx/champions), else the model's
+	// icon, else ours (gfx/champions-generated)
+	for ( i = 0 ; i < bg_numChampions && i < 32 ; i++ ) {
+		const champion_t	*c = BG_Champion( i );
+		int					s;
+
+		for ( s = 0 ; s < 2 ; s++ ) {
+			qhandle_t	h = trap_R_RegisterShaderNoMip( va( "gfx/champions/%s%s", c->name, s ? "_small" : "" ) );
+
+			if ( !h ) {
+				char	model[MAX_QPATH], *skin;
+
+				Q_strncpyz( model, c->model, sizeof( model ) );
+				skin = strchr( model, '/' );
+				if ( skin ) {
+					*skin++ = 0;
+				}
+				h = trap_R_RegisterShaderNoMip( va( "models/players/%s/icon_%s", model, skin ? skin : "default" ) );
+			}
+			if ( !h ) {
+				h = trap_R_RegisterShaderNoMip( va( "gfx/champions-generated/%s%s", c->name, s ? "_small" : "" ) );
+			}
+			cgs.media.portrait[i][s] = h;
+		}
+	}
 	cgs.media.barrierShader = trap_R_RegisterShader( "tremor/fx/barrier" );
 	cgs.media.ringShader = trap_R_RegisterShader( "tremor/fx/ring" );
 	cgs.media.droneModel = trap_R_RegisterModel( "models/powerups/holdable/teleporter.md3" );
@@ -2131,3 +2157,15 @@ void CG_MouseEvent(int x, int y) {
 }
 #endif
 
+
+/*
+=================
+CG_ChampionPortrait
+=================
+*/
+qhandle_t CG_ChampionPortrait( int champion, qboolean small ) {
+	if ( champion < 0 || champion >= 32 ) {
+		return 0;
+	}
+	return cgs.media.portrait[champion][small ? 1 : 0];
+}

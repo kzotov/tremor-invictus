@@ -130,7 +130,7 @@ static void CG_ParseTeamInfo( void ) {
 	}
 
 	for ( i = 0 ; i < numSortedTeamPlayers ; i++ ) {
-		client = atoi( CG_Argv( i * 6 + 2 ) );
+		client = atoi( CG_Argv( i * 7 + 2 ) );
 		if( client < 0 || client >= MAX_CLIENTS )
 		{
 		  CG_Error( "CG_ParseTeamInfo: bad client number: %d", client );
@@ -139,11 +139,12 @@ static void CG_ParseTeamInfo( void ) {
 
 		sortedTeamPlayers[i] = client;
 
-		cgs.clientinfo[ client ].location = atoi( CG_Argv( i * 6 + 3 ) );
-		cgs.clientinfo[ client ].health = atoi( CG_Argv( i * 6 + 4 ) );
-		cgs.clientinfo[ client ].armor = atoi( CG_Argv( i * 6 + 5 ) );
-		cgs.clientinfo[ client ].curWeapon = atoi( CG_Argv( i * 6 + 6 ) );
-		cgs.clientinfo[ client ].powerups = atoi( CG_Argv( i * 6 + 7 ) );
+		cgs.clientinfo[ client ].location = atoi( CG_Argv( i * 7 + 3 ) );
+		cgs.clientinfo[ client ].health = atoi( CG_Argv( i * 7 + 4 ) );
+		cgs.clientinfo[ client ].armor = atoi( CG_Argv( i * 7 + 5 ) );
+		cgs.clientinfo[ client ].curWeapon = atoi( CG_Argv( i * 7 + 6 ) );
+		cgs.clientinfo[ client ].powerups = atoi( CG_Argv( i * 7 + 7 ) );
+		cgs.clientinfo[ client ].abilityStat = atoi( CG_Argv( i * 7 + 8 ) );
 	}
 }
 
@@ -1266,9 +1267,11 @@ static void CG_ServerCommand( void ) {
 			n = 0;
 		}
 		for ( j = 0; j < n; j++ ) {
-			cg.specAbilityClient[j] = atoi( CG_Argv( 2 + j * 3 ) );
-			cg.specAbilityStat[j] = atoi( CG_Argv( 3 + j * 3 ) );
-			cg.specAbilityRecharge[j] = atoi( CG_Argv( 4 + j * 3 ) );
+			cg.specAbilityClient[j] = atoi( CG_Argv( 2 + j * 5 ) );
+			cg.specAbilityStat[j] = atoi( CG_Argv( 3 + j * 5 ) );
+			cg.specAbilityRecharge[j] = atoi( CG_Argv( 4 + j * 5 ) );
+			cg.specHealth[j] = atoi( CG_Argv( 5 + j * 5 ) );
+			cg.specArmor[j] = atoi( CG_Argv( 6 + j * 5 ) );
 		}
 		cg.specAbilityCount = n;
 		cg.specAbilityTime = cg.time;

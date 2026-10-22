@@ -1627,9 +1627,25 @@ static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 
 			hcolor[0] = hcolor[1] = hcolor[2] = hcolor[3] = 1.0;
 
-			// the teammate's champion
-			if ( ci->modelIcon ) {
-				CG_DrawPic( x + TINYCHAR_WIDTH, y, TINYCHAR_HEIGHT, TINYCHAR_HEIGHT, ci->modelIcon );
+			// the teammate's champion, and a dot for its ability: green ready,
+			// blue in use, grey recharging
+			{
+				int			champ = BG_ChampionForModel( ci->modelName );
+				qhandle_t	pic = CG_ChampionPortrait( champ, qtrue );
+				vec4_t		dot;
+				int			state = ( ci->abilityStat & 0xffff ) >> ABILITY_STATE_SHIFT;
+
+				if ( pic || ci->modelIcon ) {
+					CG_DrawPic( x + TINYCHAR_WIDTH, y, TINYCHAR_HEIGHT, TINYCHAR_HEIGHT, pic ? pic : ci->modelIcon );
+				}
+				if ( state != ABILITY_IDLE ) {
+					dot[0] = 0.4f; dot[1] = 0.7f; dot[2] = 1; dot[3] = 1;
+				} else if ( ci->abilityStat & ABILITY_CHARGES_MASK ) {
+					dot[0] = 0.3f; dot[1] = 1; dot[2] = 0.3f; dot[3] = 1;
+				} else {
+					dot[0] = dot[1] = dot[2] = 0.4f; dot[3] = 1;
+				}
+				CG_FillRect( x + TINYCHAR_WIDTH + TINYCHAR_HEIGHT - 3, y + TINYCHAR_HEIGHT - 3, 3, 3, dot );
 			}
 			x += TINYCHAR_WIDTH * 2;
 
@@ -3216,6 +3232,15 @@ static void CG_DrawSpectatorAbilities( void ) {
 		x = 320 - ( ( cg.specAbilityCount > 8 ? 8 : cg.specAbilityCount ) * w ) / 2 + ( i % 8 ) * w;
 		y = 380 - ( i / 8 ) * 30;
 		CG_FillRect( x + 1, y, w - 2, 26, back );
+		{
+			qhandle_t	pic = CG_ChampionPortrait( BG_ChampionForModel( ci->modelName ), qtrue );
+
+			if ( pic ) {
+				CG_DrawPic( x + w - 26, y + 1, 24, 24, pic );
+			}
+			CG_DrawStringExt( x + w - 26 - 7 * TINYCHAR_WIDTH, y + 18, va( "%3i %3i", cg.specHealth[i], cg.specArmor[i] ),
+				colorWhite, qfalse, qfalse, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+		}
 		Q_strncpyz( name, ci->name, sizeof( name ) );
 		Q_CleanStr( name );
 		name[8] = 0;

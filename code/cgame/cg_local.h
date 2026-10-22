@@ -386,6 +386,7 @@ typedef struct {
 	animation_t		animations[MAX_TOTALANIMATIONS];
 
 	sfxHandle_t		sounds[MAX_CUSTOM_SOUNDS];
+	int				abilityStat;	// teammates: STAT_ABILITY from the team overlay
 } clientInfo_t;
 
 
@@ -694,12 +695,15 @@ typedef struct {
 	int			specAbilityStat[16];		// STAT_ABILITY
 	int			specAbilityRecharge[16];	// tenths of a second when received
 	int			specAbilityTime;			// cg.time it was received
+	int			specHealth[16], specArmor[16];
 
 	// the death screen ("deathinfo"): who killed us and how
 	int			deathTime;					// cg.time it arrived, 0 for none
 	int			deathKiller, deathMod, deathWeapon, deathHealth, deathArmor;
 	int			deathDealt, deathTaken, deathRespawn;	// respawn: msec after deathTime
 } cg_t;
+
+qhandle_t CG_ChampionPortrait( int champion, qboolean small );
 
 
 // all of the model, shader, and sound references that are
@@ -837,6 +841,7 @@ typedef struct {
 	qhandle_t	abilityClawModel;
 	qhandle_t	abilityRopeShader;
 	qhandle_t	abilityTrailShader;
+	qhandle_t	portrait[32][2];			// per champion, big and small (CG_ChampionPortrait)
 	qhandle_t	barrierShader;
 	qhandle_t	ringShader;
 	qhandle_t	droneModel;

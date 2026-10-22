@@ -14,6 +14,12 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
   gfx/abilities/orb_swirl.tga               the orb's swirling surface
   gfx/abilities/plasmatrail.tga             Plasma Trail ribbon
   gfx/abilities/hookrope.tga                the hook's twisted cable
+  gfx/champions-generated/<champion>.tga, _small.tga
+                                            portraits (128 and 32 px): a hex badge
+                                            in the class colour, a bust in the
+                                            champion's hue, the monogram; the game
+                                            prefers gfx/champions/<champion> (a
+                                            portrait pack), then the model's icon
   scripts/tremor-assets.shader              the shaders above
 All shapes are built here from lathes and boxes; textures from noise.
 """
@@ -253,6 +259,91 @@ def claw(out):
     texture(os.path.join(out, "gfx/abilities/hookrope.tga"), 64, 32, rope)
 
 
+# ---------------------------------------------------------------- portraits
+
+CHAMPIONS = [
+    ("ranger", "RG", "medium"), ("anarki", "AN", "light"), ("athena", "AT", "light"), ("nyx", "NX", "light"),
+    ("slash", "SL", "light"), ("bj", "BJ", "medium"), ("deathknight", "DK", "medium"), ("doomslayer", "DS", "medium"),
+    ("eisen", "EI", "medium"), ("galena", "GA", "medium"), ("strogg", "ST", "medium"), ("visor", "VI", "medium"),
+    ("clutch", "CL", "heavy"), ("keel", "KE", "heavy"), ("scalebearer", "SB", "heavy"), ("sorlag", "SO", "heavy"),
+    ("wrack", "WR", "medium"), ("sarge", "SA", "medium"), ("klesk", "KL", "light"), ("hunter", "HU", "light"),
+    ("xaero", "XA", "heavy"), ("raine", "RA", "light"), ("beastmaster", "BM", "heavy"), ("unumrey", "UN", "medium"),
+]
+
+CLASS_COLOURS = {"light": (0.30, 0.75, 0.95), "medium": (0.95, 0.75, 0.25), "heavy": (0.90, 0.25, 0.20)}
+
+# a 5 x 7 block font, rows top to bottom, for the monograms
+GLYPHS = {
+    "A": ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
+    "B": ["11110", "10001", "10001", "11110", "10001", "10001", "11110"],
+    "C": ["01111", "10000", "10000", "10000", "10000", "10000", "01111"],
+    "D": ["11110", "10001", "10001", "10001", "10001", "10001", "11110"],
+    "E": ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
+    "G": ["01111", "10000", "10000", "10011", "10001", "10001", "01111"],
+    "H": ["10001", "10001", "10001", "11111", "10001", "10001", "10001"],
+    "I": ["11111", "00100", "00100", "00100", "00100", "00100", "11111"],
+    "J": ["00111", "00010", "00010", "00010", "10010", "10010", "01100"],
+    "K": ["10001", "10010", "10100", "11000", "10100", "10010", "10001"],
+    "L": ["10000", "10000", "10000", "10000", "10000", "10000", "11111"],
+    "M": ["10001", "11011", "10101", "10101", "10001", "10001", "10001"],
+    "N": ["10001", "11001", "10101", "10011", "10001", "10001", "10001"],
+    "O": ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
+    "R": ["11110", "10001", "10001", "11110", "10100", "10010", "10001"],
+    "S": ["01111", "10000", "10000", "01110", "00001", "00001", "11110"],
+    "T": ["11111", "00100", "00100", "00100", "00100", "00100", "00100"],
+    "U": ["10001", "10001", "10001", "10001", "10001", "10001", "01110"],
+    "V": ["10001", "10001", "10001", "10001", "10001", "01010", "00100"],
+    "W": ["10001", "10001", "10001", "10101", "10101", "11011", "10001"],
+    "X": ["10001", "10001", "01010", "00100", "01010", "10001", "10001"],
+}
+
+
+def monogram(c, text, cx, cy, cell, colour):
+    """Block letters centred at (cx, cy), cell units per font pixel."""
+    w = len(text) * 6 * cell - cell
+    x0 = cx - w / 2
+    for k, ch in enumerate(text):
+        rows = GLYPHS.get(ch)
+        if not rows:
+            continue
+        for j, row in enumerate(rows):
+            for i, bit in enumerate(row):
+                if bit == "1":
+                    x = x0 + (k * 6 + i) * cell
+                    y = cy - 3.5 * cell + j * cell
+                    c.fill(polygon([(x, y), (x + cell, y), (x + cell, y + cell), (x, y + cell)]), colour)
+
+
+def hue(name):
+    h = sum(ord(ch) * (i + 7) for i, ch in enumerate(name)) % 360 / 360.0
+    i = int(h * 6)
+    f = h * 6 - i
+    q, t = 1 - f, f
+    r, g, b = [(1, t, 0), (q, 1, 0), (0, 1, t), (0, q, 1), (t, 0, 1), (1, 0, q)][i % 6]
+    return (0.35 + 0.5 * r, 0.35 + 0.5 * g, 0.35 + 0.5 * b)
+
+
+def portraits(out):
+    for name, mono, cls in CHAMPIONS:
+        frame = CLASS_COLOURS[cls]
+        for size, suffix in ((128, ""), (32, "_small")):
+            c = Canvas(size, size)
+            hexagon = regular(0.5, 0.5, 0.48, 6, 0)
+            c.fill(hexagon, frame)
+            c.fill(regular(0.5, 0.5, 0.42, 6, 0), INK)
+            if size >= 64:
+                # a bust: head and shoulders in the champion's hue
+                body = hue(name)
+                c.fill(circle(0.5, 0.3, 0.12), body)
+                c.fill(polygon([(0.26, 0.64), (0.32, 0.46), (0.68, 0.46), (0.74, 0.64)]), scale(body, 0.75))
+                monogram(c, mono, 0.5, 0.76, 0.018, SILVER)
+            else:
+                monogram(c, mono, 0.5, 0.5, 0.05, SILVER)
+            path = os.path.join(out, "gfx/champions-generated/%s%s.tga" % (name, suffix))
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            write_tga(path, size, size, c.px)
+
+
 SHADERS = """// tremor-invictus generated assets (misc/art/make-models.py)
 // Replaceable: a pack loaded later may define these names again.
 
@@ -353,6 +444,7 @@ def main():
     hourglass(src)
     orb(src)
     claw(src)
+    portraits(src)
     texture(os.path.join(src, "gfx/abilities/plasmatrail.tga"), 128, 64, trail, False)
     os.makedirs(os.path.join(src, "scripts"), exist_ok=True)
     with open(os.path.join(src, "scripts/tremor-assets.shader"), "w") as f:
