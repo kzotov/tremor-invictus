@@ -827,10 +827,21 @@ static void Settings_SetTab( int tab ) {
 	s_settings.rows = settingTabs[tab].rows;
 	s_settings.numRows = settingTabs[tab].numRows;
 
-	// tabs along the top
-	for ( i = 0; i < NUM_TABS; i++ ) {
-		Settings_InitText( &s_settings.tabs[i], ID_TAB + i, settingTabs[i].name, 320 + ( i - ( NUM_TABS - 1 ) / 2.0f ) * 88, 48, UI_CENTER );
-		s_settings.tabs[i].color = ( i == tab ) ? color_white : color_orange;
+	// tabs along the top: each as wide as its label (small proportional
+	// text is 0.75 of the full width), 8 apart, the row centred
+	{
+		float	widths[NUM_TABS], total = 0, tx;
+
+		for ( i = 0; i < NUM_TABS; i++ ) {
+			widths[i] = UI_ProportionalStringWidth( BG_String( settingTabs[i].name ) ) * 0.75f;
+			total += widths[i] + ( i ? 8 : 0 );
+		}
+		tx = 320 - total / 2;
+		for ( i = 0; i < NUM_TABS; i++ ) {
+			Settings_InitText( &s_settings.tabs[i], ID_TAB + i, settingTabs[i].name, tx + widths[i] / 2, 48, UI_CENTER );
+			s_settings.tabs[i].color = ( i == tab ) ? color_white : color_orange;
+			tx += widths[i] + 8;
+		}
 	}
 
 	// rows: one column, or two for long lists
