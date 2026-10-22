@@ -13,7 +13,7 @@
 			<button class="small" onclick="rml_hide; ui_servers">[menu_find_servers]</button>
 			<button class="small" onclick="rml_hide; ui_createServer">[menu_create_server]</button>
 		</div>
-		<button onclick="rml_hide; ui_champions">[menu_champions]</button>
+		<button onclick="ui_champions">[menu_champions]</button>
 		<button onclick="rml_hide; ui_colors">[menu_player_colors]</button>
 		<button onclick="rml_hide; ui_settings">[menu_settings]</button>
 		<button onclick="rml_hide; ui_demos">[menu_demos]</button>
@@ -23,6 +23,13 @@
 		[mm_searching] <span data-text-cvar="mm_elapsed">0:00</span>
 		<button class="small" onclick="mm_cancel">[mm_cancel]</button>
 	</div>
+	<div class="stage mainstage" data-stage="champion"></div>
+	<div class="maininfo">
+		<div class="chname" data-text-cvar="ui_chCurrentName"></div>
+		<div class="chclass" data-text-cvar="ui_chCurrentInfo"></div>
+		<button class="small" onclick="ui_champions">[ch_change]</button>
+	</div>
+	<div class="who" data-text-cvar="ui_playerName"></div>
 	<div class="footer">[menu_footer]</div>
 </body>
 </rml>

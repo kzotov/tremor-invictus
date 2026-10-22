@@ -516,3 +516,271 @@ void UI_ChampionMenu( void ) {
 	// start on the current champion (pushing moves the cursor to the top)
 	Menu_SetCursorToItem( &s_champion.menu, &s_champion.cells[s_champion.shown] );
 }
+
+/*
+===============================================================================
+
+The Champions screen in RmlUi (ui/champions.rml)
+
+The document shows cvars this module fills: ui_chShown is the champion on
+view (the stage draws it), ui_ch* its details. Commands from the document:
+ui_champPreview <name>, ui_champWeapon <mg|sg|ng>, ui_champSelect.
+
+===============================================================================
+*/
+
+#define SELECTED_MSEC	900		// "Selected" shows this long before the menu goes back
+
+static int	selectedTime;		// uis.realtime of the last Select, 0 when none pending
+
+/*
+=================
+Champion_Locked
+
+Connected to a match that fixes champions: a duel after its countdown, or
+a round duel (picked in its draft)
+=================
+*/
+static qboolean Champion_Locked( void ) {
+	char	info[MAX_INFO_STRING], warmup[32];
+
+	if ( !UI_Cvar_VariableString( "cl_currentServerAddress" )[0] && !trap_Cvar_VariableValue( "sv_running" ) ) {
+		return qfalse;
+	}
+	trap_GetConfigString( CS_SERVERINFO, info, sizeof( info ) );
+	trap_GetConfigString( CS_WARMUP, warmup, sizeof( warmup ) );
+	if ( atoi( Info_ValueForKey( info, "g_roundDuel" ) ) ) {
+		return qtrue;
+	}
+	return atoi( Info_ValueForKey( info, "g_gametype" ) ) == GT_TOURNAMENT && !warmup[0];
+}
+
+static void Champion_SetText( const char *cvar, const char *text ) {
+	char	value[256];
+
+	Q_strncpyz( value, text, sizeof( value ) );
+	trap_Cvar_Set( cvar, value );
+}
+
+/*
+=================
+Champion_Publish
+
+The details of champion i for the document
+=================
+*/
+static void Champion_Publish( int i ) {
+	const champion_t	*c = &bg_championList[i];
+	const classInfo_t	*ci = &bg_classInfo[c->bodyClass];
+	char				text[256], weapon[16];
+	int					bit, charges, recharge;
+
+	trap_Cvar_Register( NULL, Champion_WeaponCvar( i ), "mg", CVAR_ARCHIVE );
+	trap_Cvar_VariableStringBuffer( Champion_WeaponCvar( i ), weapon, sizeof( weapon ) );
+
+	trap_Cvar_Set( "ui_chShown", c->name );
+	trap_Cvar_Set( "ui_chWeapon", weapon );
+	Champion_SetText( "ui_chName", BG_String( c->nameString ) );
+	Champion_SetText( "ui_chClass", BG_String( STR_CLASS_LIGHT + c->bodyClass ) );
+	Champion_SetText( "ui_chHealth", va( (char *)BG_String( STR_CH_STATS ), 100, 100 + ci->maxHealthBonus ) );
+	Champion_SetText( "ui_chArmor", va( (char *)BG_String( STR_CH_STATS ), ci->baseArmor, ci->maxArmor ) );
+	Champion_SetText( "ui_chSpeed", va( "%i", c->runSpeed ) );
+	Champion_MovementText( c, text, sizeof( text ) );
+	Champion_SetText( "ui_chMove", text );
+
+	text[0] = 0;
+	if ( c->active > ACTIVE_NONE && c->active < ACTIVE_NUM_ABILITIES ) {
+		charges = Champion_AbilityNumber( c->active, AP_CHARGES, "charges" );
+		recharge = Champion_AbilityNumber( c->active, AP_RECHARGE, "recharge" ) / 1000;
+		if ( charges > 1 ) {
+			Com_sprintf( text, sizeof( text ), BG_String( STR_CH_EVERY ), charges, recharge );
+		} else {
+			Com_sprintf( text, sizeof( text ), BG_String( STR_CH_EVERY1 ), recharge );
+		}
+		Champion_SetText( "ui_chAbility", BG_String( bg_abilityInfo[c->active].nameString ) );
+		Champion_SetText( "ui_chAbilityDesc", BG_String( STR_ABILDESC_HOOK + c->active - ACTIVE_HOOK ) );
+	} else {
+		trap_Cvar_Set( "ui_chAbility", "" );
+		trap_Cvar_Set( "ui_chAbilityDesc", "" );
+	}
+	trap_Cvar_Set( "ui_chAbilityEvery", text );
+
+	trap_Cvar_Set( "ui_chPassive", "" );
+	for ( bit = 0; bit < NUM_PASSIVES; bit++ ) {
+		if ( c->passives & ( 1 << bit ) ) {
+			Champion_SetText( "ui_chPassive", BG_String( STR_PASSIVE_REGENERATION + bit ) );
+			break;
+		}
+	}
+	if ( i < STR_BIO_UNUMREY - STR_BIO_RANGER + 1 ) {
+		Champion_SetText( "ui_chBio", BG_String( STR_BIO_RANGER + i ) );
+	} else {
+		trap_Cvar_Set( "ui_chBio", "" );
+	}
+}
+
+/*
+=================
+UI_Champion_PublishCurrent
+
+The selected champion's name and ability for the main menu
+=================
+*/
+void UI_Champion_PublishCurrent( void ) {
+	char	name[MAX_QPATH];
+	int		i;
+
+	trap_Cvar_Register( NULL, "champion", DEFAULT_CHAMPION, CVAR_USERINFO | CVAR_ARCHIVE );
+	trap_Cvar_VariableStringBuffer( "champion", name, sizeof( name ) );
+	i = BG_ChampionForName( name );
+	if ( i < 0 ) {
+		i = 0;
+		trap_Cvar_Set( "champion", bg_championList[0].name );
+	}
+	trap_Cvar_VariableStringBuffer( "name", name, sizeof( name ) );
+	Q_CleanStr( name );
+	trap_Cvar_Set( "ui_playerName", name );
+	Champion_SetText( "ui_chCurrentName", BG_String( bg_championList[i].nameString ) );
+	Champion_SetText( "ui_chCurrentInfo", va( "%s  -  %s", BG_String( STR_CLASS_LIGHT + bg_championList[i].bodyClass ),
+		bg_championList[i].active > ACTIVE_NONE ? BG_String( bg_abilityInfo[bg_championList[i].active].nameString ) : "" ) );
+}
+
+/*
+=================
+UI_ChampionsRml
+
+Opens the RmlUi Champions screen on the selected champion
+=================
+*/
+void UI_ChampionsRml( void ) {
+	char	name[MAX_QPATH];
+	int		i;
+
+	UI_Champion_PublishCurrent();
+	trap_Cvar_VariableStringBuffer( "champion", name, sizeof( name ) );
+	i = BG_ChampionForName( name );
+	Champion_Publish( i >= 0 ? i : 0 );
+	trap_Cvar_Set( "ui_chFlash", "0" );
+	trap_Cvar_Set( "ui_chLocked", Champion_Locked() ? "1" : "0" );
+	selectedTime = 0;
+	trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/champions.rml\n" );
+}
+
+/*
+=================
+UI_ChampionCommand
+
+The document's commands; qtrue when cmd was one of them
+=================
+*/
+qboolean UI_ChampionCommand( const char *cmd ) {
+	char	name[MAX_QPATH];
+	int		i;
+
+	if ( !Q_stricmp( cmd, "ui_champPreview" ) ) {
+		i = BG_ChampionForName( UI_Argv( 1 ) );
+		if ( i >= 0 ) {
+			Champion_Publish( i );
+		}
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_champWeapon" ) ) {
+		trap_Cvar_VariableStringBuffer( "ui_chShown", name, sizeof( name ) );
+		i = BG_ChampionForName( name );
+		if ( i >= 0 ) {
+			trap_Cvar_Set( Champion_WeaponCvar( i ), UI_Argv( 1 ) );
+			trap_Cvar_Set( "ui_chWeapon", UI_Argv( 1 ) );
+		}
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_champSelect" ) ) {
+		if ( Champion_Locked() ) {
+			trap_Cvar_Set( "ui_chLocked", "1" );
+			return qtrue;
+		}
+		trap_Cvar_VariableStringBuffer( "ui_chShown", name, sizeof( name ) );
+		i = BG_ChampionForName( name );
+		if ( i < 0 ) {
+			return qtrue;
+		}
+		trap_Cvar_Set( "cg_startWeapon", UI_Cvar_VariableString( Champion_WeaponCvar( i ) ) );
+		trap_Cvar_Set( "champion", bg_championList[i].name );	// a userinfo cvar: a connected server hears at once
+		UI_Champion_PublishCurrent();
+		trap_Cvar_Set( "ui_chFlash", "1" );
+		trap_S_StartLocalSound( menu_in_sound, CHAN_LOCAL_SOUND );
+		selectedTime = uis.realtime ? uis.realtime : 1;
+		return qtrue;
+	}
+	return qfalse;
+}
+
+/*
+=================
+UI_Champion_Frame
+
+After Select has shown "Selected": back to the main menu, or into the game
+=================
+*/
+void UI_Champion_Frame( void ) {
+	if ( !selectedTime || uis.realtime - selectedTime < SELECTED_MSEC ) {
+		return;
+	}
+	selectedTime = 0;
+	trap_Cvar_Set( "ui_chFlash", "0" );
+	if ( trap_Cvar_VariableValue( "sv_running" ) || UI_Cvar_VariableString( "cl_currentServerAddress" )[0] ) {
+		trap_Cmd_ExecuteText( EXEC_NOW, "rml_hide\n" );
+		UI_ForceMenuOff();
+	} else {
+		trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/main.rml\n" );
+	}
+}
+
+/*
+=================
+UI_DrawRmlStage
+
+The champion into the box the RmlUi document reserved for it
+=================
+*/
+void UI_DrawRmlStage( void ) {
+	static uiStage_t	stage;
+	static qboolean		started;
+	char				box[128], cvar[64], name[MAX_QPATH], *p;
+	float				x, y, w, h;
+	int					i;
+
+	if ( !started ) {
+		memset( &stage, 0, sizeof( stage ) );
+		stage.champion = stage.oldChampion = -1;
+		started = qtrue;
+	}
+
+	if ( !trap_Cvar_VariableValue( "rml_active" ) ) {
+		return;
+	}
+	trap_Cvar_VariableStringBuffer( "rml_stage", box, sizeof( box ) );
+	if ( !box[0] ) {
+		return;
+	}
+	p = box;
+	x = atof( COM_Parse( &p ) );
+	y = atof( COM_Parse( &p ) );
+	w = atof( COM_Parse( &p ) );
+	h = atof( COM_Parse( &p ) );
+	if ( w <= 0 || h <= 0 ) {
+		return;
+	}
+	// screen pixels to the 640x480 frame the drawing code adjusts from
+	x = ( x - uis.bias ) / uis.xscale;
+	y /= uis.yscale;
+	w /= uis.xscale;
+	h /= uis.yscale;
+	trap_Cvar_VariableStringBuffer( "rml_stageCvar", cvar, sizeof( cvar ) );
+	trap_Cvar_VariableStringBuffer( cvar[0] ? cvar : "champion", name, sizeof( name ) );
+	i = BG_ChampionForName( name );
+	if ( i < 0 ) {
+		i = 0;
+	}
+	UI_Stage_Draw( &stage, x, y, w, h, i, UI_StartWeapon( UI_Cvar_VariableString( Champion_WeaponCvar( i ) ) ),
+		trap_Cvar_VariableValue( "rml_stageYaw" ) );
+}

@@ -1688,6 +1688,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"PLT",
 	"EXT",
 	"RND",
+	"Next spawn: %s",
 	"ACCURACY",
 	"%s called a timeout",
 	"Timeout over",

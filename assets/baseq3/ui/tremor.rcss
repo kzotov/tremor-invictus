@@ -382,3 +382,214 @@ button.small {
 	padding: 4dp 10dp;
 	margin-left: 10dp;
 }
+
+/* the champion stage: an empty box the menu module draws the champion into */
+.stage {
+	position: absolute;
+	cursor: move;
+}
+
+.mainstage {
+	right: 6%;
+	top: 12%;
+	width: 34%;
+	height: 62%;
+}
+
+.maininfo {
+	position: absolute;
+	right: 6%;
+	top: 75%;
+	width: 34%;
+	text-align: center;
+}
+
+.chname {
+	display: block;
+	font-family: "Arial Black";
+	font-size: 48dp;
+	color: #f2efe9;
+}
+
+.chclass {
+	display: block;
+	font-size: 26dp;
+	color: #8a8780;
+	margin-bottom: 6dp;
+}
+
+.maininfo button {
+	display: inline-block;
+	font-size: 30dp;
+	padding-left: 0dp;
+}
+
+.who {
+	position: absolute;
+	right: 40dp;
+	top: 30dp;
+	font-size: 30dp;
+	color: #f2efe9;
+}
+
+/* the Champions screen: portraits left, the stage in the middle, details right */
+.champs {
+	position: absolute;
+	left: 3%;
+	top: 4%;
+	width: 36%;
+}
+
+.champs h1 {
+	display: block;
+	font-family: "Arial Black";
+	font-size: 50dp;
+	color: #f2efe9;
+	margin-bottom: 14dp;
+}
+
+.champs .cell {
+	display: inline-block;
+	position: relative;
+	width: 18%;
+	margin: 0 1% 1% 0;
+	background-color: #16171bf0;
+	border: 3dp #26272c;
+	cursor: pointer;
+}
+
+.champs .cell:hover {
+	border-color: #8a8780;
+}
+
+.champs .cell.shown {
+	border-color: #d3191f;
+}
+
+.champs .cell img {
+	display: block;
+	width: 100%;
+	height: 110dp;
+}
+
+.champs .cname {
+	display: block;
+	font-size: 18dp;
+	color: #c8c4bc;
+	text-align: center;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.champs .mark {
+	position: absolute;
+	right: 4dp;
+	top: 4dp;
+	width: 16dp;
+	height: 16dp;
+	background-color: #d3191f;
+}
+
+.champs .bio {
+	display: block;
+	margin-top: 14dp;
+	font-size: 22dp;
+	color: #8a8780;
+}
+
+.champstage {
+	left: 40%;
+	top: 8%;
+	width: 28%;
+	height: 72%;
+}
+
+.chinfo {
+	position: absolute;
+	left: 69%;
+	top: 8%;
+	width: 28%;
+	font-size: 24dp;
+	color: #e8e4dc;
+}
+
+.chinfo .chname {
+	font-size: 56dp;
+}
+
+.chinfo .stat {
+	display: block;
+	margin-top: 6dp;
+}
+
+.chinfo .label, .chinfo .aname {
+	color: #8a8780;
+	margin-right: 10dp;
+}
+
+.chinfo .aname {
+	font-family: "Arial Black";
+	color: #d3191f;
+}
+
+.chinfo .ability {
+	display: block;
+	margin-top: 16dp;
+}
+
+.chinfo .weapon {
+	display: block;
+	margin-top: 20dp;
+}
+
+.chinfo .weapon button {
+	display: inline-block;
+	font-size: 24dp;
+	color: #8a8780;
+	padding: 4dp 10dp;
+	margin-right: 6dp;
+	border-left-width: 0dp;
+	background-color: #16171bf0;
+}
+
+.chinfo .weapon button.on {
+	color: #f2efe9;
+	background-color: #d3191f;
+}
+
+.chactions {
+	position: absolute;
+	left: 40%;
+	bottom: 6%;
+	width: 57%;
+}
+
+.chactions button {
+	display: inline-block;
+	margin-right: 60dp;
+}
+
+.chactions .select {
+	font-size: 60dp;
+	color: #f2efe9;
+}
+
+.chactions .selected, .chactions .locked {
+	display: inline-block;
+	font-family: "Arial Black";
+	font-size: 50dp;
+	color: #d3191f;
+}
+
+.chactions .locked {
+	font-size: 30dp;
+	color: #8a8780;
+}
+
+.chactions .tick {
+	display: inline-block;
+	width: 30dp;
+	height: 30dp;
+	margin-right: 14dp;
+	background-color: #d3191f;
+}

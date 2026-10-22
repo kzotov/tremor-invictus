@@ -32,6 +32,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <RmlUi/Core.h>
 
 #include <cctype>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -50,6 +51,12 @@ Rml::Context	*context;
 Rml::ElementDocument	*document;
 Rml::String		documentPath;
 int				screenWidth, screenHeight;
+
+// the champion stage (see UpdateStage)
+Rml::Element	*stageElement;
+bool			stageDragging;
+float			stageYaw;
+int				stageRelease, stageLastFrame;
 float			cursorX, cursorY;
 int				cursorShader;
 int				whiteShader;
@@ -615,6 +622,7 @@ extern "C" void RML_Show( const char *path ) {
 	if ( document && documentPath == path && document->IsVisible() ) {
 		return;
 	}
+	stageElement = nullptr;
 	if ( document ) {
 		document->Close();
 		document = nullptr;
@@ -637,6 +645,9 @@ extern "C" void RML_Hide( void ) {
 	if ( document ) {
 		document->Hide();
 	}
+	stageElement = nullptr;
+	stageDragging = false;
+	imp.SetCvar( "rml_stage", "" );
 	imp.SetCvar( "rml_active", "0" );
 }
 
@@ -669,6 +680,57 @@ extern "C" void RML_Toggle( const char *id, const char *className ) {
 	}
 }
 
+/*
+=================
+The champion stage
+
+An element with data-stage="<cvar>" only reserves a box: the menu module
+draws the champion named by that cvar into it, before the document. Its box
+goes out as rml_stage ("x y w h" in screen pixels, empty when there is
+none), the cvar's name as rml_stageCvar, and the drag turn as rml_stageYaw.
+=================
+*/
+
+Rml::Element *FindStage( Rml::Element *element ) {
+	for ( int i = 0 ; i < element->GetNumChildren() ; i++ ) {
+		Rml::Element	*child = element->GetChild( i );
+
+		if ( child->GetAttribute( "data-stage" ) ) {
+			return child;
+		}
+		if ( Rml::Element *found = FindStage( child ) ) {
+			return found;
+		}
+	}
+	return nullptr;
+}
+
+void UpdateStage( void ) {
+	int		now = imp.Milliseconds();
+	char	text[128];
+
+	stageElement = FindStage( document );
+	if ( !stageElement || !stageElement->IsVisible( true ) ) {
+		stageElement = nullptr;
+		imp.SetCvar( "rml_stage", "" );
+		return;
+	}
+	// back toward the front 3 s after the mouse lets go
+	if ( !stageDragging && now - stageRelease > 3000 ) {
+		stageYaw *= expf( -( now - stageLastFrame ) / 250.0f );
+	}
+	stageLastFrame = now;
+
+	Rml::Vector2f	pos = stageElement->GetAbsoluteOffset( Rml::BoxArea::Border );
+	Rml::Vector2f	size = stageElement->GetBox().GetSize( Rml::BoxArea::Border );
+
+	snprintf( text, sizeof( text ), "%.0f %.0f %.0f %.0f", pos.x, pos.y, size.x, size.y );
+	imp.SetCvar( "rml_stage", text );
+	imp.SetCvar( "rml_stageCvar", stageElement->GetAttribute<Rml::String>( "data-stage", "" ).c_str() );
+	snprintf( text, sizeof( text ), "%.1f", stageYaw );
+	imp.SetCvar( "rml_stageYaw", text );
+}
+
 extern "C" void RML_Frame( void ) {
 	static const float	white[4] = { 1, 1, 1, 1 };
 	float	size;
@@ -677,6 +739,7 @@ extern "C" void RML_Frame( void ) {
 		return;
 	}
 	ApplyConditions( document );		// cvars may have changed since the last frame
+	UpdateStage();
 	context->Update();
 	context->Render();
 	imp.SetScissor2D( 0, 0, 0, 0 );
@@ -698,6 +761,18 @@ extern "C" int RML_KeyEvent( int key, int down ) {
 	// a mouse-only document (data-mouse-only) leaves the keys to the game
 	if ( document->GetAttribute( "data-mouse-only" ) && !( key >= K_MOUSE1 && key <= K_MWHEELUP ) ) {
 		return 0;
+	}
+	if ( key == K_MOUSE1 ) {
+		// dragging on the stage turns the champion
+		Rml::Element	*hover = context->GetHoverElement();
+
+		if ( down && stageElement && hover && ( hover == stageElement || hover->IsPointWithinElement( Rml::Vector2f( cursorX, cursorY ) ) )
+			&& stageElement->IsPointWithinElement( Rml::Vector2f( cursorX, cursorY ) ) ) {
+			stageDragging = true;
+		} else if ( !down && stageDragging ) {
+			stageDragging = false;
+			stageRelease = imp.Milliseconds();
+		}
 	}
 	if ( key >= K_MOUSE1 && key <= K_MOUSE1 + 2 ) {
 		if ( down ) {
@@ -742,6 +817,9 @@ extern "C" void RML_MouseMove( int dx, int dy ) {
 	}
 	cursorX += dx;
 	cursorY += dy;
+	if ( stageDragging ) {
+		stageYaw += dx * 0.4f;
+	}
 	if ( cursorX < 0 ) cursorX = 0;
 	if ( cursorY < 0 ) cursorY = 0;
 	if ( cursorX > screenWidth - 1 ) cursorX = screenWidth - 1;

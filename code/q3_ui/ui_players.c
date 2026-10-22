@@ -711,6 +711,78 @@ float	UI_MachinegunSpinAngle( playerInfo_t *pi ) {
 UI_DrawPlayer
 ===============
 */
+#define STAGE_HALF_HEIGHT	64		// units from the box centre to its top or bottom
+#define STAGE_FEET			-26		// the pillar's top, below the box centre
+#define STAGE_PILLAR_RADIUS	22
+
+/*
+===============
+UI_AddStagePillar
+
+A hexagonal column under the champion, its top at `top`, `dist` in front of
+the camera, with the lineup pillars' textures
+===============
+*/
+static void UI_AddStagePillar( float dist, float top, float flash ) {
+	static qhandle_t	side, cap;
+	polyVert_t	v[4];
+	vec3_t		corner[6];
+	float		bottom = -STAGE_HALF_HEIGHT * 1.2f;	// just past the box's bottom edge
+	byte		glow[3];
+	int			i, j, k;
+
+	if ( !side ) {
+		side = trap_R_RegisterShaderNoMip( "tremor/pillar/side" );
+		cap = trap_R_RegisterShaderNoMip( "tremor/pillar/cap" );
+	}
+	glow[0] = 211;
+	glow[1] = 25 + 120 * flash;
+	glow[2] = 31 + 120 * flash;
+	for ( i = 0 ; i < 6 ; i++ ) {
+		float	a = DEG2RAD( 30 + i * 60 );
+
+		VectorSet( corner[i], dist + cos( a ) * STAGE_PILLAR_RADIUS, sin( a ) * STAGE_PILLAR_RADIUS, top );
+	}
+	for ( k = 0 ; k < 4 ; k++ ) {
+		VectorCopy( glow, v[k].modulate );
+		v[k].modulate[3] = 255;
+	}
+	// sides, v running down from the top
+	for ( i = 0 ; i < 6 ; i++ ) {
+		j = ( i + 1 ) % 6;
+		VectorCopy( corner[i], v[0].xyz );
+		VectorCopy( corner[j], v[1].xyz );
+		VectorCopy( corner[j], v[2].xyz );
+		VectorCopy( corner[i], v[3].xyz );
+		v[0].xyz[2] = v[1].xyz[2] = bottom;
+		v[0].st[0] = 0; v[0].st[1] = ( top - bottom ) / 128;
+		v[1].st[0] = 1; v[1].st[1] = ( top - bottom ) / 128;
+		v[2].st[0] = 1; v[2].st[1] = 0;
+		v[3].st[0] = 0; v[3].st[1] = 0;
+		trap_R_AddPolyToScene( side, 4, v );
+	}
+	// the cap in two quads
+	for ( i = 0 ; i < 6 ; i += 3 ) {
+		for ( k = 0 ; k < 4 ; k++ ) {
+			VectorCopy( corner[( i + k ) % 6], v[3 - k].xyz );
+			v[3 - k].st[0] = ( v[3 - k].xyz[0] - dist ) / 48 + 0.5f;
+			v[3 - k].st[1] = v[3 - k].xyz[1] / 48 + 0.5f;
+		}
+		trap_R_AddPolyToScene( cap, 4, v );
+	}
+}
+
+/*
+===============
+UI_PlayerInfo_Gesture
+===============
+*/
+void UI_PlayerInfo_Gesture( playerInfo_t *pi ) {
+	if ( ( pi->torsoAnim & ~ANIM_TOGGLEBIT ) == TORSO_STAND && pi->torsoAnimationTimer <= 0 ) {
+		UI_ForceTorsoAnim( pi, TORSO_GESTURE );
+	}
+}
+
 void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int time ) {
 	refdef_t		refdef;
 	refEntity_t		legs = {0};
@@ -771,9 +843,21 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 	origin[1] = 0.5 * ( mins[1] + maxs[1] );
 	origin[2] = -0.5 * ( mins[2] + maxs[2] );
 
+	// on the stage the camera is fitted to the height: the model and the
+	// top of its pillar fill the box the same way for every champion
+	if ( pi->onPillar ) {
+		origin[0] = STAGE_HALF_HEIGHT / tan( DEG2RAD( refdef.fov_y ) * 0.5 );
+		origin[2] = STAGE_FEET - mins[2];
+	}
+
 	refdef.time = dp_realtime;
 
 	trap_R_ClearScene();
+
+	if ( pi->onPillar ) {
+		UI_AddStagePillar( origin[0], STAGE_FEET, pi->flash );
+		origin[2] += pi->rise;
+	}
 
 	// get the rotation information
 	UI_PlayerAngles( pi, legs.axis, torso.axis, head.axis );
@@ -907,6 +991,23 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 	//
 	if ( pi->chat ) {
 		UI_PlayerFloatSprite( pi, origin, trap_R_RegisterShaderNoMip( "sprites/balloon3" ) );
+	}
+
+	if ( pi->onPillar ) {
+		vec3_t	light;
+
+		// a key light from above in front, a rim light from above behind,
+		// and the arrival flash
+		VectorSet( light, origin[0] - 120, 40, 140 );
+		trap_R_AddLightToScene( light, 400, 1.0f, 0.95f, 0.9f );
+		VectorSet( light, origin[0] + 70, 0, 120 );
+		trap_R_AddLightToScene( light, 300, 1.0f, 0.35f, 0.3f );
+		if ( pi->flash > 0 ) {
+			VectorSet( light, origin[0] - 40, 0, STAGE_FEET + 20 );
+			trap_R_AddLightToScene( light, 300 * pi->flash, 1.0f, 0.8f, 0.7f );
+		}
+		trap_R_RenderScene( &refdef );
+		return;
 	}
 
 	//

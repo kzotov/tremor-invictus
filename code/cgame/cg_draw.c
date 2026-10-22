@@ -3239,6 +3239,32 @@ static void CG_DrawSpectatorAbilities( void ) {
 	}
 }
 
+/*
+=================
+CG_DrawNextSpawn
+
+"Next spawn: <champion>" while the champion picked in the menu waits for a
+respawn (not where champions are fixed for the match)
+=================
+*/
+static void CG_DrawNextSpawn( void ) {
+	char		name[MAX_QPATH];
+	const char	*info = CG_ConfigString( CS_SERVERINFO );
+	int			picked, current = cg.snap->ps.stats[STAT_CHAMPION];
+	vec4_t		color = { 1, 1, 1, 0.8f };
+
+	if ( atoi( Info_ValueForKey( info, "g_roundDuel" ) ) || ( cgs.gametype == GT_TOURNAMENT && !cg.warmup ) ) {
+		return;
+	}
+	trap_Cvar_VariableStringBuffer( "champion", name, sizeof( name ) );
+	picked = BG_ChampionForName( name );
+	if ( picked < 0 || picked == current ) {
+		return;
+	}
+	Com_sprintf( name, sizeof( name ), BG_String( STR_HUD_NEXT_SPAWN ), BG_String( BG_Champion( picked )->nameString ) );
+	CG_DrawSmallStringColor( 320 - CG_DrawStrlen( name ) * SMALLCHAR_WIDTH / 2, 360, name, color );
+}
+
 static void CG_DrawSpectator(void) {
 	// the ability strip only in free camera; following shows that player's HUD
 	if ( !( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
@@ -4296,6 +4322,10 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 		CG_DrawWorldItemTimers();
 #endif
 	} else {
+		if ( !cg.showScores && !( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
+			CG_DrawNextSpawn();
+		}
+
 		// don't draw any status if dead or the scoreboard is being explicitly shown
 		if ( !cg.showScores && cg.snap->ps.stats[STAT_HEALTH] > 0 ) {
 

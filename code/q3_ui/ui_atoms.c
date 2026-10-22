@@ -1082,7 +1082,15 @@ qboolean UI_ConsoleCommand( int realTime ) {
 	}
 
 	if ( Q_stricmp (cmd, "ui_champions") == 0 ) {
-		UI_ChampionMenu();
+		if ( trap_Cvar_VariableValue( "rml_ok" ) ) {
+			UI_ChampionsRml();
+		} else {
+			UI_ChampionMenu();
+		}
+		return qtrue;
+	}
+
+	if ( UI_ChampionCommand( cmd ) ) {
 		return qtrue;
 	}
 
@@ -1329,6 +1337,10 @@ void UI_Refresh( int realtime )
 			uis.activemenu->draw();
 		else
 			Menu_Draw( uis.activemenu );
+
+		// the champion stage an RmlUi document reserved, under the document
+		UI_DrawRmlStage();
+		UI_Champion_Frame();
 
 		if( uis.firstdraw ) {
 			UI_MouseEvent( 0, 0 );

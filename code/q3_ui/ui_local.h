@@ -336,6 +336,11 @@ extern void UI_InGameMenu(void);
 //
 extern void Champion_Cache( void );
 extern void UI_ChampionMenu( void );
+void UI_ChampionsRml( void );
+qboolean UI_ChampionCommand( const char *cmd );
+void UI_Champion_Frame( void );
+void UI_Champion_PublishCurrent( void );
+void UI_DrawRmlStage( void );
 extern void UI_PlayMenu( void );
 
 //
@@ -557,7 +562,26 @@ typedef struct {
 	int				barrelTime;
 
 	int				realWeapon;
+	// the champion stage: standing on a pillar, framed by height
+	qboolean		onPillar;
+	float			rise;			// units above (+) or into (-) the pillar
+	float			flash;			// 0-1, a light burst as a champion arrives
 } playerInfo_t;
+
+//
+// ui_stage.c
+//
+typedef struct {
+	playerInfo_t	pi, old;
+	int				champion, oldChampion;	// -1: none
+	weapon_t		weapon;
+	int				swapTime;
+	int				nextGesture;
+} uiStage_t;
+
+void UI_Stage_Draw( uiStage_t *st, float x, float y, float w, float h, int champion, weapon_t weapon, float yaw );
+weapon_t UI_StartWeapon( const char *code );
+void UI_PlayerInfo_Gesture( playerInfo_t *pi );
 
 void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int time );
 void UI_PlayerInfo_SetModel( playerInfo_t *pi, const char *model );

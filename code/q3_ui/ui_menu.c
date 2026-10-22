@@ -158,6 +158,7 @@ static void Main_MenuDraw( void ) {
 		// the RmlUi main menu draws over our background; show it again
 		// whenever this menu comes back to the top
 		if ( !trap_Cvar_VariableValue( "rml_active" ) ) {
+			UI_Champion_PublishCurrent();
 			trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/main.rml\n" );
 		}
 		return;

@@ -113,6 +113,7 @@ set(UI_SOURCES
     ${SOURCE_DIR}/q3_ui/ui_options.c
     ${SOURCE_DIR}/q3_ui/ui_playermodel.c
     ${SOURCE_DIR}/q3_ui/ui_players.c
+    ${SOURCE_DIR}/q3_ui/ui_stage.c
     ${SOURCE_DIR}/q3_ui/ui_playersettings.c
     ${SOURCE_DIR}/q3_ui/ui_preferences.c
     ${SOURCE_DIR}/q3_ui/ui_qmenu.c
