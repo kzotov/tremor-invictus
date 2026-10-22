@@ -77,7 +77,7 @@ static const hudElement_t	hudDefaults[] = {
 	{ "weaponbar",		ANCHOR_RIGHT,	qtrue,	198, 274, 1 },	// slot 1's top; slots go up 70 apart
 	{ "clock",			ANCHOR_CENTER,	qfalse,	0, 35, 1 },		// top
 	{ "clockline",		ANCHOR_CENTER,	qfalse,	0, 92, 1 },		// top
-	{ "killfeed",		ANCHOR_LEFT,	qfalse,	50, 150, 1 },
+	{ "killfeed",		ANCHOR_LEFT,	qfalse,	44, 267, 1 },		// first row's top
 	{ "pickups",		ANCHOR_RIGHT,	qfalse,	50, 150, 1 },
 	{ "medals",			ANCHOR_CENTER,	qfalse,	0, 234, 1 },		// the medal's top
 	{ "fragline",		ANCHOR_CENTER,	qfalse,	0, 412, 1 },
@@ -674,6 +674,8 @@ typedef struct {
 	int		killerTeam, victimTeam;
 	qboolean	quad;				// the killer had Quad Damage
 	int		time;
+	float	rowY, fromY;			// modern: where the row is drawn, and where it slides from
+	int		moveTime;				// when it started sliding, 0 when placed
 } killFeed_t;
 
 static killFeed_t	killFeed[KILLFEED_QUEUE];
@@ -737,6 +739,133 @@ static void CG_KillFeedName( int x, int y, const char *name, int team, const vec
 	}
 }
 
+/*
+=================
+CG_DrawKillFeedModern
+
+hud.md 9.3: from the killfeed place (44, 267) down, 23 dp text, the
+newest row at the bottom; each row fades in 0.29 s, holds 4.0 s and fades
+out 0.34 s, and rows slide 0.34 s when the list moves. Names are cut at
+160 dp; team modes show the real red and blue.
+=================
+*/
+static const char *CG_CapName( const char *name, float size, float maxDp );
+
+#define KF_IN		290
+#define KF_HOLD		4000
+#define KF_OUT		340
+#define KF_SLIDE	340
+
+static void CG_KillFeedNameModern( float x, float y, const char *name, int team, const vec4_t fade, float cw, float ch ) {
+	vec4_t	c;
+
+	Vector4Copy( fade, c );
+	if ( cgs.gametype >= GT_TEAM && ( team == TEAM_RED || team == TEAM_BLUE ) ) {
+		CG_TeamPalette( team, c );
+		c[3] = fade[3];
+		CG_DrawStringExt( x, y, name, c, qtrue, qtrue, cw, ch, 0 );
+	} else {
+		CG_DrawStringExt( x, y, name, c, qfalse, qtrue, cw, ch, 0 );
+	}
+}
+
+static void CG_DrawKillFeedModern( int rows ) {
+	static qhandle_t	skull;
+	killFeed_t	*k, *shown[5];
+	int			i, n = 0, life = KF_IN + KF_HOLD + KF_OUT, me = cg.snap->ps.clientNum, t;
+	float		fx, fy, ch = 23 * DP, cw = ch * 0.6f, icon = 28 * DP, pitch = 34 * DP, x, w, y;
+	vec4_t		fade = { 1, 1, 1, 1 }, band;
+	const char	*killer, *victim;
+
+	if ( !skull ) {
+		skull = trap_R_RegisterShaderNoMip( "gfx/tremor/skull.tga" );
+	}
+	CG_HudPlace( "killfeed", &fx, &fy );
+	// the live rows, oldest first, at most "rows" of the newest
+	for ( i = KILLFEED_QUEUE - 1 ; i >= 0 ; i-- ) {
+		k = &killFeed[( killFeedHead - 1 - i + KILLFEED_QUEUE * 2 ) % KILLFEED_QUEUE];
+		if ( !k->time || cg.time - k->time >= life || k->time > cg.time ) {
+			continue;
+		}
+		if ( n == rows ) {
+			memmove( shown, shown + 1, sizeof( shown[0] ) * ( rows - 1 ) );
+			n--;
+		}
+		shown[n++] = k;
+	}
+	for ( i = 0 ; i < n ; i++ ) {
+		float	target = fy + i * pitch;
+
+		k = shown[i];
+		t = cg.time - k->time;
+		// a new row appears in place; a row whose place changed slides there
+		if ( !k->moveTime && !k->rowY ) {
+			k->rowY = target;
+		} else if ( k->rowY != target && ( !k->moveTime || k->fromY == k->rowY ) ) {
+			k->fromY = k->rowY;
+			k->rowY = target;
+			k->moveTime = cg.time;
+		}
+		y = k->rowY;
+		if ( k->moveTime && cg.time - k->moveTime < KF_SLIDE ) {
+			y = k->fromY + ( k->rowY - k->fromY ) * ( cg.time - k->moveTime ) / (float)KF_SLIDE;
+		} else {
+			k->moveTime = 0;
+			k->fromY = k->rowY;
+		}
+		fade[3] = t < KF_IN ? t / (float)KF_IN : t > life - KF_OUT ? ( life - t ) / (float)KF_OUT : 1;
+
+		killer = CG_CapName( k->killer, 23, 160 );
+		victim = CG_CapName( k->victim, 23, 160 );
+		w = ( k->killer[0] ? ( k->killerPic ? icon + 4 : 0 ) + CG_DrawStrlen( killer ) * cw + 6 : 0 )
+			+ icon + 6 + ( k->quad ? cw + 4 : 0 ) + ( k->victimPic ? icon + 4 : 0 ) + CG_DrawStrlen( victim ) * cw;
+		// your own frags on a red band, your deaths on a dark one with the skull
+		if ( k->killerNum == me && k->victimNum != me ) {
+			band[0] = 0.45f; band[1] = 0.05f; band[2] = 0.04f; band[3] = 0.6f * fade[3];
+			CG_FillRect( fx - 4, y - 2, w + 8, icon + 4, band );
+		} else if ( k->victimNum == me ) {
+			band[0] = band[1] = band[2] = 0.05f; band[3] = 0.7f * fade[3];
+			CG_FillRect( fx - 4, y - 2, w + 8 + icon + 4, icon + 4, band );
+		}
+		x = fx;
+		if ( k->killer[0] ) {
+			if ( k->killerPic ) {
+				trap_R_SetColor( fade );
+				CG_DrawPic( x, y, icon, icon, k->killerPic );
+				trap_R_SetColor( NULL );
+				x += icon + 4;
+			}
+			CG_KillFeedNameModern( x, y + ( icon - ch ) / 2, killer, k->killerTeam, fade, cw, ch );
+			x += CG_DrawStrlen( killer ) * cw + 6;
+		}
+		if ( k->quad ) {
+			CG_DrawStringExt( x, y + ( icon - ch ) / 2, "Q", colorBlue, qtrue, qtrue, cw, ch, 0 );
+			x += cw + 4;
+		}
+		trap_R_SetColor( fade );
+		if ( k->weapon > WP_NONE && k->weapon < WP_NUM_WEAPONS && cg_weapons[k->weapon].weaponIcon ) {
+			CG_DrawPic( x, y, icon, icon, cg_weapons[k->weapon].weaponIcon );
+		} else if ( skull ) {
+			CG_DrawPic( x, y, icon, icon, skull );		// suicide or the world
+		}
+		trap_R_SetColor( NULL );
+		x += icon + 6;
+		if ( k->victimPic ) {
+			trap_R_SetColor( fade );
+			CG_DrawPic( x, y, icon, icon, k->victimPic );
+			trap_R_SetColor( NULL );
+			x += icon + 4;
+		}
+		CG_KillFeedNameModern( x, y + ( icon - ch ) / 2, victim, k->victimTeam, fade, cw, ch );
+		if ( k->victimNum == me && skull ) {
+			x += CG_DrawStrlen( victim ) * cw + 4;
+			trap_R_SetColor( fade );
+			CG_DrawPic( x, y, icon, icon, skull );
+			trap_R_SetColor( NULL );
+		}
+	}
+}
+
 static void CG_DrawKillFeed( void ) {
 	static qhandle_t	skull;
 	killFeed_t	*k;
@@ -755,9 +884,12 @@ static void CG_DrawKillFeed( void ) {
 	if ( !skull ) {
 		skull = trap_R_RegisterShaderNoMip( "gfx/tremor/skull.tga" );
 	}
-	// the modern layout: top left, rows growing down, 2.5 s each with a
-	// 0.3 s fade; the classic one: top right, 4 s with 0.5 s
 	modern = CG_HudModern();
+	if ( modern ) {
+		CG_DrawKillFeedModern( rows );
+		return;
+	}
+	// the classic layout: top right, 4 s with a 0.5 s fade
 	life = modern ? 2500 : KILLFEED_TIME;
 	fadeTime = modern ? 300 : 500;
 	if ( modern ) {
