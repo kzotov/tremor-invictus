@@ -1568,5 +1568,6 @@ void CG_AddPacketEntities( void ) {
 	CG_AddOwnMissiles();
 
 	CG_AddTrailRibbons();
+	CG_AddFadingRopes();
 }
 

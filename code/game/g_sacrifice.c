@@ -782,3 +782,87 @@ void G_SacrificeCheckRules( void ) {
 	}
 	running = qfalse;
 }
+
+/*
+=================
+G_SacrificeBotGoal
+
+Where a bot should head in sacrifice, by role: per team, in client order,
+the first is the carrier, the next two attackers and the fourth the
+defender (then again). The carrier fetches the soul and takes it to our
+obelisk; attackers go to extract from the enemy's obelisk; the defender
+holds ours. False leaves the bot to its usual goals.
+=================
+*/
+qboolean G_SacrificeBotGoal( int clientNum, vec3_t out ) {
+	gentity_t	*ent = &g_entities[clientNum];
+	int			team, i, index = 0, role, ours, theirs;
+
+	if ( !G_Sacrifice() || sac.state != SAC_PLAYING || !ent->client || sac.numObelisks < 2 ) {
+		return qfalse;
+	}
+	team = ent->client->sess.sessionTeam;
+	if ( team != TEAM_RED && team != TEAM_BLUE ) {
+		return qfalse;
+	}
+	for ( i = 0 ; i < clientNum ; i++ ) {
+		if ( level.clients[i].pers.connected == CON_CONNECTED && level.clients[i].sess.sessionTeam == team ) {
+			index++;
+		}
+	}
+	role = index % 4;		// 0 carrier, 1 and 2 attackers, 3 defender
+
+	// our obelisk: the one we claimed, else the one by our base
+	if ( sac.owner[0] == team ) {
+		ours = 0;
+	} else if ( sac.owner[1] == team ) {
+		ours = 1;
+	} else {
+		ours = team == TEAM_RED ? 0 : 1;
+	}
+	theirs = !ours;
+
+	if ( sac.carrier == ent ) {
+		VectorCopy( sac.obelisk[ours], out );
+		return qtrue;
+	}
+	switch ( sac.soulState ) {
+	case SOUL_GROUND:
+		if ( role == 3 || !sac.soul ) {
+			break;
+		}
+		VectorCopy( sac.soul->r.currentOrigin, out );		// everyone but the defender races for it
+		return qtrue;
+	case SOUL_CARRIED:
+		if ( !sac.carrier || !sac.carrier->client ) {
+			return qfalse;
+		}
+		if ( sac.carrier->client->sess.sessionTeam != team ) {
+			if ( role == 3 ) {
+				break;
+			}
+			VectorCopy( sac.carrier->r.currentOrigin, out );	// hunt the enemy carrier
+			return qtrue;
+		}
+		if ( role == 0 ) {
+			VectorCopy( sac.carrier->r.currentOrigin, out );	// escort ours
+			return qtrue;
+		}
+		if ( role != 3 ) {
+			VectorCopy( sac.obelisk[theirs], out );
+			return qtrue;
+		}
+		break;
+	case SOUL_PLANTED:
+		// ours resting: guard it; theirs: go and extract it
+		VectorCopy( sac.obelisk[sac.soulAt], out );
+		if ( sac.owner[sac.soulAt] == team || role != 3 ) {
+			return qtrue;
+		}
+		break;
+	default:
+		return qfalse;
+	}
+	VectorCopy( sac.obelisk[ours], out );
+	return qtrue;
+}

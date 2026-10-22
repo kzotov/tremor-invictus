@@ -563,7 +563,7 @@ The hook's cable as camera-facing segments: slack while the claw flies
 */
 #define ROPE_SEGMENTS	12
 
-static void CG_HookRope( const vec3_t start, const vec3_t end, qboolean taut ) {
+static void CG_HookRope( const vec3_t start, const vec3_t end, qboolean taut, byte alpha ) {
 	vec3_t		pts[ROPE_SEGMENTS + 1], dir, toEye, side;
 	polyVert_t	v[4];
 	float		len = Distance( start, end ), sag = taut ? 0 : len * 0.06f;
@@ -594,9 +594,44 @@ static void CG_HookRope( const vec3_t start, const vec3_t end, qboolean taut ) {
 		v[2].st[0] = ( i + 1 ) * len / ROPE_SEGMENTS / 16.0f; v[2].st[1] = 1;
 		v[3].st[0] = v[2].st[0]; v[3].st[1] = 0;
 		for ( k = 0; k < 4; k++ ) {
-			v[k].modulate[0] = v[k].modulate[1] = v[k].modulate[2] = v[k].modulate[3] = 255;
+			v[k].modulate[0] = v[k].modulate[1] = v[k].modulate[2] = 255;
+			v[k].modulate[3] = alpha;
 		}
 		trap_R_AddPolyToScene( cgs.media.abilityRopeShader, 4, v );
+	}
+}
+
+// each player's rope as last drawn, to fade it out after release
+typedef struct {
+	vec3_t		start, end;
+	qboolean	taut;
+	int			time;
+} ropeLast_t;
+
+static ropeLast_t	ropeLast[MAX_CLIENTS];
+
+#define ROPE_FADE_MSEC	250
+
+/*
+==========================
+CG_AddFadingRopes
+
+Ropes whose hook is gone this frame linger a moment, fading, where they
+were last drawn (call after the packet entities)
+==========================
+*/
+void CG_AddFadingRopes( void ) {
+	int		i, age;
+
+	if ( !cgs.media.abilityRopeShader ) {
+		return;
+	}
+	for ( i = 0; i < MAX_CLIENTS; i++ ) {
+		age = cg.time - ropeLast[i].time;
+		if ( !ropeLast[i].time || age <= 0 || age >= ROPE_FADE_MSEC ) {
+			continue;
+		}
+		CG_HookRope( ropeLast[i].start, ropeLast[i].end, ropeLast[i].taut, 255 * ( ROPE_FADE_MSEC - age ) / ROPE_FADE_MSEC );
 	}
 }
 
@@ -623,7 +658,14 @@ void CG_GrappleTrail( centity_t *ent, const weaponInfo_t *wi ) {
 		return; // Don't draw if close
 
 	if ( cgs.media.abilityRopeShader ) {
-		CG_HookRope( beam.origin, beam.oldorigin, es->pos.trType == TR_STATIONARY );
+		ropeLast_t	*last = &ropeLast[es->otherEntityNum & ( MAX_CLIENTS - 1 )];
+
+		CG_HookRope( beam.origin, beam.oldorigin, es->pos.trType == TR_STATIONARY, 255 );
+		// kept to fade out once the hook lets go
+		VectorCopy( beam.origin, last->start );
+		VectorCopy( beam.oldorigin, last->end );
+		last->taut = es->pos.trType == TR_STATIONARY;
+		last->time = cg.time;
 		return;
 	}
 

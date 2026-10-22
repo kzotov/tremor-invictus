@@ -803,6 +803,7 @@ void		G_ResetMapItems( void );
 
 // g_sacrifice.c
 qboolean	G_Sacrifice( void );
+qboolean	G_SacrificeBotGoal( int clientNum, vec3_t out );
 void		G_SacrificeObeliskSpot( gentity_t *ent, gitem_t *item );
 void		G_SacrificeClear( void );
 void		G_SacrificeInit( void );

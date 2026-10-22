@@ -341,6 +341,21 @@ int BotGetLongTermGoal(bot_state_t *bs, int tfl, int retreat, bot_goal_t *goal) 
 	float croucher;
 	aas_entityinfo_t entinfo, botinfo;
 	bot_waypoint_t *wp;
+	vec3_t sacgoal;
+
+	//sacrifice: the bot's role decides where it goes
+	if (!retreat && G_SacrificeBotGoal(bs->client, sacgoal)) {
+		areanum = BotPointAreaNum(sacgoal);
+		if (areanum) {
+			memset(goal, 0, sizeof(bot_goal_t));
+			VectorCopy(sacgoal, goal->origin);
+			goal->areanum = areanum;
+			VectorSet(goal->mins, -8, -8, -8);
+			VectorSet(goal->maxs, 8, 8, 8);
+			goal->entitynum = -1;
+			return qtrue;
+		}
+	}
 
 	if (bs->ltgtype == LTG_TEAMHELP && !retreat) {
 		//check for bot typing status message
