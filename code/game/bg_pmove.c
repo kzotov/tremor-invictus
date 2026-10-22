@@ -1058,6 +1058,8 @@ PM_CheckWallJump
 A fresh jump press in the air next to a wall, once per airtime
 ===================
 */
+#define WALLJUMP_RESET_MSEC		1500
+
 static qboolean PM_CheckWallJump( const vec3_t wishdir ) {
 	trace_t		trace;
 	vec3_t		dir, normal;
@@ -1068,7 +1070,9 @@ static qboolean PM_CheckWallJump( const vec3_t wishdir ) {
 	if ( !( pml.champion->abilities & MOVEABIL_WALLJUMP ) ) {
 		return qfalse;
 	}
-	if ( pm->ps->pm_flags & ( PMF_AIRMOVE_USED | PMF_RESPAWNED ) ) {
+	// one wall jump, then another only 1.5 s after it (landing doesn't
+	// reset it; STAT_MOVE_STATE counts the wait down)
+	if ( ( pm->ps->pm_flags & PMF_RESPAWNED ) || pm->ps->stats[STAT_MOVE_STATE] > 0 ) {
 		return qfalse;
 	}
 	if ( pm->cmd.upmove < 10 || pml.jumpWasDown || pml.jumped ) {
@@ -1106,7 +1110,8 @@ static qboolean PM_CheckWallJump( const vec3_t wishdir ) {
 		VectorScale( pm->ps->velocity, limit / speed, pm->ps->velocity );
 	}
 
-	pm->ps->pm_flags |= PMF_AIRMOVE_USED | PMF_JUMP_HELD;
+	pm->ps->pm_flags |= PMF_JUMP_HELD;
+	pm->ps->stats[STAT_MOVE_STATE] = WALLJUMP_RESET_MSEC;
 	pml.jumped = qtrue;
 	PM_AddEvent( EV_JUMP );
 	PM_ForceLegsAnim( LEGS_JUMP );
@@ -2611,6 +2616,16 @@ static void PM_MoveTimers( void ) {
 		pm->ps->persistant[PERS_STEP_TIME] = STAT_TIME_CAP;
 	}
 
+	if ( pml.champion->abilities & MOVEABIL_WALLJUMP ) {
+		// the wait before the next wall jump
+		if ( pm->ps->stats[STAT_MOVE_STATE] > 0 ) {
+			pm->ps->stats[STAT_MOVE_STATE] -= pml.msec;
+			if ( pm->ps->stats[STAT_MOVE_STATE] < 0 ) {
+				pm->ps->stats[STAT_MOVE_STATE] = 0;
+			}
+		}
+		return;
+	}
 	if ( pml.champion->moveStyle != MOVE_SLIDE ) {
 		return;		// STAT_MOVE_STATE belongs to another mechanic
 	}
