@@ -821,7 +821,7 @@ typedef enum {
 	STR_PASSIVE_FULLSPRINT,
 	STR_PASSIVE_CHARRING,
 	STR_PASSIVE_STROYENT,
-	STR_PASSIVE_OLDSOLDIER,
+	STR_PASSIVE_DECORATEDAIRMAN,
 	STR_PASSIVE_HIVEREGEN,
 	STR_PASSIVE_UNDYING,
 	STR_PASSIVE_DRILLSERGEANT,
@@ -1113,7 +1113,7 @@ void	BG_ShotgunPelletOffset( int weapon, int index, int count, int *seed, float 
 #define	PASSIVE_FULLSPRINT		256		// higher air acceleration
 #define	PASSIVE_CHARRING		512		// melee hits set the target burning
 #define	PASSIVE_STROYENT		1024	// kills drop cells that heal this champion
-#define	PASSIVE_OLDSOLDIER		2048	// a quarter self splash, own blasts push harder
+#define	PASSIVE_DECORATEDAIRMAN	2048	// names Wrack's isotropic air control (MOVEABIL_ISOAIR); no effect of its own
 #define	PASSIVE_HIVEREGEN		4096	// regains health to base after a quiet while
 #define	PASSIVE_UNDYING			8192	// once a life, a killing hit leaves 1 health
 #define	PASSIVE_DRILLSERGEANT	16384	// faster weapon switch

@@ -712,10 +712,6 @@ int G_ChampionDamageScale( gentity_t *targ, gentity_t *attacker, int damage, int
 		&& G_MarkTeam( attacker ) == targ->client->markTeam ) {
 		scale *= 1.15f;
 	}
-	// Wrack: a quarter self splash (halved again on top of the usual half)
-	if ( ( tp & PASSIVE_OLDSOLDIER ) && targ == attacker ) {
-		scale *= 0.5f;
-	}
 	// Beastmaster: less splash from others
 	if ( ( tp & PASSIVE_THICKHIDE ) && targ != attacker && ( dflags & DAMAGE_RADIUS ) ) {
 		scale *= 0.8f;
