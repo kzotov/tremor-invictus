@@ -725,9 +725,9 @@ void weapon_railgun_fire (gentity_t *ent) {
 	gentity_t	*unlinkedEntities[MAX_RAIL_HITS];
 
 	damage = BG_WeaponParam( WP_RAILGUN, WPP_DAMAGE ) * s_quadFactor;
-	// zoomed in for a while: the steadier shot hits harder
-	if ( ent->client && ent->client->zoomStart && level.time - ent->client->zoomStart >= g_railZoomTime.integer ) {
-		damage = g_railZoomDamage.integer * s_quadFactor;
+	// Visor's Piercing Sight makes the rail hit harder while it runs
+	if ( ent->client && G_AbilityActive( ent, ACTIVE_PIERCINGSIGHT ) ) {
+		damage = g_railSightDamage.integer * s_quadFactor;
 	}
 
 	VectorMA (muzzle, BG_WeaponParam( WP_RAILGUN, WPP_RANGE ), forward, end);

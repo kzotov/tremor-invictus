@@ -142,8 +142,7 @@ vmCvar_t	g_rushSlowDamage;
 vmCvar_t	g_rushFastSpeed;
 vmCvar_t	g_swarmKnock;
 vmCvar_t	g_hmgZoomDamage;
-vmCvar_t	g_railZoomDamage;
-vmCvar_t	g_railZoomTime;
+vmCvar_t	g_railSightDamage;
 vmCvar_t	g_hmgZoomSpread;
 vmCvar_t	g_ssgCloseBonus;
 vmCvar_t	g_ssgCloseRange;
@@ -471,8 +470,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_rushFastSpeed, "g_rushFastSpeed", "400", 0, 0, qtrue },
 	{ &g_swarmKnock, "g_swarmKnock", "50", 0, 0, qtrue },
 	{ &g_hmgZoomDamage, "g_hmgZoomDamage", "15", 0, 0, qtrue },
-	{ &g_railZoomDamage, "g_railZoomDamage", "90", 0, 0, qtrue },	// after g_railZoomTime ms zoomed
-	{ &g_railZoomTime, "g_railZoomTime", "1500", 0, 0, qtrue },
+	{ &g_railSightDamage, "g_railSightDamage", "90", 0, 0, qtrue },	// while Piercing Sight is on
 	{ &g_hmgZoomSpread, "g_hmgZoomSpread", "0", 0, 0, qtrue },
 	{ &g_ssgCloseBonus, "g_ssgCloseBonus", "40", 0, 0, qtrue },
 	{ &g_ssgCloseRange, "g_ssgCloseRange", "256", 0, 0, qtrue },
