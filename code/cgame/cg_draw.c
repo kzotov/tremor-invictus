@@ -51,7 +51,7 @@ HUD LAYOUTS (hud.md section 7)
 A layout is data: hud/<cg_hudLayout>.hud lists elements as
 	name  left|centre|right  top|bottom  x  y  [scale]
 with offsets in design pixels (1080 per screen height). "modern" is the
-default; "classic" keeps the earlier HUD (cg_hudStyle 1) and its places.
+default; "classic" keeps the earlier places.
 Elements the file leaves out keep the modern defaults below.
 
 ==============================================================================
@@ -651,7 +651,7 @@ static void CG_DrawStatusBarHead( float x ) {
 /*
 ==============================================================================
 
-THE HUD (cg_hudStyle 1)
+THE HUD
 
 Health left of the centre, the champion portrait with its ability ring in
 the middle, armour to the right, ammo bottom right, a weapon bar down the
@@ -743,7 +743,7 @@ static void CG_DrawKillFeed( void ) {
 	qboolean	modern;
 	float		feedLeft = 0;
 
-	if ( rows <= 0 || !cg_killFeed.integer ) {
+	if ( rows <= 0 ) {
 		return;
 	}
 	if ( rows > 5 ) {
@@ -1306,7 +1306,7 @@ Top centre: the clock counting down to the limit, and the scores
 */
 static void CG_DrawHudClock( void ) {
 	const char	*info = CG_ConfigString( CS_SERVERINFO );
-	int			limit = cgs.timelimit, msec, mins, secs, w, ty, sw;
+	int			limit = cgs.timelimit, msec, mins, secs, w, ty;
 	qboolean	finalSeconds;
 	const char	*s;
 	vec4_t		red = { 1, 0.3f, 0.3f, 1 }, blue = { 0.3f, 0.5f, 1, 1 };
@@ -1351,12 +1351,10 @@ static void CG_DrawHudClock( void ) {
 		CG_HudPlace( "clock", &cx, &cy );
 		cg_hudAnchor = ANCHOR_CENTER;
 		ty = cy - ch / 2;
-		sw = cw;
 	} else {
 		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
 		CG_DrawBigStringColor( 320 - w / 2, 4, s, finalSeconds ? red : colorWhite );
 		ty = 4;
-		sw = BIGCHAR_WIDTH;
 	}
 
 	// scores either side of the clock
@@ -1384,9 +1382,15 @@ Down the right edge: owned weapons bright, missing dim, the current one framed
 static void CG_DrawWeaponBar( void ) {
 	playerState_t	*ps = &cg.snap->ps;
 	vec4_t			dim = { 1, 1, 1, 0.25f }, frame = { 1, 0.75f, 0.2f, 1 };
-	int				w, y = 130, have;
+	int				w, have, slots[WP_NUM_WEAPONS], count = 0, i, mode = cg_weaponBar.integer;
+	float			x, y;
 	const char		*s;
 
+	// 0 the right column, 1 a row at the bottom centre, 2 the held weapon
+	// only (right, above the ammo), 3 hidden
+	if ( mode == 3 ) {
+		return;
+	}
 	for ( w = WP_GAUNTLET ; w < WP_NUM_WEAPONS ; w++ ) {
 		if ( w == WP_GRAPPLING_HOOK || !cg_weapons[w].registered || !cg_weapons[w].weaponIcon ) {
 			continue;
@@ -1395,18 +1399,41 @@ static void CG_DrawWeaponBar( void ) {
 		if ( !have && BG_AmmoPartner( w ) && ( ps->stats[STAT_WEAPONS] & ( 1 << BG_AmmoPartner( w ) ) ) ) {
 			continue;		// a pair sharing a slot shows the one held
 		}
+		if ( mode == 2 && w != ps->weapon ) {
+			continue;
+		}
+		slots[count++] = w;
+	}
+	for ( i = 0 ; i < count ; i++ ) {
+		w = slots[i];
+		have = ps->stats[STAT_WEAPONS] & ( 1 << w );
+		if ( mode == 1 ) {
+			x = 320 - count * 15 + i * 30 + 3;
+			y = 380;
+		} else if ( mode == 2 ) {
+			x = 612;
+			y = 400;
+		} else {
+			// the column grows up from above the ammo, slot 1 lowest
+			x = 612;
+			y = 372 - i * 26;
+		}
 		trap_R_SetColor( have ? NULL : dim );
-		CG_DrawPic( 612, y, 24, 24, cg_weapons[w].weaponIcon );
+		CG_DrawPic( x, y, 24, 24, cg_weapons[w].weaponIcon );
 		trap_R_SetColor( NULL );
 		if ( have && ps->ammo[w] >= 0 ) {
 			s = va( "%i", ps->ammo[w] );
-			CG_DrawStringExt( 608 - CG_DrawStrlen( s ) * TINYCHAR_WIDTH, y + 8, s, have ? colorWhite : dim,
-				qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+			if ( mode == 1 ) {
+				CG_DrawStringExt( x + 12 - CG_DrawStrlen( s ) * TINYCHAR_WIDTH / 2, y + 26, s, colorWhite,
+					qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+			} else {
+				CG_DrawStringExt( x - 4 - CG_DrawStrlen( s ) * TINYCHAR_WIDTH, y + 8, s, colorWhite,
+					qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+			}
 		}
 		if ( w == ps->weapon ) {
-			CG_DrawRect( 610, y - 2, 28, 28, 1, frame );
+			CG_DrawRect( x - 2, y - 2, 28, 28, 1, frame );
 		}
-		y += 30;
 	}
 }
 
@@ -1589,7 +1616,7 @@ static void CG_DrawHud( void ) {
 	playerState_t	*ps = &cg.snap->ps;
 	centity_t		*cent = &cg_entities[ps->clientNum];
 	vec4_t			color;
-	int				value, i, charges, maxCharges;
+	int				value, charges, maxCharges;
 	static qhandle_t	healthIcon;
 
 	if ( cg_drawStatus.integer == 0 ) {
@@ -1643,12 +1670,13 @@ static void CG_DrawHud( void ) {
 	}
 	cg_hudAnchor = ANCHOR_CENTER;
 
-	// the ability arc by the crosshair: 1 bottom (default 3), 2 top, 4 left, 5 right
+	// the ability arc by the crosshair: 1 layout (bottom), 2 top, 3 right, 4 bottom, 5 left
 	switch ( cg_drawCooldownArc.integer ) {
+	case 1:		// the layout's place: under the crosshair
+	case 4:		CG_DrawAbilityRing( 320, 240, 26, 45, 90, 12, 2 ); break;
 	case 2:		CG_DrawAbilityRing( 320, 240, 26, 225, 90, 12, 2 ); break;
-	case 3:		CG_DrawAbilityRing( 320, 240, 26, 45, 90, 12, 2 ); break;
-	case 4:		CG_DrawAbilityRing( 320, 240, 26, 135, 90, 12, 2 ); break;
-	case 5:		CG_DrawAbilityRing( 320, 240, 26, -45, 90, 12, 2 ); break;
+	case 3:		CG_DrawAbilityRing( 320, 240, 26, -45, 90, 12, 2 ); break;
+	case 5:		CG_DrawAbilityRing( 320, 240, 26, 135, 90, 12, 2 ); break;
 	default:	break;
 	}
 
@@ -1669,9 +1697,6 @@ CG_DrawStatusBarFlag
 ================
 */
 #ifndef MISSIONPACK
-static void CG_DrawStatusBarFlag( float x, int team ) {
-	CG_DrawFlagModel( x, 480 - ICON_SIZE, ICON_SIZE, ICON_SIZE, team, qfalse );
-}
 #endif // MISSIONPACK
 
 /*
@@ -1726,132 +1751,6 @@ CG_DrawStatusBar
 ================
 */
 #ifndef MISSIONPACK
-static void CG_DrawStatusBar( void ) {
-	int			color;
-	centity_t	*cent;
-	playerState_t	*ps;
-	int			value;
-	vec4_t		hcolor;
-	vec3_t		angles;
-	vec3_t		origin;
-
-	static float colors[4][4] = { 
-//		{ 0.2, 1.0, 0.2, 1.0 } , { 1.0, 0.2, 0.2, 1.0 }, {0.5, 0.5, 0.5, 1} };
-		{ 1.0f, 0.69f, 0.0f, 1.0f },    // normal
-		{ 1.0f, 0.2f, 0.2f, 1.0f },     // low health
-		{ 0.5f, 0.5f, 0.5f, 1.0f },     // weapon firing
-		{ 1.0f, 1.0f, 1.0f, 1.0f } };   // health > 100
-
-	if ( cg_drawStatus.integer == 0 ) {
-		return;
-	}
-
-	// draw the team background
-	CG_DrawTeamBackground( 0, 420, 640, 60, 0.33f, cg.snap->ps.persistant[PERS_TEAM] );
-
-	cent = &cg_entities[cg.snap->ps.clientNum];
-	ps = &cg.snap->ps;
-
-	VectorClear( angles );
-
-	// draw any 3D icons first, so the changes back to 2D are minimized
-	if ( cent->currentState.weapon && cg_weapons[ cent->currentState.weapon ].ammoModel ) {
-		origin[0] = 70;
-		origin[1] = 0;
-		origin[2] = 0;
-		angles[YAW] = 90 + 20 * sin( cg.time / 1000.0 );
-		CG_Draw3DModel( CHAR_WIDTH*3 + TEXT_ICON_SPACE, 432, ICON_SIZE, ICON_SIZE,
-					   cg_weapons[ cent->currentState.weapon ].ammoModel, 0, origin, angles );
-	}
-
-	CG_DrawStatusBarHead( 185 + CHAR_WIDTH*3 + TEXT_ICON_SPACE );
-
-	if( cg.predictedPlayerState.powerups[PW_REDFLAG] ) {
-		CG_DrawStatusBarFlag( 185 + CHAR_WIDTH*3 + TEXT_ICON_SPACE + ICON_SIZE, TEAM_RED );
-	} else if( cg.predictedPlayerState.powerups[PW_BLUEFLAG] ) {
-		CG_DrawStatusBarFlag( 185 + CHAR_WIDTH*3 + TEXT_ICON_SPACE + ICON_SIZE, TEAM_BLUE );
-	} else if( cg.predictedPlayerState.powerups[PW_NEUTRALFLAG] ) {
-		CG_DrawStatusBarFlag( 185 + CHAR_WIDTH*3 + TEXT_ICON_SPACE + ICON_SIZE, TEAM_FREE );
-	}
-
-	if ( ps->stats[ STAT_ARMOR ] ) {
-		origin[0] = 90;
-		origin[1] = 0;
-		origin[2] = -10;
-		angles[YAW] = ( cg.time & 2047 ) * 360 / 2048.0;
-		CG_Draw3DModel( 370 + CHAR_WIDTH*3 + TEXT_ICON_SPACE, 432, ICON_SIZE, ICON_SIZE,
-					   cgs.media.armorModel, 0, origin, angles );
-	}
-	//
-	// ammo
-	//
-	if ( cent->currentState.weapon ) {
-		value = ps->ammo[cent->currentState.weapon];
-		if ( value > -1 ) {
-			if ( cg.predictedPlayerState.weaponstate == WEAPON_FIRING
-				&& cg.predictedPlayerState.weaponTime > 100 ) {
-				// draw as dark grey when reloading
-				color = 2;	// dark grey
-			} else {
-				if ( value >= 0 ) {
-					color = 0;	// green
-				} else {
-					color = 1;	// red
-				}
-			}
-			trap_R_SetColor( colors[color] );
-			
-			CG_DrawField (0, 432, 3, value);
-			trap_R_SetColor( NULL );
-
-			// if we didn't draw a 3D icon, draw a 2D icon for ammo
-			if ( !cg_draw3dIcons.integer && cg_drawIcons.integer ) {
-				qhandle_t	icon;
-
-				icon = cg_weapons[ cg.predictedPlayerState.weapon ].ammoIcon;
-				if ( icon ) {
-					CG_DrawPic( CHAR_WIDTH*3 + TEXT_ICON_SPACE, 432, ICON_SIZE, ICON_SIZE, icon );
-				}
-			}
-		}
-	}
-
-	//
-	// health
-	//
-	value = ps->stats[STAT_HEALTH];
-	if ( value > 100 ) {
-		trap_R_SetColor( colors[3] );		// white
-	} else if (value > 25) {
-		trap_R_SetColor( colors[0] );	// green
-	} else if (value > 0) {
-		color = (cg.time >> 8) & 1;	// flash
-		trap_R_SetColor( colors[color] );
-	} else {
-		trap_R_SetColor( colors[1] );	// red
-	}
-
-	// stretch the health up when taking damage
-	CG_DrawField ( 185, 432, 3, value);
-	CG_ColorForHealth( hcolor );
-	trap_R_SetColor( hcolor );
-
-
-	//
-	// armor
-	//
-	value = ps->stats[STAT_ARMOR];
-	if (value > 0 ) {
-		trap_R_SetColor( colors[0] );
-		CG_DrawField (370, 432, 3, value);
-		trap_R_SetColor( NULL );
-		// if we didn't draw a 3D icon, draw a 2D icon for armor
-		if ( !cg_draw3dIcons.integer && cg_drawIcons.integer ) {
-			CG_DrawPic( 370 + CHAR_WIDTH*3 + TEXT_ICON_SPACE, 432, ICON_SIZE, ICON_SIZE, cgs.media.armorIcon );
-		}
-
-	}
-}
 #endif
 
 /*
@@ -2341,9 +2240,6 @@ static void CG_DrawUpperRight(stereoFrame_t stereoFrame)
 
 	y = CG_DrawSacrifice( y );
 
-	if ( cgs.gametype >= GT_TEAM && cg_drawTeamOverlay.integer == 1 && !cg_hudStyle.integer ) {
-		y = CG_DrawTeamOverlay( y, qtrue, qtrue );
-	} 
 	if ( cg_drawSnapshot.integer ) {
 		y = CG_DrawSnapshot( y );
 	}
@@ -2375,151 +2271,6 @@ Draw the small two score display
 =================
 */
 #ifndef MISSIONPACK
-static float CG_DrawScores( float y ) {
-	const char	*s;
-	int			s1, s2, score;
-	int			x, w;
-	int			v;
-	vec4_t		color;
-	float		y1;
-	gitem_t		*item;
-
-	s1 = cgs.scores1;
-	s2 = cgs.scores2;
-
-	y -=  BIGCHAR_HEIGHT + 8;
-
-	y1 = y;
-
-	// draw from the right side to left
-	if ( cgs.gametype >= GT_TEAM ) {
-		x = 640;
-		color[0] = 0.0f;
-		color[1] = 0.0f;
-		color[2] = 1.0f;
-		color[3] = 0.33f;
-		s = va( "%2i", s2 );
-		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
-		x -= w;
-		CG_FillRect( x, y-4,  w, BIGCHAR_HEIGHT+8, color );
-		if ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_BLUE ) {
-			CG_DrawPic( x, y-4, w, BIGCHAR_HEIGHT+8, cgs.media.selectShader );
-		}
-		CG_DrawBigString( x + 4, y, s, 1.0F);
-
-		if ( cgs.gametype == GT_CTF ) {
-			// Display flag status
-			item = BG_FindItemForPowerup( PW_BLUEFLAG );
-
-			if (item) {
-				y1 = y - BIGCHAR_HEIGHT - 8;
-				if( cgs.blueflag >= 0 && cgs.blueflag <= 2 ) {
-					CG_DrawPic( x, y1-4, w, BIGCHAR_HEIGHT+8, cgs.media.blueFlagShader[cgs.blueflag] );
-				}
-			}
-		}
-		color[0] = 1.0f;
-		color[1] = 0.0f;
-		color[2] = 0.0f;
-		color[3] = 0.33f;
-		s = va( "%2i", s1 );
-		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
-		x -= w;
-		CG_FillRect( x, y-4,  w, BIGCHAR_HEIGHT+8, color );
-		if ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_RED ) {
-			CG_DrawPic( x, y-4, w, BIGCHAR_HEIGHT+8, cgs.media.selectShader );
-		}
-		CG_DrawBigString( x + 4, y, s, 1.0F);
-
-		if ( cgs.gametype == GT_CTF ) {
-			// Display flag status
-			item = BG_FindItemForPowerup( PW_REDFLAG );
-
-			if (item) {
-				y1 = y - BIGCHAR_HEIGHT - 8;
-				if( cgs.redflag >= 0 && cgs.redflag <= 2 ) {
-					CG_DrawPic( x, y1-4, w, BIGCHAR_HEIGHT+8, cgs.media.redFlagShader[cgs.redflag] );
-				}
-			}
-		}
-
-		if ( cgs.gametype >= GT_CTF ) {
-			v = cgs.capturelimit;
-		} else {
-			v = cgs.fraglimit;
-		}
-		if ( v ) {
-			s = va( "%2i", v );
-			w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
-			x -= w;
-			CG_DrawBigString( x + 4, y, s, 1.0F);
-		}
-
-	} else {
-		qboolean	spectator;
-
-		x = 640;
-		score = cg.snap->ps.persistant[PERS_SCORE];
-		spectator = ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR );
-
-		// always show your score in the second box if not in first place
-		if ( s1 != score ) {
-			s2 = score;
-		}
-		if ( s2 != SCORE_NOT_PRESENT ) {
-			s = va( "%2i", s2 );
-			w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
-			x -= w;
-			if ( !spectator && score == s2 && score != s1 ) {
-				color[0] = 1.0f;
-				color[1] = 0.0f;
-				color[2] = 0.0f;
-				color[3] = 0.33f;
-				CG_FillRect( x, y-4,  w, BIGCHAR_HEIGHT+8, color );
-				CG_DrawPic( x, y-4, w, BIGCHAR_HEIGHT+8, cgs.media.selectShader );
-			} else {
-				color[0] = 0.5f;
-				color[1] = 0.5f;
-				color[2] = 0.5f;
-				color[3] = 0.33f;
-				CG_FillRect( x, y-4,  w, BIGCHAR_HEIGHT+8, color );
-			}	
-			CG_DrawBigString( x + 4, y, s, 1.0F);
-		}
-
-		// first place
-		if ( s1 != SCORE_NOT_PRESENT ) {
-			s = va( "%2i", s1 );
-			w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
-			x -= w;
-			if ( !spectator && score == s1 ) {
-				color[0] = 0.0f;
-				color[1] = 0.0f;
-				color[2] = 1.0f;
-				color[3] = 0.33f;
-				CG_FillRect( x, y-4,  w, BIGCHAR_HEIGHT+8, color );
-				CG_DrawPic( x, y-4, w, BIGCHAR_HEIGHT+8, cgs.media.selectShader );
-			} else {
-				color[0] = 0.5f;
-				color[1] = 0.5f;
-				color[2] = 0.5f;
-				color[3] = 0.33f;
-				CG_FillRect( x, y-4,  w, BIGCHAR_HEIGHT+8, color );
-			}	
-			CG_DrawBigString( x + 4, y, s, 1.0F);
-		}
-
-		if ( cgs.fraglimit ) {
-			s = va( "%2i", cgs.fraglimit );
-			w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
-			x -= w;
-			CG_DrawBigString( x + 4, y, s, 1.0F);
-		}
-
-	}
-
-	return y1 - 8;
-}
 #endif // MISSIONPACK
 
 /*
@@ -2528,104 +2279,6 @@ CG_DrawPowerups
 ================
 */
 #ifndef MISSIONPACK
-static float CG_DrawPowerups( float y ) {
-	int		sorted[MAX_POWERUPS];
-	int		sortedTime[MAX_POWERUPS];
-	int		i, j, k;
-	int		active;
-	playerState_t	*ps;
-	int		t;
-	gitem_t	*item;
-	int		x;
-	int		color;
-	float	size;
-	float	f;
-	static float colors[2][4] = { 
-    { 0.2f, 1.0f, 0.2f, 1.0f } , 
-    { 1.0f, 0.2f, 0.2f, 1.0f } 
-  };
-
-	ps = &cg.snap->ps;
-
-	if ( ps->stats[STAT_HEALTH] <= 0 ) {
-		return y;
-	}
-
-	// sort the list by time remaining
-	active = 0;
-	for ( i = 0 ; i < MAX_POWERUPS ; i++ ) {
-		if ( !ps->powerups[ i ] ) {
-			continue;
-		}
-
-		// ZOID--don't draw if the power up has unlimited time
-		// This is true of the CTF flags
-		if ( ps->powerups[ i ] == INT_MAX ) {
-			continue;
-		}
-
-		t = ps->powerups[ i ] - cg.time;
-		if ( t <= 0 ) {
-			continue;
-		}
-
-		// insert into the list
-		for ( j = 0 ; j < active ; j++ ) {
-			if ( sortedTime[j] >= t ) {
-				for ( k = active - 1 ; k >= j ; k-- ) {
-					sorted[k+1] = sorted[k];
-					sortedTime[k+1] = sortedTime[k];
-				}
-				break;
-			}
-		}
-		sorted[j] = i;
-		sortedTime[j] = t;
-		active++;
-	}
-
-	// draw the icons and timers
-	x = 640 - ICON_SIZE - CHAR_WIDTH * 2;
-	for ( i = 0 ; i < active ; i++ ) {
-		item = BG_FindItemForPowerup( sorted[i] );
-
-    if (item) {
-
-		  color = 1;
-
-		  y -= ICON_SIZE;
-
-		  trap_R_SetColor( colors[color] );
-		  CG_DrawField( x, y, 2, sortedTime[ i ] / 1000 );
-
-		  t = ps->powerups[ sorted[i] ];
-		  if ( t - cg.time >= POWERUP_BLINKS * POWERUP_BLINK_TIME ) {
-			  trap_R_SetColor( NULL );
-		  } else {
-			  vec4_t	modulate;
-
-			  f = (float)( t - cg.time ) / POWERUP_BLINK_TIME;
-			  f -= (int)f;
-			  modulate[0] = modulate[1] = modulate[2] = modulate[3] = f;
-			  trap_R_SetColor( modulate );
-		  }
-
-		  if ( cg.powerupActive == sorted[i] && 
-			  cg.time - cg.powerupTime < PULSE_TIME ) {
-			  f = 1.0 - ( ( (float)cg.time - cg.powerupTime ) / PULSE_TIME );
-			  size = ICON_SIZE * ( 1.0 + ( PULSE_SCALE - 1.0 ) * f );
-		  } else {
-			  size = ICON_SIZE;
-		  }
-
-		  CG_DrawPic( 640 - size, y + ICON_SIZE / 2 - size / 2, 
-			  size, size, trap_R_RegisterShader( item->icon ) );
-    }
-	}
-	trap_R_SetColor( NULL );
-
-	return y;
-}
 #endif // MISSIONPACK
 
 /*
@@ -2635,18 +2288,6 @@ CG_DrawLowerRight
 =====================
 */
 #ifndef MISSIONPACK
-static void CG_DrawLowerRight( void ) {
-	float	y;
-
-	y = 480 - ICON_SIZE;
-
-	if ( cgs.gametype >= GT_TEAM && cg_drawTeamOverlay.integer == 2 ) {
-		y = CG_DrawTeamOverlay( y, qtrue, qfalse );
-	} 
-
-	y = CG_DrawScores( y );
-	CG_DrawPowerups( y );
-}
 #endif // MISSIONPACK
 
 /*
@@ -2655,30 +2296,6 @@ CG_DrawPickupItem
 ===================
 */
 #ifndef MISSIONPACK
-static int CG_DrawPickupItem( int y ) {
-	int		value;
-	float	*fadeColor;
-
-	if ( cg.snap->ps.stats[STAT_HEALTH] <= 0 ) {
-		return y;
-	}
-
-	y -= ICON_SIZE;
-
-	value = cg.itemPickup;
-	if ( value ) {
-		fadeColor = CG_FadeColor( cg.itemPickupTime, 3000 );
-		if ( fadeColor ) {
-			CG_RegisterItemVisuals( value );
-			trap_R_SetColor( fadeColor );
-			CG_DrawPic( 8, y, ICON_SIZE, ICON_SIZE, cg_items[ value ].icon );
-			CG_DrawBigString( ICON_SIZE + 16, y + (ICON_SIZE/2 - BIGCHAR_HEIGHT/2), bg_itemlist[ value ].pickup_name, fadeColor[0] );
-			trap_R_SetColor( NULL );
-		}
-	}
-	
-	return y;
-}
 #endif // MISSIONPACK
 
 /*
@@ -2697,9 +2314,6 @@ static void CG_DrawLowerLeft( void ) {
 		y = CG_DrawTeamOverlay( y, qfalse, qfalse );
 	} 
 
-	if ( !cg_hudStyle.integer ) {
-		CG_DrawPickupItem( y );
-	}
 }
 #endif // MISSIONPACK
 
@@ -2906,57 +2520,6 @@ static void CG_DrawRevealedModels( void ) {
 }
 
 #ifndef MISSIONPACK
-/*
-===================
-CG_DrawAbility
-
-Active ability icon, name, charges left and time to the next charge
-===================
-*/
-static void CG_DrawAbility( void ) {
-	static qhandle_t	icons[ACTIVE_NUM_ABILITIES];
-	static const vec4_t	spent = { 1, 1, 1, 0.45f };
-	const champion_t	*champ;
-	playerState_t		*ps;
-	const char			*s;
-	int					y, tenths, w;
-	float				*color;
-
-	ps = &cg.snap->ps;
-	champ = BG_Champion( ps->stats[STAT_CHAMPION] );
-	if ( champ->active == ACTIVE_NONE ) {
-		return;
-	}
-
-	color = BG_AbilityCharges( ps ) > 0 ? colorWhite : colorMdGrey;
-	if ( BG_AbilityState( ps ) == ABILITY_ACTIVE || BG_AbilityState( ps ) == ABILITY_RUSH ) {
-		color = colorYellow;
-	}
-	s = va( "%s %i", BG_String( bg_abilityInfo[champ->active].nameString ), BG_AbilityCharges( ps ) );
-	y = ( SCREEN_HEIGHT + ICON_SIZE ) / 2 + 8;
-	w = CG_DrawStrlen( s ) * SMALLCHAR_WIDTH;
-	CG_DrawStringExt( 640 - 8 - w, y, s, color, qfalse, qtrue,
-		SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
-
-	// the icon left of the name, faded while there is no charge
-	if ( !icons[champ->active] ) {
-		icons[champ->active] = trap_R_RegisterShaderNoMip( va( "gfx/tremor/abilities/%s", bg_abilityInfo[champ->active].cvarName ) );
-	}
-	if ( icons[champ->active] ) {
-		trap_R_SetColor( BG_AbilityCharges( ps ) > 0 ? NULL : spent );
-		CG_DrawPic( 640 - 8 - w - 6 - 34, y - 1, 34, 34, icons[champ->active] );
-		trap_R_SetColor( NULL );
-	}
-
-	tenths = ps->stats[STAT_ABILITY_RECHARGE];
-	if ( tenths > 0 ) {
-		// whole seconds, tenths under 3 s
-		s = va( (char *)BG_String( STR_ABILITY_RECHARGE ),
-			tenths < 30 ? va( "%i.%i", tenths / 10, tenths % 10 ) : va( "%i", ( tenths + 9 ) / 10 ) );
-		CG_DrawStringExt( 640 - 8 - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH, y + SMALLCHAR_HEIGHT + 2, s,
-			colorMdGrey, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
-	}
-}
 #endif // MISSIONPACK
 
 #ifdef MISSIONPACK
@@ -3005,7 +2568,7 @@ static void CG_DrawReward( void ) {
 	float			size, a, x;
 	const char		*name;
 
-	if ( !cg_drawRewards.integer || !cg_medals.integer ) {
+	if ( !cg_medals.integer ) {
 		cg.rewardStack = 0;
 		medalRowCount = 0;
 		return;
@@ -5262,10 +4825,11 @@ static void CG_DrawModernHud( void ) {
 	// the crosshair arc repeats the ring
 	cg_hudAnchor = ANCHOR_CENTER;
 	switch ( cg_drawCooldownArc.integer ) {
+	case 1:		// the layout's place: under the crosshair
+	case 4:		CG_DrawAbilityRing( 320, 240, 26, 45, 90, 12, 2 ); break;
 	case 2:		CG_DrawAbilityRing( 320, 240, 26, 225, 90, 12, 2 ); break;
-	case 3:		CG_DrawAbilityRing( 320, 240, 26, 45, 90, 12, 2 ); break;
-	case 4:		CG_DrawAbilityRing( 320, 240, 26, 135, 90, 12, 2 ); break;
-	case 5:		CG_DrawAbilityRing( 320, 240, 26, -45, 90, 12, 2 ); break;
+	case 3:		CG_DrawAbilityRing( 320, 240, 26, -45, 90, 12, 2 ); break;
+	case 5:		CG_DrawAbilityRing( 320, 240, 26, 135, 90, 12, 2 ); break;
 	default:	break;
 	}
 
@@ -5373,10 +4937,8 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 #else
 			if ( CG_HudModern() ) {
 				CG_DrawModernHud();
-			} else if ( cg_hudStyle.integer ) {
-				CG_DrawHud();
 			} else {
-				CG_DrawStatusBar();
+				CG_DrawHud();
 			}
 #endif
       
@@ -5401,9 +4963,6 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 
 #ifndef MISSIONPACK
 			CG_DrawHoldableItem();
-			if ( !cg_hudStyle.integer ) {
-				CG_DrawAbility();
-			}
 #else
 			//CG_DrawPersistantPowerup();
 #endif
@@ -5436,7 +4995,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 #endif
 
 #ifndef MISSIONPACK
-	if ( cg_hudStyle.integer ) {
+	{
 		if ( cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
 			CG_DrawHudClock();
 		}
@@ -5464,13 +5023,6 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 			cg_hudAnchor = ANCHOR_CENTER;
 			cg.overlayTeam = 0;
 		}
-		cg_hudAnchor = ANCHOR_LEFT;
-		CG_DrawLowerLeft();
-		cg_hudAnchor = ANCHOR_CENTER;
-	} else {
-		cg_hudAnchor = ANCHOR_RIGHT;
-		CG_DrawLowerRight();
-		cg_hudAnchor = ANCHOR_CENTER;
 		cg_hudAnchor = ANCHOR_LEFT;
 		CG_DrawLowerLeft();
 		cg_hudAnchor = ANCHOR_CENTER;

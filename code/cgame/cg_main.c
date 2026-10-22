@@ -107,8 +107,6 @@ vmCvar_t	cg_drawIcons;
 vmCvar_t	cg_drawAmmoWarning;
 vmCvar_t	cg_drawCrosshair;
 vmCvar_t	cg_drawCrosshairNames;
-vmCvar_t	cg_drawRewards;
-vmCvar_t	cg_killFeed;
 vmCvar_t	cg_drawItemPickups;
 vmCvar_t	cg_fragBanner;
 vmCvar_t	cg_medals;
@@ -225,12 +223,12 @@ vmCvar_t	cg_backflips;
 vmCvar_t	cg_enemyOutline;
 vmCvar_t	cg_enemyOutlineColor;
 vmCvar_t	cg_colorBlind;
-vmCvar_t	cg_hudStyle;
 vmCvar_t	cg_hudLayout;
 vmCvar_t	cg_drawCooldownArc;
 vmCvar_t	cg_obituaryRowSize;
 vmCvar_t	cg_chatHistoryLength;
 vmCvar_t	cg_specItemTimers;
+vmCvar_t	cg_weaponBar;
 vmCvar_t	cg_followKiller;
 vmCvar_t	cg_specFov;
 vmCvar_t	cg_specThirdPerson;
@@ -294,12 +292,10 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_drawAttacker, "cg_drawAttacker", "1", CVAR_ARCHIVE  },
 	{ &cg_drawCrosshair, "cg_drawCrosshair", "4", CVAR_ARCHIVE },
 	{ &cg_drawCrosshairNames, "cg_drawCrosshairNames", "1", CVAR_ARCHIVE },
-	{ &cg_drawRewards, "cg_drawRewards", "1", CVAR_ARCHIVE },
-	{ &cg_killFeed, "cg_killFeed", "1", CVAR_ARCHIVE },
 	{ &cg_drawItemPickups, "cg_drawItemPickups", "1", CVAR_ARCHIVE },	// 0 off, 1 the pickup feed
-	{ &cg_fragBanner, "cg_fragBanner", "1", CVAR_ARCHIVE },
+	{ &cg_fragBanner, "cg_fragLine", "1", CVAR_ARCHIVE },
 	{ &cg_medals, "cg_medals", "1", CVAR_ARCHIVE },			// 0 hides the medal row; medals still count
-	{ &cg_eventBanner, "cg_eventBanner", "1", CVAR_ARCHIVE },
+	{ &cg_eventBanner, "cg_eventLine", "1", CVAR_ARCHIVE },
 	{ &cg_systemMessages, "cg_systemMessages", "1", CVAR_ARCHIVE },	// 0 hides connect and team lines
 	{ &cg_crosshairSize, "cg_crosshairSize", "24", CVAR_ARCHIVE },
 	{ &cg_crosshairHealth, "cg_crosshairHealth", "1", CVAR_ARCHIVE },
@@ -433,13 +429,13 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_enemyOutlineColor, "cg_enemyOutlineColor", "0xFF2020FF", CVAR_ARCHIVE },
 	{ &cg_colorBlind, "cg_colorBlind", "0", CVAR_ARCHIVE },
 	// 1: the champions HUD, 0: the classic status bar
-	{ &cg_hudStyle, "cg_hudStyle", "1", CVAR_ARCHIVE},
 	{ &cg_hudLayout, "cg_hudLayout", "modern", CVAR_ARCHIVE},		// hud/<name>.hud: modern or classic
 	// the ability arc by the crosshair: 0 off, 2 top, 3 bottom, 4 left, 5 right
-	{ &cg_drawCooldownArc, "cg_drawCooldownArc", "3", CVAR_ARCHIVE},
+	{ &cg_drawCooldownArc, "cg_drawCooldownArc", "1", CVAR_ARCHIVE},	// 0 off, 1 layout (bottom), 2 top, 3 right, 4 bottom, 5 left
 	{ &cg_obituaryRowSize, "cg_obituaryRowSize", "5", CVAR_ARCHIVE},
-	{ &cg_chatHistoryLength, "cg_chatHistoryLength", "6", CVAR_ARCHIVE},
-	{ &cg_specItemTimers, "cg_specItemTimers", "7", CVAR_ARCHIVE},
+	{ &cg_chatHistoryLength, "cg_chatHistoryLength", "5", CVAR_ARCHIVE},
+	{ &cg_specItemTimers, "cg_specItemTimers", "15", CVAR_ARCHIVE},
+	{ &cg_weaponBar, "cg_weaponBar", "0", CVAR_ARCHIVE},		// 0 right column, 1 bottom centre, 2 held weapon only, 3 hidden
 	{ &cg_followKiller, "cg_followKiller", "0", CVAR_ARCHIVE},
 	{ &cg_specFov, "cg_specFov", "0", CVAR_ARCHIVE},		// spectating: this field of view, 0 = cg_fov
 	{ &cg_specThirdPerson, "cg_specThirdPerson", "0", CVAR_ARCHIVE},	// following: chase from behind
