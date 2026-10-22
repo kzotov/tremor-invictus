@@ -625,13 +625,11 @@ void SetTeam( gentity_t *ent, const char *s ) {
 
 			// We allow a spread of two
 			if ( team == TEAM_RED && counts[TEAM_RED] - counts[TEAM_BLUE] > 1 ) {
-				trap_SendServerCommand( clientNum, 
-					"cp \"Red team has too many players.\n\"" );
+				G_SysMsg( clientNum, STR_SYS_RED_FULL, NULL, NULL );
 				return; // ignore the request
 			}
 			if ( team == TEAM_BLUE && counts[TEAM_BLUE] - counts[TEAM_RED] > 1 ) {
-				trap_SendServerCommand( clientNum, 
-					"cp \"Blue team has too many players.\n\"" );
+				G_SysMsg( clientNum, STR_SYS_BLUE_FULL, NULL, NULL );
 				return; // ignore the request
 			}
 
@@ -1553,7 +1551,7 @@ void Cmd_CallVote_f( gentity_t *ent ) {
 		return;
 	}
 
-	trap_SendServerCommand( -1, va("print \"%s called a vote.\n\"", ent->client->pers.netname ) );
+	G_SysMsg( -1, STR_SYS_VOTE_CALLED, ent->client->pers.netname, NULL );
 
 	// start the voting, the caller automatically votes yes
 	ent->client->pers.lastVoteTime = level.time;

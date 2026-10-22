@@ -1112,7 +1112,10 @@ typedef enum {
 	STR_SYS_CVAR_CHANGED,
 	STR_SYS_NOITEM,
 	STR_SYS_USEITEM,
-	STR_SYS_FIGHT,
+	STR_SYS_VOTE_CALLED,
+	STR_SYS_RED_FULL,
+	STR_SYS_BLUE_FULL,
+	STR_SYS_FIGHT,				// keep last of the system-message range
 
 	STR_NUM_STRINGS
 } stringId_t;

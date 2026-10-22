@@ -567,11 +567,11 @@ qboolean	ConsoleCommand( void ) {
 
 	if (g_dedicated.integer) {
 		if (Q_stricmp (cmd, "say") == 0) {
-			trap_SendServerCommand( -1, va( "sline \"%s\"", ConcatArgs(1) ) );	// admin text: the server line
+			G_ServerLine( -1, ConcatArgs(1) );	// admin text: the server line
 			return qtrue;
 		}
 		// everything else will also be printed as a say command
-		trap_SendServerCommand( -1, va( "sline \"%s\"", ConcatArgs(0) ) );
+		G_ServerLine( -1, ConcatArgs(0) );
 		return qtrue;
 	}
 

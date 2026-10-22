@@ -747,6 +747,7 @@ void		G_MedalsSpawn( gentity_t *ent );
 void		G_SendAwards( void );
 void		G_Announce( int clientNum, const char *key );
 void		G_SysMsg( int clientNum, int id, const char *a, const char *b );
+void		G_ServerLine( int clientNum, const char *text );
 
 //
 // g_arcade.c

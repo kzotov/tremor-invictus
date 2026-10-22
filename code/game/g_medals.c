@@ -94,6 +94,19 @@ show it in their own words, connect lines at the top right, the rest as
 grey chat lines; -1 sends to everyone
 =================
 */
+void G_ServerLine( int clientNum, const char *text ) {
+	char	safe[MAX_STRING_CHARS], *p;
+
+	// a quote would end the command's argument early
+	Q_strncpyz( safe, text, sizeof( safe ) );
+	for ( p = safe ; *p ; p++ ) {
+		if ( *p == '"' ) {
+			*p = '\'';
+		}
+	}
+	trap_SendServerCommand( clientNum, va( "sline \"%s\"", safe ) );
+}
+
 void G_SysMsg( int clientNum, int id, const char *a, const char *b ) {
 	trap_SendServerCommand( clientNum, va( "sysmsg %i \"%s\" \"%s\"", id, a ? a : "", b ? b : "" ) );
 }

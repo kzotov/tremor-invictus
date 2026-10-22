@@ -1113,6 +1113,31 @@ static void CG_Medal( int medal, int count ) {
 
 /*
 =================
+CG_SafeFormat
+
+True for a format with at most two %s and no other conversions
+=================
+*/
+static qboolean CG_SafeFormat( const char *fmt ) {
+	int		count = 0;
+
+	for ( ; *fmt ; fmt++ ) {
+		if ( *fmt != '%' ) {
+			continue;
+		}
+		fmt++;
+		if ( *fmt == '%' ) {
+			continue;
+		}
+		if ( *fmt != 's' || ++count > 2 ) {
+			return qfalse;
+		}
+	}
+	return qtrue;
+}
+
+/*
+=================
 CG_ServerCommand
 
 The string has been tokenized and can be retrieved with
@@ -1146,14 +1171,20 @@ static void CG_ServerCommand( void ) {
 		int		id = atoi( CG_Argv( 1 ) );
 		char	a[MAX_STRING_CHARS], b[MAX_STRING_CHARS];
 
-		if ( id > 0 && id < STR_NUM_STRINGS ) {
+		// only the system-message strings, and only formats taking up to two
+		// strings: anything else from a server is ignored
+		if ( id >= STR_JOIN_RED && id <= STR_SYS_FIGHT && CG_SafeFormat( BG_String( id ) ) ) {
 			Q_strncpyz( a, CG_Argv( 2 ), sizeof( a ) );
 			Q_strncpyz( b, CG_Argv( 3 ), sizeof( b ) );
 			Com_sprintf( text, sizeof( text ), BG_String( id ), a, b );
-			CG_Printf( "[skipnotify]%s\n", text );
+			if ( id < STR_SYS_FORFEIT || id > STR_SYS_BLUE_CAPLIMIT ) {
+				CG_Printf( "[skipnotify]%s\n", text );		// (the event line logs its own)
+			}
 #ifndef MISSIONPACK
 			if ( id == STR_SYS_CONNECTED || id == STR_SYS_ENTERED || id == STR_SYS_RENAMED ) {
 				CG_ConnectLine( text );
+			} else if ( id >= STR_SYS_FORFEIT && id <= STR_SYS_BLUE_CAPLIMIT ) {
+				CG_EventBanner( text, 1 );		// match ends: the event line
 			} else {
 				CG_AddSystemLine( text );
 			}

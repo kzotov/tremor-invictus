@@ -141,7 +141,7 @@ If "private", only the activator gets the message.  If no checks, all clients ge
 */
 void Use_Target_Print (gentity_t *ent, gentity_t *other, gentity_t *activator) {
 	if ( activator->client && ( ent->spawnflags & 4 ) ) {
-		trap_SendServerCommand( activator-g_entities, va( "sline \"%s\"", ent->message ));
+		G_ServerLine( activator-g_entities, ent->message );
 		return;
 	}
 
@@ -155,7 +155,7 @@ void Use_Target_Print (gentity_t *ent, gentity_t *other, gentity_t *activator) {
 		return;
 	}
 
-	trap_SendServerCommand( -1, va( "sline \"%s\"", ent->message ));
+	G_ServerLine( -1, ent->message );
 }
 
 void SP_target_print( gentity_t *ent ) {

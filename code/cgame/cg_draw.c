@@ -895,9 +895,23 @@ static int	connectQueued, connectShownTime;
 static char	serverLine[MAX_SAY_TEXT];
 static int	serverLineTime;
 
-void CG_ConnectLine( const char *text ) {
-	if ( connectQueued == CONNECT_QUEUE ) {
+static void CG_ConnectLineAdvance( void ) {
+	int		t = cg.time - connectShownTime;
+
+	// the next waiting entry replaces this one after 1 s; alone, it goes after 5 s
+	while ( connectQueued && ( t >= CONNECT_MAX || ( t >= CONNECT_MIN && connectQueued > 1 ) || t < 0 ) ) {
 		memmove( connectQueue, connectQueue + 1, sizeof( connectQueue[0] ) * ( CONNECT_QUEUE - 1 ) );
+		connectQueued--;
+		connectShownTime = cg.time;
+		t = 0;
+	}
+}
+
+void CG_ConnectLine( const char *text ) {
+	CG_ConnectLineAdvance();
+	if ( connectQueued == CONNECT_QUEUE ) {
+		// full: the oldest waiting entry goes (the shown one keeps its time)
+		memmove( connectQueue + 1, connectQueue + 2, sizeof( connectQueue[0] ) * ( CONNECT_QUEUE - 2 ) );
 		connectQueued--;
 	}
 	Q_strncpyz( connectQueue[connectQueued++], text, sizeof( connectQueue[0] ) );
@@ -910,9 +924,9 @@ void CG_ServerLine( const char *text ) {
 	char	*nl;
 
 	Q_strncpyz( serverLine, text, sizeof( serverLine ) );
-	nl = strchr( serverLine, '\n' );
-	if ( nl ) {
-		*nl = 0;
+	// one line: line breaks become spaces, a trailing one goes
+	while ( ( nl = strchr( serverLine, '\n' ) ) != NULL ) {
+		*nl = nl[1] ? ' ' : 0;
 	}
 	serverLineTime = cg.time;
 }
@@ -920,16 +934,7 @@ void CG_ServerLine( const char *text ) {
 static void CG_DrawConnectAndServerLines( void ) {
 	float	h = 24 * DP, cw = h * 0.6f, w;
 
-	if ( connectQueued ) {
-		int		t = cg.time - connectShownTime;
-
-		// the next waiting entry replaces this one after 1 s; alone, it goes after 5 s
-		if ( t >= CONNECT_MAX || ( t >= CONNECT_MIN && connectQueued > 1 ) || t < 0 ) {
-			memmove( connectQueue, connectQueue + 1, sizeof( connectQueue[0] ) * ( CONNECT_QUEUE - 1 ) );
-			connectQueued--;
-			connectShownTime = cg.time;
-		}
-	}
+	CG_ConnectLineAdvance();
 	if ( connectQueued && cg_systemMessages.integer ) {
 		cg_hudAnchor = ANCHOR_RIGHT;
 		w = CG_DrawStrlen( connectQueue[0] ) * cw;
@@ -937,7 +942,15 @@ static void CG_DrawConnectAndServerLines( void ) {
 		cg_hudAnchor = ANCHOR_CENTER;
 	}
 	if ( serverLineTime && cg.time - serverLineTime < cg_centertime.value * 1000 && cg.time >= serverLineTime ) {
-		float	room = 640 - 2 * 300 * DP;		// the chat keeps the left 300 dp
+		// the room the chat leaves: the chat runs CHAT_WIDTH small characters
+		// from 8 units off the page's left edge
+		float	page = 480.0f * cgs.glconfig.vidWidth / cgs.glconfig.vidHeight;
+		float	chatRight = 320 - page / 2 + 8 + CHAT_WIDTH * SMALLCHAR_WIDTH;
+		float	room = 2 * ( 320 - chatRight );
+
+		if ( room < 160 ) {
+			room = 160;
+		}
 		int		len = CG_DrawStrlen( serverLine );
 
 		if ( len > 0 && len * cw > room ) {

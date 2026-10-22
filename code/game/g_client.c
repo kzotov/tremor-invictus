@@ -1088,7 +1088,7 @@ void ClientBegin( int clientNum ) {
 	// the message of the day, once per connection
 	if ( g_motd.string[0] && !client->pers.motdShown && !( ent->r.svFlags & SVF_BOT ) ) {
 		client->pers.motdShown = qtrue;
-		trap_SendServerCommand( clientNum, va( "sline \"%s\"", g_motd.string ) );	// the server line
+		G_ServerLine( clientNum, g_motd.string );
 	}
 
 	// count current clients and rank for scoreboard

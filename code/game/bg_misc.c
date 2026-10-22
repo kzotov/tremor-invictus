@@ -1878,6 +1878,9 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Server: %s changed to %s",
 	"No item to use",
 	"Use %s",
+	"%s^7 called a vote",
+	"Red team has too many players.",
+	"Blue team has too many players.",
 	"FIGHT!"
 };
 
