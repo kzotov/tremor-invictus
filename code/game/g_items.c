@@ -422,14 +422,6 @@ static void G_PowerupWarning( gentity_t *ent ) {
 	gitem_t		*item = ent->item;
 	char		msg[MAX_STRING_CHARS];
 
-	// the item shown is the one the spot will give next
-	if ( g_powerupAlternate.integer && ent->abilityTime ) {
-		if ( item->giTag == PW_QUAD ) {
-			item = BG_FindItemForPowerup( PW_BATTLESUIT );
-		} else if ( item->giTag == PW_BATTLESUIT ) {
-			item = BG_FindItemForPowerup( PW_QUAD );
-		}
-	}
 	Com_sprintf( msg, sizeof( msg ), BG_String( STR_POWERUP_WARNING ), item->pickup_name, g_powerupWarning.integer );
 
 	trap_SendServerCommand( -1, va( "cp \"%s\"", msg ) );
@@ -437,6 +429,31 @@ static void G_PowerupWarning( gentity_t *ent ) {
 	G_Announce( -1, item->giTag == PW_QUAD ? "quaddamagesoon" : "protectionsoon" );
 	ent->think = RespawnItem;
 	ent->nextthink = level.time + g_powerupWarning.integer * 1000;
+}
+
+/*
+===============
+G_PowerupAlternate
+
+A quad spot alternates with protection: once one is taken, the spot
+holds the other until it is taken in turn
+===============
+*/
+static void G_PowerupAlternate( gentity_t *ent ) {
+	gitem_t	*other = NULL;
+
+	if ( !g_powerupAlternate.integer ) {
+		return;
+	}
+	if ( ent->item->giTag == PW_QUAD ) {
+		other = BG_FindItemForPowerup( PW_BATTLESUIT );
+	} else if ( ent->item->giTag == PW_BATTLESUIT ) {
+		other = BG_FindItemForPowerup( PW_QUAD );
+	}
+	if ( other ) {
+		ent->item = other;
+		ent->s.modelindex = other - bg_itemlist;
+	}
 }
 
 /*
@@ -499,23 +516,6 @@ void RespawnItem( gentity_t *ent ) {
 		return;
 	}
 
-	// a quad spot alternates with protection after its first appearance
-	if ( ent->item && ent->item->giType == IT_POWERUP && g_powerupAlternate.integer && ent->abilityTime ) {
-		gitem_t	*other = NULL;
-
-		if ( ent->item->giTag == PW_QUAD ) {
-			other = BG_FindItemForPowerup( PW_BATTLESUIT );
-		} else if ( ent->item->giTag == PW_BATTLESUIT ) {
-			other = BG_FindItemForPowerup( PW_QUAD );
-		}
-		if ( other ) {
-			ent->item = other;
-			ent->s.modelindex = other - bg_itemlist;
-		}
-	}
-	if ( ent->item && ent->item->giType == IT_POWERUP ) {
-		ent->abilityTime = 1;		// has appeared once
-	}
 
 	// randomly select from teamed entities
 	if (ent->team) {
@@ -741,6 +741,9 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
 		ent->nextthink = 0;
 		ent->think = 0;
 	} else if ( ent->item->giType == IT_POWERUP ) {
+		// the spot turns into the next power-up now, so timers and warnings
+		// show what is coming
+		G_PowerupAlternate( ent );
 		G_SchedulePowerup( ent, respawn );
 	} else {
 		ent->nextthink = level.time + respawn * 1000;

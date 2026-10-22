@@ -242,6 +242,7 @@ static void CG_Item( centity_t *cent ) {
 	if ( !es->modelindex || ( es->eFlags & EF_NODRAW ) ) {
 		return;
 	}
+	CG_RegisterItemVisuals( es->modelindex );		// a power-up spot may switch items
 
 	item = &bg_itemlist[ es->modelindex ];
 	if ( cg_simpleItems.integer && item->giType != IT_TEAM ) {

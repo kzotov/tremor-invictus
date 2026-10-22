@@ -1087,6 +1087,7 @@ static void CG_DrawSpecItemTimers( void ) {
 		if ( item <= 0 || item >= bg_numItems || !( BG_ItemTimerClass( &bg_itemlist[item] ) & cg_specItemTimers.integer ) ) {
 			continue;
 		}
+		CG_RegisterItemVisuals( item );		// a spot may turn into an item the map doesn't place
 		CG_DrawPic( 10, y, 20, 20, cg_items[item].icon );
 		left = time ? ( time - cg.time + 999 ) / 1000 : 0;
 		if ( left > 0 ) {
@@ -1144,6 +1145,7 @@ static void CG_DrawWorldItemTimers( void ) {
 		}
 		// the marker: the item's icon in a red frame, the seconds under it
 		CG_DrawRect( x - 13, y - 13, 26, 26, 1, ring );
+		CG_RegisterItemVisuals( item );
 		CG_DrawPic( x - 10, y - 10, 20, 20, cg_items[item].icon );
 		CG_DrawStringExt( x - CG_DrawStrlen( va( "%i", left ) ) * SMALLCHAR_WIDTH / 2, y + 15, va( "%i", left ),
 			colorWhite, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
