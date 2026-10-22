@@ -727,6 +727,7 @@ void UpdateStage( void ) {
 	snprintf( text, sizeof( text ), "%.0f %.0f %.0f %.0f", pos.x, pos.y, size.x, size.y );
 	imp.SetCvar( "rml_stage", text );
 	imp.SetCvar( "rml_stageCvar", stageElement->GetAttribute<Rml::String>( "data-stage", "" ).c_str() );
+	imp.SetCvar( "rml_stageTint", stageElement->GetAttribute<Rml::String>( "data-stage-tint", "" ).c_str() );
 	snprintf( text, sizeof( text ), "%.1f", stageYaw );
 	imp.SetCvar( "rml_stageYaw", text );
 }

@@ -341,6 +341,7 @@ qboolean UI_ChampionCommand( const char *cmd );
 void UI_Champion_Frame( void );
 void UI_Champion_PublishCurrent( void );
 void UI_DrawRmlStage( void );
+void UI_ColorsRml( void );
 extern void UI_PlayMenu( void );
 
 //
@@ -566,6 +567,8 @@ typedef struct {
 	qboolean		onPillar;
 	float			rise;			// units above (+) or into (-) the pillar
 	float			flash;			// 0-1, a light burst as a champion arrives
+	int				tintMode;		// 0 none, 1 bright, 2 sport (player colours preview)
+	byte			tint[3][4];		// head, upper, lower
 } playerInfo_t;
 
 //
@@ -580,6 +583,7 @@ typedef struct {
 } uiStage_t;
 
 void UI_Stage_Draw( uiStage_t *st, float x, float y, float w, float h, int champion, weapon_t weapon, float yaw );
+void UI_Stage_Tint( uiStage_t *st, const char *side );
 weapon_t UI_StartWeapon( const char *code );
 void UI_PlayerInfo_Gesture( playerInfo_t *pi );
 

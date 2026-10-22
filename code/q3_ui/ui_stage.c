@@ -124,3 +124,55 @@ void UI_Stage_Draw( uiStage_t *st, float x, float y, float w, float h, int champ
 	pi->torso.yawing = qtrue;
 	UI_DrawPlayer( x, y, w, h, pi, uis.realtime / 2 );
 }
+
+/*
+=================
+UI_Stage_Tint
+
+Draw the champion as the player colours settings show an enemy ("enemy")
+or a teammate ("team"); anything else draws it plain
+=================
+*/
+static void UI_ParseColor( const char *cvar, byte out[4] ) {
+	char			text[32];
+	const char		*s = text;
+	unsigned int	value = 0;
+	int				digits = 0;
+
+	trap_Cvar_VariableStringBuffer( cvar, text, sizeof( text ) );
+	if ( s[0] == '0' && ( s[1] == 'x' || s[1] == 'X' ) ) {
+		s += 2;
+	}
+	for ( ; *s && digits < 8; s++, digits++ ) {
+		int d = ( *s >= '0' && *s <= '9' ) ? *s - '0' : ( *s >= 'a' && *s <= 'f' ) ? *s - 'a' + 10
+			: ( *s >= 'A' && *s <= 'F' ) ? *s - 'A' + 10 : -1;
+
+		if ( d < 0 ) {
+			break;
+		}
+		value = ( value << 4 ) | d;
+	}
+	if ( digits == 6 ) {
+		value = ( value << 8 ) | 0xff;
+	}
+	out[0] = ( value >> 24 ) & 0xff;
+	out[1] = ( value >> 16 ) & 0xff;
+	out[2] = ( value >> 8 ) & 0xff;
+	out[3] = 0xff;
+}
+
+void UI_Stage_Tint( uiStage_t *st, const char *side ) {
+	static const char	*parts[3] = { "Head", "Upper", "Lower" };
+	char				skin[16];
+	int					i, mode = 0;
+
+	if ( !Q_stricmp( side, "enemy" ) || !Q_stricmp( side, "team" ) ) {
+		trap_Cvar_VariableStringBuffer( !Q_stricmp( side, "enemy" ) ? "cg_forceEnemySkin" : "cg_forceTeamSkin", skin, sizeof( skin ) );
+		mode = !Q_stricmp( skin, "bright" ) ? 1 : !Q_stricmp( skin, "sport" ) ? 2 : 0;
+		for ( i = 0; i < 3; i++ ) {
+			UI_ParseColor( va( "cg_%s%sColor", side, parts[i] ), st->pi.tint[i] );
+			Byte4Copy( st->pi.tint[i], st->old.tint[i] );
+		}
+	}
+	st->pi.tintMode = st->old.tintMode = mode;
+}

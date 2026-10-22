@@ -1071,6 +1071,11 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	if ( Q_stricmp (cmd, "ui_colors") == 0 && trap_Cvar_VariableValue( "rml_ok" ) ) {
+		UI_ColorsRml();
+		return qtrue;
+	}
+
 	if ( Q_stricmp (cmd, "ui_colors") == 0 ) {
 		UI_ColorsMenu();
 		return qtrue;

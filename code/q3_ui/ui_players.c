@@ -774,6 +774,35 @@ static void UI_AddStagePillar( float dist, float top, float flash ) {
 
 /*
 ===============
+UI_AddTintedPart
+
+A body part as the player colours setting draws it: bright replaces the
+surface with flat colour, sport adds a colour pass over it
+===============
+*/
+static void UI_AddTintedPart( playerInfo_t *pi, refEntity_t *ent, int part ) {
+	static qhandle_t	bright, sport;
+	refEntity_t			pass;
+
+	if ( !bright ) {
+		bright = trap_R_RegisterShaderNoMip( "tremor/bright" );
+		sport = trap_R_RegisterShaderNoMip( "tremor/sport" );
+	}
+	if ( pi->tintMode == 1 ) {
+		ent->customShader = bright;
+		Byte4Copy( pi->tint[part], ent->shaderRGBA );
+	}
+	trap_R_AddRefEntityToScene( ent );
+	if ( pi->tintMode == 2 ) {
+		pass = *ent;
+		pass.customShader = sport;
+		Byte4Copy( pi->tint[part], pass.shaderRGBA );
+		trap_R_AddRefEntityToScene( &pass );
+	}
+}
+
+/*
+===============
 UI_PlayerInfo_Gesture
 ===============
 */
@@ -880,7 +909,7 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 	legs.renderfx = renderfx;
 	VectorCopy (legs.origin, legs.oldorigin);
 
-	trap_R_AddRefEntityToScene( &legs );
+	UI_AddTintedPart( pi, &legs, 2 );
 
 	if (!legs.hModel) {
 		return;
@@ -902,7 +931,7 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 
 	torso.renderfx = renderfx;
 
-	trap_R_AddRefEntityToScene( &torso );
+	UI_AddTintedPart( pi, &torso, 1 );
 
 	//
 	// add the head
@@ -919,7 +948,7 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 
 	head.renderfx = renderfx;
 
-	trap_R_AddRefEntityToScene( &head );
+	UI_AddTintedPart( pi, &head, 0 );
 
 	//
 	// add the gun

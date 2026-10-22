@@ -781,6 +781,8 @@ void UI_DrawRmlStage( void ) {
 	if ( i < 0 ) {
 		i = 0;
 	}
+	trap_Cvar_VariableStringBuffer( "rml_stageTint", cvar, sizeof( cvar ) );
+	UI_Stage_Tint( &stage, UI_Cvar_VariableString( cvar ) );
 	UI_Stage_Draw( &stage, x, y, w, h, i, UI_StartWeapon( UI_Cvar_VariableString( Champion_WeaponCvar( i ) ) ),
 		trap_Cvar_VariableValue( "rml_stageYaw" ) );
 }

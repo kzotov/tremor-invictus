@@ -593,3 +593,104 @@ button.small {
 	margin-right: 14dp;
 	background-color: #d3191f;
 }
+
+/* player colours: two columns of settings, the tinted champion beside them */
+.colors {
+	position: absolute;
+	left: 4%;
+	top: 6%;
+	width: 58%;
+}
+
+.colors h1 {
+	display: block;
+	font-family: "Arial Black";
+	font-size: 50dp;
+	color: #f2efe9;
+}
+
+.colors .sub {
+	display: block;
+	font-size: 24dp;
+	color: #8a8780;
+	margin-bottom: 20dp;
+}
+
+.colors .side {
+	display: block;
+	padding: 16dp 24dp;
+	margin-bottom: 16dp;
+	background-color: #16171bf0;
+	border-left: 6dp #d3191f;
+}
+
+.colors h2 {
+	display: block;
+	font-family: "Arial Black";
+	font-size: 32dp;
+	color: #f2efe9;
+	margin-bottom: 8dp;
+}
+
+.colors .row {
+	display: block;
+	margin-bottom: 8dp;
+}
+
+.colors .label {
+	display: inline-block;
+	width: 110dp;
+	font-size: 24dp;
+	color: #8a8780;
+}
+
+.opt {
+	display: inline-block;
+	font-size: 24dp;
+	color: #8a8780;
+	padding: 4dp 12dp;
+	margin-right: 6dp;
+	border-left-width: 0dp;
+	background-color: #0e0f12;
+}
+
+.opt.on {
+	color: #f2efe9;
+	background-color: #d3191f;
+}
+
+.swatch {
+	display: inline-block;
+	width: 34dp;
+	height: 30dp;
+	margin-right: 6dp;
+	border: 3dp #0e0f12;
+	cursor: pointer;
+}
+
+.swatch:hover {
+	border-color: #8a8780;
+}
+
+.swatch.on {
+	border-color: #f2efe9;
+}
+
+.colors .actions button {
+	display: inline-block;
+}
+
+.colorstage {
+	left: 66%;
+	top: 10%;
+	width: 30%;
+	height: 70%;
+}
+
+.colorpreview {
+	position: absolute;
+	left: 66%;
+	top: 82%;
+	width: 30%;
+	text-align: center;
+}

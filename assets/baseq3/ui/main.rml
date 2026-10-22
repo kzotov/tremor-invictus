@@ -14,7 +14,7 @@
 			<button class="small" onclick="rml_hide; ui_createServer">[menu_create_server]</button>
 		</div>
 		<button onclick="ui_champions">[menu_champions]</button>
-		<button onclick="rml_hide; ui_colors">[menu_player_colors]</button>
+		<button onclick="ui_colors">[menu_player_colors]</button>
 		<button onclick="rml_hide; ui_settings">[menu_settings]</button>
 		<button onclick="rml_hide; ui_demos">[menu_demos]</button>
 		<button onclick="quit">[menu_quit]</button>

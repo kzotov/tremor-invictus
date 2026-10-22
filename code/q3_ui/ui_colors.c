@@ -291,3 +291,29 @@ void UI_ColorsMenu( void ) {
 	Colors_MenuInit();
 	UI_PushMenu( &s_colors.menu );
 }
+
+/*
+=================
+UI_ColorsRml
+
+The RmlUi player colours page (ui/colors.rml). The settings are the game
+module's; registering them here keeps them saved even when they are set
+before any game has started.
+=================
+*/
+void UI_ColorsRml( void ) {
+	static const char	*defaults[][2] = {
+		{ "cg_forceEnemySkin", "" }, { "cg_forceTeamSkin", "" },
+		{ "cg_enemyHeadColor", "0x00FF00FF" }, { "cg_enemyUpperColor", "0x00FF00FF" }, { "cg_enemyLowerColor", "0x00FF00FF" },
+		{ "cg_teamHeadColor", "0x00FFFFFF" }, { "cg_teamUpperColor", "0x00FFFFFF" }, { "cg_teamLowerColor", "0x00FFFFFF" },
+		{ "cg_forceEnemyWeaponColor", "1" }, { "cg_forceTeamWeaponColor", "1" }
+	};
+	int		i;
+
+	for ( i = 0; i < ARRAY_LEN( defaults ); i++ ) {
+		trap_Cvar_Register( NULL, defaults[i][0], defaults[i][1], CVAR_ARCHIVE );
+	}
+	trap_Cvar_Register( NULL, "ui_colorPreview", "enemy", CVAR_TEMP );
+	UI_Champion_PublishCurrent();
+	trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/colors.rml\n" );
+}
