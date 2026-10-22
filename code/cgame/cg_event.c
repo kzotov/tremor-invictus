@@ -630,6 +630,24 @@ static void CG_AbilitySound( entityState_t *es, int which ) {
 
 /*
 ==============
+CG_OrbBurst
+
+The dire orb bursting: a violet flash, sparks and a ring, instead of the
+weapon explosion it travels as
+==============
+*/
+static void CG_OrbBurst( const vec3_t position, const vec3_t dir ) {
+	static const vec3_t	dire = { 0.6f, 0.15f, 0.95f }, flash = { 0.9f, 0.5f, 1 };
+
+	CG_VfxWake( position, 48, 250, flash );
+	CG_VfxWake( position, 24, 400, dire );
+	CG_VfxSparks( position, dir, 16, 260, dire );
+	CG_VfxRingBurst( position, 72, 400, dire );
+	trap_S_StartSound( (float *)position, ENTITYNUM_WORLD, CHAN_AUTO, cgs.media.sfx_plasmaexp );
+}
+
+/*
+==============
 CG_OrbTeleportRings
 
 The dire orb's teleport (eventParm 1): purple rings widening on the floor
@@ -1135,12 +1153,22 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	case EV_MISSILE_HIT:
 		DEBUGNAME("EV_MISSILE_HIT");
 		ByteToDir( es->eventParm, dir );
+		if ( es->generic1 == AV_ORB ) {
+			CG_Bleed( position, es->otherEntityNum );
+			CG_OrbBurst( position, dir );
+			break;
+		}
 		CG_MissileHitPlayer( es->weapon, position, dir, es->otherEntityNum );
 		break;
 
 	case EV_MISSILE_MISS:
 		DEBUGNAME("EV_MISSILE_MISS");
 		ByteToDir( es->eventParm, dir );
+		if ( es->generic1 == AV_ORB ) {
+			CG_OrbBurst( position, dir );
+			CG_ImpactMark( cgs.media.burnMarkShader, position, dir, random() * 360, 1, 1, 1, 1, qfalse, 48, qfalse );
+			break;
+		}
 		CG_MissileHitWall( es->weapon, 0, position, dir, IMPACTSOUND_DEFAULT );
 		if ( es->generic1 == AV_ACID && cgs.media.acidMarkShader ) {
 			CG_ImpactMark( cgs.media.acidMarkShader, position, dir, random() * 360, 1, 1, 1, 1, qtrue, 40, qfalse );
