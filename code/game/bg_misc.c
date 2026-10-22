@@ -242,7 +242,7 @@ gitem_t	bg_itemlist[] =
 		"sound/misc/w_pkup.wav",
         { "models/weapons2/grenadel/grenadel.md3", 
 		NULL, NULL, NULL},
-/* icon */		"icons/iconw_grenade",
+/* icon */		"icons/iconw_tribolt",
 /* pickup */	"Tri-bolt",
 		10,
 		IT_WEAPON,

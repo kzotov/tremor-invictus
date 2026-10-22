@@ -34,11 +34,11 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
                                             standing player
   gfx/abilities/acid_ball.tga, acid_mark.tga
                                             the acid blob's sprite and its splash
-  icons/iconw_hmg.tga, iconw_ssg.tga, iconw_sng.tga
+  icons/iconw_hmg.tga, iconw_ssg.tga, iconw_sng.tga, iconw_tribolt.tga
                                             the heavy weapons' own icons: gold
                                             silhouettes, three barrels, two
-                                            barrels and a drum, so they never
-                                            look like the starting weapons
+                                            barrels, a drum, three bolts, so
+                                            none reuses another weapon's icon
   sound/abilities/<ability>_cast.wav, _end.wav
                                             a placeholder call per ability: a
                                             swept tone pitched by its name
@@ -352,7 +352,11 @@ def weapon_icons(out):
     # super nailgun: a round drum, a short body and a spiked muzzle
     sng = union(circle(0.4, 0.5, 0.2), art.box(0.68, 0.5, 0.18, 0.08, 0.02),
                 polygon([(0.86, 0.38), (0.96, 0.5), (0.86, 0.62)]), art.box(0.3, 0.76, 0.04, 0.1))
-    for name, shape in (("hmg", hmg), ("ssg", ssg), ("sng", sng)):
+    # tri-bolt: a launcher body and three bolts fanning out
+    tribolt = union(art.box(0.3, 0.55, 0.2, 0.1, 0.02), polygon([(0.12, 0.62), (0.22, 0.62), (0.2, 0.84), (0.1, 0.84)]),
+                    *[polygon([(0.52, 0.55 + d * 0.06), (0.82, 0.5 + d * 0.2), (0.92, 0.5 + d * 0.22), (0.82, 0.56 + d * 0.2)])
+                      for d in (-1, 0, 1)])
+    for name, shape in (("hmg", hmg), ("ssg", ssg), ("sng", sng), ("tribolt", tribolt)):
         c = Canvas(64, 64)
         c.fill(shape.outline(0.06), INK)
         c.fill(shape, gold)
