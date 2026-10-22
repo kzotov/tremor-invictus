@@ -150,7 +150,7 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_berserkLunge",		"666",	&bg_pmoveSettings.berserkLunge },
 
 	{ {0}, "pm_hmgZoomRefire",		"150",	&bg_pmoveSettings.hmgZoomRefire },
-	{ {0}, "pm_droneSpeed",			"400",	&bg_pmoveSettings.droneSpeed },
+	{ {0}, "pm_droneSpeed",			"320",	&bg_pmoveSettings.droneSpeed },
 	{ {0}, "pm_droneSize",			"10",	&bg_pmoveSettings.droneSize },
 	{ {0}, "pm_droneFireInterval",	"125",	&bg_pmoveSettings.droneFireInterval }
 };
@@ -228,6 +228,10 @@ BG_AbilityParam
 float BG_AbilityParam( int active, int param ) {
 	if ( active <= ACTIVE_NONE || active >= ACTIVE_NUM_ABILITIES || param < 0 || param >= AP_NUM_PARAMS ) {
 		return 0;
+	}
+	// a duration rides in a 16-bit stat: longer would break prediction
+	if ( param == AP_DURATION && abilityCvars[active][param].value > STAT_TIME_CAP ) {
+		return STAT_TIME_CAP;
 	}
 	return abilityCvars[active][param].value;
 }

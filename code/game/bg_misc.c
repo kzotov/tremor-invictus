@@ -2122,7 +2122,7 @@ const abilityInfo_t bg_abilityInfo[ACTIVE_NUM_ABILITIES] = {
 	{ "orb",			STR_ABILITY_ORB,			qfalse,	{ "1", "60000", "125", "16000", "500" } },
 	{ "plasmatrail",	STR_ABILITY_PLASMATRAIL,	qfalse,	{ "1", "60000", "250", "3000", "400" } },
 	{ "acidspit",		STR_ABILITY_ACIDSPIT,		qfalse,	{ "1", "60000", "0", "1000", "1400" } },
-	{ "drone",			STR_ABILITY_DRONE,			qfalse,	{ "1", "60000", "500", "45000", "0" } },
+	{ "drone",			STR_ABILITY_DRONE,			qfalse,	{ "1", "60000", "500", "30000", "0" } },
 	{ "piercingsight",	STR_ABILITY_PIERCINGSIGHT,	qfalse,	{ "1", "60000", "0", "5000", "400" } },
 	{ "shellshock",		STR_ABILITY_SHELLSHOCK,		qfalse,	{ "1", "60000", "0", "0", "400" } },
 	{ "spinevolley",	STR_ABILITY_SPINEVOLLEY,	qfalse,	{ "1", "60000", "100", "0", "500" } },
