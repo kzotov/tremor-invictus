@@ -165,6 +165,7 @@ void CG_ParseServerinfo( void ) {
 	cgs.gametype = atoi( Info_ValueForKey( info, "g_gametype" ) );
 	trap_Cvar_Set("g_gametype", va("%i", cgs.gametype));
 	cgs.dmflags = atoi( Info_ValueForKey( info, "dmflags" ) );
+	cgs.movementPractice = atoi( Info_ValueForKey( info, "g_movement" ) );
 	cgs.teamflags = atoi( Info_ValueForKey( info, "teamflags" ) );
 	cgs.fraglimit = atoi( Info_ValueForKey( info, "fraglimit" ) );
 	cgs.capturelimit = atoi( Info_ValueForKey( info, "capturelimit" ) );

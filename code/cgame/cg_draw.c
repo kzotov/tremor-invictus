@@ -1153,7 +1153,7 @@ static void CG_DrawSpeedometer( void ) {
 	char	*s;
 	float	speed;
 
-	if ( !cg_drawSpeed.integer ) {
+	if ( !cg_drawSpeed.integer && !cgs.movementPractice ) {
 		return;
 	}
 	speed = sqrt( cg.predictedPlayerState.velocity[0] * cg.predictedPlayerState.velocity[0]
@@ -1891,7 +1891,7 @@ static void CG_DrawUpperRight(stereoFrame_t stereoFrame)
 	if (cg_drawFPS.integer && (stereoFrame == STEREO_CENTER || stereoFrame == STEREO_RIGHT)) {
 		y = CG_DrawFPS( y );
 	}
-	if ( cg_drawTimer.integer ) {
+	if ( cg_drawTimer.integer || cgs.movementPractice ) {
 		y = CG_DrawTimer( y );
 	}
 	if ( cg_drawAttacker.integer ) {

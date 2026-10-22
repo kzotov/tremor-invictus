@@ -17,6 +17,7 @@
 			<button class="opt mode" data-class="on:ui_csModeShown=roundduel" onclick="ui_csMode roundduel">[mode_roundduel]</button>
 			<button class="opt mode" data-class="on:ui_csModeShown=instagib" onclick="ui_csMode instagib">[mode_instagib]</button>
 			<button class="opt mode" data-class="on:ui_csModeShown=unholytrinity" onclick="ui_csMode unholytrinity">[mode_unholytrinity]</button>
+			<button class="opt mode" data-when="ui_csPractice=1" data-class="on:ui_csModeShown=movement" onclick="ui_csMode movement">[mode_movement]</button>
 		</div>
 		<div class="maps">
 			<div class="map" data-when="ui_csMap0!=" data-class="on:ui_csPicked=0" onclick="ui_csPick 0">

@@ -1085,6 +1085,7 @@ typedef struct {
 	float			screenXScale;		// derived from glconfig
 	float			screenYScale;
 	float			screenXBias;
+	qboolean		movementPractice;	// serverinfo g_movement: speedometer and timer on
 
 	int				serverCommandSequence;	// reliable command stream counter
 	int				processedSnapshotNum;// the number of snapshots cgame has requested

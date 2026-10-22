@@ -213,6 +213,7 @@ vmCvar_t	g_passiveRegen;
 vmCvar_t	g_selfDamage;
 vmCvar_t	g_damageOverTime;
 vmCvar_t	g_deathStun;
+vmCvar_t	g_movement;
 vmCvar_t	g_readyUpShare;
 vmCvar_t	g_warmupTime;
 vmCvar_t	g_duelFraglimit;
@@ -296,6 +297,8 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_damageOverTime, "g_damageOverTime", "1", 0, 0, qtrue },
 	// Scalebearer's death stun, off by default
 	{ &g_deathStun, "g_deathStun", "0", 0, 0, qtrue },
+	// movement practice: the map to yourself, speedometer and timer on
+	{ &g_movement, "g_movement", "0", CVAR_SERVERINFO, 0, qtrue },
 	{ &g_readyUpShare, "g_readyUpShare", "0", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_warmupTime, "g_warmupTime", "20", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_duelFraglimit, "g_duelFraglimit", "0", CVAR_ARCHIVE, 0, qtrue },

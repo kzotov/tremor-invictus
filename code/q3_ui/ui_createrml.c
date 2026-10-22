@@ -56,7 +56,8 @@ static const csMode_t	csModes[] = {
 	{ "sacrifice", 0, GT_TEAM, qtrue },
 	{ "roundduel", 0, GT_TOURNAMENT, qfalse },
 	{ "instagib", 0, GT_FFA, qfalse },
-	{ "unholytrinity", 0, GT_FFA, qfalse }
+	{ "unholytrinity", 0, GT_FFA, qfalse },
+	{ "movement", 0, GT_FFA, qfalse }		// practice only: no bots
 };
 
 static struct {
@@ -276,6 +277,10 @@ static void CS_Start( void ) {
 
 	if ( trap_Cvar_VariableValue( "ui_csPractice" ) ) {
 		int		opp = (int)trap_Cvar_VariableValue( "ui_prOpp" ), mates = m->teams ? (int)trap_Cvar_VariableValue( "ui_prMates" ) : 0;
+
+		if ( !Q_stricmp( m->preset, "movement" ) ) {
+			opp = mates = 0;		// the map to yourself
+		}
 		int		champ = (int)trap_Cvar_VariableValue( "ui_prChamp" ) - 1;
 
 		dedicated = 0;
