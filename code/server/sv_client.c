@@ -453,6 +453,16 @@ void SV_DirectConnect( netadr_t from ) {
 	newcl = &temp;
 	Com_Memset (newcl, 0, sizeof(client_t));
 
+	// a server reserved for a match takes only that match's players
+	{
+		const char *refused = SV_MM_CheckConnect( userinfo, from );
+
+		if ( refused ) {
+			NET_OutOfBandPrint( NS_SERVER, from, "print\n%s\n", refused );
+			return;
+		}
+	}
+
 	// if there is already a slot for this ip, reuse it
 	for (i=0,cl=svs.clients ; i < sv_maxclients->integer ; i++,cl++) {
 		if ( cl->state == CS_FREE ) {
@@ -569,6 +579,7 @@ gotnewcl:
 	}
 
 	SV_UserinfoChanged( newcl );
+	SV_MM_ClientConnected( clientNum, userinfo );
 
 	// send the connect packet to the client
 	NET_OutOfBandPrint(NS_SERVER, from, "connectResponse %d", challenge);
@@ -675,6 +686,7 @@ void SV_DropClient( client_t *drop, const char *reason ) {
 	// call the prog function for removing a client
 	// this will remove the body, among other things
 	VM_Call( gvm, GAME_CLIENT_DISCONNECT, drop - svs.clients );
+	SV_MM_ClientDropped( drop - svs.clients );
 
 	// add the disconnect command
 	SV_SendServerCommand( drop, "disconnect \"%s\"", reason);
@@ -814,6 +826,7 @@ void SV_ClientEnterWorld( client_t *client, usercmd_t *cmd ) {
 
 	// call the game begin function
 	VM_Call( gvm, GAME_CLIENT_BEGIN, client - svs.clients );
+	SV_MM_ClientEntered( client - svs.clients );
 }
 
 /*

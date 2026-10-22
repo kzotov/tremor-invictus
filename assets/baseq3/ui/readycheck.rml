@@ -1,0 +1,16 @@
+<rml>
+<head>
+	<title>Ready check</title>
+	<link type="text/rcss" href="tremor.rcss"/>
+</head>
+<body data-escape="mm_decline">
+	<div class="card ready">
+		<h1>[mm_found]</h1>
+		<div class="sub"><span data-when="mm_mode=duel">[mm_duel]</span><span data-when="mm_mode=tdm">[mm_tdm]</span><span data-when="mm_mode=tdm2v2">[mm_tdm2v2]</span><span data-when="mm_mode=ctf">[mm_ctf]</span><span data-when="mm_mode=ca">[mm_ca]</span><span data-when="mm_mode=ca2v2">[mm_ca2v2]</span><span data-when="mm_mode=sacrifice">[mm_sacrifice]</span><span data-when="mm_mode=roundduel">[mm_roundduel]</span></div>
+		<div class="countdown" data-text-cvar="mm_seconds">15</div>
+		<button data-when="mm_accepted!=true" onclick="mm_accept">[mm_accept]</button>
+		<button data-when="mm_accepted!=true" onclick="mm_decline">[mm_decline]</button>
+		<div class="sub" data-when="mm_accepted=true">[mm_waiting_others]</div>
+	</div>
+</body>
+</rml>

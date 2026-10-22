@@ -396,6 +396,16 @@ int SV_SendQueuedMessages(void);
 void SV_Heartbeat_f( void );
 
 //
+// sv_mm.c
+//
+void SV_MM_Init( void );
+void SV_MM_Frame( void );
+const char *SV_MM_CheckConnect( const char *userinfo, netadr_t from );
+void SV_MM_ClientConnected( int clientNum, const char *userinfo );
+void SV_MM_ClientEntered( int clientNum );
+void SV_MM_ClientDropped( int clientNum );
+
+//
 // sv_snapshot.c
 //
 void SV_AddServerCommand( client_t *client, const char *cmd );

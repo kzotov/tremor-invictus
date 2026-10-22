@@ -233,3 +233,114 @@ button.small {
 	color: #8a8780;
 	margin-top: 8dp;
 }
+
+/* find match: a row per mode with your rating, ticked rows queue */
+.findmatch {
+	position: absolute;
+	left: 50%;
+	top: 120dp;
+	width: 900dp;
+	margin-left: -450dp;
+	padding: 40dp 50dp;
+	background-color: #16171bf0;
+	border-left: 6dp #d3191f;
+}
+
+.findmatch h1 {
+	display: block;
+	font-family: "Arial Black";
+	font-size: 44dp;
+	color: #f2efe9;
+}
+
+.findmatch .sub, .findmatch .id {
+	display: block;
+	font-size: 24dp;
+	color: #8a8780;
+	margin-bottom: 20dp;
+}
+
+.findmatch .id {
+	margin-top: 20dp;
+	margin-bottom: 0dp;
+	font-size: 18dp;
+}
+
+.findmatch .mode {
+	display: block;
+	font-size: 30dp;
+	color: #8a8780;
+	padding: 8dp 16dp;
+	margin-bottom: 4dp;
+	background-color: #0e0f12c0;
+	border-left: 4dp #3a3b40;
+}
+
+.findmatch .mode:hover {
+	color: #f2efe9;
+}
+
+.findmatch .mode.on {
+	color: #f2efe9;
+	border-left-color: #d3191f;
+}
+
+.findmatch .mode .rating {
+	float: right;
+}
+
+.findmatch .error {
+	display: block;
+	font-size: 24dp;
+	color: #e0a030;
+	margin-top: 10dp;
+}
+
+.findmatch .actions {
+	display: block;
+	margin-top: 20dp;
+}
+
+.findmatch .actions button {
+	display: inline-block;
+	font-size: 34dp;
+	margin-right: 20dp;
+}
+
+.findmatch .searching {
+	display: inline-block;
+	font-size: 30dp;
+	color: #f2efe9;
+	margin-right: 20dp;
+}
+
+/* the bar over the main menu while searching */
+.searchbar {
+	position: absolute;
+	left: 0dp;
+	right: 0dp;
+	top: 0dp;
+	padding: 10dp 40dp;
+	font-size: 28dp;
+	color: #f2efe9;
+	background-color: #d3191fd0;
+}
+
+.searchbar button {
+	display: inline-block;
+	margin-left: 30dp;
+	color: #f2efe9;
+	font-size: 28dp;
+	padding: 0dp;
+	border-left-width: 0dp;
+}
+
+/* the ready check: a big countdown */
+.card.ready .countdown {
+	display: block;
+	font-family: "Arial Black";
+	font-size: 90dp;
+	color: #d3191f;
+	text-align: center;
+	margin-bottom: 20dp;
+}

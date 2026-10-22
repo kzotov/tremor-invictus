@@ -2989,6 +2989,8 @@ void CL_Frame ( int msec ) {
 		return;
 	}
 
+	CL_MM_Frame();
+
 #ifdef USE_HTTP
 	if(clc.httpUsed) {
 		qboolean finished = CL_HTTP_PerformDownload();
@@ -3873,6 +3875,7 @@ void CL_Init( void ) {
 	Cmd_AddCommand ("localservers", CL_LocalServers_f);
 	Cmd_AddCommand ("globalservers", CL_GlobalServers_f);
 	Cmd_AddCommand ("rcon", CL_Rcon_f);
+	CL_MM_Init();
 	Cmd_SetCommandCompletionFunc( "rcon", CL_CompleteRcon );
 	Cmd_AddCommand ("ping", CL_Ping_f );
 	Cmd_AddCommand ("serverstatus", CL_ServerStatus_f );

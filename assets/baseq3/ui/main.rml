@@ -8,6 +8,7 @@
 	<div class="menu">
 		<button id="play" onclick="rml_toggle play_menu">[menu_play]</button>
 		<div class="submenu" id="play_menu">
+			<button class="small" onclick="mm_profile; rml_show ui/findmatch.rml">[menu_find_match]</button>
 			<button class="small" onclick="rml_hide; ui_practice">[menu_practice]</button>
 			<button class="small" onclick="rml_hide; ui_servers">[menu_find_servers]</button>
 			<button class="small" onclick="rml_hide; ui_createServer">[menu_create_server]</button>
@@ -17,6 +18,10 @@
 		<button onclick="rml_hide; ui_settings">[menu_settings]</button>
 		<button onclick="rml_hide; ui_demos">[menu_demos]</button>
 		<button onclick="quit">[menu_quit]</button>
+	</div>
+	<div class="searchbar" data-when="mm_state=searching">
+		[mm_searching] <span data-text-cvar="mm_elapsed">0:00</span>
+		<button class="small" onclick="mm_cancel">[mm_cancel]</button>
 	</div>
 	<div class="footer">[menu_footer]</div>
 </body>

@@ -1572,6 +1572,25 @@ void LogExit( const char *string ) {
 		}
 	}
 
+	// a matchmade match reports its winner through the server
+	{
+		char	mmMatch[64];
+
+		trap_Cvar_VariableStringBuffer( "sv_mmMatch", mmMatch, sizeof( mmMatch ) );
+		if ( mmMatch[0] ) {
+			if ( g_gametype.integer >= GT_TEAM ) {
+				trap_SendConsoleCommand( EXEC_APPEND, va( "mm_result %s\n",
+					level.teamScores[TEAM_RED] > level.teamScores[TEAM_BLUE] ? "red"
+					: level.teamScores[TEAM_BLUE] > level.teamScores[TEAM_RED] ? "blue" : "draw" ) );
+			} else if ( level.numPlayingClients > 1 && level.clients[level.sortedClients[0]].ps.persistant[PERS_SCORE]
+				== level.clients[level.sortedClients[1]].ps.persistant[PERS_SCORE] ) {
+				trap_SendConsoleCommand( EXEC_APPEND, "mm_result draw\n" );
+			} else if ( level.numPlayingClients > 0 ) {
+				trap_SendConsoleCommand( EXEC_APPEND, va( "mm_result %i\n", level.sortedClients[0] ) );
+			}
+		}
+	}
+
 	for (i=0 ; i < numSorted ; i++) {
 		int		ping;
 

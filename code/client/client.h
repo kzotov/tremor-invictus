@@ -661,3 +661,8 @@ void CL_DemoAdvanceTime( void );
 qboolean CL_DemoKey( int key );
 void CL_DemoMouse( int dx, int dy );
 
+//
+// cl_mm.c
+//
+void CL_MM_Init( void );
+void CL_MM_Frame( void );

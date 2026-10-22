@@ -44,3 +44,16 @@ carries `X-Key` (public key, hex), `X-Time` (unix seconds, within 60 s) and
 Modes: duel, roundduel (1v1), tdm2v2, ca2v2 (2v2), tdm, ctf, ca, sacrifice (4v4).
 
 `scripts/mmtest.py URL` runs one duel through a live service.
+
+## The game's side
+
+Players: PLAY > FIND MATCH. `mm_url` is the service's address (default
+`http://127.0.0.1:27960`); the key is `mmplayer.key` in the home folder.
+
+Game servers: set `sv_matchmaker` to the service's address, `sv_mmAddress`
+to the address players reach the server at (default 127.0.0.1 and
+`net_port`) and `sv_mmModes` to the modes it hosts. Maps come from
+`mappools/<mode>.txt`, or every map the server has. While a match is
+reserved only its players (by token) can join; the result is reported at
+the end of the match. A player who doesn't join within 60 s forfeits; in a
+duel the player who came wins.

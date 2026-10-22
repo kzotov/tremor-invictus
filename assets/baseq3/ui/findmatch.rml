@@ -1,0 +1,46 @@
+<rml>
+<head>
+	<title>Find match</title>
+	<link type="text/rcss" href="tremor.rcss"/>
+</head>
+<body data-escape="rml_show ui/main.rml">
+	<div class="findmatch">
+		<h1>[mm_title]</h1>
+		<div class="sub">[mm_help]</div>
+		<div class="modes">
+		<div class="mode" data-class="on:mm_m_duel=1" onclick="toggle mm_m_duel">
+			<span class="name">[mm_duel]</span><span class="rating" data-text-cvar="mm_rating_duel">-</span>
+		</div>
+		<div class="mode" data-class="on:mm_m_tdm=1" onclick="toggle mm_m_tdm">
+			<span class="name">[mm_tdm]</span><span class="rating" data-text-cvar="mm_rating_tdm">-</span>
+		</div>
+		<div class="mode" data-class="on:mm_m_tdm2v2=1" onclick="toggle mm_m_tdm2v2">
+			<span class="name">[mm_tdm2v2]</span><span class="rating" data-text-cvar="mm_rating_tdm2v2">-</span>
+		</div>
+		<div class="mode" data-class="on:mm_m_ctf=1" onclick="toggle mm_m_ctf">
+			<span class="name">[mm_ctf]</span><span class="rating" data-text-cvar="mm_rating_ctf">-</span>
+		</div>
+		<div class="mode" data-class="on:mm_m_ca=1" onclick="toggle mm_m_ca">
+			<span class="name">[mm_ca]</span><span class="rating" data-text-cvar="mm_rating_ca">-</span>
+		</div>
+		<div class="mode" data-class="on:mm_m_ca2v2=1" onclick="toggle mm_m_ca2v2">
+			<span class="name">[mm_ca2v2]</span><span class="rating" data-text-cvar="mm_rating_ca2v2">-</span>
+		</div>
+		<div class="mode" data-class="on:mm_m_sacrifice=1" onclick="toggle mm_m_sacrifice">
+			<span class="name">[mm_sacrifice]</span><span class="rating" data-text-cvar="mm_rating_sacrifice">-</span>
+		</div>
+		<div class="mode" data-class="on:mm_m_roundduel=1" onclick="toggle mm_m_roundduel">
+			<span class="name">[mm_roundduel]</span><span class="rating" data-text-cvar="mm_rating_roundduel">-</span>
+		</div>
+		</div>
+		<div class="error" data-text-cvar="mm_error"></div>
+		<div class="actions">
+			<button data-when="mm_state=idle" onclick="mm_search">[mm_search]</button>
+			<div class="searching" data-when="mm_state!=idle">[mm_searching] <span data-text-cvar="mm_elapsed">0:00</span></div>
+			<button data-when="mm_state=searching" onclick="mm_cancel">[mm_cancel]</button>
+			<button onclick="rml_show ui/main.rml">[menu_back]</button>
+		</div>
+		<div class="id">[mm_your_id] <span data-text-cvar="mm_id"></span></div>
+	</div>
+</body>
+</rml>

@@ -17,6 +17,8 @@ set(COMMON_SOURCES
     ${SOURCE_DIR}/qcommon/md5.c
     ${SOURCE_DIR}/qcommon/msg.c
     ${SOURCE_DIR}/qcommon/net_chan.c
+    ${SOURCE_DIR}/qcommon/mm_common.c
+    ${SOURCE_DIR}/qcommon/mm_crypto.c
     ${SOURCE_DIR}/qcommon/net_ip.c
     ${SOURCE_DIR}/qcommon/huffman.c
     ${SOURCE_DIR}/qcommon/q_math.c
@@ -52,6 +54,7 @@ set(SERVER_SOURCES
     ${SOURCE_DIR}/server/sv_game.c
     ${SOURCE_DIR}/server/sv_init.c
     ${SOURCE_DIR}/server/sv_main.c
+    ${SOURCE_DIR}/server/sv_mm.c
     ${SOURCE_DIR}/server/sv_net_chan.c
     ${SOURCE_DIR}/server/sv_snapshot.c
     ${SOURCE_DIR}/server/sv_world.c

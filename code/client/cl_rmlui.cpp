@@ -499,7 +499,8 @@ extern "C" int RML_Active( void ) {
 Condition
 
 data-when="cvar=value&cvar!=value&cvar>=n": an element shows only when all
-of them hold (numbers compare as numbers)
+of them hold (numbers compare as numbers); checked every frame, along with
+data-class, data-src-cvar and data-text-cvar
 =================
 */
 bool Condition( const Rml::String &when ) {
@@ -543,6 +544,21 @@ void ApplyConditions( Rml::Element *element ) {
 		Rml::Variant	*when = child->GetAttribute( "data-when" );
 		Rml::Variant	*src = child->GetAttribute( "data-src-cvar" );
 		Rml::Variant	*cls = child->GetAttribute( "data-class" );
+		Rml::Variant	*text = child->GetAttribute( "data-text-cvar" );
+
+		// text that follows a cvar while the document is open
+		if ( text ) {
+			char		value[256];
+			Rml::String	escaped;
+
+			imp.GetCvar( text->Get<Rml::String>().c_str(), value, sizeof( value ) );
+			for ( const char *c = value; *c; c++ ) {
+				escaped += *c == '<' ? "&lt;" : *c == '>' ? "&gt;" : *c == '&' ? "&amp;" : Rml::String( 1, *c );
+			}
+			if ( child->GetInnerRML() != escaped ) {
+				child->SetInnerRML( escaped );
+			}
+		}
 
 		// data-class="name:condition" sets the class while the condition holds
 		if ( cls ) {
@@ -559,7 +575,9 @@ void ApplyConditions( Rml::Element *element ) {
 			char	value[256];
 
 			imp.GetCvar( src->Get<Rml::String>().c_str(), value, sizeof( value ) );
-			child->SetAttribute( "src", Rml::String( "/" ) + value );
+			if ( child->GetAttribute<Rml::String>( "src", "" ) != Rml::String( "/" ) + value ) {
+				child->SetAttribute( "src", Rml::String( "/" ) + value );
+			}
 		}
 
 		if ( when ) {
@@ -643,6 +661,7 @@ extern "C" void RML_Frame( void ) {
 	if ( !RML_Active() ) {
 		return;
 	}
+	ApplyConditions( document );		// cvars may have changed since the last frame
 	context->Update();
 	context->Render();
 	imp.SetScissor2D( 0, 0, 0, 0 );

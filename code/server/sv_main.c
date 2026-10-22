@@ -1076,6 +1076,8 @@ void SV_Frame( int msec ) {
 		return;
 	}
 
+	SV_MM_Frame();
+
 	// allow pause if only the local client is connected
 	if ( SV_CheckPaused() ) {
 		return;
