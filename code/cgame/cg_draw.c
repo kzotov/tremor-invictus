@@ -3349,6 +3349,7 @@ victim large, then the score line; 2 s, fading 0.3 s; quick frags within
 
 #define FRAG_TIME		2000
 #define FRAG_FADE		1000
+#define FRAG_FADE_IN	200
 #define FRAG_QUICK		3000
 #define FRAG_Y			134
 
@@ -3376,23 +3377,24 @@ static void CG_DrawFragBanner( void ) {
 	}
 	color[3] = red[3] = t > FRAG_TIME ? 1.0f - ( t - FRAG_TIME ) / (float)FRAG_FADE : 1;
 	if ( CG_HudModern() ) {
-		// "YOU FRAGGED <name>" on one line, the score or place under it
-		float	fx, fy;
+		// "YOU FRAGGED <name>" 30 dp tall at top + 412, fading in over
+		// 0.2 s; in FFA the place line under it, 18 dp grey at top + 444
+		float	fx, fy, ch = 30 * DP, cw = ch * 0.8f, ph = 18 * DP, pw = ph * 0.8f;
+		vec4_t	grey = { 0.74f, 0.74f, 0.74f, 1 };
 		char	line[128];
 
+		if ( t < FRAG_FADE_IN ) {
+			color[3] = t / (float)FRAG_FADE_IN;
+		}
+		grey[3] = color[3];
 		CG_HudPlace( "fragline", &fx, &fy );
 		cg_hudAnchor = ANCHOR_CENTER;
 		Com_sprintf( line, sizeof( line ), "%s %s", BG_String( STR_MSG_YOUFRAGGED ), fragBanner.victim );
-		w = CG_DrawStrlen( line ) * BIGCHAR_WIDTH;
-		CG_DrawStringExt( fx - w / 2, fy - BIGCHAR_HEIGHT / 2, line, color, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
-		if ( fragBanner.count > 1 ) {
-			CG_DrawStringExt( fx + w / 2 + 6, fy - BIGCHAR_HEIGHT / 2, va( "x%i", fragBanner.count ), red, qtrue, qtrue,
-				BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
-		}
-		if ( fragBanner.line[0] ) {
-			w = CG_DrawStrlen( fragBanner.line ) * SMALLCHAR_WIDTH;
-			CG_DrawStringExt( fx - w / 2, fy + 32 * DP - SMALLCHAR_HEIGHT / 2, fragBanner.line, color, qfalse, qtrue,
-				SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+		w = CG_DrawStrlen( line ) * cw;
+		CG_DrawStringExt( fx - w / 2, fy - ch / 2, line, color, qfalse, qtrue, cw, ch, 0 );
+		if ( fragBanner.line[0] && cgs.gametype == GT_FFA ) {
+			w = CG_DrawStrlen( fragBanner.line ) * pw;
+			CG_DrawStringExt( fx - w / 2, fy + 32 * DP - ph / 2, fragBanner.line, grey, qtrue, qtrue, pw, ph, 0 );
 		}
 		return;
 	}
