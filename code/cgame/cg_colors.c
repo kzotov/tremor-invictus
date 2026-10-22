@@ -125,9 +125,9 @@ void CG_PlayerColors( centity_t *cent, clientInfo_t *ci ) {
 	tintWeapon = qfalse;
 	outlineOn = qfalse;
 
-	// the enemy outline: an enemy in plain sight (never through walls)
+	// the enemy outline: a living enemy in plain sight (never through walls)
 	if ( cg_enemyOutline.integer && cent->currentState.number != ps->clientNum
-		&& !( cent->currentState.powerups & ( 1 << PW_INVIS ) )
+		&& !( cent->currentState.powerups & ( 1 << PW_INVIS ) ) && !( cent->currentState.eFlags & EF_DEAD )
 		&& ( cgs.gametype < GT_TEAM || ci->team != viewTeam ) && viewTeam != TEAM_SPECTATOR ) {
 		trace_t	tr;
 		vec3_t	chest;
