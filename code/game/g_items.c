@@ -288,8 +288,16 @@ int Pickup_Weapon (gentity_t *ent, gentity_t *other) {
 		}
 	}
 
-	// add the weapon
+	// add the weapon; a heavy one replaces its starting weapon in the slot
 	other->client->ps.stats[STAT_WEAPONS] |= ( 1 << ent->item->giTag );
+	if ( BG_WeaponStarter( ent->item->giTag ) ) {
+		int		starter = BG_WeaponStarter( ent->item->giTag );
+
+		other->client->ps.stats[STAT_WEAPONS] &= ~( 1 << starter );
+		if ( other->client->ps.weapon == starter ) {
+			other->client->ps.weapon = ent->item->giTag;
+		}
+	}
 
 	Add_Ammo( other, ent->item->giTag, quantity );
 

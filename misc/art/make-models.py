@@ -34,6 +34,11 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
                                             standing player
   gfx/abilities/acid_ball.tga, acid_mark.tga
                                             the acid blob's sprite and its splash
+  icons/iconw_hmg.tga, iconw_ssg.tga, iconw_sng.tga
+                                            the heavy weapons' own icons: gold
+                                            silhouettes, three barrels, two
+                                            barrels and a drum, so they never
+                                            look like the starting weapons
   sound/abilities/<ability>_cast.wav, _end.wav
                                             a placeholder call per ability: a
                                             swept tone pitched by its name
@@ -43,6 +48,7 @@ All shapes are built here from lathes and boxes; textures from noise.
 import math, os, random, struct, sys, zipfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tremorart import *
+import tremorart as art
 
 
 # ---------------------------------------------------------------- meshes
@@ -331,6 +337,28 @@ def acid(out):
 
     texture(os.path.join(out, "gfx/abilities/acid_ball.tga"), 64, 64, ball)
     texture(os.path.join(out, "gfx/abilities/acid_mark.tga"), 128, 128, mark)
+
+
+def weapon_icons(out):
+    # this file's box() builds meshes; the 2D one comes from tremorart
+    gold = (0.95, 0.72, 0.2)
+    dark = (0.35, 0.22, 0.05)
+    # heavy machinegun: a body, three stacked barrels, a grip
+    hmg = union(art.box(0.38, 0.5, 0.2, 0.12, 0.02), art.box(0.72, 0.42, 0.22, 0.025), art.box(0.72, 0.5, 0.22, 0.025),
+                art.box(0.72, 0.58, 0.22, 0.025), polygon([(0.24, 0.6), (0.34, 0.6), (0.3, 0.82), (0.2, 0.82)]))
+    # super shotgun: two fat barrels side by side and a stock
+    ssg = union(art.box(0.6, 0.44, 0.32, 0.05, 0.02), art.box(0.6, 0.56, 0.32, 0.05, 0.02),
+                polygon([(0.06, 0.5), (0.3, 0.42), (0.3, 0.64), (0.1, 0.72)]))
+    # super nailgun: a round drum, a short body and a spiked muzzle
+    sng = union(circle(0.4, 0.5, 0.2), art.box(0.68, 0.5, 0.18, 0.08, 0.02),
+                polygon([(0.86, 0.38), (0.96, 0.5), (0.86, 0.62)]), art.box(0.3, 0.76, 0.04, 0.1))
+    for name, shape in (("hmg", hmg), ("ssg", ssg), ("sng", sng)):
+        c = Canvas(64, 64)
+        c.fill(shape.outline(0.06), INK)
+        c.fill(shape, gold)
+        if name == "sng":
+            c.fill(circle(0.4, 0.5, 0.08), dark)
+        write_tga(os.path.join(out, "icons/iconw_%s.tga" % name), 64, 64, c.px)
 
 
 # ---------------------------------------------------------------- portraits
@@ -648,6 +676,8 @@ def main():
     turret(src)
     barrier(src)
     acid(src)
+    os.makedirs(os.path.join(src, "icons"), exist_ok=True)
+    weapon_icons(src)
     portraits(src)
     sounds(src)
     texture(os.path.join(src, "gfx/abilities/plasmatrail.tga"), 128, 64, trail, False)

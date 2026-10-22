@@ -1518,6 +1518,7 @@ typedef enum {
 
 int		BG_AmmoPartner( int weapon );
 int		BG_WeaponVisual( int weapon );
+int		BG_WeaponStarter( int weapon );
 int		BG_WeaponSlot( int weapon );
 qboolean BG_StartingWeapon( int weapon );
 

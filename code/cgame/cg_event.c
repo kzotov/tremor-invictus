@@ -504,6 +504,11 @@ static void CG_ItemPickup( int itemNum ) {
 			cg.weaponSelectTime = cg.time;
 			cg.weaponSelect = bg_itemlist[itemNum].giTag;
 		}
+		// a heavy weapon replaces its starter: holding that, take the heavy one
+		if ( BG_WeaponStarter( bg_itemlist[itemNum].giTag ) && cg.weaponSelect == BG_WeaponStarter( bg_itemlist[itemNum].giTag ) ) {
+			cg.weaponSelectTime = cg.time;
+			cg.weaponSelect = bg_itemlist[itemNum].giTag;
+		}
 	}
 
 }

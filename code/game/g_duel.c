@@ -127,6 +127,15 @@ void G_WarmupLoadout( gentity_t *ent ) {
 		client->ps.stats[STAT_WEAPONS] |= 1 << w;
 		client->ps.ammo[w] = WARMUP_AMMO;
 	}
+	// one weapon per slot: the heavy ones in place of the starters
+	for ( w = WP_GAUNTLET; w < WP_NUM_WEAPONS; w++ ) {
+		if ( BG_WeaponStarter( w ) && ( client->ps.stats[STAT_WEAPONS] & ( 1 << w ) ) ) {
+			client->ps.stats[STAT_WEAPONS] &= ~( 1 << BG_WeaponStarter( w ) );
+			if ( client->ps.weapon == BG_WeaponStarter( w ) ) {
+				client->ps.weapon = w;
+			}
+		}
+	}
 }
 
 /*

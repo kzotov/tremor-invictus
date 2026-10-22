@@ -306,7 +306,7 @@ gitem_t	bg_itemlist[] =
 		"sound/misc/w_pkup.wav",
         { "models/weapons2/plasma/plasma.md3", 
 		NULL, NULL, NULL},
-/* icon */		"icons/iconw_plasma",
+/* icon */		"icons/iconw_sng",
 /* pickup */	"Super Nailgun",
 		50,
 		IT_WEAPON,
@@ -923,7 +923,7 @@ Only in One Flag CTF games
 		"sound/misc/w_pkup.wav",
         { "models/weapons2/machinegun/machinegun.md3",
 		NULL, NULL, NULL},
-/* icon */		"icons/iconw_machinegun",
+/* icon */		"icons/iconw_hmg",
 /* pickup */	"Heavy Machinegun",
 		100,
 		IT_WEAPON,
@@ -939,7 +939,7 @@ Only in One Flag CTF games
 		"sound/misc/w_pkup.wav",
         { "models/weapons2/shotgun/shotgun.md3",
 		NULL, NULL, NULL},
-/* icon */		"icons/iconw_shotgun",
+/* icon */		"icons/iconw_ssg",
 /* pickup */	"Super Shotgun",
 		10,
 		IT_WEAPON,
@@ -2097,6 +2097,22 @@ int BG_WeaponVisual( int weapon ) {
 	case WP_NAILGUN:			return WP_PLASMAGUN;
 #endif
 	default:					return weapon;
+	}
+}
+
+/*
+==============
+BG_WeaponStarter
+
+The starting weapon a heavy one replaces in its slot (0 for the others)
+==============
+*/
+int BG_WeaponStarter( int weapon ) {
+	switch ( weapon ) {
+	case WP_HEAVY_MACHINEGUN:	return WP_MACHINEGUN;
+	case WP_SUPER_SHOTGUN:		return WP_SHOTGUN;
+	case WP_SUPER_NAILGUN:		return WP_NAILGUN;
+	default:					return WP_NONE;
 	}
 }
 

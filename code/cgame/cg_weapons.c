@@ -701,6 +701,7 @@ void CG_RegisterWeapon( int weaponNum ) {
 	weaponInfo_t	*weaponInfo;
 	gitem_t			*item, *ammo;
 	char			path[MAX_QPATH];
+	const char		*model;
 	vec3_t			mins, maxs;
 	int				i;
 
@@ -728,8 +729,22 @@ void CG_RegisterWeapon( int weaponNum ) {
 	}
 	CG_RegisterItemVisuals( item - bg_itemlist );
 
+	// the heavy weapons have their own replaceable models; without one they
+	// borrow the starting weapon's, drawn with a gold pass to tell them apart
+	model = item->world_model[0];
+	if ( weaponNum == WP_HEAVY_MACHINEGUN || weaponNum == WP_SUPER_SHOTGUN || weaponNum == WP_SUPER_NAILGUN ) {
+		const char	*own = weaponNum == WP_HEAVY_MACHINEGUN ? "models/weapons2/hmg/hmg.md3"
+			: weaponNum == WP_SUPER_SHOTGUN ? "models/weapons2/ssg/ssg.md3" : "models/weapons2/sng/sng.md3";
+
+		if ( trap_R_RegisterModel( own ) ) {
+			model = own;
+		} else {
+			weaponInfo->heavyTint = qtrue;
+		}
+	}
+
 	// load cmodel before model so filecache works
-	weaponInfo->weaponModel = trap_R_RegisterModel( item->world_model[0] );
+	weaponInfo->weaponModel = trap_R_RegisterModel( model );
 
 	// calc midpoint for rotation
 	trap_R_ModelBounds( weaponInfo->weaponModel, mins, maxs );
@@ -749,15 +764,15 @@ void CG_RegisterWeapon( int weaponNum ) {
 		weaponInfo->ammoModel = trap_R_RegisterModel( ammo->world_model[0] );
 	}
 
-	COM_StripExtension( item->world_model[0], path, sizeof(path) );
+	COM_StripExtension( model, path, sizeof(path) );
 	Q_strcat( path, sizeof(path), "_flash.md3" );
 	weaponInfo->flashModel = trap_R_RegisterModel( path );
 
-	COM_StripExtension( item->world_model[0], path, sizeof(path) );
+	COM_StripExtension( model, path, sizeof(path) );
 	Q_strcat( path, sizeof(path), "_barrel.md3" );
 	weaponInfo->barrelModel = trap_R_RegisterModel( path );
 
-	COM_StripExtension( item->world_model[0], path, sizeof(path) );
+	COM_StripExtension( model, path, sizeof(path) );
 	Q_strcat( path, sizeof(path), "_hand.md3" );
 	weaponInfo->handsModel = trap_R_RegisterModel( path );
 
@@ -1371,6 +1386,16 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 	gun.backlerp = parent->backlerp;
 
 	CG_AddWeaponWithPowerups( &gun, cent->currentState.powerups );
+	if ( weapon->heavyTint && !( cent->currentState.powerups & ( 1 << PW_INVIS ) ) ) {
+		refEntity_t	gold = gun;
+
+		gold.customShader = cgs.media.sportShader;
+		gold.shaderRGBA[0] = 255;
+		gold.shaderRGBA[1] = 170;
+		gold.shaderRGBA[2] = 40;
+		gold.shaderRGBA[3] = 255;
+		trap_R_AddRefEntityToScene( &gold );
+	}
 	if ( !ps && !( cent->currentState.powerups & ( 1 << PW_INVIS ) ) ) {
 		CG_ColorWeapon( &gun );		// world view of another player's weapon
 	}

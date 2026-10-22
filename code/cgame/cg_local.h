@@ -398,6 +398,7 @@ typedef struct {
 typedef struct weaponInfo_s {
 	qboolean		registered;
 	gitem_t			*item;
+	qboolean		heavyTint;			// a heavy weapon on its starter's model: drawn with a gold pass
 
 	qhandle_t		handsModel;			// the hands don't actually draw, they just position the weapon
 	qhandle_t		weaponModel;
