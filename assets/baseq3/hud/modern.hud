@@ -1,0 +1,22 @@
+// The default HUD layout (hud.md section 7).
+// name  left|centre|right  top|bottom  x  y  [scale]
+// Offsets in design pixels: 1080 to the screen height, x inward from a side
+// (or right of the centre), y down from the top or up from the bottom.
+portrait	left	bottom	240	80
+armor		left	bottom	209	64
+health		left	bottom	236	154
+follow		left	bottom	142	250
+ability		centre	bottom	0	160
+abilitykey	centre	bottom	0	69
+abilityname	centre	bottom	0	43
+ammo		right	bottom	103	95
+weaponbar	right	bottom	30	215
+clock		centre	top		0	38
+clockline	centre	top		0	97
+killfeed	left	top		50	150
+pickups		right	top		50	150
+eventline	centre	top		0	200
+bannerword	centre	top		0	278
+medals		centre	top		0	392
+fragline	centre	top		0	412
+chat		left	bottom	10	308

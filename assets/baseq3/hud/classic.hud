@@ -1,0 +1,3 @@
+// The classic HUD: health and armour either side of the portrait at the
+// bottom centre, kill feed top right. Drawn by its own code; this file only
+// names the layout.

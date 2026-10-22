@@ -1800,7 +1800,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"From the original material: the name only. Recreated: everything else.",
 	"This is a starting point for discussion. All suggestions are welcome.",
 	"FRAGGED",
-	"%s place with %i"
+	"%s place with %i",
+	"YOU FRAGGED"
 };
 
 /*

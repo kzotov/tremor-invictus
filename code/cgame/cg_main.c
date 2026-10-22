@@ -225,6 +225,7 @@ vmCvar_t	cg_enemyOutline;
 vmCvar_t	cg_enemyOutlineColor;
 vmCvar_t	cg_colorBlind;
 vmCvar_t	cg_hudStyle;
+vmCvar_t	cg_hudLayout;
 vmCvar_t	cg_drawCooldownArc;
 vmCvar_t	cg_obituaryRowSize;
 vmCvar_t	cg_chatHistoryLength;
@@ -431,6 +432,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_colorBlind, "cg_colorBlind", "0", CVAR_ARCHIVE },
 	// 1: the champions HUD, 0: the classic status bar
 	{ &cg_hudStyle, "cg_hudStyle", "1", CVAR_ARCHIVE},
+	{ &cg_hudLayout, "cg_hudLayout", "modern", CVAR_ARCHIVE},		// hud/<name>.hud: modern or classic
 	// the ability arc by the crosshair: 0 off, 2 top, 3 bottom, 4 left, 5 right
 	{ &cg_drawCooldownArc, "cg_drawCooldownArc", "3", CVAR_ARCHIVE},
 	{ &cg_obituaryRowSize, "cg_obituaryRowSize", "5", CVAR_ARCHIVE},

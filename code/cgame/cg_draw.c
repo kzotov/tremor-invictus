@@ -43,6 +43,147 @@ char systemChat[256];
 char teamChat1[256];
 char teamChat2[256];
 
+/*
+==============================================================================
+
+HUD LAYOUTS (hud.md section 7)
+
+A layout is data: hud/<cg_hudLayout>.hud lists elements as
+	name  left|centre|right  top|bottom  x  y  [scale]
+with offsets in design pixels (1080 per screen height). "modern" is the
+default; "classic" keeps the earlier HUD (cg_hudStyle 1) and its places.
+Elements the file leaves out keep the modern defaults below.
+
+==============================================================================
+*/
+
+typedef struct {
+	const char	*name;
+	int			anchorX;	// ANCHOR_LEFT, ANCHOR_CENTER, ANCHOR_RIGHT
+	qboolean	fromBottom;
+	float		x, y;		// design pixels from the anchor
+	float		scale;
+} hudElement_t;
+
+static hudElement_t	hudElements[] = {
+	{ "portrait",		ANCHOR_LEFT,	qtrue,	240, 80, 1 },
+	{ "armor",			ANCHOR_LEFT,	qtrue,	209, 64, 1 },
+	{ "health",			ANCHOR_LEFT,	qtrue,	236, 154, 1 },
+	{ "follow",			ANCHOR_LEFT,	qtrue,	142, 250, 1 },
+	{ "ability",		ANCHOR_CENTER,	qtrue,	0, 160, 1 },
+	{ "abilitykey",		ANCHOR_CENTER,	qtrue,	0, 69, 1 },
+	{ "abilityname",	ANCHOR_CENTER,	qtrue,	0, 43, 1 },
+	{ "ammo",			ANCHOR_RIGHT,	qtrue,	103, 95, 1 },
+	{ "weaponbar",		ANCHOR_RIGHT,	qtrue,	30, 215, 1 },
+	{ "clock",			ANCHOR_CENTER,	qfalse,	0, 38, 1 },
+	{ "clockline",		ANCHOR_CENTER,	qfalse,	0, 97, 1 },
+	{ "killfeed",		ANCHOR_LEFT,	qfalse,	50, 150, 1 },
+	{ "pickups",		ANCHOR_RIGHT,	qfalse,	50, 150, 1 },
+	{ "medals",			ANCHOR_CENTER,	qfalse,	0, 392, 1 },		// the row's bottom edge
+	{ "fragline",		ANCHOR_CENTER,	qfalse,	0, 412, 1 },
+	{ "eventline",		ANCHOR_CENTER,	qfalse,	0, 200, 1 },
+	{ "bannerword",		ANCHOR_CENTER,	qfalse,	0, 278, 1 },
+	{ "chat",			ANCHOR_LEFT,	qtrue,	10, 308, 1 }
+};
+
+static char	hudLayoutLoaded[32];
+static qboolean CG_BannerWordShowing( void );
+
+#define DP	( 480.0f / 1080.0f )	// design pixels to the 640 x 480 frame
+
+/*
+=================
+CG_HudLayout
+
+Reads hud/<cg_hudLayout>.hud when the setting changes
+=================
+*/
+static void CG_HudLayout( void ) {
+	char			buf[4096], name[32], ax[16], ay[16];
+	char			*p, *line;
+	fileHandle_t	f;
+	int				len, i;
+	float			x, y, scale;
+
+	if ( !Q_stricmp( hudLayoutLoaded, cg_hudLayout.string ) ) {
+		return;
+	}
+	Q_strncpyz( hudLayoutLoaded, cg_hudLayout.string, sizeof( hudLayoutLoaded ) );
+	len = trap_FS_FOpenFile( va( "hud/%s.hud", cg_hudLayout.string ), &f, FS_READ );
+	if ( !f ) {
+		return;
+	}
+	if ( len > (int)sizeof( buf ) - 1 ) {
+		len = sizeof( buf ) - 1;
+	}
+	trap_FS_Read( buf, len, f );
+	buf[len] = 0;
+	trap_FS_FCloseFile( f );
+	for ( line = buf ; line && *line ; line = p ) {
+		p = strchr( line, '\n' );
+		if ( p ) {
+			*p++ = 0;
+		}
+		if ( line[0] == '/' || line[0] == '#' ) {
+			continue;
+		}
+		scale = 1;
+		if ( sscanf( line, "%31s %15s %15s %f %f %f", name, ax, ay, &x, &y, &scale ) < 5 ) {
+			continue;
+		}
+		for ( i = 0 ; i < ARRAY_LEN( hudElements ) ; i++ ) {
+			if ( !Q_stricmp( hudElements[i].name, name ) ) {
+				hudElements[i].anchorX = !Q_stricmp( ax, "left" ) ? ANCHOR_LEFT : !Q_stricmp( ax, "right" ) ? ANCHOR_RIGHT : ANCHOR_CENTER;
+				hudElements[i].fromBottom = !Q_stricmp( ay, "bottom" );
+				hudElements[i].x = x;
+				hudElements[i].y = y;
+				hudElements[i].scale = scale > 0 ? scale : 1;
+			}
+		}
+	}
+}
+
+/*
+=================
+CG_HudPlace
+
+An element's point in the 640 x 480 frame; sets cg_hudAnchor to match.
+x grows inward from a side anchor, y downward from the top or upward
+from the bottom
+=================
+*/
+static float CG_HudPlace( const char *name, float *x, float *y ) {
+	int		i;
+
+	for ( i = 0 ; i < ARRAY_LEN( hudElements ) ; i++ ) {
+		hudElement_t	*e = &hudElements[i];
+
+		if ( Q_stricmp( e->name, name ) ) {
+			continue;
+		}
+		cg_hudAnchor = e->anchorX;
+		*x = e->anchorX == ANCHOR_LEFT ? e->x * DP : e->anchorX == ANCHOR_RIGHT ? 640 - e->x * DP : 320 + e->x * DP;
+		*y = e->fromBottom ? 480 - e->y * DP : e->y * DP;
+		return e->scale;
+	}
+	cg_hudAnchor = ANCHOR_CENTER;
+	*x = 320;
+	*y = 240;
+	return 1;
+}
+
+/*
+=================
+CG_HudModern
+
+Whether the modern layout draws the HUD (cg_hudLayout other than classic)
+=================
+*/
+qboolean CG_HudModern( void ) {
+	return cg_hudStyle.integer && Q_stricmp( cg_hudLayout.string, "classic" );
+}
+
+
 #ifdef MISSIONPACK
 
 int CG_Text_Width(const char *text, float scale, int limit) {
@@ -555,9 +696,11 @@ static void CG_KillFeedName( int x, int y, const char *name, int team, const vec
 static void CG_DrawKillFeed( void ) {
 	static qhandle_t	skull;
 	killFeed_t	*k;
-	int			i, n, rows = cg_obituaryRowSize.integer, y = 40, w, x, left;
+	int			i, n, rows = cg_obituaryRowSize.integer, y = 40, w, x, left, life, fadeTime, right;
 	vec4_t		fade = { 1, 1, 1, 1 }, band;
 	int			me = cg.snap->ps.clientNum;
+	qboolean	modern;
+	float		feedLeft = 0;
 
 	if ( rows <= 0 || !cg_killFeed.integer ) {
 		return;
@@ -568,18 +711,31 @@ static void CG_DrawKillFeed( void ) {
 	if ( !skull ) {
 		skull = trap_R_RegisterShaderNoMip( "gfx/tremor/skull.tga" );
 	}
+	// the modern layout: top left, rows growing down, 2.5 s each with a
+	// 0.3 s fade; the classic one: top right, 4 s with 0.5 s
+	modern = CG_HudModern();
+	life = modern ? 2500 : KILLFEED_TIME;
+	fadeTime = modern ? 300 : 500;
+	if ( modern ) {
+		float	fx, fy;
+
+		CG_HudPlace( "killfeed", &fx, &fy );
+		feedLeft = fx;
+		y = fy;
+	}
 	for ( i = 0, n = 0 ; i < KILLFEED_QUEUE && n < rows ; i++ ) {
 		k = &killFeed[( killFeedHead - 1 - i + KILLFEED_QUEUE * 2 ) % KILLFEED_QUEUE];
-		if ( !k->time || cg.time - k->time > KILLFEED_TIME || k->time > cg.time ) {
+		if ( !k->time || cg.time - k->time > life || k->time > cg.time ) {
 			continue;
 		}
-		fade[3] = cg.time - k->time > KILLFEED_TIME - 500 ? ( KILLFEED_TIME - ( cg.time - k->time ) ) / 500.0f : 1;
+		fade[3] = cg.time - k->time > life - fadeTime ? ( life - ( cg.time - k->time ) ) / (float)fadeTime : 1;
 
 		// lay the row out right to left, then draw its band under it
 		w = CG_DrawStrlen( k->victim ) * TINYCHAR_WIDTH + ( k->victimPic ? 18 : 0 ) + 20
 			+ ( k->killer[0] ? CG_DrawStrlen( k->killer ) * TINYCHAR_WIDTH + 4 + ( k->killerPic ? 18 : 0 ) : 0 )
 			+ ( k->quad ? 12 : 0 );
-		left = 636 - w;
+		right = modern ? feedLeft + w + ( k->victimNum == me ? 22 : 0 ) : 636;
+		left = right - w;
 		if ( k->killerNum == me && k->victimNum != me ) {
 			band[0] = 0.45f; band[1] = 0.05f; band[2] = 0.04f; band[3] = 0.6f * fade[3];
 			CG_FillRect( left - 4, y - 1, w + 6, 18, band );
@@ -593,7 +749,7 @@ static void CG_DrawKillFeed( void ) {
 			}
 		}
 
-		x = 636;
+		x = right;
 		w = CG_DrawStrlen( k->victim ) * TINYCHAR_WIDTH;
 		x -= w;
 		CG_KillFeedName( x, y + 4, k->victim, k->victimTeam, fade );
@@ -1100,7 +1256,7 @@ Top centre: the clock counting down to the limit, and the scores
 */
 static void CG_DrawHudClock( void ) {
 	const char	*info = CG_ConfigString( CS_SERVERINFO );
-	int			limit = cgs.timelimit, msec, mins, secs, w;
+	int			limit = cgs.timelimit, msec, mins, secs, w, ty, sw;
 	const char	*s;
 	vec4_t		red = { 1, 0.3f, 0.3f, 1 }, blue = { 0.3f, 0.5f, 1, 1 };
 
@@ -1124,21 +1280,45 @@ static void CG_DrawHudClock( void ) {
 	mins = secs / 60;
 	secs %= 60;
 	s = va( "%i:%02i", mins, secs );
-	w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
-	CG_DrawBigString( 320 - w / 2, 4, s, 1.0f );
+	if ( CG_HudModern() ) {
+		// large clock at top + 38, the mode under it at top + 97
+		float	cx, cy;
+		int		cw = 24, ch = 28;
+
+		CG_HudPlace( "clock", &cx, &cy );
+		cg_hudAnchor = ANCHOR_CENTER;
+		w = CG_DrawStrlen( s ) * cw;
+		CG_DrawStringExt( 320 - w / 2, cy - ch / 2, s, colorWhite, qfalse, qtrue, cw, ch, 0 );
+		CG_HudPlace( "clockline", &cx, &cy );
+		cg_hudAnchor = ANCHOR_CENTER;
+		s = cg.warmup ? BG_String( STR_WARMUP ) : CG_ModeString();
+		CG_DrawStringExt( 320 - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH / 2, cy - SMALLCHAR_HEIGHT / 2, s, colorMdGrey,
+			qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+		s = va( "%i:%02i", mins, secs );
+		w = CG_DrawStrlen( s ) * cw;
+		CG_HudPlace( "clock", &cx, &cy );
+		cg_hudAnchor = ANCHOR_CENTER;
+		ty = cy - ch / 2;
+		sw = cw;
+	} else {
+		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
+		CG_DrawBigString( 320 - w / 2, 4, s, 1.0f );
+		ty = 4;
+		sw = BIGCHAR_WIDTH;
+	}
 
 	// scores either side of the clock
 	if ( cgs.gametype >= GT_TEAM ) {
 		s = va( "%i", cgs.scores1 );
-		CG_DrawStringExt( 320 - w / 2 - 12 - CG_DrawStrlen( s ) * BIGCHAR_WIDTH, 4, s, red, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+		CG_DrawStringExt( 320 - w / 2 - 12 - CG_DrawStrlen( s ) * BIGCHAR_WIDTH, ty, s, red, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
 		s = va( "%i", cgs.scores2 );
-		CG_DrawStringExt( 320 + w / 2 + 12, 4, s, blue, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+		CG_DrawStringExt( 320 + w / 2 + 12, ty, s, blue, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
 	} else if ( cgs.scores1 != SCORE_NOT_PRESENT ) {
 		s = va( "%i", cg.snap->ps.persistant[PERS_SCORE] );
-		CG_DrawStringExt( 320 - w / 2 - 12 - CG_DrawStrlen( s ) * BIGCHAR_WIDTH, 4, s, colorWhite, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+		CG_DrawStringExt( 320 - w / 2 - 12 - CG_DrawStrlen( s ) * BIGCHAR_WIDTH, ty, s, colorWhite, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
 		// the best other score
 		s = va( "%i", cgs.scores1 == cg.snap->ps.persistant[PERS_SCORE] && cgs.scores2 != SCORE_NOT_PRESENT ? cgs.scores2 : cgs.scores1 );
-		CG_DrawStringExt( 320 + w / 2 + 12, 4, s, colorMdGrey, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+		CG_DrawStringExt( 320 + w / 2 + 12, ty, s, colorMdGrey, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
 	}
 }
 
@@ -2704,6 +2884,11 @@ static void CG_DrawReward( void ) {
 	// the row is done: up to four waiting medals line up together; the
 	// first one's announcer line plays, the others chime
 	t = cg.time - medalRowTime;
+	// medals wait while a banner word shows
+	if ( CG_HudModern() && ( !medalRowCount || t >= MEDAL_SHOW + MEDAL_FADE ) && CG_BannerWordShowing() ) {
+		medalRowCount = 0;
+		return;
+	}
 	if ( !medalRowCount || t >= MEDAL_SHOW + MEDAL_FADE || t < 0 ) {
 		medalRowCount = 0;
 		while ( cg.rewardStack > 0 && medalRowCount < MEDAL_ROW ) {
@@ -2730,6 +2915,36 @@ static void CG_DrawReward( void ) {
 	}
 
 	color[3] = t > MEDAL_SHOW ? 1.0f - (float)( t - MEDAL_SHOW ) / MEDAL_FADE : 1;
+	if ( CG_HudModern() ) {
+		// a row pinned by its bottom edge: 34 dp icons, each name beside its icon
+		float	mx, my, icon = 34 * DP * ( t < MEDAL_POP ? 1.2f - 0.2f * t / MEDAL_POP : 1 ), total = 0, step[MEDAL_ROW];
+
+		CG_HudPlace( "medals", &mx, &my );
+		cg_hudAnchor = ANCHOR_CENTER;
+		for ( i = 0 ; i < medalRowCount ; i++ ) {
+			name = medalRow[i].name ? BG_String( medalRow[i].name ) : "";
+			step[i] = 34 * DP + 4 + CG_DrawStrlen( name ) * SMALLCHAR_WIDTH
+				+ ( medalRow[i].count > 1 ? 4 * TINYCHAR_WIDTH : 0 ) + 16;
+			total += step[i];
+		}
+		x = mx - total / 2;
+		for ( i = 0 ; i < medalRowCount ; i++ ) {
+			name = medalRow[i].name ? BG_String( medalRow[i].name ) : "";
+			if ( medalRow[i].shader ) {
+				trap_R_SetColor( color );
+				CG_DrawPic( x + ( 34 * DP - icon ) / 2, my - 34 * DP + ( 34 * DP - icon ) / 2, icon, icon, medalRow[i].shader );
+				trap_R_SetColor( NULL );
+			}
+			CG_DrawStringExt( x + 34 * DP + 4, my - 17 * DP - SMALLCHAR_HEIGHT / 2, name, color, qfalse, qtrue,
+				SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+			if ( medalRow[i].count > 1 ) {
+				CG_DrawStringExt( x + 34 * DP + 8 + CG_DrawStrlen( name ) * SMALLCHAR_WIDTH, my - 17 * DP - TINYCHAR_HEIGHT / 2,
+					va( "x%i", medalRow[i].count ), color, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+			}
+			x += step[i];
+		}
+		return;
+	}
 	// pops in from 1.2 times its size over 150 ms
 	size = MEDAL_SIZE * ( t < MEDAL_POP ? 1.2f - 0.2f * t / MEDAL_POP : 1 );
 	for ( i = 0 ; i < medalRowCount ; i++ ) {
@@ -3029,6 +3244,27 @@ static void CG_DrawFragBanner( void ) {
 		return;
 	}
 	color[3] = red[3] = t > FRAG_TIME ? 1.0f - ( t - FRAG_TIME ) / 300.0f : 1;
+	if ( CG_HudModern() ) {
+		// "YOU FRAGGED <name>" on one line, the score or place under it
+		float	fx, fy;
+		char	line[128];
+
+		CG_HudPlace( "fragline", &fx, &fy );
+		cg_hudAnchor = ANCHOR_CENTER;
+		Com_sprintf( line, sizeof( line ), "%s %s", BG_String( STR_MSG_YOUFRAGGED ), fragBanner.victim );
+		w = CG_DrawStrlen( line ) * BIGCHAR_WIDTH;
+		CG_DrawStringExt( fx - w / 2, fy - BIGCHAR_HEIGHT / 2, line, color, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+		if ( fragBanner.count > 1 ) {
+			CG_DrawStringExt( fx + w / 2 + 6, fy - BIGCHAR_HEIGHT / 2, va( "x%i", fragBanner.count ), red, qtrue, qtrue,
+				BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+		}
+		if ( fragBanner.line[0] ) {
+			w = CG_DrawStrlen( fragBanner.line ) * SMALLCHAR_WIDTH;
+			CG_DrawStringExt( fx - w / 2, fy + 32 * DP - SMALLCHAR_HEIGHT / 2, fragBanner.line, color, qfalse, qtrue,
+				SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+		}
+		return;
+	}
 	w = CG_DrawStrlen( fragged ) * SMALLCHAR_WIDTH;
 	CG_DrawStringExt( 320 - w / 2, FRAG_Y, fragged, red, qtrue, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
 	w = CG_DrawStrlen( fragBanner.victim ) * BIGCHAR_WIDTH;
@@ -3068,6 +3304,10 @@ typedef struct {
 static banner_t	bannerShown;
 static banner_t	bannerQueue[BANNER_QUEUE];
 static int		bannerQueued;
+
+static qboolean CG_BannerWordShowing( void ) {
+	return bannerShown.time && bannerShown.priority == 1 && cg.time - bannerShown.time < BANNER_TIME;
+}
 
 /*
 ==============
@@ -3142,6 +3382,25 @@ static void CG_DrawCenterString( void ) {
 	color[3] = fade < 300 ? fade / 300.0f : 1;
 
 	y = BANNER_Y;
+	if ( CG_HudModern() ) {
+		float	bx, by;
+
+		if ( bannerShown.priority == 1 ) {
+			// the banner word: large, its foot at top + 350
+			CG_HudPlace( "bannerword", &bx, &by );
+			cg_hudAnchor = ANCHOR_CENTER;
+			w = CG_DrawStrlen( bannerShown.text ) * GIANTCHAR_WIDTH;
+			CG_DrawStringExt( 320 - w / 2, by - GIANTCHAR_HEIGHT / 2, bannerShown.text, color, qfalse, qtrue,
+				GIANTCHAR_WIDTH, GIANTCHAR_HEIGHT, 0 );
+			return;
+		}
+		if ( cg.deathTime && cg.snap->ps.stats[STAT_HEALTH] <= 0 ) {
+			return;		// the fragged-by panel has the centre
+		}
+		CG_HudPlace( "eventline", &bx, &by );
+		cg_hudAnchor = ANCHOR_CENTER;
+		y = by - BIGCHAR_HEIGHT / 2;
+	}
 	start = bannerShown.text;
 	for ( line = 0 ; line < 3 && *start ; line++ ) {
 		for ( i = 0 ; start[i] && start[i] != '\n' && i < (int)sizeof( linebuffer ) - 1 ; i++ ) {
@@ -4717,6 +4976,124 @@ void CG_DrawTimedMenus( void ) {
 	}
 }
 #endif
+#ifndef MISSIONPACK
+/*
+=================
+CG_DrawStackBar
+
+A value against its class base: a block per 25 points, lit up to the
+value, the blocks over base brighter; then "value / base"
+=================
+*/
+static void CG_DrawStackBar( float x, float y, int value, int base, const vec4_t tint ) {
+	vec4_t	off = { 0.2f, 0.2f, 0.22f, 0.8f }, lit, over;
+	int		blocks = ( base + 75 ) / 25, i;
+	float	bw = 22 * DP, gap = 3 * DP;
+	char	*s;
+
+	Vector4Copy( tint, lit );
+	lit[0] *= 0.7f; lit[1] *= 0.7f; lit[2] *= 0.7f;
+	Vector4Copy( tint, over );
+	for ( i = 0 ; i < blocks ; i++ ) {
+		CG_FillRect( x + i * ( bw + gap ), y, bw, 10 * DP, value > i * 25 ? ( i * 25 >= base ? over : lit ) : off );
+	}
+	s = va( "%i", value );
+	CG_DrawStringExt( x, y - 34 * DP - BIGCHAR_HEIGHT * 0.5f, s, value <= 25 ? colorRed : tint, qtrue, qtrue,
+		BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+	CG_DrawStringExt( x + CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 4, y - 34 * DP, va( "/ %i", base ), colorMdGrey, qtrue, qtrue,
+		SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+}
+
+/*
+=================
+CG_DrawModernHud
+
+The modern layout's own elements: you bottom left, the ability bottom
+centre, the weapon bottom right
+=================
+*/
+static void CG_DrawModernHud( void ) {
+	playerState_t		*ps = &cg.snap->ps;
+	centity_t			*cent = &cg_entities[ps->clientNum];
+	const champion_t	*champ = BG_Champion( ps->stats[STAT_CHAMPION] );
+	const classInfo_t	*ci = &bg_classInfo[champ->bodyClass];
+	vec4_t				healthTint = { 1, 1, 1, 1 }, armorTint = { 0.35f, 0.95f, 0.45f, 1 };
+	float				x, y, size;
+	qhandle_t			pic;
+	int					value, maxCharges;
+	const char			*s;
+
+	if ( cg_drawStatus.integer == 0 ) {
+		return;
+	}
+
+	// portrait under the numbers
+	size = 150 * DP * CG_HudPlace( "portrait", &x, &y );
+	pic = CG_ChampionPortrait( ps->stats[STAT_CHAMPION], qfalse );
+	if ( pic ) {
+		CG_DrawPic( x - size, y - size, size, size, pic );
+	}
+
+	// armour and health against the class base
+	CG_HudPlace( "armor", &x, &y );
+	CG_DrawPic( x - 14 * DP, y - 30 * DP, 28 * DP * 1.6f, 28 * DP * 1.6f, cgs.media.armorIcon );
+	CG_DrawStackBar( x + 44 * DP, y + 12 * DP, ps->stats[STAT_ARMOR], ci->baseArmor, armorTint );
+	CG_HudPlace( "health", &x, &y );
+	CG_DrawStackBar( x + 44 * DP, y + 12 * DP, ps->stats[STAT_HEALTH], 100, healthTint );
+
+	// the ability: ring, charges above it, key and name under it
+	CG_HudPlace( "ability", &x, &y );
+	cg_hudAnchor = ANCHOR_CENTER;
+	CG_DrawAbilityRing( x, y, 30, 0, 360, 24, 3 );
+	maxCharges = BG_AbilityParam( champ->active, AP_CHARGES );
+	if ( maxCharges > 1 ) {
+		CG_DrawChargeIcons( champ->active, BG_AbilityCharges( ps ), maxCharges );
+	}
+	if ( champ->active > ACTIVE_NONE ) {
+		CG_HudPlace( "abilitykey", &x, &y );
+		s = CG_BindName( "+button12" );
+		CG_DrawStringExt( x - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH / 2, y - SMALLCHAR_HEIGHT / 2, s, colorWhite, qfalse, qtrue,
+			SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+		CG_HudPlace( "abilityname", &x, &y );
+		s = BG_String( bg_abilityInfo[champ->active].nameString );
+		CG_DrawStringExt( x - CG_DrawStrlen( s ) * TINYCHAR_WIDTH / 2, y - TINYCHAR_HEIGHT / 2, s, colorMdGrey, qfalse, qtrue,
+			TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+	}
+	if ( ( champ->passives & PASSIVE_LEAPINGKICK ) && KICK_COUNT( ps ) > 0 ) {
+		CG_DrawSmallStringColor( x + 60, y - 30, va( "KICK x%i", KICK_COUNT( ps ) ), colorYellow );
+	}
+
+	// ammo of the held weapon, large, with its icon
+	CG_HudPlace( "ammo", &x, &y );
+	if ( cent->currentState.weapon && ps->ammo[cent->currentState.weapon] > -1 ) {
+		value = ps->ammo[cent->currentState.weapon];
+		trap_R_SetColor( value <= 5 ? colorRed : NULL );
+		CG_DrawField( x - CHAR_WIDTH * 3 + 30, y - CHAR_HEIGHT / 2, 3, value );
+		trap_R_SetColor( NULL );
+		if ( cg_weapons[cent->currentState.weapon].ammoIcon ) {
+			CG_DrawPic( x - CHAR_WIDTH * 3 - 6, y - 12, 24, 24, cg_weapons[cent->currentState.weapon].ammoIcon );
+		}
+	}
+
+	// the crosshair arc repeats the ring
+	cg_hudAnchor = ANCHOR_CENTER;
+	switch ( cg_drawCooldownArc.integer ) {
+	case 2:		CG_DrawAbilityRing( 320, 240, 26, 225, 90, 12, 2 ); break;
+	case 3:		CG_DrawAbilityRing( 320, 240, 26, 45, 90, 12, 2 ); break;
+	case 4:		CG_DrawAbilityRing( 320, 240, 26, 135, 90, 12, 2 ); break;
+	case 5:		CG_DrawAbilityRing( 320, 240, 26, -45, 90, 12, 2 ); break;
+	default:	break;
+	}
+
+	cg_hudAnchor = ANCHOR_RIGHT;
+	CG_DrawWeaponBar();
+	cg_hudAnchor = ANCHOR_CENTER;
+	CG_DrawHudPowerups();
+	CG_DrawPassiveState();
+	CG_DrawSpeedometer();
+}
+#endif // MISSIONPACK
+
 /*
 =================
 CG_Draw2D
@@ -4807,7 +5184,10 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 				CG_DrawTimedMenus();
 			}
 #else
-			if ( cg_hudStyle.integer ) {
+			CG_HudLayout();
+			if ( CG_HudModern() ) {
+				CG_DrawModernHud();
+			} else if ( cg_hudStyle.integer ) {
 				CG_DrawHud();
 			} else {
 				CG_DrawStatusBar();
