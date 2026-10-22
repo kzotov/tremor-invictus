@@ -67,7 +67,8 @@ vmCvar_t	g_cooldownAmmo;
 vmCvar_t	g_orbSpeed;
 vmCvar_t	g_orbLife;
 vmCvar_t	g_orbFuse;
-vmCvar_t	g_orbRampTime;
+vmCvar_t	g_orbShotDamage;
+vmCvar_t	g_orbShotRadius;
 vmCvar_t	g_orbContactDamage;
 vmCvar_t	g_orbSplashDamage;
 vmCvar_t	g_orbSplashRadius;
@@ -115,7 +116,7 @@ vmCvar_t	g_laserDelay;
 vmCvar_t	g_laserInterval;
 vmCvar_t	g_laserDamage;
 vmCvar_t	g_laserRange;
-vmCvar_t	g_trailInterval;
+vmCvar_t	g_trailSpacing;
 vmCvar_t	g_trailLife;
 vmCvar_t	g_trailDamage;
 vmCvar_t	g_trailBlast;
@@ -391,10 +392,11 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_cooldownHealth, "g_cooldownHealth", "0.05", 0, 0, qtrue },
 	{ &g_cooldownMega, "g_cooldownMega", "0.2", 0, 0, qtrue },
 	{ &g_cooldownAmmo, "g_cooldownAmmo", "0.1", 0, 0, qtrue },
-	{ &g_orbSpeed, "g_orbSpeed", "900", 0, 0, qtrue },
+	{ &g_orbSpeed, "g_orbSpeed", "1000", 0, 0, qtrue },
 	{ &g_orbLife, "g_orbLife", "15000", 0, 0, qtrue },
-	{ &g_orbFuse, "g_orbFuse", "500", 0, 0, qtrue },
-	{ &g_orbRampTime, "g_orbRampTime", "1500", 0, 0, qtrue },
+	{ &g_orbFuse, "g_orbFuse", "750", 0, 0, qtrue },
+	{ &g_orbShotDamage, "g_orbShotDamage", "25", 0, 0, qtrue },		// shot down by another player
+	{ &g_orbShotRadius, "g_orbShotRadius", "200", 0, 0, qtrue },
 	{ &g_orbContactDamage, "g_orbContactDamage", "15", 0, 0, qtrue },
 	{ &g_orbSplashDamage, "g_orbSplashDamage", "75", 0, 0, qtrue },
 	{ &g_orbSplashRadius, "g_orbSplashRadius", "120", 0, 0, qtrue },
@@ -442,7 +444,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_laserInterval, "g_laserInterval", "125", 0, 0, qtrue },
 	{ &g_laserDamage, "g_laserDamage", "10", 0, 0, qtrue },
 	{ &g_laserRange, "g_laserRange", "2000", 0, 0, qtrue },
-	{ &g_trailInterval, "g_trailInterval", "250", 0, 0, qtrue },	// about 80 units apart at run speed
+	{ &g_trailSpacing, "g_trailSpacing", "80", 0, 0, qtrue },	// units between trail charges
 	{ &g_trailLife, "g_trailLife", "3000", 0, 0, qtrue },
 	{ &g_trailDamage, "g_trailDamage", "10", 0, 0, qtrue },	// every 200 ms
 	{ &g_trailBlast, "g_trailBlast", "25", 0, 0, qtrue },

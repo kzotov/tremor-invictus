@@ -408,7 +408,8 @@ struct gclient_s {
 	int			laserTime;			// level.time of the next laser shot
 	int			laserEnd;			// level.time the laser stops
 	int			barrierDamage;		// damage the shield has taken
-	int			trailTime;			// level.time of the next plasma trail segment
+	int			trailTime;			// level.time the trail started (0: no segment dropped yet)
+	vec3_t		trailLast;			// where the last plasma trail charge was dropped
 	gentity_t	*droneBody;			// the body left behind while flying the drone
 	int			droneStartTime;
 	vec3_t		droneBodyAngles;
@@ -1091,7 +1092,8 @@ extern	vmCvar_t	g_cooldownAmmo;
 extern	vmCvar_t	g_orbSpeed;
 extern	vmCvar_t	g_orbLife;
 extern	vmCvar_t	g_orbFuse;
-extern	vmCvar_t	g_orbRampTime;
+extern	vmCvar_t	g_orbShotDamage;
+extern	vmCvar_t	g_orbShotRadius;
 extern	vmCvar_t	g_orbContactDamage;
 extern	vmCvar_t	g_orbSplashDamage;
 extern	vmCvar_t	g_orbSplashRadius;
@@ -1139,7 +1141,7 @@ extern	vmCvar_t	g_laserDelay;
 extern	vmCvar_t	g_laserInterval;
 extern	vmCvar_t	g_laserDamage;
 extern	vmCvar_t	g_laserRange;
-extern	vmCvar_t	g_trailInterval;
+extern	vmCvar_t	g_trailSpacing;
 extern	vmCvar_t	g_trailLife;
 extern	vmCvar_t	g_trailDamage;
 extern	vmCvar_t	g_trailBlast;

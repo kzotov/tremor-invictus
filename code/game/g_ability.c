@@ -266,18 +266,17 @@ owner to it.
 ==============================================================================
 */
 
+#define ORB_TELEFRAG_RANGE		32
+
 static void G_OrbExplode( gentity_t *orb ) {
 	gentity_t	*owner = orb->parent;
 
-	// the blast grows over the orb's first moments
+	// full in the middle, down to 10 at the edge, pushing as usual
 	orb->splashDamage = g_orbSplashDamage.integer;
-	if ( g_orbRampTime.integer > 0 && level.time - orb->timestamp < g_orbRampTime.integer ) {
-		orb->splashDamage = g_orbSplashDamage.integer * ( level.time - orb->timestamp ) / g_orbRampTime.integer;
-		if ( orb->splashDamage < 1 ) {
-			orb->splashDamage = 1;
-		}
-	}
 	orb->splashRadius = g_orbSplashRadius.integer;
+	orb->splashMin = 10;
+	orb->wpTuned = qtrue;
+	orb->wpKnock = orb->wpKnockSelf = -1;
 	orb->splashMethodOfDeath = MOD_ORB;
 	orb->splashSparesOwner = qtrue;
 	if ( owner && owner->client && owner->client->abilityEnt == orb ) {
@@ -316,6 +315,39 @@ static void G_OrbThink( gentity_t *orb ) {
 	orb->nextthink = level.time + ABILITY_FRAME;
 }
 
+/*
+================
+G_OrbDestroyed
+
+Shot down by another player: a small blast, and its owner gets half the
+cooldown back
+================
+*/
+static void G_OrbDestroyed( gentity_t *orb, gentity_t *inflictor, gentity_t *attacker, int damage, int mod ) {
+	gentity_t	*owner = orb->parent;
+
+	orb->takedamage = qfalse;
+	orb->die = NULL;
+	if ( !attacker || attacker == owner || !owner || !owner->client ) {
+		orb->health = 1;
+		orb->takedamage = qtrue;
+		orb->die = G_OrbDestroyed;
+		return;		// the owner's own shots don't count
+	}
+	G_RadiusDamage( orb->r.currentOrigin, attacker, g_orbShotDamage.integer, g_orbShotRadius.integer, NULL, MOD_ORB );
+	G_CutAbilityCooldown( owner, 0.5f );
+	if ( owner->client->abilityEnt == orb ) {
+		owner->client->abilityEnt = NULL;
+		G_AbilityDone( owner );
+	}
+	G_AddEvent( orb, EV_MISSILE_MISS, DirToByte( orb->movedir ) );
+	orb->s.eType = ET_GENERAL;
+	orb->freeAfterEvent = qtrue;
+	orb->think = NULL;
+	orb->nextthink = 0;
+	trap_LinkEntity( orb );
+}
+
 static void G_OrbImpact( gentity_t *orb, trace_t *trace ) {
 	vec3_t	point;
 
@@ -342,6 +374,13 @@ static void G_FireOrb( gentity_t *ent ) {
 	orb->nextthink = level.time + ABILITY_FRAME;
 	orb->abilityTime = level.time + g_orbLife.integer;
 	orb->timestamp = level.time;
+	// other players can shoot it down
+	VectorSet( orb->r.mins, -8, -8, -8 );
+	VectorSet( orb->r.maxs, 8, 8, 8 );
+	orb->r.contents = CONTENTS_CORPSE;
+	orb->takedamage = qtrue;
+	orb->health = 1;
+	orb->die = G_OrbDestroyed;
 	VectorCopy( forward, orb->movedir );
 	ent->client->abilityEnt = orb;
 }
@@ -401,13 +440,13 @@ static void G_OrbTeleport( gentity_t *ent ) {
 	VectorClear( ent->client->ps.velocity );
 	ent->client->ps.eFlags ^= EF_TELEPORT_BIT;
 
-	// telefrag whoever is standing there
-	VectorAdd( spot, ent->r.mins, mins );
-	VectorAdd( spot, ent->r.maxs, maxs );
+	// telefrag enemies within 32 u of the spot
+	VectorSet( mins, spot[0] - ORB_TELEFRAG_RANGE, spot[1] - ORB_TELEFRAG_RANGE, spot[2] - ORB_TELEFRAG_RANGE );
+	VectorSet( maxs, spot[0] + ORB_TELEFRAG_RANGE, spot[1] + ORB_TELEFRAG_RANGE, spot[2] + ORB_TELEFRAG_RANGE );
 	num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
 	for ( i = 0 ; i < num ; i++ ) {
 		other = &g_entities[touch[i]];
-		if ( G_AbilityEnemy( ent, other ) ) {
+		if ( G_AbilityEnemy( ent, other ) && Distance( other->r.currentOrigin, spot ) <= ORB_TELEFRAG_RANGE ) {
 			G_Damage( other, ent, ent, NULL, NULL, g_orbTelefragDamage.integer, DAMAGE_NO_PROTECTION, MOD_TELEFRAG );
 		}
 	}
@@ -419,6 +458,11 @@ static void G_OrbTeleport( gentity_t *ent ) {
 	ent->client->abilityEnt = NULL;
 	G_FreeEntity( orb );
 	G_AbilityDone( ent );
+
+	// the teleport starts the throw's firing lockout again
+	if ( ent->client->ps.weaponTime < BG_AbilityParam( ACTIVE_ORB, AP_LOCKOUT ) ) {
+		ent->client->ps.weaponTime = BG_AbilityParam( ACTIVE_ORB, AP_LOCKOUT );
+	}
 }
 
 /*
@@ -1384,7 +1428,7 @@ Called by the upkeep when a timed ability starts or stops running
 ================
 */
 void G_AbilityStarted( gentity_t *ent ) {
-	ent->client->trailTime = level.time;
+	ent->client->trailTime = 0;
 	if ( BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_MASTEROFDEATH ) {
 		G_MasterOfDeathStart( ent );
 	}
@@ -1515,9 +1559,11 @@ void G_AbilityClientThink( gentity_t *ent ) {
 	}
 
 	if ( G_AbilityActive( ent, ACTIVE_PLASMATRAIL ) ) {
-		while ( level.time >= client->trailTime ) {
+		// a charge every g_trailSpacing units travelled, the first at once
+		if ( !client->trailTime || Distance( client->ps.origin, client->trailLast ) >= g_trailSpacing.value ) {
 			G_DropTrail( ent );
-			client->trailTime += g_trailInterval.integer;
+			VectorCopy( client->ps.origin, client->trailLast );
+			client->trailTime = level.time;
 		}
 	}
 

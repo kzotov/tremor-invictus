@@ -3004,8 +3004,15 @@ static void PM_Ability( void ) {
 			VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
 			VectorNormalize( dir );
 			VectorMA( pm->ps->velocity, bg_pmoveSettings.hookImpulse, dir, pm->ps->velocity );
-		} else if ( pressed ) {
-			state = ABILITY_IDLE;
+		} else {
+			// a second press (calling the hook back) works after the gate
+			time += pml.msec;
+			if ( time > STAT_TIME_CAP ) {
+				time = STAT_TIME_CAP;
+			}
+			if ( pressed && time >= BG_AbilityParam( active, AP_DELAY ) ) {
+				state = ABILITY_IDLE;
+			}
 		}
 	} else if ( state == ABILITY_HOOK_PULL ) {
 		qboolean	arrived = qfalse;
@@ -3023,7 +3030,8 @@ static void PM_Ability( void ) {
 				arrived = qtrue;
 			}
 		}
-		if ( pressed || arrived || !( pm->ps->pm_flags & PMF_GRAPPLE_PULL ) ) {
+		if ( ( pressed && time >= BG_AbilityParam( active, AP_DELAY ) ) || arrived
+			|| !( pm->ps->pm_flags & PMF_GRAPPLE_PULL ) ) {
 			// let go and keep the momentum
 			BG_SetAbility( pm->ps, ABILITY_IDLE, charges );
 			PM_EndAbility();
