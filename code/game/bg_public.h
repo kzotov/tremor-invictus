@@ -1113,7 +1113,7 @@ typedef enum {
 typedef enum {
 	AP_CHARGES,						// charges when full
 	AP_RECHARGE,					// msec to recharge one charge
-	AP_DELAY,						// msec from the press to the effect
+	AP_DELAY,						// msec before a second press works (the effect itself is at once)
 	AP_DURATION,					// msec the ability stays active, 0 = instant
 	AP_LOCKOUT,						// msec the weapon is disabled
 

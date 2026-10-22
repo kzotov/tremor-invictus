@@ -434,7 +434,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_turretDamage, "g_turretDamage", "15", 0, 0, qtrue },
 	{ &g_turretInterval, "g_turretInterval", "200", 0, 0, qtrue },
 	{ &g_turretRange, "g_turretRange", "1500", 0, 0, qtrue },
-	{ &g_turretBoltSpeed, "g_turretBoltSpeed", "2000", 0, 0, qtrue },
+	{ &g_turretBoltSpeed, "g_turretBoltSpeed", "1600", 0, 0, qtrue },
 	{ &g_barrierScale, "g_barrierScale", "0.5", 0, 0, qtrue },
 	{ &g_barrierHealth, "g_barrierHealth", "200", 0, 0, qtrue },
 	{ &g_laserTime, "g_laserTime", "3000", 0, 0, qtrue },
@@ -443,10 +443,10 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_laserDamage, "g_laserDamage", "10", 0, 0, qtrue },
 	{ &g_laserRange, "g_laserRange", "2000", 0, 0, qtrue },
 	{ &g_trailInterval, "g_trailInterval", "250", 0, 0, qtrue },	// about 80 units apart at run speed
-	{ &g_trailLife, "g_trailLife", "5000", 0, 0, qtrue },
+	{ &g_trailLife, "g_trailLife", "3000", 0, 0, qtrue },
 	{ &g_trailDamage, "g_trailDamage", "10", 0, 0, qtrue },	// every 200 ms
 	{ &g_trailBlast, "g_trailBlast", "25", 0, 0, qtrue },
-	{ &g_trailRadius, "g_trailRadius", "80", 0, 0, qtrue },
+	{ &g_trailRadius, "g_trailRadius", "120", 0, 0, qtrue },
 	{ &g_droneHealth, "g_droneHealth", "90", 0, 0, qtrue },
 	{ &g_droneDamage, "g_droneDamage", "15", 0, 0, qtrue },
 	{ &g_droneLaunchDelay, "g_droneLaunchDelay", "500", 0, 0, qtrue },

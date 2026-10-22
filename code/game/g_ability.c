@@ -1150,6 +1150,7 @@ static void G_TrailBurst( gentity_t *seg ) {
 	vec3_t	dir = { 0, 0, 1 };
 
 	if ( seg->parent ) {
+		G_SplashParams( 10, 0, 0 );		// down to 10 at the edge, no push
 		G_RadiusDamage( seg->r.currentOrigin, seg->parent, g_trailBlast.integer, g_trailRadius.integer, NULL, MOD_PLASMATRAIL );
 	}
 	seg->s.eType = ET_GENERAL;

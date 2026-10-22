@@ -2951,12 +2951,7 @@ static void PM_Ability( void ) {
 		if ( !bg_abilityInfo[active].lockoutAtEnd ) {
 			PM_WeaponLockout( active );
 		}
-		time = BG_AbilityParam( active, AP_DELAY );
-		if ( time > 0 ) {
-			state = ABILITY_WINDUP;
-		} else {
-			PM_StartAbility( &state, &time );
-		}
+		PM_StartAbility( &state, &time );
 	} else if ( state == ABILITY_WINDUP ) {
 		time -= pml.msec;
 		if ( time <= 0 ) {
@@ -3008,7 +3003,10 @@ static void PM_Ability( void ) {
 				PM_EndAbility();
 				return;
 			}
-			PM_AddEvent( EV_ABILITY_REPRESS );
+			// a second press works once the ability has run its gate time
+			if ( BG_AbilityParam( active, AP_DURATION ) - time >= BG_AbilityParam( active, AP_DELAY ) ) {
+				PM_AddEvent( EV_ABILITY_REPRESS );
+			}
 		}
 		time -= pml.msec;
 		if ( time <= 0 ) {
