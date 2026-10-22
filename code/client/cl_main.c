@@ -2996,7 +2996,7 @@ void CL_Frame ( int msec ) {
 	// (loading a map passes through the main menu)
 	if ( clc.state == CA_ACTIVE && !( Key_GetCatcher() & KEYCATCH_UI ) && RML_Active() ) {
 		static const char	*menuPages[] = { "ui/main.rml", "ui/findmatch.rml", "ui/createserver.rml",
-			"ui/findservers.rml", "ui/colors.rml", "ui-gen/settings.rml", "ui/demos.rml", "ui-gen/credits.rml" };
+			"ui/findservers.rml", "ui/colors.rml", "ui-gen/settings.rml", "ui/demos.rml", "ui-gen/credits.rml", "ui/profile.rml" };
 		const char			*doc = Cvar_VariableString( "rml_doc" );
 		int					i;
 

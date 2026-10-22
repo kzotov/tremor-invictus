@@ -1,0 +1,87 @@
+<rml>
+<head>
+	<title>Profile</title>
+	<link type="text/rcss" href="tremor.rcss"/>
+</head>
+<body data-escape="rml_show ui/main.rml">
+	<div class="fs">
+		<h1>[pf_title]</h1>
+		<div class="fshead">[pf_ratings]</div>
+		<div class="pfratings">
+			<div class="srow"><span class="slabel">[mm_duel]</span><span class="svalue" data-text-cvar="mm_rating_duel">-</span></div>
+			<div class="srow"><span class="slabel">[mm_tdm]</span><span class="svalue" data-text-cvar="mm_rating_tdm">-</span></div>
+			<div class="srow"><span class="slabel">[mm_tdm2v2]</span><span class="svalue" data-text-cvar="mm_rating_tdm2v2">-</span></div>
+			<div class="srow"><span class="slabel">[mm_ctf]</span><span class="svalue" data-text-cvar="mm_rating_ctf">-</span></div>
+			<div class="srow"><span class="slabel">[mm_ca]</span><span class="svalue" data-text-cvar="mm_rating_ca">-</span></div>
+			<div class="srow"><span class="slabel">[mm_ca2v2]</span><span class="svalue" data-text-cvar="mm_rating_ca2v2">-</span></div>
+			<div class="srow"><span class="slabel">[mm_sacrifice]</span><span class="svalue" data-text-cvar="mm_rating_sacrifice">-</span></div>
+			<div class="srow"><span class="slabel">[mm_roundduel]</span><span class="svalue" data-text-cvar="mm_rating_roundduel">-</span></div>
+		</div>
+		<div class="fshead"><span class="d1">[dm_date]</span><span class="d3">[fs_mode]</span><span class="d2">[fs_map]</span><span class="d4">[pf_result]</span><span class="d4">[pf_score]</span></div>
+		<div class="fslist tall">
+			<div class="fsrow" data-when="ui_h0_date!=">
+				<span class="d1" data-text-cvar="ui_h0_date"></span><span class="d3" data-text-cvar="ui_h0_mode"></span><span class="d2" data-text-cvar="ui_h0_map"></span><span class="d4" data-text-cvar="ui_h0_result"></span><span class="d4" data-text-cvar="ui_h0_score"></span><button class="opt" data-when="ui_h0_demo=1" onclick="ui_profilePlay 0">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h1_date!=">
+				<span class="d1" data-text-cvar="ui_h1_date"></span><span class="d3" data-text-cvar="ui_h1_mode"></span><span class="d2" data-text-cvar="ui_h1_map"></span><span class="d4" data-text-cvar="ui_h1_result"></span><span class="d4" data-text-cvar="ui_h1_score"></span><button class="opt" data-when="ui_h1_demo=1" onclick="ui_profilePlay 1">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h2_date!=">
+				<span class="d1" data-text-cvar="ui_h2_date"></span><span class="d3" data-text-cvar="ui_h2_mode"></span><span class="d2" data-text-cvar="ui_h2_map"></span><span class="d4" data-text-cvar="ui_h2_result"></span><span class="d4" data-text-cvar="ui_h2_score"></span><button class="opt" data-when="ui_h2_demo=1" onclick="ui_profilePlay 2">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h3_date!=">
+				<span class="d1" data-text-cvar="ui_h3_date"></span><span class="d3" data-text-cvar="ui_h3_mode"></span><span class="d2" data-text-cvar="ui_h3_map"></span><span class="d4" data-text-cvar="ui_h3_result"></span><span class="d4" data-text-cvar="ui_h3_score"></span><button class="opt" data-when="ui_h3_demo=1" onclick="ui_profilePlay 3">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h4_date!=">
+				<span class="d1" data-text-cvar="ui_h4_date"></span><span class="d3" data-text-cvar="ui_h4_mode"></span><span class="d2" data-text-cvar="ui_h4_map"></span><span class="d4" data-text-cvar="ui_h4_result"></span><span class="d4" data-text-cvar="ui_h4_score"></span><button class="opt" data-when="ui_h4_demo=1" onclick="ui_profilePlay 4">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h5_date!=">
+				<span class="d1" data-text-cvar="ui_h5_date"></span><span class="d3" data-text-cvar="ui_h5_mode"></span><span class="d2" data-text-cvar="ui_h5_map"></span><span class="d4" data-text-cvar="ui_h5_result"></span><span class="d4" data-text-cvar="ui_h5_score"></span><button class="opt" data-when="ui_h5_demo=1" onclick="ui_profilePlay 5">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h6_date!=">
+				<span class="d1" data-text-cvar="ui_h6_date"></span><span class="d3" data-text-cvar="ui_h6_mode"></span><span class="d2" data-text-cvar="ui_h6_map"></span><span class="d4" data-text-cvar="ui_h6_result"></span><span class="d4" data-text-cvar="ui_h6_score"></span><button class="opt" data-when="ui_h6_demo=1" onclick="ui_profilePlay 6">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h7_date!=">
+				<span class="d1" data-text-cvar="ui_h7_date"></span><span class="d3" data-text-cvar="ui_h7_mode"></span><span class="d2" data-text-cvar="ui_h7_map"></span><span class="d4" data-text-cvar="ui_h7_result"></span><span class="d4" data-text-cvar="ui_h7_score"></span><button class="opt" data-when="ui_h7_demo=1" onclick="ui_profilePlay 7">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h8_date!=">
+				<span class="d1" data-text-cvar="ui_h8_date"></span><span class="d3" data-text-cvar="ui_h8_mode"></span><span class="d2" data-text-cvar="ui_h8_map"></span><span class="d4" data-text-cvar="ui_h8_result"></span><span class="d4" data-text-cvar="ui_h8_score"></span><button class="opt" data-when="ui_h8_demo=1" onclick="ui_profilePlay 8">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h9_date!=">
+				<span class="d1" data-text-cvar="ui_h9_date"></span><span class="d3" data-text-cvar="ui_h9_mode"></span><span class="d2" data-text-cvar="ui_h9_map"></span><span class="d4" data-text-cvar="ui_h9_result"></span><span class="d4" data-text-cvar="ui_h9_score"></span><button class="opt" data-when="ui_h9_demo=1" onclick="ui_profilePlay 9">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h10_date!=">
+				<span class="d1" data-text-cvar="ui_h10_date"></span><span class="d3" data-text-cvar="ui_h10_mode"></span><span class="d2" data-text-cvar="ui_h10_map"></span><span class="d4" data-text-cvar="ui_h10_result"></span><span class="d4" data-text-cvar="ui_h10_score"></span><button class="opt" data-when="ui_h10_demo=1" onclick="ui_profilePlay 10">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h11_date!=">
+				<span class="d1" data-text-cvar="ui_h11_date"></span><span class="d3" data-text-cvar="ui_h11_mode"></span><span class="d2" data-text-cvar="ui_h11_map"></span><span class="d4" data-text-cvar="ui_h11_result"></span><span class="d4" data-text-cvar="ui_h11_score"></span><button class="opt" data-when="ui_h11_demo=1" onclick="ui_profilePlay 11">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h12_date!=">
+				<span class="d1" data-text-cvar="ui_h12_date"></span><span class="d3" data-text-cvar="ui_h12_mode"></span><span class="d2" data-text-cvar="ui_h12_map"></span><span class="d4" data-text-cvar="ui_h12_result"></span><span class="d4" data-text-cvar="ui_h12_score"></span><button class="opt" data-when="ui_h12_demo=1" onclick="ui_profilePlay 12">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h13_date!=">
+				<span class="d1" data-text-cvar="ui_h13_date"></span><span class="d3" data-text-cvar="ui_h13_mode"></span><span class="d2" data-text-cvar="ui_h13_map"></span><span class="d4" data-text-cvar="ui_h13_result"></span><span class="d4" data-text-cvar="ui_h13_score"></span><button class="opt" data-when="ui_h13_demo=1" onclick="ui_profilePlay 13">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h14_date!=">
+				<span class="d1" data-text-cvar="ui_h14_date"></span><span class="d3" data-text-cvar="ui_h14_mode"></span><span class="d2" data-text-cvar="ui_h14_map"></span><span class="d4" data-text-cvar="ui_h14_result"></span><span class="d4" data-text-cvar="ui_h14_score"></span><button class="opt" data-when="ui_h14_demo=1" onclick="ui_profilePlay 14">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h15_date!=">
+				<span class="d1" data-text-cvar="ui_h15_date"></span><span class="d3" data-text-cvar="ui_h15_mode"></span><span class="d2" data-text-cvar="ui_h15_map"></span><span class="d4" data-text-cvar="ui_h15_result"></span><span class="d4" data-text-cvar="ui_h15_score"></span><button class="opt" data-when="ui_h15_demo=1" onclick="ui_profilePlay 15">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h16_date!=">
+				<span class="d1" data-text-cvar="ui_h16_date"></span><span class="d3" data-text-cvar="ui_h16_mode"></span><span class="d2" data-text-cvar="ui_h16_map"></span><span class="d4" data-text-cvar="ui_h16_result"></span><span class="d4" data-text-cvar="ui_h16_score"></span><button class="opt" data-when="ui_h16_demo=1" onclick="ui_profilePlay 16">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h17_date!=">
+				<span class="d1" data-text-cvar="ui_h17_date"></span><span class="d3" data-text-cvar="ui_h17_mode"></span><span class="d2" data-text-cvar="ui_h17_map"></span><span class="d4" data-text-cvar="ui_h17_result"></span><span class="d4" data-text-cvar="ui_h17_score"></span><button class="opt" data-when="ui_h17_demo=1" onclick="ui_profilePlay 17">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h18_date!=">
+				<span class="d1" data-text-cvar="ui_h18_date"></span><span class="d3" data-text-cvar="ui_h18_mode"></span><span class="d2" data-text-cvar="ui_h18_map"></span><span class="d4" data-text-cvar="ui_h18_result"></span><span class="d4" data-text-cvar="ui_h18_score"></span><button class="opt" data-when="ui_h18_demo=1" onclick="ui_profilePlay 18">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_h19_date!=">
+				<span class="d1" data-text-cvar="ui_h19_date"></span><span class="d3" data-text-cvar="ui_h19_mode"></span><span class="d2" data-text-cvar="ui_h19_map"></span><span class="d4" data-text-cvar="ui_h19_result"></span><span class="d4" data-text-cvar="ui_h19_score"></span><button class="opt" data-when="ui_h19_demo=1" onclick="ui_profilePlay 19">[pf_watch]</button>
+			</div>
+			<div class="fsrow" data-when="ui_hCount=0">[pf_none]</div>
+		</div>
+		<div class="fsactions"><button onclick="rml_show ui/main.rml">[menu_back]</button></div>
+	</div>
+</body>
+</rml>

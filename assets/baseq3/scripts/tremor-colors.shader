@@ -49,11 +49,11 @@ tremor/reveal
 }
 
 // the enemy outline (cg_enemyOutline): the model pushed out along its
-// normals, only its back faces drawn, in the entity colour
+// normals, only its back faces drawn ("cull back"), in the entity colour
 tremor/outline
 {
 	nopicmip
-	cull front
+	cull back
 	deformVertexes wave 100 sin 1.4 0 0 0
 	{
 		map $whiteimage

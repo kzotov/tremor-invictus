@@ -1221,3 +1221,20 @@ scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc {
 	display: inline-block;
 	margin-top: 30dp;
 }
+
+.pfratings {
+	display: block;
+	padding: 6dp 10dp;
+	margin-bottom: 10dp;
+	background-color: #16171bf0;
+	border-left: 6dp #d3191f;
+}
+
+.pfratings .srow {
+	display: inline-block;
+	width: 24%;
+}
+
+.pfratings .slabel {
+	width: 60%;
+}

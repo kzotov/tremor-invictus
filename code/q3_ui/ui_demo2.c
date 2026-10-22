@@ -734,3 +734,90 @@ qboolean UI_DemosCommand( const char *cmd ) {
 	}
 	return qfalse;
 }
+
+/*
+===============================================================================
+
+Profile (ui/profile.rml): ratings per mode from the matchmaker (mm_profile)
+and the last matches from history.txt, newest first, as ui_h<n>_date,
+_mode, _map, _result, _score and _demo. ui_profilePlay <n> watches a
+match's recording.
+
+===============================================================================
+*/
+
+#define PROFILE_ROWS	20
+
+static char	profileDemos[PROFILE_ROWS][MAX_QPATH];
+
+void UI_ProfileRml( void ) {
+	static char		text[32768];
+	char			*lines[256], *p, *field[6];
+	fileHandle_t	f;
+	int				len, n = 0, i, k, row = 0;
+
+	text[0] = 0;
+	len = trap_FS_FOpenFile( "history.txt", &f, FS_READ );
+	if ( f ) {
+		if ( len > (int)sizeof( text ) - 1 ) {
+			// the newest lines are at the end
+			trap_FS_Seek( f, len - ( sizeof( text ) - 1 ), FS_SEEK_SET );
+			len = sizeof( text ) - 1;
+		}
+		trap_FS_Read( text, len, f );
+		text[len] = 0;
+		trap_FS_FCloseFile( f );
+	}
+	for ( p = text; *p && n < 256; ) {
+		lines[n++] = p;
+		p = strchr( p, '\n' );
+		if ( !p ) {
+			break;
+		}
+		*p++ = 0;
+	}
+	for ( i = n - 1; i >= 0 && row < PROFILE_ROWS; i-- ) {
+		p = lines[i];
+		for ( k = 0; k < 6; k++ ) {
+			field[k] = p;
+			p = p ? strchr( p, '|' ) : NULL;
+			if ( p ) {
+				*p++ = 0;
+			}
+		}
+		if ( !field[0] || !field[0][0] || !field[4] ) {
+			continue;
+		}
+		trap_Cvar_Set( va( "ui_h%i_date", row ), field[0] );
+		trap_Cvar_Set( va( "ui_h%i_mode", row ), field[1] );
+		trap_Cvar_Set( va( "ui_h%i_map", row ), field[2] );
+		trap_Cvar_Set( va( "ui_h%i_result", row ), field[3] );
+		trap_Cvar_Set( va( "ui_h%i_score", row ), field[4] );
+		trap_Cvar_Set( va( "ui_h%i_demo", row ), field[5] && field[5][0] ? "1" : "0" );
+		Q_strncpyz( profileDemos[row], field[5] ? field[5] : "", MAX_QPATH );
+		row++;
+	}
+	trap_Cvar_SetValue( "ui_hCount", row );
+	for ( ; row < PROFILE_ROWS; row++ ) {
+		trap_Cvar_Set( va( "ui_h%i_date", row ), "" );
+	}
+	trap_Cmd_ExecuteText( EXEC_NOW, "mm_profile\nrml_show ui/profile.rml\n" );
+}
+
+qboolean UI_ProfileCommand( const char *cmd ) {
+	int i;
+
+	if ( !Q_stricmp( cmd, "ui_profile" ) ) {
+		UI_ProfileRml();
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_profilePlay" ) ) {
+		i = atoi( UI_Argv( 1 ) );
+		if ( i >= 0 && i < PROFILE_ROWS && profileDemos[i][0] ) {
+			UI_ForceMenuOff();
+			trap_Cmd_ExecuteText( EXEC_APPEND, va( "rml_hide\ndemo \"%s\"\n", profileDemos[i] ) );
+		}
+		return qtrue;
+	}
+	return qfalse;
+}

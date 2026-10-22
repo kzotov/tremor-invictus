@@ -1055,6 +1055,10 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	if ( UI_ProfileCommand( cmd ) ) {
+		return qtrue;
+	}
+
 	if ( UI_DemosCommand( cmd ) ) {
 		return qtrue;
 	}

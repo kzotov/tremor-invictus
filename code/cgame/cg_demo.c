@@ -99,6 +99,51 @@ static void CG_DemoName( char *name, int size ) {
 
 /*
 =================
+CG_WriteHistory
+
+At the end of a match, a line for the profile's match history in
+history.txt: "time|mode|map|result|score|demo"
+=================
+*/
+static void CG_WriteHistory( void ) {
+	static int		writtenFor = -1;
+	fileHandle_t	f;
+	qtime_t			now;
+	char			line[512], demo[MAX_QPATH], mapName[64];
+	const char		*result;
+	int				team = cg.snap->ps.persistant[PERS_TEAM], score;
+
+	if ( cg.demoPlayback || team == TEAM_SPECTATOR || writtenFor == cgs.levelStartTime ) {
+		return;
+	}
+	writtenFor = cgs.levelStartTime;
+	if ( cgs.gametype >= GT_TEAM ) {
+		int mine = team == TEAM_RED ? cg.teamScores[0] : cg.teamScores[1];
+		int theirs = team == TEAM_RED ? cg.teamScores[1] : cg.teamScores[0];
+
+		result = mine > theirs ? "WIN" : mine < theirs ? "LOSS" : "DRAW";
+		score = cg.snap->ps.persistant[PERS_SCORE];
+	} else {
+		int rank = cg.snap->ps.persistant[PERS_RANK] & ~RANK_TIED_FLAG;
+
+		result = rank == 0 ? "WIN" : cgs.gametype == GT_TOURNAMENT ? "LOSS" : va( "#%i", rank + 1 );
+		score = cg.snap->ps.persistant[PERS_SCORE];
+	}
+	trap_Cvar_VariableStringBuffer( "cg_autoDemoName", demo, sizeof( demo ) );
+	trap_RealTime( &now );
+	Q_strncpyz( mapName, Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "mapname" ), sizeof( mapName ) );
+	Com_sprintf( line, sizeof( line ), "%04i-%02i-%02i %02i:%02i|%s|%s|%s|%i|%s\n", now.tm_year + 1900, now.tm_mon + 1,
+		now.tm_mday, now.tm_hour, now.tm_min, CG_ModeString(), mapName, result, score, demo );
+	trap_FS_FOpenFile( "history.txt", &f, FS_APPEND );
+	if ( f ) {
+		trap_FS_Write( line, strlen( line ), f );
+		trap_FS_FCloseFile( f );
+	}
+	trap_Cvar_Set( "cg_autoDemoName", "" );
+}
+
+/*
+=================
 CG_AutoRecord
 
 Records each match from its countdown (or from joining one already under
@@ -111,6 +156,9 @@ static void CG_AutoRecord( void ) {
 	qboolean	recording, ours;
 	int			state;
 
+	if ( cg.snap && cg.snap->ps.pm_type == PM_INTERMISSION ) {
+		CG_WriteHistory();
+	}
 	if ( cg.demoPlayback || !( action & ( AUTO_RECORD | AUTO_SCREENSHOT ) ) ) {
 		return;
 	}
@@ -156,6 +204,7 @@ static void CG_AutoRecord( void ) {
 		CG_DemoName( buf, sizeof( buf ) );
 		trap_SendConsoleCommand( va( "record \"%s\"\n", buf ) );
 		trap_Cvar_Set( "cg_autoRecording", "1" );
+		trap_Cvar_Set( "cg_autoDemoName", buf );		// for the match history
 	}
 }
 
