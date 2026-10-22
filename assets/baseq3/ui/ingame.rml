@@ -13,9 +13,9 @@
 			<button onclick="ui_colors">[menu_player_colors]</button>
 			<button onclick="rml_hide; ui_settings">[menu_settings]</button>
 			<button onclick="rml_hide; ui_team">[menu_join_team]</button>
-			<button data-when="sv_running=1&amp;bot_enable=1" onclick="rml_hide; ui_addbots">[menu_add_bots]</button>
-			<button data-when="sv_running=1&amp;bot_enable=1" onclick="rml_hide; ui_removebots">[menu_remove_bots]</button>
-			<button data-when="sv_running=1&amp;bot_enable=1&amp;g_gametype>=3" onclick="rml_hide; ui_teamOrders">[menu_team_orders]</button>
+			<button data-when="sv_running=1&amp;bot_enable=1" onclick="ui_addbots">[menu_add_bots]</button>
+			<button data-when="sv_running=1&amp;bot_enable=1" onclick="ui_removebots">[menu_remove_bots]</button>
+			<button data-when="sv_running=1&amp;bot_enable=1&amp;g_gametype>=3" onclick="ui_teamOrders">[menu_team_orders]</button>
 			<div class="gap"/>
 			<button onclick="rml_hide; disconnect">[menu_leave]</button>
 			<button onclick="quit">[menu_quit]</button>

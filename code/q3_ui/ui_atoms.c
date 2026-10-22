@@ -1047,6 +1047,10 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	if ( UI_BotsCommand( cmd ) ) {
+		return qtrue;
+	}
+
 	if ( UI_DemosCommand( cmd ) ) {
 		return qtrue;
 	}
@@ -1079,8 +1083,18 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	if ( Q_stricmp (cmd, "ui_addbots") == 0 && trap_Cvar_VariableValue( "rml_ok" ) ) {
+		UI_BotsRml( 0 );
+		return qtrue;
+	}
+
 	if ( Q_stricmp (cmd, "ui_addbots") == 0 ) {
 		UI_AddBotsMenu();
+		return qtrue;
+	}
+
+	if ( Q_stricmp (cmd, "ui_removebots") == 0 && trap_Cvar_VariableValue( "rml_ok" ) ) {
+		UI_BotsRml( 1 );
 		return qtrue;
 	}
 
@@ -1159,6 +1173,11 @@ qboolean UI_ConsoleCommand( int realTime ) {
 
 	if ( Q_stricmp (cmd, "ui_cache") == 0 ) {
 		UI_Cache_f();
+		return qtrue;
+	}
+
+	if ( Q_stricmp (cmd, "ui_teamOrders") == 0 && trap_Cvar_VariableValue( "rml_ok" ) ) {
+		UI_BotsRml( 2 );
 		return qtrue;
 	}
 
