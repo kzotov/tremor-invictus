@@ -1360,6 +1360,7 @@ static const char *CG_CapName( const char *name, float size, float maxDp ) {
 	static char	out[64];
 	float		cw = size * 0.6f;
 	int			i, o = 0, visible = 0, maxChars = (int)( maxDp / cw );
+	char		lastColour = 0;
 
 	if ( CG_DrawStrlen( name ) <= maxChars ) {
 		return name;
@@ -1367,6 +1368,7 @@ static const char *CG_CapName( const char *name, float size, float maxDp ) {
 	for ( i = 0 ; name[i] && o < (int)sizeof( out ) - 6 ; i++ ) {
 		if ( Q_IsColorString( name + i ) ) {
 			out[o++] = name[i++];
+			lastColour = name[i];
 			out[o++] = name[i];
 			continue;
 		}
@@ -1376,7 +1378,12 @@ static const char *CG_CapName( const char *name, float size, float maxDp ) {
 		out[o++] = name[i];
 		visible++;
 	}
-	Q_strncpyz( out + o, "...", sizeof( out ) - o );		// keeps the row's colour
+	// the dots in the name's colour where it had one, else the row's
+	if ( lastColour ) {
+		out[o++] = Q_COLOR_ESCAPE;
+		out[o++] = lastColour;
+	}
+	Q_strncpyz( out + o, "...", sizeof( out ) - o );
 	return out;
 }
 
@@ -1492,7 +1499,7 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit )
 		return;
 	}
 
-	if ( cgs.gametype == GT_FFA && !cg.showScores ) {
+	if ( cgs.gametype == GT_FFA && !cg.scoreBoardShowing ) {
 		// two rows right of centre: the leader, then you (the runner-up when
 		// you lead; first and second in free camera); spectators skipped;
 		// equal scores share a rank and read TIED
@@ -5072,21 +5079,30 @@ A value against its class base: a block per 25 points, lit up to the
 value, the blocks over base brighter; then "value / base"
 =================
 */
-static void CG_DrawStackBar( float x, float y, int value, int base, const vec4_t tint ) {
+static void CG_DrawStackBar( float x, float y, int value, int base, const vec4_t barTint, const vec4_t tint, qboolean lowRed, float pulse ) {
+	static vec4_t	overBlue = { 0.35f, 0.6f, 1, 1 };
 	vec4_t	off = { 0.2f, 0.2f, 0.22f, 0.8f }, lit, over;
 	int		blocks = ( base + 75 ) / 25, i;
-	float	bw = 22 * DP, gap = 3 * DP;
+	float	bw = 22 * DP, gap = 3 * DP, cw = BIGCHAR_WIDTH * pulse, ch = BIGCHAR_HEIGHT * pulse;
+	const float	*numColor = tint;
 	char	*s;
 
-	Vector4Copy( tint, lit );
+	Vector4Copy( barTint, lit );
 	lit[0] *= 0.7f; lit[1] *= 0.7f; lit[2] *= 0.7f;
-	Vector4Copy( tint, over );
+	Vector4Copy( barTint, over );
 	for ( i = 0 ; i < blocks ; i++ ) {
 		CG_FillRect( x + i * ( bw + gap ), y, bw, 10 * DP, value > i * 25 ? ( i * 25 >= base ? over : lit ) : off );
 	}
+	// the number: red when low (not for armour on a class that starts
+	// without it), blue over the base, else the given tint
+	if ( lowRed && value <= 25 && tint[0] == 1 && tint[1] == 1 ) {
+		numColor = colorRed;
+	} else if ( value > base && tint[0] == 1 && tint[1] == 1 ) {
+		numColor = overBlue;
+	}
 	s = va( "%i", value );
-	CG_DrawStringExt( x, y - 34 * DP - BIGCHAR_HEIGHT * 0.5f, s, value <= 25 ? colorRed : tint, qtrue, qtrue,
-		BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+	CG_DrawStringExt( x - ( cw - BIGCHAR_WIDTH ) * CG_DrawStrlen( s ) / 2, y - 34 * DP - ch * 0.5f, s, numColor, qtrue, qtrue,
+		cw, ch, 0 );
 	CG_DrawStringExt( x + CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 4, y - 34 * DP, va( "/ %i", base ), colorMdGrey, qtrue, qtrue,
 		SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
 }
@@ -5104,7 +5120,9 @@ static void CG_DrawModernHud( void ) {
 	centity_t			*cent = &cg_entities[ps->clientNum];
 	const champion_t	*champ = BG_Champion( ps->stats[STAT_CHAMPION] );
 	const classInfo_t	*ci = &bg_classInfo[champ->bodyClass];
-	vec4_t				healthTint = { 1, 1, 1, 1 }, armorTint = { 0.35f, 0.95f, 0.45f, 1 };
+	vec4_t				healthTint = { 1, 1, 1, 1 }, armorTint = { 1, 1, 1, 1 }, armorBar = { 0.35f, 0.95f, 0.45f, 1 };
+	float				healthPulse = 1, armorPulse = 1;
+	int					spawnArmor = cgs.gametype == GT_TOURNAMENT ? ci->spawnArmorDuel : ci->spawnArmor;
 	float				x, y, size;
 	qhandle_t			pic;
 	int					value, maxCharges;
@@ -5124,33 +5142,49 @@ static void CG_DrawModernHud( void ) {
 	// a drop flashes the number red for 150 ms, a rise tints it (white
 	// armour, green health)
 	{
-		static int	lastHealth, lastArmor, healthTime, armorTime, healthUp, armorUp;
+		static int	lastHealth, lastArmor, healthTime, armorTime, healthUp, armorUp, lastClient = -1, lastSpawn;
 		static vec4_t	dropRed = { 1, 0.25f, 0.19f, 1 }, riseGreen = { 0.376f, 1, 0.376f, 1 };
+		int			health = ps->stats[STAT_HEALTH], armor = ps->stats[STAT_ARMOR];
 
-		if ( ps->stats[STAT_HEALTH] != lastHealth ) {
-			healthUp = ps->stats[STAT_HEALTH] > lastHealth;
-			healthTime = cg.time;
-			lastHealth = ps->stats[STAT_HEALTH];
+		// a new life or a different followed player starts fresh
+		if ( ps->clientNum != lastClient || ps->persistant[PERS_SPAWN_COUNT] != lastSpawn ) {
+			lastClient = ps->clientNum;
+			lastSpawn = ps->persistant[PERS_SPAWN_COUNT];
+			lastHealth = health;
+			lastArmor = armor;
+			healthTime = armorTime = 0;
 		}
-		if ( ps->stats[STAT_ARMOR] != lastArmor ) {
-			armorUp = ps->stats[STAT_ARMOR] > lastArmor;
-			armorTime = cg.time;
-			lastArmor = ps->stats[STAT_ARMOR];
+		// a point at a time above the base is the decay, not a hit
+		if ( health != lastHealth ) {
+			if ( !( health == lastHealth - 1 && health >= 100 ) ) {
+				healthUp = health > lastHealth;
+				healthTime = cg.time;
+			}
+			lastHealth = health;
 		}
-		if ( cg.time - healthTime < 150 ) {
+		if ( armor != lastArmor ) {
+			if ( !( armor == lastArmor - 1 && armor >= ci->baseArmor ) ) {
+				armorUp = armor > lastArmor;
+				armorTime = cg.time;
+			}
+			lastArmor = armor;
+		}
+		if ( healthTime && cg.time - healthTime < 150 ) {
 			Vector4Copy( healthUp ? riseGreen : dropRed, healthTint );
+			healthPulse = healthUp ? 1.15f : 1;
 		}
-		if ( cg.time - armorTime < 150 && !( !armorUp && !ci->spawnArmor ) ) {
+		if ( armorTime && cg.time - armorTime < 150 && ( armorUp || spawnArmor ) ) {
 			Vector4Copy( armorUp ? colorWhite : dropRed, armorTint );
+			armorPulse = armorUp ? 1.15f : 1;
 		}
 	}
 
 	// armour and health against the class base
 	CG_HudPlace( "armor", &x, &y );
 	CG_DrawPic( x - 14 * DP, y - 30 * DP, 28 * DP * 1.6f, 28 * DP * 1.6f, cgs.media.armorIcon );
-	CG_DrawStackBar( x + 44 * DP, y + 12 * DP, ps->stats[STAT_ARMOR], ci->baseArmor, armorTint );
+	CG_DrawStackBar( x + 44 * DP, y + 12 * DP, ps->stats[STAT_ARMOR], ci->baseArmor, armorBar, armorTint, spawnArmor > 0, armorPulse );
 	CG_HudPlace( "health", &x, &y );
-	CG_DrawStackBar( x + 44 * DP, y + 12 * DP, ps->stats[STAT_HEALTH], 100, healthTint );
+	CG_DrawStackBar( x + 44 * DP, y + 12 * DP, ps->stats[STAT_HEALTH], 100, colorWhite, healthTint, qtrue, healthPulse );
 
 	// the ability: ring, charges above it, key and name under it
 	CG_HudPlace( "ability", &x, &y );
@@ -5294,8 +5328,9 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 			CG_DrawTrailGrey();
 		}
 
-		// don't draw any status if dead or the scoreboard is being explicitly shown
-		if ( !cg.showScores && cg.snap->ps.stats[STAT_HEALTH] > 0 ) {
+		// the status stays up with the scoreboard open (only the centre
+		// messages hide); nothing while dead
+		if ( cg.snap->ps.stats[STAT_HEALTH] > 0 ) {
 
 #ifdef MISSIONPACK
 			if ( cg_drawStatus.integer ) {
@@ -5334,7 +5369,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 #else
 			//CG_DrawPersistantPowerup();
 #endif
-			if ( !cg.showScores ) {
+			if ( !cg.scoreBoardShowing ) {
 				CG_DrawReward();		// the scoreboard hides the medal
 			}
 		}
