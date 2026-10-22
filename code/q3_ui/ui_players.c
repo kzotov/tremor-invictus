@@ -714,6 +714,7 @@ UI_DrawPlayer
 #define STAGE_HALF_HEIGHT	64		// units from the box centre to its top or bottom
 #define STAGE_FEET			-26		// the pillar's top, below the box centre
 #define STAGE_PILLAR_RADIUS	22
+#define STAGE_PITCH			10		// degrees the stage camera looks down
 
 /*
 ===============
@@ -1034,6 +1035,16 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 		if ( pi->flash > 0 ) {
 			VectorSet( light, origin[0] - 40, 0, STAGE_FEET + 20 );
 			trap_R_AddLightToScene( light, 300 * pi->flash, 1.0f, 0.8f, 0.7f );
+		}
+		// look down a little from above, still at the box's centre, so the
+		// pillar's sides recede and its top shows like the floor it is
+		{
+			float	pitch = DEG2RAD( STAGE_PITCH );
+
+			VectorSet( refdef.viewaxis[0], cos( pitch ), 0, -sin( pitch ) );
+			VectorSet( refdef.viewaxis[1], 0, 1, 0 );
+			VectorSet( refdef.viewaxis[2], sin( pitch ), 0, cos( pitch ) );
+			VectorSet( refdef.vieworg, 0, 0, origin[0] * tan( pitch ) );
 		}
 		trap_R_RenderScene( &refdef );
 		return;
