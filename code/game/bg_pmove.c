@@ -2870,7 +2870,7 @@ static void PM_AirDodge( void ) {
 
 	// stamina: up to 3 dodges, a quarter charge back each second (whole
 	// steps of 100 ms, so prediction and server always agree)
-	stamina = pm->ps->generic1 + ( pm->cmd.serverTime / 100 - pm->ps->commandTime / 100 );
+	stamina = pm->ps->generic1 + ( pm->cmd.serverTime / 100 - pml.oldCommandTime / 100 );
 	if ( stamina > DODGE_STAMINA_MAX ) {
 		stamina = DODGE_STAMINA_MAX;
 	}
@@ -2991,7 +2991,7 @@ static void PM_Acceleration( void ) {
 			if ( run < top[i] && ( i == 0 || held * ACCEL_HOLD_UNIT >= hold[i] ) ) {
 				// climbing toward the next step, in whole 10 ms steps so the
 				// rate is exact at any frame rate (bonus in tenths of u/s)
-				bonus += accel[i] / 10 * ( pm->cmd.serverTime / 10 - pm->ps->commandTime / 10 );
+				bonus += accel[i] / 10 * ( pm->cmd.serverTime / 10 - pml.oldCommandTime / 10 );
 				if ( pm->ps->speed + bonus * 0.1f > top[i] ) {
 					bonus = ( top[i] - pm->ps->speed ) * 10;
 				}
@@ -2999,7 +2999,7 @@ static void PM_Acceleration( void ) {
 			} else if ( run < top[i] ) {
 				// holding the previous step's top speed (whole steps of
 				// time, so prediction and server agree)
-				held += pm->cmd.serverTime / ACCEL_HOLD_UNIT - pm->ps->commandTime / ACCEL_HOLD_UNIT;
+				held += pm->cmd.serverTime / ACCEL_HOLD_UNIT - pml.oldCommandTime / ACCEL_HOLD_UNIT;
 				if ( held > 15 ) {
 					held = 15;
 				}
@@ -3797,6 +3797,7 @@ void PmoveSingle (pmove_t *pmove) {
 	} else if ( pml.msec > 200 ) {
 		pml.msec = 200;
 	}
+	pml.oldCommandTime = pm->ps->commandTime;
 	pm->ps->commandTime = pmove->cmd.serverTime;
 
 	// save old org in case we get stuck

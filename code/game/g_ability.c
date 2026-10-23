@@ -1078,8 +1078,8 @@ static void G_StartBarrier( gentity_t *ent ) {
 }
 
 static void G_BarrierToLaser( gentity_t *ent ) {
-	if ( ent->client->barrierMode != 1 ) {
-		return;
+	if ( ent->client->barrierMode != 1 || BG_AbilityState( &ent->client->ps ) != ABILITY_ACTIVE ) {
+		return;		// (a press in the shield's last frame, already ended)
 	}
 	// abilities.md Clutch Barrier fixes: the shield drops and the laser
 	// fires at once, always for its full time (the ability runs on past its

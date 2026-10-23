@@ -41,6 +41,7 @@ typedef struct {
 	float		frametime;
 
 	int			msec;
+	int			oldCommandTime;		// commandTime before this move (it is updated first)
 
 	qboolean	walking;
 	qboolean	groundPlane;

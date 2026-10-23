@@ -116,6 +116,9 @@ static void G_CancelAbility( gentity_t *ent ) {
 		G_FreeEntity( client->anchorEnt );
 		client->anchorEnt = NULL;
 	}
+	if ( active == ACTIVE_BARRIER && client->barrierMode == 2 ) {
+		client->ps.weaponTime = 0;		// the laser's weapon lock goes with it
+	}
 }
 
 static void G_ShockZoneThink( gentity_t *zone ) {
