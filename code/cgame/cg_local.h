@@ -868,7 +868,8 @@ typedef struct {
 	qhandle_t	ringShader;
 	qhandle_t	droneModel;
 	qhandle_t	turretModel;
-	sfxHandle_t	dodgeSound;		// generated; 0 when missing		// Eisen's, told apart from other general entities
+	sfxHandle_t	dodgeSound;		// generated; 0 when missing
+	qhandle_t	droneShimmerShader;	// Strogg's body during the drone		// Eisen's, told apart from other general entities
 	qhandle_t	brightShader;			// player colours
 	qhandle_t	sportShader;
 	qhandle_t	tintShader;
@@ -1509,6 +1510,7 @@ void CG_Player( centity_t *cent );
 //
 void CG_PlayerColors( centity_t *cent, clientInfo_t *ci );
 void CG_OwnerColors( int owner );
+void CG_DroneBody( centity_t *cent );
 void CG_PlayerColorPart( int part );
 void CG_ColorReset( void );
 void CG_ColorBeforeDraw( refEntity_t *ent );

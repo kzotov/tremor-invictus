@@ -1286,6 +1286,11 @@ static void G_DroneBodyDie( gentity_t *body, gentity_t *inflictor, gentity_t *at
 	G_Damage( owner, inflictor, attacker, NULL, NULL, 100000, DAMAGE_NO_PROTECTION, mod );
 }
 
+// a hit flashes the body for the client (abilities.md: Strogg's body)
+static void G_DroneBodyPain( gentity_t *body, gentity_t *attacker, int damage ) {
+	body->s.time = level.time;
+}
+
 static void G_StartDrone( gentity_t *ent ) {
 	gclient_t	*client = ent->client;
 	gentity_t	*body;
@@ -1294,14 +1299,21 @@ static void G_StartDrone( gentity_t *ent ) {
 	body = G_Spawn();
 	body->classname = "drone_body";
 	body->s.eType = ET_GENERAL;
+	// drawn by the client as Strogg crouched, faintly (EF_DRONE marks it,
+	// clientNum says whose), facing the way he launched
+	body->s.eFlags = EF_DRONE;
+	body->s.clientNum = ent->s.number;
+	body->s.apos.trBase[YAW] = client->ps.viewangles[YAW];
 	body->parent = ent;
 	body->r.ownerNum = ent->s.number;
 	body->r.contents = CONTENTS_CORPSE;
 	VectorCopy( ent->r.mins, body->r.mins );
 	VectorCopy( ent->r.maxs, body->r.maxs );
+	body->r.maxs[2] = CROUCH_HEIGHT;		// the crouched box
 	body->takedamage = qtrue;
 	body->health = ent->health;
 	body->die = G_DroneBodyDie;
+	body->pain = G_DroneBodyPain;
 	VectorCopy( client->ps.origin, origin );
 	origin[2] -= DEFAULT_VIEWHEIGHT;		// pmove lifted the player to eye height
 	G_SetOrigin( body, origin );

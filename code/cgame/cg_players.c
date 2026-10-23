@@ -2687,3 +2687,67 @@ void CG_ResetPlayerEntity( centity_t *cent ) {
 	}
 }
 
+
+/*
+===============
+CG_DroneBody
+
+abilities.md, Strogg's body during the drone: his own model crouched
+(crouch-idle legs, standing torso, no weapon) facing the way he launched,
+a faint shimmer (12%) that a hit flashes to 60% for 0.3 s; no shadow, no
+outline, no forced colours. The entity is ET_GENERAL with EF_DRONE and
+his clientNum; s.time is the last hit.
+===============
+*/
+void CG_DroneBody( centity_t *cent ) {
+	clientInfo_t	*ci;
+	refEntity_t		legs, torso, head;
+	vec3_t			angles;
+	float			alpha = 0.12f;
+	int				client = cent->currentState.clientNum, i;
+
+	if ( client < 0 || client >= MAX_CLIENTS ) {
+		return;
+	}
+	ci = &cgs.clientinfo[client];
+	if ( !ci->infoValid || !ci->legsModel || !ci->torsoModel || !ci->headModel ) {
+		return;
+	}
+	if ( cent->currentState.time && cg.time - cent->currentState.time < 300 && cg.time >= cent->currentState.time ) {
+		alpha = 0.6f;		// just hit
+	}
+
+	memset( &legs, 0, sizeof( legs ) );
+	memset( &torso, 0, sizeof( torso ) );
+	memset( &head, 0, sizeof( head ) );
+	VectorClear( angles );
+	angles[YAW] = cent->currentState.apos.trBase[YAW];
+
+	legs.hModel = ci->legsModel;
+	legs.frame = legs.oldframe = ci->animations[LEGS_IDLECR].firstFrame;
+	VectorCopy( cent->lerpOrigin, legs.origin );
+	VectorCopy( cent->lerpOrigin, legs.oldorigin );
+	AnglesToAxis( angles, legs.axis );
+
+	torso.hModel = ci->torsoModel;
+	torso.frame = torso.oldframe = ci->animations[TORSO_STAND2].firstFrame;
+	AxisClear( torso.axis );
+	CG_PositionRotatedEntityOnTag( &torso, &legs, ci->legsModel, "tag_torso" );
+
+	head.hModel = ci->headModel;
+	AxisClear( head.axis );
+	CG_PositionRotatedEntityOnTag( &head, &torso, ci->torsoModel, "tag_head" );
+
+	for ( i = 0 ; i < 3 ; i++ ) {
+		refEntity_t	*part = i == 0 ? &legs : i == 1 ? &torso : &head;
+
+		part->customShader = cgs.media.droneShimmerShader;
+		part->shaderRGBA[0] = 160;
+		part->shaderRGBA[1] = 190;
+		part->shaderRGBA[2] = 220;
+		part->shaderRGBA[3] = (byte)( alpha * 255 );
+		part->renderfx = RF_NOSHADOW | RF_LIGHTING_ORIGIN;
+		VectorCopy( cent->lerpOrigin, part->lightingOrigin );
+		trap_R_AddRefEntityToScene( part );
+	}
+}

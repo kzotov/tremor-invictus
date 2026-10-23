@@ -166,6 +166,12 @@ static void CG_General( centity_t *cent ) {
 
 	s1 = &cent->currentState;
 
+	// Strogg's body while he flies the drone
+	if ( s1->eFlags & EF_DRONE ) {
+		CG_DroneBody( cent );
+		return;
+	}
+
 	// if set to invisible, skip
 	if (!s1->modelindex) {
 		return;

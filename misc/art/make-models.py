@@ -708,6 +708,27 @@ ability/plasmatrail
 		rgbGen wave noise 0.5 0.3 0 3
 	}
 }
+
+// Strogg's body while he flies the drone: a faint shimmer, its strength
+// from the entity's alpha (cgame)
+tremor/droneshimmer
+{
+	deformVertexes wave 30 sin 0 0.6 0 0.4
+	{
+		map $whiteimage
+		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		rgbGen entity
+		alphaGen entity
+	}
+	{
+		map gfx/abilities/plasmatrail.tga
+		blendFunc GL_SRC_ALPHA GL_ONE
+		tcGen environment
+		tcMod scroll 0.05 0.1
+		rgbGen entity
+		alphaGen entity
+	}
+}
 """
 
 
