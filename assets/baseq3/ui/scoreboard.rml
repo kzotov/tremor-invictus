@@ -88,12 +88,12 @@
 			<div class="dbands">
 				<div class="dband" data-row="sb_d0" data-cell-class="0">
 					<img class="dpor" data-cell-src="1"/>
-					<div class="dwho"><div class="dname" data-cell="2"></div><div class="dping" data-cell="3"></div></div>
+					<div class="dwho"><div class="dname" data-cell="2"></div><div class="dping" data-cell="3" data-cell-class="4"></div></div>
 					<div class="dscore" data-cell="5"></div>
 				</div>
 				<div class="dband right" data-row="sb_d1" data-cell-class="0">
 					<div class="dscore" data-cell="5"></div>
-					<div class="dwho"><div class="dname" data-cell="2"></div><div class="dping" data-cell="3"></div></div>
+					<div class="dwho"><div class="dname" data-cell="2"></div><div class="dping" data-cell="3" data-cell-class="4"></div></div>
 					<img class="dpor" data-cell-src="1"/>
 				</div>
 			</div>

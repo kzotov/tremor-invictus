@@ -122,8 +122,8 @@ Cmd_DuelStats_f
 
 For the duel board: per player "client score given taken mega heavy light
 shots hits ..." for the players in the match. During the match a player
-gets the opponent's frags and pickups only (scoreboard.md 3.1: the detail
-shows -1); spectators and the end of the match get everything.
+gets the opponent's score only (scoreboard.md 3.1: the detail, pickups
+included, shows -1); spectators and the end of the match get everything.
 ==================
 */
 void Cmd_DuelStats_f( gentity_t *ent ) {
@@ -143,8 +143,8 @@ void Cmd_DuelStats_f( gentity_t *ent ) {
 		hide = !open && cl != ent->client;
 		Q_strcat( string, sizeof( string ), va( " %i %i %i %i %i %i %i %i %i %i", i, cl->ps.persistant[PERS_SCORE],
 			hide ? -1 : cl->pers.damageGiven, hide ? -1 : cl->pers.damageTaken,
-			cl->pers.pickups[0], cl->pers.pickups[1], cl->pers.pickups[2],
-			cl->pers.pickups[3], cl->pers.pickups[4], cl->pers.pickups[5] ) );
+			hide ? -1 : cl->pers.pickups[0], hide ? -1 : cl->pers.pickups[1], hide ? -1 : cl->pers.pickups[2],
+			hide ? -1 : cl->pers.pickups[3], hide ? -1 : cl->pers.pickups[4], hide ? -1 : cl->pers.pickups[5] ) );
 		// per weapon from the Gauntlet: shots hits damage frags (-1 hidden)
 		for ( w = WP_GAUNTLET ; w < WP_NUM_WEAPONS ; w++ ) {
 			Q_strcat( string, sizeof( string ), va( " %i %i %i %i", hide ? -1 : cl->pers.accShots[w], hide ? -1 : cl->pers.accHits[w],

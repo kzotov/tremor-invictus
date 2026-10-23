@@ -469,6 +469,27 @@ void CheckAlmostScored( gentity_t *self, gentity_t *attacker ) {
 player_die
 ==================
 */
+/*
+==================
+G_StatWeapon
+
+The weapon a hit or kill counts for on the duel board, or WP_NONE when it
+isn't a weapon's: abilities, telefrags and the grapple
+==================
+*/
+static int G_StatWeapon( gentity_t *inflictor, gentity_t *attacker, int mod ) {
+	int		w;
+
+	if ( ( mod >= MOD_HEAVYWEIGHT && mod <= MOD_LEAPINGKICK ) || mod == MOD_TELEFRAG || mod == MOD_GRAPPLE ) {
+		return WP_NONE;
+	}
+	w = inflictor && inflictor != attacker && inflictor->s.eType == ET_MISSILE ? inflictor->s.weapon : attacker->s.weapon;
+	if ( w <= WP_NONE || w >= WP_NUM_WEAPONS || w == WP_GRAPPLING_HOOK ) {
+		return WP_NONE;
+	}
+	return w;
+}
+
 void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, int meansOfDeath ) {
 	gentity_t	*ent;
 	int			anim;
@@ -564,13 +585,9 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 			AddScore( attacker, self->r.currentOrigin, -1 );
 		} else {
 			AddScore( attacker, self->r.currentOrigin, 1 );
-			// the kill's weapon, for the duel board (abilities aren't weapons)
-			if ( !( meansOfDeath >= MOD_HEAVYWEIGHT && meansOfDeath <= MOD_LEAPINGKICK ) ) {
-				int	w = inflictor && inflictor != attacker && inflictor->s.eType == ET_MISSILE ? inflictor->s.weapon : attacker->s.weapon;
-
-				if ( w > WP_NONE && w < WP_NUM_WEAPONS ) {
-					attacker->client->pers.weaponFrags[w]++;
-				}
+			// the kill's weapon, for the duel board
+			if ( G_StatWeapon( inflictor, attacker, meansOfDeath ) != WP_NONE ) {
+				attacker->client->pers.weaponFrags[G_StatWeapon( inflictor, attacker, meansOfDeath )]++;
 			}
 
 			if( meansOfDeath == MOD_GAUNTLET ) {
@@ -1366,13 +1383,9 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			}
 			attacker->client->pers.damageGiven += dealt;
 			client->pers.damageTaken += dealt;
-			// and per weapon, for the duel board (abilities aren't weapons)
-			if ( !( mod >= MOD_HEAVYWEIGHT && mod <= MOD_LEAPINGKICK ) ) {
-				int	w = inflictor != attacker && inflictor->s.eType == ET_MISSILE ? inflictor->s.weapon : attacker->s.weapon;
-
-				if ( w > WP_NONE && w < WP_NUM_WEAPONS ) {
-					attacker->client->pers.weaponDamage[w] += dealt;
-				}
+			// and per weapon, for the duel board
+			if ( G_StatWeapon( inflictor, attacker, mod ) != WP_NONE ) {
+				attacker->client->pers.weaponDamage[G_StatWeapon( inflictor, attacker, mod )] += dealt;
 			}
 			if ( attacker->s.number < MAX_CLIENTS && targ->s.number < MAX_CLIENTS ) {
 				attacker->client->pers.lifeDealt[targ->s.number] += dealt;

@@ -1530,6 +1530,11 @@ static void CG_ServerCommand( void ) {
 				cg.duelStats[p].dmg[w] = atoi( CG_Argv( a++ ) );
 				cg.duelStats[p].frags[w] = atoi( CG_Argv( a++ ) );
 			}
+			// a bad client number drops the entry
+			if ( cg.duelStats[p].client < 0 || cg.duelStats[p].client >= MAX_CLIENTS ) {
+				p--;
+				continue;
+			}
 			cg.numDuelStats++;
 		}
 		return;

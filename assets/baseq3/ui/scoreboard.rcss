@@ -114,6 +114,10 @@ div { display: block; }
 .dband.right .dwho { text-align: right; }
 .dname { font-size: 24dp; }
 .dping { font-size: 15dp; color: #e8e4dc; }
+.dping.good { color: #5bd75b; }
+.dping.mid { color: #e8d04a; }
+.dping.bad { color: #ff5050; }
+.dping.bot { color: #c8c8cc; }
 .dscore { font-size: 64dp; width: 110dp; text-align: center; }
 .dbody { display: flex; }
 .dpickups { width: 110dp; padding-top: 34dp; }

@@ -318,7 +318,12 @@ void CG_DrawDuelBoard( void ) {
 			case 3:		value = cg.duelStats[p].heavy; break;
 			default:	value = cg.duelStats[p].light; break;
 			}
-			CG_DrawSmallString( col[p] + 40 - CG_DrawStrlen( va( "%i", value ) ) * SMALLCHAR_WIDTH / 2, y, va( "%i", value ), 1.0f );
+			{
+				// hidden values come as -1
+				const char	*s = value < 0 ? "-" : va( "%i", value );
+
+				CG_DrawSmallString( col[p] + 40 - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH / 2, y, s, 1.0f );
+			}
 		}
 		y += 18;
 	}
@@ -328,7 +333,8 @@ void CG_DrawDuelBoard( void ) {
 	CG_DrawSmallString( 80, y, BG_String( STR_DB_ACCURACY ), 1.0f );
 	y += 20;
 	for ( w = WP_GAUNTLET + 1 ; w < WP_NUM_WEAPONS && y < 404 ; w++ ) {
-		if ( !cg.duelStats[0].shots[w] && ( cg.numDuelStats < 2 || !cg.duelStats[1].shots[w] ) ) {
+		// only weapons someone visibly fired (hidden counts are -1)
+		if ( cg.duelStats[0].shots[w] <= 0 && ( cg.numDuelStats < 2 || cg.duelStats[1].shots[w] <= 0 ) ) {
 			continue;
 		}
 		CG_RegisterWeapon( w );
@@ -336,7 +342,7 @@ void CG_DrawDuelBoard( void ) {
 			CG_DrawPic( 80, y, 16, 16, cg_weapons[w].weaponIcon );
 		}
 		for ( p = 0 ; p < cg.numDuelStats ; p++ ) {
-			const char	*s = cg.duelStats[p].shots[w]
+			const char	*s = cg.duelStats[p].shots[w] > 0
 				? va( "%i%% %i/%i", cg.duelStats[p].hits[w] * 100 / cg.duelStats[p].shots[w], cg.duelStats[p].hits[w], cg.duelStats[p].shots[w] )
 				: "-";
 
@@ -1051,7 +1057,7 @@ the match (shown to spectators and at the end)
 static void CG_BoardDuel( void ) {
 	char		row[MAX_CVAR_VALUE_STRING], ping[16], text[MAX_CVAR_VALUE_STRING], map[MAX_QPATH];
 	char		cell[2][4][16];
-	int			p, w, i, line = 0, side[2], pingValue, sec;
+	int			p, w, i, j, line = 0, side[2], pingValue, sec;
 	int			tot[2][4];
 	int			me = CG_BoardViewed();
 	const char	*pingClass, *items = CG_ConfigString( CS_ITEMS );
@@ -1082,10 +1088,12 @@ static void CG_BoardDuel( void ) {
 	CG_BoardCvar( "sb_dlimits", text );
 	CG_BoardCvar( "sb_dh", va( "%s|%s|%s|%s", BG_String( STR_BD_HITS ), BG_String( STR_BD_ACC ), BG_String( STR_BD_DMG ), BG_String( STR_BD_SCORE ) ) );
 
-	// blue on the left: you when you play, else slot order
+	// blue on the left: you when you play, else slot order (spectators,
+	// followers and demos)
 	side[0] = 0;
 	side[1] = 1;
-	if ( cg.numDuelStats == 2 && cg.duelStats[1].client == me && cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
+	if ( cg.numDuelStats == 2 && cg.duelStats[1].client == me && cg.snap && !cg.demoPlayback
+		&& !( cg.snap->ps.pm_flags & PMF_FOLLOW ) && cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
 		side[0] = 1;
 		side[1] = 0;
 	}
@@ -1109,7 +1117,8 @@ static void CG_BoardDuel( void ) {
 		Q_strncpyz( name, CG_BoardName( cg.duelStats[idx].client ), sizeof( name ) );
 		Q_strupr( name );
 		Com_sprintf( row, sizeof( row ), "%s|%s|%s|%s|%s|%i", p ? "red" : "blue",
-			CG_BoardPortrait( cg.duelStats[idx].client ), name, va( (char *)BG_String( STR_BD_PING_MS ), pingValue ),
+			CG_BoardPortrait( cg.duelStats[idx].client ), name,
+			cgs.clientinfo[cg.duelStats[idx].client].botSkill ? ping : va( (char *)BG_String( STR_BD_PING_MS ), pingValue ),
 			pingClass, cg.duelStats[idx].score );
 		CG_BoardCvar( va( "sb_d%i", p ), row );
 	}
@@ -1138,7 +1147,9 @@ static void CG_BoardDuel( void ) {
 				if ( !item || ( k >= 4 && items[item - bg_itemlist] != '1' ) ) {
 					continue;
 				}
-				CG_BoardCvar( va( "sb_pk%i", n++ ), va( "%s.tga|%i", item->icon, counts[k] ) );
+				// hidden counts come as -1
+				Com_sprintf( text, sizeof( text ), counts[k] < 0 ? "%s.tga|\xe2\x80\x93" : "%s.tga|%i", item->icon, counts[k] );
+				CG_BoardCvar( va( "sb_pk%i", n++ ), text );
 			}
 		}
 		for ( ; n < 6 ; n++ ) {
@@ -1146,12 +1157,19 @@ static void CG_BoardDuel( void ) {
 		}
 	}
 
-	// the weapon table: every weapon from the Gauntlet, hits x/y, acc, dmg
-	// and score per side, mirrored; the opponent's shows "-" in the match
+	// the weapon table: every weapon in slot order (Gauntlet first, slotless
+	// ones last), hits x/y, acc, dmg and score per side, mirrored; the
+	// opponent's shows "-" in the match
 	memset( tot, 0, sizeof( tot ) );
-	for ( w = WP_GAUNTLET ; w < WP_NUM_WEAPONS && line < SB_WEAPON_ROWS ; w++ ) {
-		gitem_t	*item = BG_FindItemForWeapon( w );
+	for ( i = 0 ; i < WP_NUM_WEAPONS * 10 && line < SB_WEAPON_ROWS ; i++ ) {
+		int		slot = i / WP_NUM_WEAPONS + 1;
+		gitem_t	*item;
 
+		w = i % WP_NUM_WEAPONS;
+		if ( w < WP_GAUNTLET || BG_WeaponSlot( w ) != ( slot == 10 ? 0 : slot ) ) {
+			continue;
+		}
+		item = BG_FindItemForWeapon( w );
 		if ( !item || w == WP_GRAPPLING_HOOK || !item->icon || !item->icon[0] ) {
 			continue;
 		}
@@ -1159,8 +1177,8 @@ static void CG_BoardDuel( void ) {
 			int		idx = side[p];
 
 			if ( idx >= cg.numDuelStats || cg.duelStats[idx].shots[w] < 0 ) {
-				for ( i = 0 ; i < 4 ; i++ ) {
-					Q_strncpyz( cell[p][i], "\xe2\x80\x93", sizeof( cell[p][i] ) );
+				for ( j = 0 ; j < 4 ; j++ ) {
+					Q_strncpyz( cell[p][j], "\xe2\x80\x93", sizeof( cell[p][j] ) );
 				}
 				tot[p][0] = -1;
 				continue;
