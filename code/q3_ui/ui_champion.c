@@ -830,8 +830,7 @@ qboolean UI_ChampionCommand( const char *cmd ) {
 			trap_Cvar_Set( "cg_startWeapon", UI_Cvar_VariableString( Champion_WeaponCvar( i ) ) );
 			trap_Cvar_Set( "champion", bg_championList[i].name );
 		}
-		trap_Cvar_Set( "ui_chFromCs", "0" );
-		trap_Cmd_ExecuteText( EXEC_NOW, "ui_csStart\n" );
+		trap_Cmd_ExecuteText( EXEC_NOW, "ui_csStart\n" );		// (clears ui_chFromCs once it starts)
 		return qtrue;
 	}
 	if ( !Q_stricmp( cmd, "ui_champSelect" ) ) {

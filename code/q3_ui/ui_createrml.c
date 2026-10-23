@@ -264,6 +264,7 @@ static void CS_Start( void ) {
 		return;
 	}
 	info = UI_GetArenaInfoByNumber( cs.maps[cs.picked] );
+	trap_Cvar_Set( "ui_chFromCs", "0" );		// leaving the champion page for good
 	csCommands[0] = 0;
 	csShown = 0;
 	skill = (int)trap_Cvar_VariableValue( "ui_csSkill" );

@@ -6235,7 +6235,9 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 			CG_DrawNextSpawn();
 		}
 		if ( !( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
-			CG_DrawDeathScreen();
+			if ( !cg.scoreBoardShowing ) {		// the board held open covers the panel
+				CG_DrawDeathScreen();
+			}
 			CG_DrawTrailGrey();
 		}
 

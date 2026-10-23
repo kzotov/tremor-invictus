@@ -682,12 +682,15 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	if ( attacker && attacker->client && attacker != self && attacker->s.number < MAX_CLIENTS ) {
 		trap_SendServerCommand( self - g_entities, va( "deathinfo %i %i %i %i %i %i %i %i", attacker->s.number,
 			meansOfDeath, inflictor && inflictor->s.weapon > WP_NONE && inflictor->s.weapon < WP_NUM_WEAPONS
-				? inflictor->s.weapon : attacker->client->ps.weapon, attacker->health > 0 ? attacker->health : 0,
-			attacker->client->ps.stats[STAT_ARMOR], self->client->pers.lifeDealt[attacker->s.number],
+				? inflictor->s.weapon : attacker->client->ps.weapon,
+			// duel: the opponent's stack stays hidden (hud.md 7.5)
+			g_gametype.integer == GT_TOURNAMENT || attacker->health <= 0 ? 0 : attacker->health,
+			g_gametype.integer == GT_TOURNAMENT ? 0 : attacker->client->ps.stats[STAT_ARMOR], self->client->pers.lifeDealt[attacker->s.number],
 			self->client->pers.lifeTaken[attacker->s.number], self->client->respawnTime - level.time ) );
 	} else {
-		trap_SendServerCommand( self - g_entities, va( "deathinfo -1 %i 0 0 0 0 0 %i", meansOfDeath,
-			self->client->respawnTime - level.time ) );
+		// your own number for a self-kill (SUICIDE on the panel), -1 for the world
+		trap_SendServerCommand( self - g_entities, va( "deathinfo %i %i 0 0 0 0 0 %i", attacker == self ? self->s.number : -1,
+			meansOfDeath, self->client->respawnTime - level.time ) );
 	}
 
 	// remove powerups
