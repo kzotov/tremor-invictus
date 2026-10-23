@@ -247,9 +247,7 @@ static qboolean CG_KillerCamera( void ) {
 	target[2] += DEFAULT_VIEWHEIGHT;
 	VectorCopy( killer->lerpAngles, angles );
 	angles[ROLL] = 0;
-	if ( angles[PITCH] > 180 ) {
-		angles[PITCH] -= 360;
-	}
+	angles[PITCH] = AngleNormalize180( angles[PITCH] );
 	if ( angles[PITCH] > KILLER_CAM_PITCH ) {
 		angles[PITCH] = KILLER_CAM_PITCH;
 	} else if ( angles[PITCH] < -KILLER_CAM_PITCH ) {
