@@ -6357,6 +6357,612 @@ static void CG_DrawStackBar( float x, float y, int value, int base, const vec4_t
 }
 
 /*
+================================================================================
+
+THE REFERENCE HUD (hud.md 9.7, HUD-11): vitals, ammo, weapon column, ability
+ring and status-effect row, placed in the 1920 x 1080 design page
+
+================================================================================
+*/
+
+// design page x to the 640 frame from a side or the centre, and y
+#define HX_L( x )	( (x) * DP )
+#define HX_R( x )	( 640 - ( 1920 - (x) ) * DP )
+#define HX_C( x )	( 320 + ( (x) - 960 ) * DP )
+#define HY( y )		( (y) * DP )
+
+#define HUD_GLYPH_W		0.62f		// glyph width over its height
+#define Vector4Set( v, a, b, c, d )	( (v)[0] = (a), (v)[1] = (b), (v)[2] = (c), (v)[3] = (d) )
+
+/*
+=================
+CG_HudText
+
+Text `size` dp tall at (x, y) in the 640 frame (its top), aligned left (0),
+centred (1) or right (2) on x, grown by `scale` about its middle
+=================
+*/
+static void CG_HudText( float x, float y, float size, const char *s, const vec4_t color, int align, float scale ) {
+	float	ch = size * DP * scale, cw = ch * HUD_GLYPH_W, w = CG_DrawStrlen( s ) * cw;
+
+	y -= ( ch - size * DP ) * 0.5f;
+	if ( align == 1 ) {
+		x -= w * 0.5f;
+	} else if ( align == 2 ) {
+		x -= w;
+	} else {
+		x -= ( w - w / scale ) * 0.5f;
+	}
+	CG_DrawStringExt( x, y, s, color, qtrue, qfalse, cw, ch, 0 );
+}
+
+/*
+=================
+CG_HudRing
+
+A ring of `dots` around (cx, cy), radius r (640 units): the first `frac`
+of it, clockwise from the top, in `on`, the rest in `off` (NULL: not drawn)
+=================
+*/
+static void CG_HudRing( float cx, float cy, float r, float frac, const vec4_t on, const vec4_t off, int dots, float dot ) {
+	float	a;
+	int		i;
+
+	for ( i = 0 ; i < dots ; i++ ) {
+		qboolean	lit = ( i + 0.5f ) / dots <= frac;
+
+		if ( !lit && !off ) {
+			continue;
+		}
+		a = DEG2RAD( -90 + 360.0f * ( i + 0.5f ) / dots );
+		CG_FillRect( cx + cos( a ) * r - dot / 2, cy + sin( a ) * r - dot / 2, dot, dot, lit ? on : off );
+	}
+}
+
+/*
+=================
+CG_HudEase
+
+0..1 over `ms` from `start` (cg.time); 1 when not started
+=================
+*/
+static float CG_HudEase( int start, int ms ) {
+	if ( !start || cg.time - start >= ms || cg.time < start ) {
+		return 1.0f;
+	}
+	return (float)( cg.time - start ) / ms;
+}
+
+/*
+=================
+CG_DrawVitalsSide
+
+One of the two vitals rows: icon, value 55 dp with "/ base" smaller,
+cells of 25 points (25 x 16 in a dark frame, filling over 0.78 s), a
+0.5 s pop to 1.8x tinted on a change, and the MAX plate when it reaches
+its maximum
+=================
+*/
+typedef struct {
+	int		last, shown, client, spawn;		// the value seen, the value the cells show
+	float	shownF;
+	int		popTime, popKind;				// 0 damage (red), 1 gain (blue), 2 over the base (green)
+	int		maxTime;
+} vitalsAnim_t;
+
+static void CG_DrawVitalsSide( vitalsAnim_t *va_, const playerState_t *ps, int value, int base, int maxValue, float ix, float vx,
+	float vy, float bx, float by, float mx, float my, qhandle_t icon, qboolean lowRed, qboolean isArmor ) {
+	static const vec4_t	popTints[3] = { { 1, 0.25f, 0.2f, 1 }, { 0.62f, 0.85f, 1, 1 }, { 0.45f, 1, 0.55f, 1 } };
+	static const vec4_t	frameColor = { 0.04f, 0.04f, 0.05f, 0.75f }, empty = { 0.2f, 0.2f, 0.2f, 0.4f };
+	vec4_t		numColor, cell, plate;
+	float		scale = 1, f, cw = 25 * DP, chh = 16 * DP, inset = 3 * DP, pitch = 33 * DP;
+	int			cells, i, now;
+	char		*s;
+
+	// a new life or a different followed player: no animation
+	if ( va_->client != ps->clientNum || va_->spawn != ps->persistant[PERS_SPAWN_COUNT] ) {
+		va_->client = ps->clientNum;
+		va_->spawn = ps->persistant[PERS_SPAWN_COUNT];
+		va_->last = va_->shown = value;
+		va_->shownF = value;
+		va_->popTime = va_->maxTime = 0;
+	}
+	if ( value != va_->last ) {
+		// a point at a time above the base is the decay, not a change to show
+		if ( !( value == va_->last - 1 && value >= base ) ) {
+			va_->popTime = cg.time;
+			va_->popKind = value < va_->last ? 0 : value > base ? 2 : 1;
+		}
+		if ( value >= maxValue && va_->last < maxValue ) {
+			va_->maxTime = cg.time;
+		}
+		va_->last = value;
+	}
+	// the cells fill over 0.78 s a cell (25 points); a loss shows at once
+	if ( va_->shownF > value ) {
+		va_->shownF = value;
+	} else if ( va_->shownF < value ) {
+		va_->shownF += 25.0f * cg.frametime / 780.0f;
+		if ( va_->shownF > value ) {
+			va_->shownF = value;
+		}
+	}
+
+	if ( icon ) {
+		CG_DrawPic( ix, vy + 62 * DP - 24 * DP, 30 * DP, 30 * DP, icon );
+	}
+
+	// the number: white, red when low; a change pops it to 1.8x in the
+	// change's tint, easing back to white over 0.5 s
+	Vector4Copy( colorWhite, numColor );
+	if ( lowRed && value <= 25 ) {
+		CG_HealthPalette( 0, numColor );
+		if ( !isArmor && cg.lowHealthStep >= LH_LOW ) {
+			scale = 1.0f + 0.1f * CG_LowHealthPulse();
+		}
+	}
+	f = CG_HudEase( va_->popTime, 500 );
+	if ( f < 1 ) {
+		float	k = ( 1 - f ) * ( 1 - f );
+
+		scale = 1.0f + 0.8f * k;
+		for ( i = 0 ; i < 3 ; i++ ) {
+			numColor[i] = numColor[i] + ( popTints[va_->popKind][i] - numColor[i] ) * k;
+		}
+	}
+	s = va( "%i", value );
+	CG_HudText( vx, vy, 55, s, numColor, 0, scale );
+	CG_HudText( vx + CG_DrawStrlen( s ) * 55 * DP * HUD_GLYPH_W + 6 * DP, vy + 22 * DP, 30, va( "/ %i", base ), colorMdGrey, 0, 1 );
+
+	// cells: one per 25 points of the base, more while over it
+	cells = ( ( value > base ? value : base ) + 24 ) / 25;
+	if ( cells > 8 ) {
+		cells = 8;
+	}
+	now = (int)va_->shownF;
+	for ( i = 0 ; i < cells ; i++ ) {
+		float	x = bx + i * pitch, fill = ( va_->shownF - i * 25 ) / 25.0f;
+
+		CG_FillRect( x, by, cw + inset * 2, chh + inset * 2, frameColor );
+		CG_FillRect( x + inset, by + inset, cw, chh, empty );
+		if ( fill <= 0 ) {
+			continue;
+		}
+		if ( fill > 1 ) {
+			fill = 1;
+		}
+		// white, blue over the base, red when low; armour green
+		if ( lowRed && now <= 25 ) {
+			CG_HealthPalette( 0, cell );
+		} else if ( i * 25 >= base ) {
+			VectorSet( cell, 0.35f, 0.6f, 1 );
+		} else if ( isArmor ) {
+			VectorSet( cell, 0.35f, 0.95f, 0.45f );
+		} else {
+			VectorSet( cell, 1, 1, 1 );
+		}
+		cell[3] = 0.95f;
+		CG_FillRect( x + inset, by + inset, cw * fill, chh, cell );
+	}
+
+	// MAX: a 60 x 25 plate, pulsing twice (0.6 s each) then fading, 1.8 s
+	if ( va_->maxTime && cg.time - va_->maxTime < 1800 && cg.time >= va_->maxTime ) {
+		int		t = cg.time - va_->maxTime;
+		float	a = t < 1200 ? 0.675f + 0.325f * cos( t / 600.0f * 2 * M_PI ) : 1.0f - ( t - 1200 ) / 600.0f;
+
+		VectorSet( plate, 0.95f, 0.78f, 0.2f );
+		plate[3] = a;
+		CG_FillRect( mx, my, 60 * DP, 25 * DP, plate );
+		VectorSet( plate, 0.08f, 0.08f, 0.09f );
+		CG_HudText( mx + 30 * DP, my + 3 * DP, 19, "MAX", plate, 1, 1 );
+	}
+}
+
+/*
+=================
+CG_DrawVitals
+
+hud.md 9.7: health value box (278, 829) with its icon at (249, 891) and
+cells at (278, 895); armour value (250, 919), icon (221, 981), cells
+(250, 985); MAX plates at (528, 846) and (500, 935)
+=================
+*/
+static void CG_DrawVitals( void ) {
+	static vitalsAnim_t	health, armor;
+	static qhandle_t	healthIcon, armorIcon;
+	playerState_t		*ps = &cg.snap->ps;
+	const champion_t	*champ = BG_Champion( ps->stats[STAT_CHAMPION] );
+	const classInfo_t	*ci = &bg_classInfo[champ->bodyClass];
+	int					spawnArmor = cgs.gametype == GT_TOURNAMENT ? ci->spawnArmorDuel : ci->spawnArmor;
+
+	if ( !healthIcon ) {
+		healthIcon = trap_R_RegisterShaderNoMip( "icons/tremor_health" );
+		armorIcon = trap_R_RegisterShaderNoMip( "icons/tremor_armor" );
+	}
+	cg_hudAnchor = ANCHOR_LEFT;
+	CG_DrawVitalsSide( &health, ps, ps->stats[STAT_HEALTH], 100, 100 + ci->maxHealthBonus,
+		HX_L( 249 ), HX_L( 278 ), HY( 829 ), HX_L( 278 ), HY( 895 ), HX_L( 528 ), HY( 846 ), healthIcon, qtrue, qfalse );
+	CG_DrawVitalsSide( &armor, ps, ps->stats[STAT_ARMOR], ci->baseArmor, ci->maxArmor,
+		HX_L( 221 ), HX_L( 250 ), HY( 919 ), HX_L( 250 ), HY( 985 ), HX_L( 500 ), HY( 935 ), armorIcon, spawnArmor > 0, qtrue );
+}
+
+/*
+=================
+CG_DrawAmmoCounter
+
+hud.md 9.7: 83 dp digits right-aligned in x 1507-1734, top 893, the
+weapon's icon to the right at (1753, 920); low ammo turns them red with a
+glow pulsing every 0.4 s; the accuracy readout 32 dp at (1825, 955)
+=================
+*/
+static void CG_DrawAmmoCounter( void ) {
+	static int			accAsked;
+	playerState_t		*ps = &cg.snap->ps;
+	int					w = cg_entities[ps->clientNum].currentState.weapon;
+	vec4_t				color = { 1, 1, 1, 1 }, glow = { 1, 0.16f, 0.16f, 0.35f };
+	const char			*s;
+
+	cg_hudAnchor = ANCHOR_RIGHT;
+	if ( w > WP_NONE && w < WP_NUM_WEAPONS && ps->ammo[w] > -1 ) {
+		s = va( "%i", ps->ammo[w] );
+		if ( cg.lowAmmoWarning ) {
+			VectorSet( color, 1, 0.16f, 0.16f );
+			glow[3] = 0.25f * ( 0.85f + 0.15f * cos( cg.time / 400.0f * 2 * M_PI ) );
+			CG_HudText( HX_R( 1734 ) + 2, HY( 893 ) , 83, s, glow, 2, 1.08f );
+		}
+		CG_HudText( HX_R( 1734 ), HY( 893 ), 83, s, color, 2, 1 );
+	}
+	if ( w > WP_NONE && w < WP_NUM_WEAPONS && cg_weapons[w].weaponIcon ) {
+		CG_DrawPic( HX_R( 1753 ), HY( 920 ) - 4 * DP, 48 * DP, 48 * DP, cg_weapons[w].weaponIcon );
+	}
+	// overall accuracy, asked of the server once a second
+	if ( cg_drawAccuracy.integer ) {
+		int		shots = 0, hits = 0, i;
+
+		if ( cg.time - accAsked > 1000 || accAsked > cg.time ) {
+			accAsked = cg.time;
+			trap_SendClientCommand( "acc" );
+		}
+		for ( i = WP_GAUNTLET + 1 ; i < WP_NUM_WEAPONS ; i++ ) {
+			shots += cg.accShots[i];
+			hits += cg.accHits[i];
+		}
+		CG_HudText( HX_R( 1825 ), HY( 955 ), 32, va( "%i%%", shots ? hits * 100 / shots : 0 ), colorWhite, 0, 1 );
+	}
+}
+
+/*
+=================
+CG_DrawWeaponColumn
+
+hud.md 9.7: icons at x 1722, slot tops 806 up to 316 at a 70 pitch; the
+held slot's plate 173 x 75 at x 1729-1902; slot ammo 20 dp right-aligned in
+x 1783-1843 at 60 %; a 5-dot ammo bar (x 1847-1860, 50 tall, 12 pitch), red
+when low. Owned: icon 0.75x at 40 %; no ammo: 0.75x darkened, ammo red; not
+owned: icon at 30 %. Selecting flashes the icon 1.2x for 0.34 s; picking a
+weapon up flashes it 1.56x for 0.54 s.
+=================
+*/
+static void CG_DrawWeaponColumn( void ) {
+	static int		lastWeapons, lastClient = -1, pickupTime[WP_NUM_WEAPONS], selectTime, lastHeld;
+	playerState_t	*ps = &cg.snap->ps;
+	vec4_t			iconColor, text, dot;
+	static const vec4_t	plate = { 0.1f, 0.1f, 0.12f, 0.7f };
+	int				w, have, slot, d, dots;
+	float			x, y, size, maxAmmo, s, f;
+	qboolean		held, low;
+
+	cg_hudAnchor = ANCHOR_RIGHT;
+	if ( ps->clientNum != lastClient ) {
+		lastClient = ps->clientNum;
+		lastWeapons = ps->stats[STAT_WEAPONS];
+		lastHeld = ps->weapon;
+	}
+	if ( ps->weapon != lastHeld ) {
+		lastHeld = ps->weapon;
+		selectTime = cg.time;
+	}
+	for ( w = WP_GAUNTLET ; w < WP_NUM_WEAPONS ; w++ ) {
+		if ( ( ps->stats[STAT_WEAPONS] & ( 1 << w ) ) && !( lastWeapons & ( 1 << w ) ) ) {
+			pickupTime[w] = cg.time;
+		}
+	}
+	lastWeapons = ps->stats[STAT_WEAPONS];
+
+	for ( w = WP_GAUNTLET ; w < WP_NUM_WEAPONS ; w++ ) {
+		slot = BG_WeaponSlot( w );
+		if ( !slot || !cg_weapons[w].registered || !cg_weapons[w].weaponIcon ) {
+			continue;
+		}
+		have = ps->stats[STAT_WEAPONS] & ( 1 << w );
+		if ( !have && BG_AmmoPartner( w ) && ( ps->stats[STAT_WEAPONS] & ( 1 << BG_AmmoPartner( w ) ) ) ) {
+			continue;		// a pair sharing a slot shows the one held
+		}
+		if ( !have && BG_WeaponStarter( w ) ) {
+			continue;		// neither held: the slot shows the starting weapon
+		}
+		held = w == ps->weapon;
+		y = HY( 806 - ( slot - 1 ) * 70 );
+		maxAmmo = BG_WeaponTuned( w ) ? BG_WeaponParam( w, WPP_AMMOMAX ) : 200;
+		low = have && ps->ammo[w] >= 0 && maxAmmo > 0 && ps->ammo[w] <= maxAmmo * 0.2f;
+
+		if ( held ) {
+			CG_FillRect( HX_R( 1729 ), y - 13 * DP, 173 * DP, 75 * DP, plate );
+		}
+		Vector4Set( iconColor, 1, 1, 1, 1 );
+		s = 1;
+		if ( !have ) {
+			iconColor[3] = 0.3f;
+			s = 0.75f;
+		} else if ( ps->ammo[w] == 0 ) {
+			VectorSet( iconColor, 0.26f, 0.26f, 0.26f );
+			s = 0.75f;
+		} else if ( !held ) {
+			VectorSet( iconColor, 0.75f, 0.75f, 0.75f );
+			iconColor[3] = 0.4f;
+			s = 0.75f;
+		}
+		f = CG_HudEase( held ? selectTime : 0, 340 );
+		if ( f < 1 ) {
+			s = 1.0f + 0.2f * ( 1 - f );
+		}
+		f = CG_HudEase( pickupTime[w], 540 );
+		if ( f < 1 ) {
+			s = 1.56f + ( 0.75f - 1.56f ) * f;
+			Vector4Set( iconColor, 1, 1, 1, 1 );
+		}
+		size = 48 * DP * s;
+		x = HX_R( 1722 ) + 24 * DP - size / 2;
+		trap_R_SetColor( iconColor );
+		CG_DrawPic( x, y + 24 * DP - size / 2, size, size, cg_weapons[w].weaponIcon );
+		trap_R_SetColor( NULL );
+
+		if ( !have || ps->ammo[w] < 0 ) {
+			continue;
+		}
+		Vector4Set( text, 1, 1, 1, 0.6f );
+		if ( ps->ammo[w] == 0 || low ) {
+			VectorSet( text, 0.92f, 0.2f, 0.2f );
+		}
+		CG_HudText( HX_R( 1843 ), y + 14 * DP, 20, va( "%i", ps->ammo[w] ), text, 2, 1 );
+		dots = maxAmmo > 0 ? (int)( 5 * ps->ammo[w] / maxAmmo + 0.99f ) : 0;
+		for ( d = 0 ; d < 5 ; d++ ) {
+			if ( low ) {
+				Vector4Set( dot, 0.92f, 0.2f, 0.2f, d < dots ? 0.95f : 0.2f );
+			} else {
+				Vector4Set( dot, 1, 1, 1, d < dots ? ( held ? 0.9f : 0.45f ) : 0.15f );
+			}
+			CG_FillRect( HX_R( 1847 ), y + ( 44 - d * 12 ) * DP, 13 * DP, 6 * DP, dot );
+		}
+	}
+}
+
+/*
+=================
+CG_DrawAbilityBlock
+
+hud.md 9.7: the ring about 106 dp across centred at (961, 920), beige while
+recharging, white when full, red when blocked, dimmer when the ability is
+off; the cooldown number about 30 dp in the middle (fading in over 0.47 s
+growing from 0.71x, out over 0.5 s, tenths in the last second);
+"UNAVAILABLE" 16.5 dp #AAAAAA when off; an orange burst on becoming ready
+(0.4 s, glow gone by 0.9 s, then a steady glow) and on activating (0.85 s);
+the key on a light cap at (949, 982)
+=================
+*/
+static void CG_DrawAbilityBlock( void ) {
+	static int			activateTime, lastState, cooldownShown, cooldownHidden, lastClient = -1;
+	playerState_t		*ps = &cg.snap->ps;
+	const champion_t	*champ = BG_Champion( ps->stats[STAT_CHAMPION] );
+	static const vec4_t	back = { 0.12f, 0.12f, 0.13f, 0.6f };
+	vec4_t				fill, burst, numColor;
+	float				cx = HX_C( 961 ), cy = HY( 920 ), r = 53 * DP, frac, f, size;
+	int					recharge, left, state, maxCharges;
+	qboolean			off = cgs.gametype == GT_TEAM && atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_clanArena" ) ), ready, active;
+	const char			*s;
+
+	cg_hudAnchor = ANCHOR_CENTER;
+	if ( champ->active == ACTIVE_NONE ) {
+		return;
+	}
+	state = BG_AbilityState( ps );
+	active = state == ABILITY_ACTIVE || state == ABILITY_RUSH || state == ABILITY_HOOK_FLYING || state == ABILITY_HOOK_PULL;
+	if ( ps->clientNum != lastClient ) {
+		lastClient = ps->clientNum;
+		lastState = state;
+		activateTime = 0;
+	}
+	if ( active && lastState != state && !( lastState == ABILITY_ACTIVE || lastState == ABILITY_RUSH
+		|| lastState == ABILITY_HOOK_FLYING || lastState == ABILITY_HOOK_PULL ) ) {
+		activateTime = cg.time;
+	}
+	lastState = state;
+
+	recharge = BG_AbilityParam( champ->active, AP_RECHARGE );
+	left = ps->stats[STAT_ABILITY_RECHARGE] * 100;
+	ready = BG_AbilityCharges( ps ) > 0;
+	frac = ready && left <= 0 ? 1.0f : recharge > 0 ? 1.0f - (float)left / recharge : 0;
+
+	// the ring: a dark track and the fill
+	if ( off ) {
+		Vector4Set( fill, 0.7f, 0.6f, 0.4f, 0.8f );
+	} else if ( ready && left <= 0 ) {
+		Vector4Set( fill, 1, 1, 1, 1 );
+	} else {
+		Vector4Set( fill, 198 / 255.0f, 179 / 255.0f, 140 / 255.0f, 1 );
+	}
+	if ( cg_drawCooldown.integer ) {
+		CG_HudRing( cx, cy, r, 1, back, NULL, 120, 6 * DP );
+		CG_HudRing( cx, cy, r, frac, fill, NULL, 120, 6 * DP );
+	}
+
+	// ready: a burst shrinking from 2.9x to 0.8x over 0.4 s, its glow gone
+	// by 0.9 s, then a steady glow; activating: the same burst, 0.85 s
+	f = CG_HudEase( cg.abilityReadyTime, 900 );
+	if ( !off && ready && f < 1 ) {
+		float	k = f * 900 / 400.0f;
+
+		Vector4Set( burst, 1, 0.55f, 0.15f, 1 - f );
+		CG_HudRing( cx, cy, r * ( k < 1 ? 2.9f + ( 0.8f - 2.9f ) * k : 0.8f + 0.2f * ( k - 1 ) / 1.25f ), 1, burst, NULL, 48, 4 * DP );
+	} else if ( !off && ready && left <= 0 ) {
+		Vector4Set( burst, 1, 0.6f, 0.2f, 0.3f );
+		CG_HudRing( cx, cy, r + 4 * DP, 1, burst, NULL, 72, 5 * DP );
+	}
+	f = CG_HudEase( activateTime, 850 );
+	if ( f < 1 ) {
+		Vector4Set( burst, 1, 0.55f, 0.15f, 1 - f );
+		CG_HudRing( cx, cy, r * ( 1 + 1.9f * ( 1 - f ) ), 1, burst, NULL, 48, 4 * DP );
+	}
+
+	size = 64 * DP;
+	if ( off ) {
+		vec4_t	dim = { 0.45f, 0.45f, 0.45f, 1 };
+
+		trap_R_SetColor( dim );
+	}
+	CG_DrawAbilityIcon( cx, cy, size );
+	trap_R_SetColor( NULL );
+
+	// the cooldown number, tenths in the last second
+	if ( !off && left > 0 && !( ready && left <= 0 ) && !BG_AbilityCharges( ps ) ) {
+		if ( !cooldownShown ) {
+			cooldownShown = cg.time;
+		}
+		cooldownHidden = 0;
+	} else if ( cooldownShown ) {
+		cooldownShown = 0;
+		cooldownHidden = cg.time;
+	}
+	Vector4Set( numColor, 1, 1, 1, 1 );
+	if ( cooldownShown ) {
+		f = CG_HudEase( cooldownShown, 470 );
+		numColor[3] = f;
+		s = left < 1000 ? va( "%i.%i", left / 1000, ( left % 1000 ) / 100 ) : va( "%i", ( left + 999 ) / 1000 );
+		CG_HudText( cx, cy - 15 * DP, 30, s, numColor, 1, 0.71f + 0.29f * f );
+	} else if ( cooldownHidden && cg.time - cooldownHidden < 500 && cg.time >= cooldownHidden ) {
+		// (nothing left to count: the fading number is the last whole second)
+		numColor[3] = 1 - ( cg.time - cooldownHidden ) / 500.0f;
+		CG_HudText( cx, cy - 15 * DP, 30, "0", numColor, 1, 1 );
+	}
+
+	if ( off ) {
+		vec4_t	grey = { 0.667f, 0.667f, 0.667f, 1 };
+
+		CG_HudText( cx, cy + r + 6 * DP, 16.5f, "UNAVAILABLE", grey, 1, 1 );
+	}
+
+	// charges above the ring
+	maxCharges = BG_AbilityParam( champ->active, AP_CHARGES );
+	if ( champ->active == ACTIVE_TOTEM ) {
+		chargeIconsY = cy - r - 20;
+		CG_DrawChargeIcons( champ->active, ps->stats[STAT_TOTEMS] & 0xffff, TOTEMS_SHOWN );
+		chargeIconsY = 470;
+	} else if ( maxCharges > 1 ) {
+		chargeIconsY = cy - r - 20;
+		CG_DrawChargeIcons( champ->active, BG_AbilityCharges( ps ), maxCharges );
+		chargeIconsY = 470;
+	}
+
+	// the key: a light cap with the key in black, 18 dp
+	s = CG_BindName( "+button12" );
+	if ( !s[0] ) {
+		s = "?";
+	}
+	{
+		static const vec4_t	cap = { 0.88f, 0.86f, 0.82f, 0.95f };
+		float	w = CG_DrawStrlen( s ) * 18 * DP * HUD_GLYPH_W + 10 * DP;
+
+		if ( w < 26 * DP ) {
+			w = 26 * DP;
+		}
+		CG_FillRect( HX_C( 961 ) - w / 2, HY( 982 ), w, 24 * DP, cap );
+		CG_HudText( HX_C( 961 ), HY( 985 ), 18, s, colorBlack, 1, 1 );
+	}
+	if ( ( champ->passives & PASSIVE_LEAPINGKICK ) && KICK_COUNT( ps ) > 0 ) {
+		CG_HudText( cx + r + 10 * DP, cy - 10 * DP, 20, va( "KICK x%i", KICK_COUNT( ps ) ), colorYellow, 0, 1 );
+	}
+}
+
+/*
+=================
+CG_DrawStatusRow
+
+hud.md 9.7: power-ups and effects in slots 61 px apart from (245, 770):
+a 58 px ring for the time left, the icon, and the seconds 25 dp; a slot
+fades in over 0.34 s and out over 0.38 s
+=================
+*/
+#define STATUS_SLOTS	9
+
+static void CG_DrawStatusRow( void ) {
+	static const int	effects[] = { PW_QUAD, PW_BATTLESUIT, PW_HASTE, PW_INVIS, PW_REGEN, PW_FLIGHT, PW_BURNING, PW_POISONED };
+	static int			total[PW_NUM_POWERUPS], seen[PW_NUM_POWERUPS], gone[PW_NUM_POWERUPS], lastEnd[PW_NUM_POWERUPS];
+	static qhandle_t	icons[PW_NUM_POWERUPS];
+	static qboolean		loaded;
+	playerState_t		*ps = &cg.snap->ps;
+	vec4_t				ring = { 1, 1, 1, 0.9f }, track = { 1, 1, 1, 0.15f }, text = { 1, 1, 1, 1 };
+	int					i, p, n = 0, leftMs;
+	float				a, cx, cy;
+
+	if ( !loaded ) {
+		gitem_t	*item;
+
+		for ( i = 0 ; i < ARRAY_LEN( effects ) ; i++ ) {
+			item = BG_FindItemForPowerup( effects[i] );
+			icons[effects[i]] = item ? trap_R_RegisterShaderNoMip( item->icon ) : 0;
+		}
+		icons[PW_BURNING] = trap_R_RegisterShaderNoMip( "gfx/tremor/abilities/flamestrike" );
+		icons[PW_POISONED] = trap_R_RegisterShaderNoMip( "gfx/tremor/abilities/acidspit" );
+		loaded = qtrue;
+	}
+	cg_hudAnchor = ANCHOR_LEFT;
+	for ( i = 0 ; i < ARRAY_LEN( effects ) && n < STATUS_SLOTS ; i++ ) {
+		p = effects[i];
+		if ( ps->powerups[p] && ps->powerups[p] != INT_MAX && ps->powerups[p] > cg.time ) {
+			// a new run of it: its full length is what is left now
+			if ( ps->powerups[p] != lastEnd[p] && ( !seen[p] || ps->powerups[p] - cg.time > total[p] ) ) {
+				total[p] = ps->powerups[p] - cg.time;
+				seen[p] = cg.time;
+			}
+			lastEnd[p] = ps->powerups[p];
+			gone[p] = 0;
+			a = CG_HudEase( seen[p], 340 );
+			leftMs = ps->powerups[p] - cg.time;
+		} else {
+			if ( seen[p] && !gone[p] ) {
+				gone[p] = cg.time;
+			}
+			seen[p] = 0;
+			if ( !gone[p] || cg.time - gone[p] >= 380 || cg.time < gone[p] ) {
+				gone[p] = 0;
+				continue;
+			}
+			a = 1 - ( cg.time - gone[p] ) / 380.0f;
+			leftMs = 0;
+		}
+		cx = HX_L( 245 + 29 + n * 61 );
+		cy = HY( 770 + 29 );
+		ring[3] = 0.9f * a;
+		track[3] = 0.15f * a;
+		text[3] = a;
+		CG_HudRing( cx, cy, 27 * DP, total[p] > 0 ? (float)leftMs / total[p] : 0, ring, track, 64, 4 * DP );
+		// the icon behind, the seconds over it in the ring's middle
+		if ( icons[p] ) {
+			vec4_t	tint;
+
+			Vector4Set( tint, 1, 1, 1, a * ( leftMs > 0 ? 0.45f : 1 ) );
+			trap_R_SetColor( tint );
+			CG_DrawPic( cx - 20 * DP, cy - 20 * DP, 40 * DP, 40 * DP, icons[p] );
+			trap_R_SetColor( NULL );
+		}
+		if ( leftMs > 0 ) {
+			CG_HudText( cx, cy - 12.5f * DP, 25, va( "%i", ( leftMs + 999 ) / 1000 ), text, 1, 1 );
+		}
+		n++;
+	}
+}
+
+/*
 =================
 CG_DrawModernHud
 
@@ -6366,16 +6972,8 @@ centre, the weapon bottom right
 */
 static void CG_DrawModernHud( void ) {
 	playerState_t		*ps = &cg.snap->ps;
-	centity_t			*cent = &cg_entities[ps->clientNum];
-	const champion_t	*champ = BG_Champion( ps->stats[STAT_CHAMPION] );
-	const classInfo_t	*ci = &bg_classInfo[champ->bodyClass];
-	vec4_t				healthTint = { 1, 1, 1, 1 }, armorTint = { 1, 1, 1, 1 }, armorBar = { 0.35f, 0.95f, 0.45f, 1 };
-	float				healthPulse = 1, armorPulse = 1;
-	int					spawnArmor = cgs.gametype == GT_TOURNAMENT ? ci->spawnArmorDuel : ci->spawnArmor;
 	float				x, y, size;
 	qhandle_t			pic;
-	int					value, maxCharges;
-	const char			*s;
 
 	if ( cg_drawStatus.integer == 0 ) {
 		return;
@@ -6388,101 +6986,11 @@ static void CG_DrawModernHud( void ) {
 		CG_DrawPic( x - size, y - size, size, size, pic );
 	}
 
-	// a drop flashes the number red for 150 ms, a rise tints it (white
-	// armour, green health)
-	{
-		static int	lastHealth, lastArmor, healthTime, armorTime, healthUp, armorUp, lastClient = -1, lastSpawn;
-		static vec4_t	dropRed = { 1, 0.25f, 0.19f, 1 }, riseGreen = { 0.376f, 1, 0.376f, 1 };
-		int			health = ps->stats[STAT_HEALTH], armor = ps->stats[STAT_ARMOR];
-
-		// a new life or a different followed player starts fresh
-		if ( ps->clientNum != lastClient || ps->persistant[PERS_SPAWN_COUNT] != lastSpawn ) {
-			lastClient = ps->clientNum;
-			lastSpawn = ps->persistant[PERS_SPAWN_COUNT];
-			lastHealth = health;
-			lastArmor = armor;
-			healthTime = armorTime = 0;
-		}
-		// a point at a time above the base is the decay, not a hit
-		if ( health != lastHealth ) {
-			if ( !( health == lastHealth - 1 && health >= ps->stats[STAT_MAX_HEALTH] ) ) {
-				healthUp = health > lastHealth;
-				healthTime = cg.time;
-			}
-			lastHealth = health;
-		}
-		if ( armor != lastArmor ) {
-			if ( !( armor == lastArmor - 1 && armor >= ci->baseArmor ) ) {
-				armorUp = armor > lastArmor;
-				armorTime = cg.time;
-			}
-			lastArmor = armor;
-		}
-		if ( healthTime && cg.time - healthTime < 150 ) {
-			Vector4Copy( healthUp ? riseGreen : dropRed, healthTint );
-			healthPulse = healthUp ? 1.15f : 1;
-		} else if ( cg.lowHealthStep >= LH_LOW ) {
-			healthPulse = 1.0f + 0.1f * CG_LowHealthPulse();		// in step with the heartbeat (hud.md 8.8)
-		}
-		if ( armorTime && cg.time - armorTime < 150 && ( armorUp || spawnArmor ) ) {
-			Vector4Copy( armorUp ? colorWhite : dropRed, armorTint );
-			armorPulse = armorUp ? 1.15f : 1;
-		}
-	}
-
-	// armour and health against the class base
-	CG_HudPlace( "armor", &x, &y );
-	CG_DrawPic( x - 14 * DP, y - 30 * DP, 28 * DP * 1.6f, 28 * DP * 1.6f, cgs.media.armorIcon );
-	CG_DrawStackBar( x + 44 * DP, y + 12 * DP, ps->stats[STAT_ARMOR], ci->baseArmor, armorBar, armorTint, spawnArmor > 0, armorPulse );
-	CG_HudPlace( "health", &x, &y );
-	CG_DrawStackBar( x + 44 * DP, y + 12 * DP, ps->stats[STAT_HEALTH], 100, colorWhite, healthTint, qtrue, healthPulse );
-
-	// the ability: ring, charges above it, key and name under it
-	CG_HudPlace( "ability", &x, &y );
-	cg_hudAnchor = ANCHOR_CENTER;
-	if ( cg_drawCooldown.integer ) {
-		CG_DrawAbilityRing( x, y, 30, 0, 360, 24, 3 );
-	}
-	CG_DrawAbilityIcon( x, y, 32 );
-	maxCharges = BG_AbilityParam( champ->active, AP_CHARGES );
-	if ( champ->active == ACTIVE_TOTEM ) {
-		// Galena: the totems standing instead (one charge at a time)
-		chargeIconsY = y - 30 - 20;
-		CG_DrawChargeIcons( champ->active, ps->stats[STAT_TOTEMS] & 0xffff, TOTEMS_SHOWN );
-		chargeIconsY = 470;
-	} else if ( maxCharges > 1 ) {
-		chargeIconsY = y - 30 - 20;		// on top of the ring, clear of the name
-		CG_DrawChargeIcons( champ->active, BG_AbilityCharges( ps ), maxCharges );
-		chargeIconsY = 470;
-	}
-	if ( champ->active > ACTIVE_NONE ) {
-		CG_HudPlace( "abilitykey", &x, &y );
-		s = CG_BindName( "+button12" );
-		if ( !s[0] ) {
-			s = "?";		// nothing bound
-		}
-		CG_DrawStringExt( x - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH / 2, y - SMALLCHAR_HEIGHT / 2, s, colorWhite, qfalse, qtrue,
-			SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
-		CG_HudPlace( "abilityname", &x, &y );
-		s = BG_String( bg_abilityInfo[champ->active].nameString );
-		CG_DrawStringExt( x - CG_DrawStrlen( s ) * TINYCHAR_WIDTH / 2, y - TINYCHAR_HEIGHT / 2, s, colorMdGrey, qfalse, qtrue,
-			TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
-	}
-	if ( ( champ->passives & PASSIVE_LEAPINGKICK ) && KICK_COUNT( ps ) > 0 ) {
-		CG_DrawSmallStringColor( x + 60, y - 30, va( "KICK x%i", KICK_COUNT( ps ) ), colorYellow );
-	}
-
-	// ammo of the held weapon, large, with its icon
-	CG_HudPlace( "ammo", &x, &y );
-	if ( cent->currentState.weapon && ps->ammo[cent->currentState.weapon] > -1 ) {
-		value = ps->ammo[cent->currentState.weapon];
-		trap_R_SetColor( cg.lowAmmoWarning ? colorRed : NULL );		// the weapon's own low-ammo count
-		CG_DrawField( x - CHAR_WIDTH * 3 + 30, y - CHAR_HEIGHT / 2, 3, value );
-		trap_R_SetColor( NULL );
-		if ( cg_weapons[cent->currentState.weapon].ammoIcon ) {
-			CG_DrawPic( x - CHAR_WIDTH * 3 - 6, y - 12, 24, 24, cg_weapons[cent->currentState.weapon].ammoIcon );
-		}
-	}
+	// hud.md 9.7: the reference's vitals, ability, ammo, weapon column and
+	// status-effect row
+	CG_DrawVitals();
+	CG_DrawAbilityBlock();
+	CG_DrawAmmoCounter();
 
 	// the crosshair arc repeats the ring
 	cg_hudAnchor = ANCHOR_CENTER;
@@ -6495,10 +7003,14 @@ static void CG_DrawModernHud( void ) {
 	default:	break;
 	}
 
-	cg_hudAnchor = ANCHOR_RIGHT;
-	CG_DrawWeaponBar();
+	if ( cg_weaponBar.integer == 0 ) {
+		CG_DrawWeaponColumn();
+	} else {
+		cg_hudAnchor = ANCHOR_RIGHT;
+		CG_DrawWeaponBar();
+	}
+	CG_DrawStatusRow();
 	cg_hudAnchor = ANCHOR_CENTER;
-	CG_DrawHudPowerups();
 	CG_DrawPickupFeed();
 	CG_DrawPassiveState();
 	CG_DrawSpeedometer();

@@ -105,6 +105,7 @@ vmCvar_t	cg_drawSnapshot;
 vmCvar_t	cg_draw3dIcons;
 vmCvar_t	cg_drawIcons;
 vmCvar_t	cg_drawAmmoWarning;
+vmCvar_t	cg_drawAccuracy;
 vmCvar_t	cg_drawCrosshair;
 vmCvar_t	cg_drawCrosshairNames;
 vmCvar_t	cg_drawItemPickups;
@@ -301,6 +302,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_draw3dIcons, "cg_draw3dIcons", "1", CVAR_ARCHIVE  },
 	{ &cg_drawIcons, "cg_drawIcons", "1", CVAR_ARCHIVE  },
 	{ &cg_drawAmmoWarning, "cg_drawAmmoWarning", "2", CVAR_ARCHIVE  },
+	{ &cg_drawAccuracy, "cg_drawAccuracy", "0", CVAR_ARCHIVE },		// overall accuracy beside the ammo (hud.md 9.7)
 	{ &cg_drawAttacker, "cg_drawAttacker", "1", CVAR_ARCHIVE  },
 	{ &cg_drawCrosshair, "cg_drawCrosshair", "4", CVAR_ARCHIVE },
 	{ &cg_drawCrosshairNames, "cg_drawCrosshairNames", "1", CVAR_ARCHIVE },

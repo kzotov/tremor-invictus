@@ -374,6 +374,19 @@ def weapon_icons(out):
         write_tga(os.path.join(out, "icons/iconw_%s.tga" % name), 64, 64, c.px)
 
 
+def hud_icons(out):
+    """The vitals' icons (hud.md 9.7): a health cross and an armour shield,
+    white with a dark outline so the HUD can tint them."""
+    white = (0.95, 0.95, 0.93)
+    cross = union(art.box(0.5, 0.5, 0.36, 0.13, 0.03), art.box(0.5, 0.5, 0.13, 0.36, 0.03))
+    shield = polygon([(0.5, 0.08), (0.88, 0.2), (0.84, 0.56), (0.5, 0.94), (0.16, 0.56), (0.12, 0.2)])
+    for name, shape in (("health", cross), ("armor", shield)):
+        c = Canvas(64, 64)
+        c.fill(shape.outline(0.06), INK)
+        c.fill(shape, white)
+        write_tga(os.path.join(out, "icons/tremor_%s.tga" % name), 64, 64, c.px)
+
+
 # ---------------------------------------------------------------- portraits
 
 CHAMPIONS = [
@@ -772,6 +785,7 @@ def main():
     acid(src)
     os.makedirs(os.path.join(src, "icons"), exist_ok=True)
     weapon_icons(src)
+    hud_icons(src)
     portraits(src)
     sounds(src)
     texture(os.path.join(src, "gfx/abilities/plasmatrail.tga"), 128, 64, trail, False)
