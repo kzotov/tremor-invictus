@@ -9,7 +9,8 @@
 		<div class="where">[$ui_ingameMode] · [$ui_ingameMap]</div>
 		<div class="menu">
 			<button onclick="rml_hide; ui_close">[menu_resume]</button>
-			<button class="go" data-when="ui_ingameReady=1" onclick="readyup; rml_hide; ui_close">[menu_ready]</button>
+			<button class="go" data-when="ui_readyShown=1&amp;ui_imReady!=1" onclick="readyup; rml_hide; ui_close">[menu_ready]</button>
+			<button data-when="ui_readyShown=1&amp;ui_imReady=1" onclick="readyup; rml_hide; ui_close">[menu_not_ready]</button>
 			<button data-when="g_gametype!=1" onclick="rml_hide; ui_champions">[menu_champion]</button>
 			<div class="starter">
 				<div class="label">[ch_weapon]</div>

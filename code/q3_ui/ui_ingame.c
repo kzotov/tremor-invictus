@@ -49,6 +49,7 @@ INGAME MENU
 #define ID_CHAMPION				20
 #define ID_COLORS				21
 #define ID_STARTWEAPON			22
+#define ID_READY				23
 
 
 typedef struct {
@@ -69,6 +70,7 @@ typedef struct {
 	menutext_s		teamorders;
 	menutext_s		quit;
 	menutext_s		resume;
+	menutext_s		ready;
 } ingamemenu_t;
 
 static ingamemenu_t	s_ingame;
@@ -197,6 +199,11 @@ void InGame_Event( void *ptr, int notification ) {
 	case ID_RESUME:
 		UI_PopMenu();
 		break;
+
+	case ID_READY:
+		trap_Cmd_ExecuteText( EXEC_APPEND, "readyup\n" );
+		UI_ForceMenuOff();
+		break;
 	}
 }
 
@@ -272,14 +279,6 @@ static void InGame_Draw( void ) {
 				}
 			}
 			trap_Cvar_Set( "ui_ingameMode", mode );
-			// warm-up with ready-up: the Ready button (warmup.md)
-			{
-				char	ready[64], warm[16];
-
-				trap_GetConfigString( CS_READYUP, ready, sizeof( ready ) );
-				trap_GetConfigString( CS_WARMUP, warm, sizeof( warm ) );
-				trap_Cvar_Set( "ui_ingameReady", atoi( ready ) && atoi( warm ) == -1 ? "1" : "0" );
-			}
 			trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/ingame.rml\n" );
 		}
 		return;
@@ -327,6 +326,10 @@ void InGame_MenuInit( void ) {
 	team = atoi( Info_ValueForKey( info, "t" ) );
 	y = 104;
 	InGame_Add( &s_ingame.resume, ID_RESUME, BG_String( STR_MENU_RESUME ), &y );
+	// a ready-up warm-up waiting (cgame sets these)
+	if ( trap_Cvar_VariableValue( "ui_readyShown" ) ) {
+		InGame_Add( &s_ingame.ready, ID_READY, BG_String( trap_Cvar_VariableValue( "ui_imReady" ) ? STR_MENU_NOT_READY : STR_MENU_READY ), &y );
+	}
 	// in duel the champion is set for the match, so no Champion entry
 	if ( trap_Cvar_VariableValue( "g_gametype" ) != GT_TOURNAMENT ) {
 		InGame_Add( &s_ingame.champion, ID_CHAMPION, BG_String( STR_MENU_CHAMPION ), &y );

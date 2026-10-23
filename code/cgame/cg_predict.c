@@ -606,6 +606,11 @@ void CG_PredictPlayerState( void ) {
 			cg_pmove.cmd.serverTime = ((cg_pmove.cmd.serverTime + pmove_msec.integer-1) / pmove_msec.integer) * pmove_msec.integer;
 		}
 
+		// the start countdown: no firing (the server drops it too)
+		if ( cg.warmup > 0 ) {
+			cg_pmove.cmd.buttons &= ~BUTTON_ATTACK;
+		}
+
 		Pmove (&cg_pmove);
 
 		moved = qtrue;

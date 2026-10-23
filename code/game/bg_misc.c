@@ -1209,6 +1209,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"FIND SERVERS",
 	"CREATE SERVER",
 	"RESUME",
+	"READY",
+	"NOT READY",
 	"TEAM",
 	"VOTE",
 	"ADD BOTS",

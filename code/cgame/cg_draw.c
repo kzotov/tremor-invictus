@@ -6205,11 +6205,37 @@ static void CG_DrawModernHud( void ) {
 CG_Draw2D
 =================
 */
+/*
+=================
+CG_ReadyCvars
+
+For the Esc menus' Ready item: ui_readyShown while a ready-up warm-up
+waits and you play, ui_imReady with your own state
+=================
+*/
+static void CG_ReadyCvars( void ) {
+	static int	lastShown = -1, lastReady = -1;
+	int			shown, ready;
+
+	shown = atoi( CG_ConfigString( CS_READYUP ) ) && cg.warmup < 0
+		&& cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR && !( cg.snap->ps.pm_flags & PMF_FOLLOW );
+	ready = cg.snap->ps.clientNum < 32 && ( cg.snap->ps.stats[STAT_CLIENTS_READY] & ( 1 << cg.snap->ps.clientNum ) ) ? 1 : 0;
+	if ( shown != lastShown ) {
+		trap_Cvar_Set( "ui_readyShown", shown ? "1" : "0" );
+		lastShown = shown;
+	}
+	if ( ready != lastReady ) {
+		trap_Cvar_Set( "ui_imReady", ready ? "1" : "0" );
+		lastReady = ready;
+	}
+}
+
 static void CG_Draw2D(stereoFrame_t stereoFrame)
 {
 	float	voteY = 0;		// the vote line goes under the team overlay
 
 	CG_HudLayout();		// every state draws from the layout
+	CG_ReadyCvars();
 
 #ifdef MISSIONPACK
 	if (cgs.orderPending && cg.time > cgs.orderTime) {

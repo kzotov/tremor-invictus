@@ -1255,9 +1255,10 @@ void ClientThink_real( gentity_t *ent ) {
 		client->ps.pm_type = PM_NORMAL;
 	}
 	// the start countdown: free to move but no firing (warmup.md; no
-	// damage between players either, in G_Damage)
-	if ( level.warmupTime > 0 && client->ps.weaponTime < 200 ) {
-		client->ps.weaponTime = 200;
+	// damage between players either, in G_Damage); cgame drops the button
+	// the same way when it predicts
+	if ( level.warmupTime > 0 ) {
+		ucmd->buttons &= ~BUTTON_ATTACK;
 	}
 
 	client->ps.gravity = g_gravity.value;
