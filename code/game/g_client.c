@@ -1316,6 +1316,7 @@ void ClientSpawn(gentity_t *ent) {
 	client->ps.generic1 = 40;		// Clutch starts with one dodge
 	client->invulnEndTime = 0;
 	client->markEndTime = 0;
+	client->lastTrailSeg = NULL;
 	client->slowEndTime = 0;
 	client->echoLeft = 0;
 	client->ps.stats[STAT_JUMP_TIME] = STAT_TIME_CAP;

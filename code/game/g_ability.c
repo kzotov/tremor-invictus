@@ -904,7 +904,13 @@ static void G_TotemBurst( gentity_t *totem, int damage ) {
 			continue;
 		}
 		if ( Distance( totem->r.currentOrigin, other->r.currentOrigin ) <= g_totemBlastRadius.value ) {
-			G_Damage( other, totem, totem->parent, NULL, NULL, damage, 0, MOD_TOTEM );
+			trace_t	los;
+
+			// each victim needs a clear line from the totem (champion-audit.md)
+			trap_Trace( &los, totem->r.currentOrigin, NULL, NULL, other->r.currentOrigin, totem->s.number, MASK_SOLID );
+			if ( los.fraction == 1.0f ) {
+				G_Damage( other, totem, totem->parent, NULL, NULL, damage, 0, MOD_TOTEM );
+			}
 		}
 	}
 	G_FreeEntity( totem );
@@ -1934,6 +1940,7 @@ Called by the upkeep when a timed ability starts or stops running
 */
 void G_AbilityStarted( gentity_t *ent ) {
 	ent->client->trailTime = 0;
+	ent->client->lastTrailSeg = NULL;		// a new lay links only its own points
 	if ( BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_MASTEROFDEATH ) {
 		G_MasterOfDeathStart( ent );
 	}

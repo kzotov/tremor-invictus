@@ -689,8 +689,10 @@ void G_ChampionClientThink( gentity_t *ent ) {
 			if ( cl->pers.connected != CON_CONNECTED ) {
 				continue;
 			}
+			// (a reveal for one player, as Raine's storm, is 1000 + their number
+			// in every mode)
 			if ( ( client->markEndTime > level.time && client->markTeam == team )
-				|| ( client->revealEndTime > level.time && client->revealTeam == team ) ) {
+				|| ( client->revealEndTime > level.time && ( client->revealTeam == team || client->revealTeam == 1000 + i ) ) ) {
 				seers |= 1 << i;
 			}
 		}

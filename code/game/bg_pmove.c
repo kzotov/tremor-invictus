@@ -3230,7 +3230,8 @@ static void PM_Ability( void ) {
 			return;
 		}
 		charges--;
-		if ( !bg_abilityInfo[active].lockoutAtEnd ) {
+		// (Unumrey's lockout follows a recall, set by the game)
+		if ( !bg_abilityInfo[active].lockoutAtEnd && active != ACTIVE_RIFTANCHOR ) {
 			PM_WeaponLockout( active );
 		}
 		PM_StartAbility( &state, &time );
