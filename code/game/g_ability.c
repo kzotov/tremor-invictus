@@ -1295,11 +1295,14 @@ static void G_DroneBodyPain( gentity_t *body, gentity_t *attacker, int damage ) 
 ================
 G_DroneBodyThink
 
-The body left behind falls under gravity and lands crouched; a mover
-carries it (physicsObject), and pushed off an edge it falls again
+The body left behind falls under gravity and lands crouched; movers push
+and carry it (G_MoverPush knows it by name), and pushed off an edge it
+falls again
 ================
 */
 #define DRONE_TAKEOFF		88		// the drone starts this far above the body
+#define DRONE_BODY_SINK		60		// u/s, an idle player sinking in water
+#define DRONE_BODY_SINK_ACCEL	400		// u/s/s toward that sink
 #define DRONE_BODY_AIR		12000	// msec under water before drowning, as a player
 
 /*
@@ -1419,12 +1422,12 @@ static void G_DroneBodyWorld( gentity_t *body ) {
 				return;
 			}
 		}
-		// in water past the waist it sinks slowly, as an idle player (60 u/s)
+		// in water past the waist it sinks slowly, as an idle player (the
+		// think caps the sink at 60 u/s); out of it, gravity again
 		if ( depth >= 2 && body->s.pos.trType == TR_GRAVITY ) {
-			VectorCopy( body->r.currentOrigin, body->s.pos.trBase );
-			VectorSet( body->s.pos.trDelta, 0, 0, -60 );
 			body->s.pos.trType = TR_LINEAR;
-			body->s.pos.trTime = level.time;
+		} else if ( depth < 2 && body->s.pos.trType == TR_LINEAR ) {
+			body->s.pos.trType = TR_GRAVITY;
 		}
 	}
 	VectorCopy( body->r.currentOrigin, head );
@@ -1464,30 +1467,49 @@ static void G_DroneBodyThink( gentity_t *body ) {
 		VectorCopy( body->r.currentOrigin, body->s.pos.trBase );
 		VectorClear( body->s.pos.trDelta );
 	}
-	BG_EvaluateTrajectory( &body->s.pos, level.time, origin );
-	trap_Trace( &tr, body->r.currentOrigin, body->r.mins, body->r.maxs, origin, body->s.number, body->clipmask );
-	if ( tr.startsolid ) {
-		tr.fraction = 0;
-	}
-	VectorCopy( tr.endpos, body->r.currentOrigin );
-	if ( tr.fraction < 1 ) {
-		if ( tr.plane.normal[2] > 0.7f ) {
+	{
+		vec3_t	vel;
+		float	dt = ( level.time - body->s.pos.trTime ) * 0.001f;
+
+		// in water past the waist: no gravity pull past a slow sink, and
+		// the water slows the rest (pushes and knockback still count)
+		if ( body->s.pos.trType == TR_LINEAR ) {
+			BG_EvaluateTrajectoryDelta( &body->s.pos, level.time, vel );
+			vel[2] -= DRONE_BODY_SINK_ACCEL * dt;
+			if ( vel[2] < -DRONE_BODY_SINK ) {
+				vel[2] = -DRONE_BODY_SINK;
+			}
+			vel[0] -= vel[0] * 2 * dt;
+			vel[1] -= vel[1] * 2 * dt;
+			VectorMA( body->r.currentOrigin, dt, vel, origin );
+		} else {
+			BG_EvaluateTrajectory( &body->s.pos, level.time, origin );
+			BG_EvaluateTrajectoryDelta( &body->s.pos, level.time, vel );
+		}
+		trap_Trace( &tr, body->r.currentOrigin, body->r.mins, body->r.maxs, origin, body->s.number, body->clipmask );
+		if ( tr.startsolid ) {
+			tr.fraction = 0;
+		}
+		VectorCopy( tr.endpos, body->r.currentOrigin );
+		if ( tr.fraction < 1 && tr.plane.normal[2] > 0.7f ) {
 			// landed
 			G_SetOrigin( body, tr.endpos );
 			body->s.groundEntityNum = tr.entityNum;
-		} else {
-			// a wall or ceiling: keep falling straight from here
-			vec3_t	vel;
-
-			BG_EvaluateTrajectoryDelta( &body->s.pos, level.time, vel );
-			vel[0] = vel[1] = 0;
-			if ( vel[2] > 0 ) {
-				vel[2] = 0;
-			}
-			VectorCopy( tr.endpos, body->s.pos.trBase );
-			VectorCopy( vel, body->s.pos.trDelta );
-			body->s.pos.trTime = level.time;
+			trap_LinkEntity( body );
+			return;
 		}
+		if ( tr.fraction < 1 ) {
+			// a wall, a steep slope or a ceiling: slide along it, as player
+			// movement clips its velocity
+			float	backoff = DotProduct( vel, tr.plane.normal );
+
+			backoff = backoff < 0 ? backoff * 1.001f : backoff / 1.001f;
+			VectorMA( vel, -backoff, tr.plane.normal, vel );
+		}
+		// rebased every frame, so movers see where it really is
+		VectorCopy( body->r.currentOrigin, body->s.pos.trBase );
+		VectorCopy( vel, body->s.pos.trDelta );
+		body->s.pos.trTime = level.time;
 	}
 	trap_LinkEntity( body );
 }
@@ -1594,7 +1616,13 @@ void G_DroneEnd( gentity_t *ent, qboolean launch ) {
 	{
 		trace_t	tr;
 
-		trap_Trace( &tr, client->ps.origin, ent->r.mins, ent->r.maxs, client->ps.origin, ent->s.number, MASK_PLAYERSOLID );
+		vec3_t	mins, maxs;
+
+		// the champion's standing box (ent still has the drone's)
+		VectorCopy( body->r.mins, mins );
+		VectorCopy( body->r.maxs, maxs );
+		maxs[2] = DEFAULT_HEIGHT;
+		trap_Trace( &tr, client->ps.origin, mins, maxs, client->ps.origin, ent->s.number, MASK_PLAYERSOLID );
 		if ( tr.startsolid || tr.allsolid ) {
 			client->ps.pm_flags |= PMF_DUCKED;
 		}

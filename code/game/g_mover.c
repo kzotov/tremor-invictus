@@ -799,14 +799,9 @@ Blocked_Door
 ================
 */
 void Blocked_Door( gentity_t *ent, gentity_t *other ) {
-	// Strogg's body during the drone is crushed like a player: killing it
-	// kills him and ends the drone
-	if ( other->classname && !strcmp( other->classname, "drone_body" ) ) {
-		G_Damage( other, ent, ent, NULL, NULL, 100000, DAMAGE_NO_PROTECTION, MOD_CRUSH );
-		return;
-	}
-	// remove anything other than a client
-	if ( !other->client ) {
+	// remove anything other than a client (Strogg's body during the drone
+	// is treated as a player: the door hurts it and turns back)
+	if ( !other->client && !( other->classname && !strcmp( other->classname, "drone_body" ) ) ) {
 		// except CTF flags!!!!
 		if( other->s.eType == ET_ITEM && other->item->giType == IT_TEAM ) {
 			Team_DroppedFlagThink( other );
