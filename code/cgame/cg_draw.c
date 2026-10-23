@@ -2407,6 +2407,8 @@ CG_DrawFPS
 ==================
 */
 #define	FPS_FRAMES	4
+static qboolean	cg_netWarningShown;		// (CG_DrawNetWarnings, last frame)
+
 static float CG_DrawFPS( float y ) {
 	char		*s;
 	int			w;
@@ -2449,9 +2451,21 @@ static float CG_DrawFPS( float y ) {
 		}
 
 		s = va( "%ifps", fps );
+		if ( CG_HudModern() ) {
+			// hud.md: top left (52, 114), 24 dp; beside the network
+			// warnings (260) while one shows
+			float	h = 24 * DP;
+
+			cg_hudAnchor = ANCHOR_LEFT;
+			CG_DrawStringExt( ( cg_netWarningShown ? 260 : 52 ) * DP, 114 * DP, s, colorWhite, qfalse, qtrue, h * 0.6f, h, 0 );
+			cg_hudAnchor = ANCHOR_CENTER;
+			return y;
+		}
 		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
 
 		CG_DrawBigString( 635 - w, y + 2, s, 1.0F);
+	} else if ( CG_HudModern() ) {
+		return y;
 	}
 
 	return y + BIGCHAR_HEIGHT + 4;
@@ -3360,7 +3374,8 @@ CG_DrawNetWarnings
 hud.md corrections, off by default (cg_netWarnings): packet loss 5% / 10%,
 ping 180 / 250 ms, spikes +30 / +60 ms over the moving average (weight
 0.1), the client below 45 / 25 fps; a minor (yellow) and a major (red)
-look, each shown at least 1 s. Top right, above the pickups (d).
+look, each shown at least 1 s. hud.md 9.1: top left, four 50 dp slots
+side by side from (50, 100); the FPS counter moves aside while one shows.
 ==============
 */
 enum { NETW_LOSS, NETW_PING, NETW_SPIKE, NETW_FPS, NETW_NUM };
@@ -3412,10 +3427,14 @@ static void CG_DrawNetWarnings( void ) {
 	value[NETW_FPS] = sum > 0 && frames >= 32 ? 32000 / sum : 999;
 	level[NETW_FPS] = value[NETW_FPS] < 25 ? 2 : value[NETW_FPS] < 45 ? 1 : 0;
 
-	cg_hudAnchor = ANCHOR_RIGHT;
-	x = SCREEN_WIDTH - 10 - 12 * TINYCHAR_WIDTH;
-	y = 100 * DP;		// over the pickups (top 150) and the weapon column
+	cg_hudAnchor = ANCHOR_LEFT;
+	cg_netWarningShown = qfalse;
 	for ( i = 0 ; i < NETW_NUM ; i++ ) {
+		float	cw = 9 * DP, ch = 14 * DP;
+		char	label[16], *num;
+
+		x = ( 50 + i * 50 ) * DP;
+		y = 100 * DP;
 		// a warning stays at least 1 s, at its worst level meanwhile
 		if ( level[i] && ( cg.time >= shownUntil[i] || level[i] >= shownLevel[i] ) ) {
 			shownUntil[i] = cg.time + 1000;
@@ -3425,9 +3444,17 @@ static void CG_DrawNetWarnings( void ) {
 		if ( cg.time >= shownUntil[i] ) {
 			continue;
 		}
-		CG_DrawStringExt( x, y, va( (char *)BG_String( labels[i] ), shownValue[i] ), shownLevel[i] >= 2 ? major : minor,
-			qtrue, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
-		y += TINYCHAR_HEIGHT + 2;
+		// the slot: the name over the number ("PING" / "190")
+		cg_netWarningShown = qtrue;
+		Q_strncpyz( label, va( (char *)BG_String( labels[i] ), shownValue[i] ), sizeof( label ) );
+		num = strchr( label, ' ' );
+		if ( num ) {
+			*num++ = 0;
+		}
+		CG_DrawStringExt( x, y, label, shownLevel[i] >= 2 ? major : minor, qtrue, qtrue, cw, ch, 0 );
+		if ( num ) {
+			CG_DrawStringExt( x, y + ch + 2 * DP, num, shownLevel[i] >= 2 ? major : minor, qtrue, qtrue, cw, ch, 0 );
+		}
 	}
 	cg_hudAnchor = ANCHOR_CENTER;
 }
@@ -4577,8 +4604,8 @@ static void CG_DrawVote( float y ) {
 			cw = 480 * DP / len;
 		}
 		cg_hudAnchor = ANCHOR_LEFT;
-		CG_DrawStringExt( 50 * DP, 110 * DP, s, colorYellow, qfalse, qtrue, cw, h, 0 );		// votes are yellow
-		CG_DrawStringExt( 50 * DP, 110 * DP + h + 2, BG_String( STR_VOTE_ESC ), colorLtGrey, qfalse, qtrue, h * 0.5f, h * 0.8f, 0 );
+		CG_DrawStringExt( 50 * DP, 160 * DP, s, colorYellow, qfalse, qtrue, cw, h, 0 );		// votes are yellow; left 50, top 160 (hud.md)
+		CG_DrawStringExt( 50 * DP, 160 * DP + h + 2, BG_String( STR_VOTE_ESC ), colorLtGrey, qfalse, qtrue, h * 0.5f, h * 0.8f, 0 );
 		cg_hudAnchor = ANCHOR_CENTER;
 		return;
 	}
@@ -4641,7 +4668,7 @@ static void CG_DrawTeamVote( float y ) {
 		if ( len * cw > 480 * DP ) {
 			cw = 480 * DP / len;
 		}
-		CG_DrawStringExt( 50 * DP, 110 * DP + ( cgs.voteTime ? 2.5f * h : 0 ), s, colorYellow, qfalse, qtrue, cw, h, 0 );
+		CG_DrawStringExt( 50 * DP, 160 * DP + ( cgs.voteTime ? 2.5f * h : 0 ), s, colorYellow, qfalse, qtrue, cw, h, 0 );
 	} else {
 		// under the main vote and its key line when both run
 		CG_DrawSmallStringColor( 8, cgs.voteTime ? y + 2 * ( SMALLCHAR_HEIGHT + 2 ) : y, s, colorYellow );
