@@ -331,11 +331,12 @@ static void G_OrbDestroyed( gentity_t *orb, gentity_t *inflictor, gentity_t *att
 
 	orb->takedamage = qfalse;
 	orb->die = NULL;
-	if ( !attacker || attacker == owner || !owner || !owner->client ) {
+	if ( !attacker || attacker == owner || !owner || !owner->client || !attacker->client
+		|| !G_AbilityEnemy( owner, attacker ) ) {
 		orb->health = 1;
 		orb->takedamage = qtrue;
 		orb->die = G_OrbDestroyed;
-		return;		// the owner's own shots don't count
+		return;		// only an enemy's shots count (champion-audit.md)
 	}
 	G_RadiusDamage( orb->r.currentOrigin, attacker, g_orbShotDamage.integer, g_orbShotRadius.integer, NULL, MOD_ORB );
 	G_CutAbilityCooldown( owner, 0.5f );
@@ -410,11 +411,6 @@ static void G_OrbTeleport( gentity_t *ent ) {
 		return;
 	}
 
-	// inhuman haste: faster for a while after each teleport
-	if ( BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_HASTE ) {
-		ent->client->hasteEndTime = level.time + 3000;
-	}
-
 	VectorCopy( orb->r.currentOrigin, spot );
 	for ( i = 0 ; i < 16 ; i++ ) {
 		trap_Trace( &tr, spot, ent->r.mins, ent->r.maxs, spot, ent->s.number, MASK_PLAYERSOLID & ~CONTENTS_BODY );
@@ -426,6 +422,11 @@ static void G_OrbTeleport( gentity_t *ent ) {
 	}
 	if ( i == 16 ) {
 		return;		// nowhere to stand; keep the orb
+	}
+
+	// inhuman haste: faster for a while after each teleport that happens
+	if ( BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_HASTE ) {
+		ent->client->hasteEndTime = level.time + 3000;
 	}
 
 	// a carried flag stays behind where the carrier was
@@ -798,6 +799,8 @@ static void G_AcidPoolThink( gentity_t *pool ) {
 	pool->nextthink = level.time + ABILITY_FRAME * 2;
 }
 
+#define ACID_IMPULSE	10		// a blob's push
+
 static void G_AcidImpact( gentity_t *blob, trace_t *trace ) {
 	gentity_t	*other = &g_entities[trace->entityNum];
 	vec3_t		point, velocity;
@@ -805,14 +808,27 @@ static void G_AcidImpact( gentity_t *blob, trace_t *trace ) {
 
 	if ( other->takedamage ) {
 		BG_EvaluateTrajectoryDelta( &blob->s.pos, level.time, velocity );
+		G_NextKnockback( ACID_IMPULSE );
 		G_Damage( other, blob, blob->parent, velocity, trace->endpos, g_acidDamage.integer, 0, MOD_ACID );
 		if ( other->client ) {
 			G_Poison( other, blob->parent );
 		}
 	}
 
-	// leave a pool where it landed
+	// leave a pool where it landed; a hit player's pool forms on the floor
+	// below the hit (champion-audit.md)
 	VectorMA( trace->endpos, 1, trace->plane.normal, point );
+	if ( other->client ) {
+		trace_t	down;
+		vec3_t	end;
+
+		VectorCopy( trace->endpos, end );
+		end[2] -= 4096;
+		trap_Trace( &down, trace->endpos, NULL, NULL, end, other->s.number, MASK_SOLID );
+		if ( down.fraction < 1 ) {
+			VectorMA( down.endpos, 1, down.plane.normal, point );
+		}
+	}
 	G_AbilityStop( blob, point );
 	blob->abilityImpact = NULL;
 	blob->clipmask = 0;
@@ -829,7 +845,7 @@ static void G_SpitAcid( gentity_t *ent ) {
 	gentity_t	*blob;
 
 	G_AbilityEyes( ent, start, forward, right );
-	blob = G_AbilityMissile( ent, "acid", start, forward, g_acidSpeed.value, TR_GRAVITY, WP_PLASMAGUN );
+	blob = G_AbilityMissile( ent, "acid", start, forward, g_acidSpeed.value, TR_GRAVITY_ACID, WP_PLASMAGUN );	// gravity 600
 	blob->s.generic1 = AV_ACID;
 	blob->abilityImpact = G_AcidImpact;
 	blob->think = G_FreeEntity;

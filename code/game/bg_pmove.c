@@ -144,7 +144,7 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_airAccelFullSprint",	"1.012",	&bg_pmoveSettings.airAccelFullSprint },
 
 	{ {0}, "pm_injectionSpeed",		"1.1",	&bg_pmoveSettings.injectionSpeed },
-	{ {0}, "pm_dualWieldRate",		"1.3",	&bg_pmoveSettings.dualWieldRate },
+	{ {0}, "pm_dualWieldRate",		"1.333",	&bg_pmoveSettings.dualWieldRate },
 	{ {0}, "pm_dualWieldRateHeavy",	"1.5",	&bg_pmoveSettings.dualWieldRateHeavy },
 	{ {0}, "pm_trailSpeed",			"1.1",	&bg_pmoveSettings.trailSpeed },
 	{ {0}, "pm_berserkSpeed",		"500",	&bg_pmoveSettings.berserkSpeed },

@@ -1404,6 +1404,11 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		return;
 	}
 
+	// any hit resets regeneration's clock, one the armour took all of too
+	if ( targ->client && asave ) {
+		targ->client->lastDamageTime = level.time;
+	}
+
 	// do the damage
 	if (take) {
 		if ( targ->client ) {
