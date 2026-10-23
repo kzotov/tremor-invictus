@@ -2054,30 +2054,56 @@ qboolean BG_MovementAbility( int active ) {
 
 /*
 ==============
-BG_ChampionModelScale
+BG_ChampionShotHeight
 
-champion-audit.md: each champion's model drawn at the reference's scale
-(the hull stays the same); champions without data at 1
+champion-audit.md (HIT-01): the reference height of each champion's shot
+cylinder, from the feet (MINS_Z) up; the movement box stays 69 u
 ==============
 */
-float BG_ChampionModelScale( int champion ) {
-	static const struct { const char *name; float scale; } scales[] = {
-		{ "nyx", 1.1f }, { "anarki", 1.05f }, { "slash", 1.0f }, { "athena", 1.1f }, { "ranger", 1.05f },
-		{ "visor", 1.075f }, { "galena", 1.2f }, { "bj", 1.1f }, { "doomslayer", 1.1f }, { "strogg", 1.1f },
-		{ "deathknight", 1.1f }, { "eisen", 1.1f }, { "wrack", 1.1f }, { "scalebearer", 1.175f },
-		{ "clutch", 1.15f }, { "sorlag", 1.0f }, { "keel", 1.22f }
+int BG_ChampionShotHeight( int champion ) {
+	static const struct { const char *name; int height; } heights[] = {
+		{ "ranger", 72 }, { "wrack", 72 }, { "eisen", 72 }, { "athena", 74 },
+		{ "nyx", 76 }, { "slash", 76 }, { "galena", 76 }, { "visor", 76 }, { "strogg", 78 },
+		{ "bj", 80 }, { "deathknight", 80 }, { "doomslayer", 80 }, { "clutch", 80 },
+		{ "scalebearer", 80 }, { "sorlag", 80 }, { "anarki", 84 }, { "keel", 84 }
 	};
 	int		i;
 
-	if ( champion < 0 || champion >= bg_numChampions ) {
-		return 1.0f;
-	}
-	for ( i = 0 ; i < ARRAY_LEN( scales ) ; i++ ) {
-		if ( !Q_stricmp( bg_championList[champion].name, scales[i].name ) ) {
-			return scales[i].scale;
+	if ( champion >= 0 && champion < bg_numChampions ) {
+		for ( i = 0 ; i < ARRAY_LEN( heights ) ; i++ ) {
+			if ( !Q_stricmp( bg_championList[champion].name, heights[i].name ) ) {
+				return heights[i].height;
+			}
 		}
 	}
-	return 1.0f;
+	return 76;		// Xaero and the hidden champions
+}
+
+/*
+==============
+BG_ShotTop
+
+The top of the shot cylinder above the origin: standing, or 0.65 of the
+height crouched
+==============
+*/
+float BG_ShotTop( int champion, qboolean crouched ) {
+	return MINS_Z + BG_ChampionShotHeight( champion ) * ( crouched ? 0.65f : 1.0f );
+}
+
+/*
+==============
+BG_ViewHeight
+
+The eye above the origin: 0.85 of the height standing, 8 u under the
+crouched shot top, so it is always inside the shot volume
+==============
+*/
+int BG_ViewHeight( int champion, qboolean crouched ) {
+	if ( crouched ) {
+		return (int)( BG_ShotTop( champion, qtrue ) - 8 + 0.5f );
+	}
+	return (int)( MINS_Z + 0.85f * BG_ChampionShotHeight( champion ) + 0.5f );
 }
 
 /*

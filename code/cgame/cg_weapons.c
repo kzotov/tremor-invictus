@@ -1130,11 +1130,7 @@ static void CG_LightningBolt( centity_t *cent, vec3_t origin ) {
 	}
 
 	anim = cent->currentState.legsAnim & ~ANIM_TOGGLEBIT;
-	if ( anim == LEGS_WALKCR || anim == LEGS_IDLECR ) {
-		muzzlePoint[2] += CROUCH_VIEWHEIGHT;
-	} else {
-		muzzlePoint[2] += DEFAULT_VIEWHEIGHT;
-	}
+	muzzlePoint[2] += CG_EyeHeight( cent->currentState.clientNum, anim == LEGS_WALKCR || anim == LEGS_IDLECR );
 
 	VectorMA( muzzlePoint, 14, forward, muzzlePoint );
 
@@ -1196,7 +1192,7 @@ static void CG_LightningBolt( centity_t *cent, vec3_t origin ) {
 	AngleVectors( cent->lerpAngles, forward, NULL, NULL );
 
 	// FIXME: crouch
-	muzzlePoint[2] += DEFAULT_VIEWHEIGHT;
+	muzzlePoint[2] += CG_EyeHeight( cent->currentState.clientNum, qfalse );
 
 	VectorMA( muzzlePoint, 14, forward, muzzlePoint );
 
@@ -2525,11 +2521,7 @@ static qboolean	CG_CalcMuzzlePoint( int entityNum, vec3_t muzzle ) {
 
 	AngleVectors( cent->currentState.apos.trBase, forward, NULL, NULL );
 	anim = cent->currentState.legsAnim & ~ANIM_TOGGLEBIT;
-	if ( anim == LEGS_WALKCR || anim == LEGS_IDLECR ) {
-		muzzle[2] += CROUCH_VIEWHEIGHT;
-	} else {
-		muzzle[2] += DEFAULT_VIEWHEIGHT;
-	}
+	muzzle[2] += CG_EyeHeight( cent->currentState.clientNum, anim == LEGS_WALKCR || anim == LEGS_IDLECR );
 
 	VectorMA( muzzle, 14, forward, muzzle );
 

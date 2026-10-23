@@ -50,10 +50,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define PLAYER_WIDTH		18		// medium body; see bg_classInfo
 #define	MINS_Z				-24
 #define DEFAULT_HEIGHT		45		// 69 units standing
-#define	MODEL_HEIGHT		56		// standing height the player models are built for
-#define	DEFAULT_VIEWHEIGHT	38		// eye height of a player model scaled to the hull
-#define CROUCH_HEIGHT		10.5f	// half the standing height
-#define CROUCH_VIEWHEIGHT	19		// half the standing eye height
+#define	DEFAULT_VIEWHEIGHT	38		// a fallback; each champion's eye is BG_ViewHeight
+#define CROUCH_HEIGHT		10.5f	// half the standing height (the movement box)
+#define CROUCH_VIEWHEIGHT	19		// a fallback; each champion's eye is BG_ViewHeight
 #define DEAD_HEIGHT			-8
 #define	DEAD_VIEWHEIGHT		-16
 #define INVUL_RADIUS		42
@@ -1435,7 +1434,9 @@ int					BG_ChampionForName( const char *name );
 void				BG_ChampionModel( int champion, char *out, int size );
 #define	MAX_CHAMPIONS		32
 int					BG_ChampionForModel( const char *model );
-float				BG_ChampionModelScale( int champion );
+int					BG_ChampionShotHeight( int champion );
+float				BG_ShotTop( int champion, qboolean crouched );
+int					BG_ViewHeight( int champion, qboolean crouched );
 const champion_t	*BG_Champion( int index );
 qboolean			BG_MovementAbility( int active );
 

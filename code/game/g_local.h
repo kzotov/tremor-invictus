@@ -897,6 +897,7 @@ void G_RewindInit( void );
 void G_RewindReset( gentity_t *ent );
 void G_RewindRecord( void );
 void G_RewindPlayers( gentity_t *shooter );
+void G_ShotVolumes( void );
 void G_RestorePlayers( void );
 void G_ShotTrace( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t maxs,
 	const vec3_t end, int passEntityNum, int contentmask );

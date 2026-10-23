@@ -244,7 +244,7 @@ static qboolean CG_KillerCamera( void ) {
 		return qfalse;		// not in view any more, or dead too: stay put
 	}
 	VectorCopy( killer->lerpOrigin, target );
-	target[2] += DEFAULT_VIEWHEIGHT;
+	target[2] += CG_EyeHeight( cg.deathKiller, qfalse );
 	VectorCopy( killer->lerpAngles, angles );
 	angles[ROLL] = 0;
 	angles[PITCH] = AngleNormalize180( angles[PITCH] );

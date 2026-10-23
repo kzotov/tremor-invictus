@@ -555,11 +555,7 @@ int CG_WaterLevel(centity_t *cent) {
 
 	anim = cent->currentState.legsAnim & ~ANIM_TOGGLEBIT;
 
-	if (anim == LEGS_WALKCR || anim == LEGS_IDLECR) {
-		viewheight = CROUCH_VIEWHEIGHT;
-	} else {
-		viewheight = DEFAULT_VIEWHEIGHT;
-	}
+	viewheight = CG_EyeHeight( cent->currentState.clientNum, anim == LEGS_WALKCR || anim == LEGS_IDLECR );
 
 	//
 	// get waterlevel, accounting for ducking

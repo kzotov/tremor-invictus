@@ -1507,6 +1507,21 @@ void G_DroneBodyPush( gentity_t *body, const vec3_t kvel ) {
 	body->s.groundEntityNum = ENTITYNUM_NONE;
 }
 
+
+/*
+================
+G_DroneBodyChampion
+
+Whose body it is, for its eye and hit heights (Strogg if the owner is gone)
+================
+*/
+static int G_DroneBodyChampion( gentity_t *body ) {
+	if ( body->parent && body->parent->client ) {
+		return body->parent->client->ps.stats[STAT_CHAMPION];
+	}
+	return BG_ChampionForName( "strogg" );
+}
+
 /*
 ================
 G_DroneBodyWorld
@@ -1577,10 +1592,10 @@ static void G_DroneBodyWorld( gentity_t *body ) {
 		contents = trap_PointContents( p, -1 );
 		if ( contents & MASK_WATER ) {
 			depth = 1;
-			p[2] = body->r.currentOrigin[2] + ( body->r.mins[2] + CROUCH_VIEWHEIGHT ) / 2;
+			p[2] = body->r.currentOrigin[2] + ( body->r.mins[2] + BG_ViewHeight( G_DroneBodyChampion( body ), qtrue ) ) / 2;
 			if ( trap_PointContents( p, -1 ) & MASK_WATER ) {
 				depth = 2;
-				p[2] = body->r.currentOrigin[2] + CROUCH_VIEWHEIGHT;
+				p[2] = body->r.currentOrigin[2] + BG_ViewHeight( G_DroneBodyChampion( body ), qtrue );
 				if ( trap_PointContents( p, -1 ) & MASK_WATER ) {
 					depth = 3;
 				}
@@ -1609,7 +1624,7 @@ static void G_DroneBodyWorld( gentity_t *body ) {
 		}
 	}
 	VectorCopy( body->r.currentOrigin, head );
-	head[2] += CROUCH_VIEWHEIGHT;
+	head[2] += BG_ViewHeight( G_DroneBodyChampion( body ), qtrue );
 	if ( trap_PointContents( head, -1 ) & MASK_WATER ) {
 		if ( level.time > body->wait && level.time >= body->pain_debounce_time ) {
 			body->count = body->count < 15 ? body->count + 2 : 15;
@@ -1713,7 +1728,8 @@ static void G_StartDrone( gentity_t *ent ) {
 	body->r.contents = CONTENTS_CORPSE;
 	VectorCopy( ent->r.mins, body->r.mins );
 	VectorCopy( ent->r.maxs, body->r.maxs );
-	body->r.maxs[2] = CROUCH_HEIGHT;		// the crouched box
+	// hit up to its drawn crouched top (champion-audit.md HIT-01)
+	body->r.maxs[2] = BG_ShotTop( client->ps.stats[STAT_CHAMPION], qtrue );
 	body->takedamage = qtrue;
 	body->health = ent->health;
 	body->die = G_DroneBodyDie;

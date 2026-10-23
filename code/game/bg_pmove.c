@@ -1705,7 +1705,7 @@ static void PM_NoclipMove( void ) {
 	float		wishspeed;
 	float		scale;
 
-	pm->ps->viewheight = DEFAULT_VIEWHEIGHT;
+	pm->ps->viewheight = BG_ViewHeight( pm->ps->stats[STAT_CHAMPION], qfalse );
 
 	// friction
 
@@ -2176,7 +2176,7 @@ static void PM_CheckDuck (void)
 			VectorSet( pm->maxs, PLAYER_WIDTH, PLAYER_WIDTH, 16 );
 		}
 		pm->ps->pm_flags |= PMF_DUCKED;
-		pm->ps->viewheight = CROUCH_VIEWHEIGHT;
+		pm->ps->viewheight = BG_ViewHeight( pm->ps->stats[STAT_CHAMPION], qtrue );
 		return;
 	}
 	pm->ps->pm_flags &= ~PMF_INVULEXPAND;
@@ -2225,27 +2225,28 @@ static void PM_CheckDuck (void)
 	if (pm->ps->pm_flags & PMF_DUCKED)
 	{
 		pm->maxs[2] = CROUCH_HEIGHT;
-		pm->ps->viewheight = CROUCH_VIEWHEIGHT;
-
-		// the eye sits above the crouched hull: keep it under a low ceiling
-		{
-			vec3_t	eye, small = { -4, -4, 0 }, smallMax = { 4, 4, 4 };
-
-			VectorCopy( pm->ps->origin, eye );
-			eye[2] += CROUCH_VIEWHEIGHT;
-			pm->trace( &trace, pm->ps->origin, small, smallMax, eye, pm->ps->clientNum, MASK_SOLID );
-			if ( trace.fraction < 1.0f ) {
-				pm->ps->viewheight = (int)( trace.endpos[2] - pm->ps->origin[2] );
-				if ( pm->ps->viewheight < 0 ) {
-					pm->ps->viewheight = 0;
-				}
-			}
-		}
+		pm->ps->viewheight = BG_ViewHeight( pm->ps->stats[STAT_CHAMPION], qtrue );
 	}
 	else
 	{
 		pm->maxs[2] = DEFAULT_HEIGHT;
-		pm->ps->viewheight = DEFAULT_VIEWHEIGHT;
+		pm->ps->viewheight = BG_ViewHeight( pm->ps->stats[STAT_CHAMPION], qfalse );
+	}
+
+	// an eye above the hull (crouched, or a tall champion standing) stays
+	// under a low ceiling
+	if ( pm->ps->viewheight > pm->maxs[2] ) {
+		vec3_t	eye, small = { -4, -4, 0 }, smallMax = { 4, 4, 4 };
+
+		VectorCopy( pm->ps->origin, eye );
+		eye[2] += pm->ps->viewheight;
+		pm->trace( &trace, pm->ps->origin, small, smallMax, eye, pm->ps->clientNum, MASK_SOLID );
+		if ( trace.fraction < 1.0f ) {
+			pm->ps->viewheight = (int)( trace.endpos[2] - pm->ps->origin[2] );
+			if ( pm->ps->viewheight < 0 ) {
+				pm->ps->viewheight = 0;
+			}
+		}
 	}
 }
 

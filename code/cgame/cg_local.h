@@ -394,6 +394,8 @@ typedef struct {
 	animation_t		animations[MAX_TOTALANIMATIONS];
 
 	sfxHandle_t		sounds[MAX_CUSTOM_SOUNDS];
+	float			idleBottom;			// the model's idle pose, unscaled: its lowest point
+	float			idleHeight;			// and height above the origin (HIT-01 drawn size)
 	sfxHandle_t		breatheSound;		// low health (low-health.md 2): the breathing loop,
 	sfxHandle_t		breatheStopSound;	// its exhale, and the voice lines; 0 when the model
 	sfxHandle_t		lowHealthSounds[3];	// has none
@@ -1543,6 +1545,7 @@ void CG_PlayerColors( centity_t *cent, clientInfo_t *ci );
 void CG_OwnerColors( int owner );
 void CG_DroneBody( centity_t *cent );
 int CG_ClientChampion( clientInfo_t *ci );
+int CG_EyeHeight( int clientNum, qboolean crouched );
 void CG_PlayerColorPart( int part );
 void CG_ColorReset( void );
 void CG_ColorBeforeDraw( refEntity_t *ent );

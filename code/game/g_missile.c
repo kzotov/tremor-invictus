@@ -519,7 +519,9 @@ void G_RunMissile( gentity_t *ent ) {
 		mins = ent->r.mins;
 		maxs = ent->r.maxs;
 	}
-	trap_Trace( &tr, ent->r.currentOrigin, mins, maxs, origin, passent, ent->clipmask );
+	// direct hits use the players' shot volumes (champion-audit.md HIT-01)
+	G_ShotVolumes();
+	G_ShotTrace( &tr, ent->r.currentOrigin, mins, maxs, origin, passent, ent->clipmask );
 
 	if ( tr.startsolid || tr.allsolid ) {
 		// make sure the tr.entityNum is set to the entity we're stuck in
@@ -529,6 +531,7 @@ void G_RunMissile( gentity_t *ent ) {
 	else {
 		VectorCopy( tr.endpos, ent->r.currentOrigin );
 	}
+	G_RestorePlayers();
 
 	trap_LinkEntity( ent );
 

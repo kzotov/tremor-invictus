@@ -180,24 +180,48 @@ command time, no further than the limit, and widen their boxes to hold the
 hit cylinder. Bots get no compensation.
 ================
 */
+static void G_PlaceShotVolumes( gentity_t *shooter, int time, qboolean compensate );
+
 void G_RewindPlayers( gentity_t *shooter ) {
-	gentity_t		*ent;
-	rewindHistory_t	*h;
-	vec3_t			origin, mins, maxs;
-	int				i, contents, time;
-	float			radius;
-	qboolean		compensate;
+	int				time;
 
 	if ( rewindActive ) {
 		return;
 	}
-	rewindActive = qtrue;
-
 	time = shooter->client->ps.commandTime;
 	if ( time < level.time - rewindLimit ) {
 		time = level.time - rewindLimit;
 	}
-	compensate = rewindLimit > 0 && !( shooter->r.svFlags & SVF_BOT ) && time < level.time;
+	G_PlaceShotVolumes( shooter, time, rewindLimit > 0 && !( shooter->r.svFlags & SVF_BOT ) && time < level.time );
+}
+
+/*
+================
+G_ShotVolumes
+
+For a projectile's move: every player's box becomes their shot volume
+where they are now (no rewind); G_RestorePlayers after the trace
+================
+*/
+void G_ShotVolumes( void ) {
+	if ( !rewindActive ) {
+		G_PlaceShotVolumes( NULL, level.time, qfalse );
+	}
+}
+
+/*
+================
+G_PlaceShotVolumes
+================
+*/
+static void G_PlaceShotVolumes( gentity_t *shooter, int time, qboolean compensate ) {
+	gentity_t		*ent;
+	rewindHistory_t	*h;
+	vec3_t			origin, mins, maxs;
+	int				i, contents;
+	float			radius;
+
+	rewindActive = qtrue;
 
 	for ( i = 0, ent = g_entities ; i < level.maxclients ; i++, ent++ ) {
 		h = &rewindHistory[i];
@@ -224,10 +248,16 @@ void G_RewindPlayers( gentity_t *shooter ) {
 			contents = ent->r.contents;
 		}
 
-		// the box must hold the shot cylinder
+		// the box must hold the shot cylinder (champion-audit.md HIT-01: from
+		// the feet to the champion's height, 0.65 of it crouched; a dead or
+		// drone-flying player keeps the box)
 		radius = maxs[0] * g_cylinderScale.value;
 		mins[0] = mins[1] = -radius;
 		maxs[0] = maxs[1] = radius;
+		if ( maxs[2] == DEFAULT_HEIGHT || maxs[2] == CROUCH_HEIGHT ) {
+			mins[2] = MINS_Z;
+			maxs[2] = BG_ShotTop( ent->client->ps.stats[STAT_CHAMPION], maxs[2] == CROUCH_HEIGHT );
+		}
 
 		VectorCopy( origin, ent->r.currentOrigin );
 		VectorCopy( mins, ent->r.mins );
@@ -276,17 +306,18 @@ void G_RestorePlayers( void ) {
 G_CylinderHit
 
 Where a segment enters a player's upright cylinder (the box's height,
-radius half its width), as a fraction of the segment; qfalse if it misses
+radius half its width), grown by a swept shot's own size, as a fraction
+of the segment; qfalse if it misses
 ================
 */
-static qboolean G_CylinderHit( gentity_t *ent, const vec3_t start, const vec3_t end, float *fraction ) {
+static qboolean G_CylinderHit( gentity_t *ent, const vec3_t start, const vec3_t end, float pad, float *fraction ) {
 	vec3_t	center, d, s;
 	float	radius, a, b, c, disc, t, z, bottom, top;
 
 	VectorCopy( ent->r.currentOrigin, center );
-	radius = ent->r.maxs[0];
-	bottom = center[2] + ent->r.mins[2];
-	top = center[2] + ent->r.maxs[2];
+	radius = ent->r.maxs[0] + pad;
+	bottom = center[2] + ent->r.mins[2] - pad;
+	top = center[2] + ent->r.maxs[2] + pad;
 
 	VectorSubtract( end, start, d );
 	VectorSubtract( start, center, s );
@@ -346,7 +377,7 @@ void G_ShotTrace( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3
 	const vec3_t end, int passEntityNum, int contentmask ) {
 	gentity_t	*skipped[8];
 	gentity_t	*hit;
-	float		fraction;
+	float		fraction, pad = maxs ? maxs[0] : 0;		// a swept shot (the laser's 10 u beam)
 	int			numSkipped = 0, i;
 
 	while ( 1 ) {
@@ -355,7 +386,7 @@ void G_ShotTrace( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3
 			break;
 		}
 		hit = &g_entities[tr->entityNum];
-		if ( G_CylinderHit( hit, start, end, &fraction ) ) {
+		if ( G_CylinderHit( hit, start, end, pad, &fraction ) ) {
 			tr->fraction = fraction;
 			G_Lerp( start, end, fraction, tr->endpos );
 			break;

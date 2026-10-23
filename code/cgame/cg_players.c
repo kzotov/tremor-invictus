@@ -665,6 +665,50 @@ static sfxHandle_t CG_ModelSound( const char *model, const char *name ) {
 
 /*
 ===================
+CG_MeasureIdlePose
+
+champion-audit.md (HIT-01): how tall the model stands in its idle pose,
+legs, torso and head through their tags, so it can be drawn at the
+champion's own height with its lowest point on the floor
+===================
+*/
+static void CG_MeasureIdlePose( clientInfo_t *ci, qboolean loaded ) {
+	orientation_t	torsoTag, headTag;
+	vec3_t			mins, maxs;
+	float			bottom, top, torsoZ, headZ;
+	int				legsFrame = ci->animations[LEGS_IDLE].firstFrame;
+	int				torsoFrame = ci->animations[TORSO_STAND].firstFrame;
+
+	ci->idleBottom = MINS_Z;
+	ci->idleHeight = 56;		// the models' usual size, should a part be missing
+	if ( !loaded || !ci->legsModel || !ci->torsoModel || !ci->headModel ) {
+		return;
+	}
+	// (the bounds the renderer gives are frame 0's, a death pose for the
+	// legs and torso: only the one-frame head is taken from them, the rest
+	// from the idle frames' tags; the models stand with their feet at
+	// MINS_Z)
+	bottom = MINS_Z;
+	if ( !trap_R_LerpTag( &torsoTag, ci->legsModel, legsFrame, legsFrame, 1, "tag_torso" )
+		|| !trap_R_LerpTag( &headTag, ci->torsoModel, torsoFrame, torsoFrame, 1, "tag_head" ) ) {
+		return;
+	}
+	torsoZ = torsoTag.origin[2];
+	headZ = torsoZ + headTag.origin[2];
+	trap_R_ModelBounds( ci->headModel, mins, maxs );
+	top = headZ + maxs[2];
+	if ( top - bottom > 8 ) {
+		ci->idleBottom = bottom;
+		ci->idleHeight = top - bottom;
+	}
+	if ( cg_debugAnim.integer ) {
+		CG_Printf( "IDLEPOSE %s %.1f %.1f %.3f\n", ci->modelName, ci->idleHeight, ci->idleBottom,
+			BG_ChampionShotHeight( CG_ClientChampion( ci ) ) / ci->idleHeight );
+	}
+}
+
+/*
+===================
 CG_LoadClientInfo
 
 Load it now, taking the disk hits.
@@ -751,6 +795,8 @@ static void CG_LoadClientInfo( int clientNum, clientInfo_t *ci ) {
 		}
 	}
 
+	CG_MeasureIdlePose( ci, modelloaded );
+
 	// low health: breathing, its exhale, the voice lines (only the model's own)
 	ci->breatheSound = ci->breatheStopSound = 0;
 	memset( ci->lowHealthSounds, 0, sizeof( ci->lowHealthSounds ) );
@@ -796,6 +842,8 @@ static void CG_CopyClientInfoModel( clientInfo_t *from, clientInfo_t *to ) {
 
 	memcpy( to->animations, from->animations, sizeof( to->animations ) );
 	memcpy( to->sounds, from->sounds, sizeof( to->sounds ) );
+	to->idleBottom = from->idleBottom;
+	to->idleHeight = from->idleHeight;
 	to->breatheSound = from->breatheSound;
 	to->breatheStopSound = from->breatheStopSound;
 	memcpy( to->lowHealthSounds, from->lowHealthSounds, sizeof( to->lowHealthSounds ) );
@@ -2393,10 +2441,10 @@ void CG_Player( centity_t *cent ) {
 
 	VectorCopy( cent->lerpOrigin, legs.origin );
 
-	// player models are built for a shorter body: scale them to the hull,
-	// keeping the feet on the floor. The torso and head follow through their tags.
-	scale = ( DEFAULT_HEIGHT - MINS_Z ) / (float)MODEL_HEIGHT * cg_playerScale.value
-		* BG_ChampionModelScale( CG_ClientChampion( ci ) );		// the champion's own size, drawn only
+	// champion-audit.md (HIT-01): the model drawn at the champion's shot
+	// height with its lowest point on the floor, so what you see is what
+	// you hit. The torso and head follow through their tags.
+	scale = BG_ChampionShotHeight( CG_ClientChampion( ci ) ) / ci->idleHeight * cg_playerScale.value;
 	if ( scale > 0 && scale != 1.0f ) {
 		VectorScale( legs.axis[0], scale, legs.axis[0] );
 		VectorScale( legs.axis[1], scale, legs.axis[1] );
@@ -2404,8 +2452,8 @@ void CG_Player( centity_t *cent ) {
 		legs.nonNormalizedAxes = qtrue;
 		torso.nonNormalizedAxes = qtrue;
 		head.nonNormalizedAxes = qtrue;
-		legs.origin[2] += -MINS_Z * ( scale - 1.0f );
 	}
+	legs.origin[2] += MINS_Z - ci->idleBottom * scale;
 
 	VectorCopy( cent->lerpOrigin, legs.lightingOrigin );
 	legs.shadowPlane = shadowPlane;
@@ -2781,10 +2829,9 @@ void CG_DroneBody( centity_t *cent ) {
 	legs.frame = legs.oldframe = ci->animations[LEGS_IDLECR].firstFrame;
 	VectorCopy( cent->lerpOrigin, legs.origin );
 	AnglesToAxis( angles, legs.axis );
-	// the player hull scale, as on a player (feet kept on the floor)
+	// the scale of the player drawn (HIT-01), feet on the floor
 	{
-		float	scale = ( DEFAULT_HEIGHT - MINS_Z ) / (float)MODEL_HEIGHT * cg_playerScale.value
-			* BG_ChampionModelScale( CG_ClientChampion( ci ) );
+		float	scale = BG_ChampionShotHeight( CG_ClientChampion( ci ) ) / ci->idleHeight * cg_playerScale.value;
 
 		if ( scale > 0 && scale != 1.0f ) {
 			VectorScale( legs.axis[0], scale, legs.axis[0] );
@@ -2793,8 +2840,8 @@ void CG_DroneBody( centity_t *cent ) {
 			legs.nonNormalizedAxes = qtrue;
 			torso.nonNormalizedAxes = qtrue;
 			head.nonNormalizedAxes = qtrue;
-			legs.origin[2] += -MINS_Z * ( scale - 1.0f );
 		}
+		legs.origin[2] += MINS_Z - ci->idleBottom * scale;
 	}
 	VectorCopy( legs.origin, legs.oldorigin );
 
@@ -2841,4 +2888,18 @@ int CG_ClientChampion( clientInfo_t *ci ) {
 		}
 	}
 	return BG_ChampionForModel( ci->modelName );
+}
+
+/*
+===============
+CG_EyeHeight
+
+A player's eye above their origin, standing or crouched (BG_ViewHeight)
+===============
+*/
+int CG_EyeHeight( int clientNum, qboolean crouched ) {
+	if ( clientNum < 0 || clientNum >= MAX_CLIENTS ) {
+		return crouched ? CROUCH_VIEWHEIGHT : DEFAULT_VIEWHEIGHT;
+	}
+	return BG_ViewHeight( CG_ClientChampion( &cgs.clientinfo[clientNum] ), crouched );
 }
