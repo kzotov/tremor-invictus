@@ -677,6 +677,7 @@ typedef struct {
 	sfxHandle_t	pendingHitBeep;		// this frame's hit beep, played once the frame's events are in
 	qboolean	pendingKillBeep;	// a frag this frame: the kill beep instead
 	qboolean	triboltImpact;		// the impact being drawn is a Tri-bolt bolt's
+	int			impactShooter;		// its shooter when known (LG, MG), else -1
 	int			abilityReadyTime;	// cg.time the active ability last became ready
 
 	// status bar head

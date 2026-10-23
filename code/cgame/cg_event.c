@@ -1213,8 +1213,10 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			break;
 		}
 		cg.triboltImpact = es->generic1 == TRIBOLT_MARK;
+		cg.impactShooter = es->weapon == WP_LIGHTNING ? es->clientNum : -1;
 		CG_MissileHitPlayer( es->weapon, position, dir, es->otherEntityNum );
 		cg.triboltImpact = qfalse;
+		cg.impactShooter = -1;
 		break;
 
 	case EV_MISSILE_MISS:

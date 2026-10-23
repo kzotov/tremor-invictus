@@ -1986,6 +1986,39 @@ void CG_TriboltSounds( centity_t *cent ) {
 
 /*
 =================
+CG_ImpactSoundAllowed
+
+sound-clarity.md 3: per shooter, a lightning gun impact sound at most every
+100 ms; machinegun ricochets at most every 100 ms, and only every second
+one of those
+=================
+*/
+#define IMPACT_SOUND_GAP	100
+
+static qboolean CG_ImpactSoundAllowed( int weapon ) {
+	static int	lastTime[MAX_CLIENTS][2], count[MAX_CLIENTS];
+	int			shooter = cg.impactShooter, kind;
+
+	weapon = BG_WeaponVisual( weapon );
+	if ( shooter < 0 || shooter >= MAX_CLIENTS || ( weapon != WP_LIGHTNING && weapon != WP_MACHINEGUN ) ) {
+		return qtrue;
+	}
+	kind = weapon == WP_LIGHTNING;
+	if ( lastTime[shooter][kind] > cg.time ) {
+		lastTime[shooter][kind] = 0;		// (a time reset)
+	}
+	if ( cg.time - lastTime[shooter][kind] < IMPACT_SOUND_GAP ) {
+		return qfalse;
+	}
+	lastTime[shooter][kind] = cg.time;
+	if ( weapon == WP_MACHINEGUN ) {
+		return ( count[shooter]++ & 1 ) == 0;
+	}
+	return qtrue;
+}
+
+/*
+=================
 CG_MissileHitWall
 
 Caused by an EV_MISSILE_MISS event, or directly by local bullet tracing
@@ -2162,6 +2195,9 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, im
 		break;
 	}
 
+	if ( sfx && !CG_ImpactSoundAllowed( weapon ) ) {
+		sfx = 0;
+	}
 	if ( sfx ) {
 		trap_S_StartSound( origin, ENTITYNUM_WORLD, CHAN_AUTO, sfx );
 	}
@@ -2546,7 +2582,9 @@ void CG_Bullet( vec3_t end, int sourceEntityNum, vec3_t normal, qboolean flesh, 
 	if ( flesh ) {
 		CG_Bleed( end, fleshEntityNum );
 	} else {
+		cg.impactShooter = sourceEntityNum;
 		CG_MissileHitWall( WP_MACHINEGUN, 0, end, normal, IMPACTSOUND_DEFAULT );
+		cg.impactShooter = -1;
 	}
 
 }
