@@ -2968,6 +2968,11 @@ static void PM_EndAbility( void ) {
 #define HOOK_STUCK_MSEC			200		// stuck: under HOOK_STUCK_DIST in this time
 #define HOOK_STUCK_DIST			32
 #define HOOK_CUT_MSEC			600		// a rope blocked this long is cut
+#define HOOK_SWING_HOLD			50		// held this long, the button swings
+#define HOOK_SWING_AFTER		100		// from this long into the pull
+#define HOOK_SWING_CLEAR		20		// the swinging rope keeps her this high
+#define HOOK_SWING_STEPS		6		// half-seconds of swing (3 s)
+#define HOOK_ROPE_MASK			4095
 
 /*
 ================
@@ -3114,6 +3119,10 @@ static void PM_Ability( void ) {
 				qboolean	jumpDown = pm->cmd.upmove >= 10;
 
 				if ( dist <= bg_pmoveSettings.hookDeadZone || dist > HOOK_MAX_ROPE ) {
+					arrived = qtrue;
+				}
+				// a swing ends after 3 s
+				if ( pm->ps->stats[STAT_MOVE_STATE] > 0 && ( ( pm->ps->stats[STAT_MOVE_STATE] >> 12 ) & 7 ) >= HOOK_SWING_STEPS ) {
 					arrived = qtrue;
 				}
 				// a landing from the air (a hook thrown from the ground stays)
@@ -3395,17 +3404,47 @@ otherwise the hook pulls, speeding up to the top pull speed
 static void PM_HookMove( void ) {
 	vec3_t	dir;
 	float	dist, rope, radial, pull, speed;
+	int		state = pm->ps->stats[STAT_MOVE_STATE], time = pm->ps->stats[STAT_ABILITY_TIME], steps;
 
 	VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
 	dist = VectorNormalize( dir );
 	radial = DotProduct( pm->ps->velocity, dir );
 
-	if ( pml.abilityHeld ) {
-		rope = pm->ps->stats[STAT_MOVE_STATE];
-		if ( rope <= 0 ) {
-			rope = dist < 1 ? 1 : dist;
-			pm->ps->stats[STAT_MOVE_STATE] = rope;
+	// movement.md hook swing: STAT_MOVE_STATE counts the button's hold below
+	// 0 until the swing starts (held 0.05 s, from 0.1 s into the pull),
+	// then holds the rope length (bits 0-11) and the swing's half-seconds
+	// (bits 12-14; it ends at 3 s, in the ability code)
+	if ( pml.abilityHeld && state <= 0 ) {
+		state -= pml.msec;
+		if ( -state >= HOOK_SWING_HOLD && time >= HOOK_SWING_AFTER ) {
+			state = (int)( dist < 1 ? 1 : dist > HOOK_ROPE_MASK ? HOOK_ROPE_MASK : dist );
 		}
+		pm->ps->stats[STAT_MOVE_STATE] = state;
+	}
+	if ( pml.abilityHeld && state > 0 ) {
+		trace_t	tr;
+		vec3_t	down;
+		float	gap;
+
+		rope = state & HOOK_ROPE_MASK;
+		steps = ( state >> 12 ) & 7;
+		if ( time / 500 != ( time + pml.msec ) / 500 && steps < 7 ) {
+			steps++;
+		}
+		// the rope shortens to keep her 20 u above the ground
+		VectorCopy( pm->ps->origin, down );
+		down[2] += pm->mins[2] - HOOK_SWING_CLEAR;
+		pm->trace( &tr, pm->ps->origin, NULL, NULL, down, pm->ps->clientNum, MASK_PLAYERSOLID );
+		if ( tr.fraction < 1 ) {
+			gap = pm->ps->origin[2] + pm->mins[2] - tr.endpos[2];
+			if ( gap < HOOK_SWING_CLEAR ) {
+				rope -= HOOK_SWING_CLEAR - gap;
+				if ( rope < 1 ) {
+					rope = 1;
+				}
+			}
+		}
+		pm->ps->stats[STAT_MOVE_STATE] = (int)rope | ( steps << 12 );
 		if ( dist >= rope ) {
 			// taut rope: no moving away, and take up any slack
 			if ( radial < 0 ) {
@@ -3418,7 +3457,9 @@ static void PM_HookMove( void ) {
 			VectorScale( pm->ps->velocity, bg_pmoveSettings.hookSwingMax / speed, pm->ps->velocity );
 		}
 	} else {
-		pm->ps->stats[STAT_MOVE_STATE] = 0;
+		if ( !pml.abilityHeld ) {
+			pm->ps->stats[STAT_MOVE_STATE] = 0;
+		}
 		if ( dist > bg_pmoveSettings.hookDeadZone ) {
 			// straight at the hook, at least the start speed, gaining each frame
 			speed = VectorLength( pm->ps->velocity );

@@ -549,9 +549,9 @@ void CG_DamagePlum( int client, int target, int weapon, vec3_t org, int damage )
 	// a running number for the same target (and type) takes the new damage
 	if ( cg_damagePlumSum.integer ) {
 		for ( le = cg_activeLocalEntities.prev ; le != &cg_activeLocalEntities ; le = le->prev ) {
-			if ( le->leType == LE_SCOREPLUM && le->refEntity.frame == target + 1
-				&& ( cg_damagePlumSum.integer == 2 || le->refEntity.oldframe == weapon )
-				&& cg.time - le->refEntity.customSkin < PLUM_SUM_MSEC ) {		// (from its first hit)
+			if ( le->leType == LE_SCOREPLUM && le->plumTarget == target + 1
+				&& ( cg_damagePlumSum.integer == 2 || le->plumWeapon == weapon )
+				&& cg.time - le->plumFirst < PLUM_SUM_MSEC ) {		// (from its first hit)
 				le->radius += damage;
 				le->startTime = cg.time;
 				le->endTime = cg.time + 1000;
@@ -574,9 +574,9 @@ void CG_DamagePlum( int client, int target, int weapon, vec3_t org, int damage )
 	VectorCopy( org, le->pos.trBase );
 	le->refEntity.reType = RT_SPRITE;
 	le->refEntity.radius = 12;
-	le->refEntity.frame = target + 1;		// (the target, weapon and first hit, for summing)
-	le->refEntity.oldframe = weapon;
-	le->refEntity.customSkin = cg.time;
+	le->plumTarget = target + 1;		// (the target, weapon and first hit, for summing)
+	le->plumWeapon = weapon;
+	le->plumFirst = cg.time;
 	scale = cg_damagePlumScale.value;
 	le->light = scale < 1 ? 1 : scale > 2 ? 2 : scale;		// the number's size
 	VectorClear( angles );

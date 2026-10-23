@@ -626,8 +626,10 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed ) 
 	if ( client->ps.stats[STAT_HEALTH] <= 0 ) {
 		return;
 	}
+	// movement.md: Athena's contact hit while hooked and in the air (pulled
+	// or swinging), from 480 u/s
 	swinging = BG_AbilityState( &client->ps ) == ABILITY_HOOK_PULL
-		&& ( client->buttons & BUTTON_ABILITY );
+		&& client->ps.groundEntityNum == ENTITYNUM_NONE;
 	if ( !( champ->abilities & MOVEABIL_HEAVYWEIGHT ) && !swinging ) {
 		return;
 	}
@@ -679,15 +681,14 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed ) 
 			G_NextTilt( rush ? 0.2f : 0 );
 			G_Damage( other, ent, ent, dir, other->r.currentOrigin, damage, 0, MOD_HEAVYWEIGHT );
 		} else {
-			G_Damage( other, ent, ent, dir, other->r.currentOrigin, damage,
-				DAMAGE_NO_KNOCKBACK, MOD_HEAVYWEIGHT );
+			// abilities.md: Athena's impact, impulse 80 tilted up 12 u (0.3 m)
+			G_NextKnockback( 80 );
+			G_NextTilt( 0.3f );
+			G_Damage( other, ent, ent, dir, other->r.currentOrigin, damage, 0, MOD_HEAVYWEIGHT );
 		}
 		if ( other->health > 0 ) {
 			if ( G_AbilityActive( ent, ACTIVE_BULLRUSH ) ) {
 				G_Slow( other, 0.7f, 1000 );		// spirit slow
-			}
-			if ( !( champ->abilities & MOVEABIL_HEAVYWEIGHT ) ) {
-				VectorMA( other->client->ps.velocity, g_hookKnockback.value, dir, other->client->ps.velocity );
 			}
 			// a survivor stops the bull rush; a kill does not
 			G_EndRush( ent );

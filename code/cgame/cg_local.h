@@ -289,6 +289,8 @@ typedef struct localEntity_s {
 	leBounceSoundType_t	leBounceSoundType;
 
 	refEntity_t		refEntity;		
+
+	int				plumTarget, plumWeapon, plumFirst;	// damage numbers: summing (cg_damagePlumSum)
 } localEntity_t;
 
 //======================================================================
