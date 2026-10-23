@@ -1411,6 +1411,12 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Damage Dealer",
 	"Net Master",
 	"Assistant",
+	"Fury",
+	"Riot",
+	"Merciless",
+	"Fanaticism",
+	"Sadism",
+	"Executioner",
 	"PAUSED",
 	"Space play   Up/Down speed   Left/Right 10 s   PgUp/PgDn 1 min   Home restart   H hide HUD   Esc leave",
 	"REC",
@@ -2182,7 +2188,13 @@ const medalInfo_t bg_medalInfo[MEDAL_NUM] = {
 	{ STR_MEDAL_GOD_RG,		"railgod" },
 	{ STR_MEDAL_DAMAGEDEALER,	"damagedealer" },
 	{ STR_MEDAL_NETMASTER,		"netmaster" },
-	{ STR_MEDAL_ASSISTANT,		"assistant" }
+	{ STR_MEDAL_ASSISTANT,		"assistant" },
+	{ STR_MEDAL_FURY,		"fury" },
+	{ STR_MEDAL_RIOT,		"riot" },
+	{ STR_MEDAL_MERCILESS,		"merciless" },
+	{ STR_MEDAL_FANATICISM,		"fanaticism" },
+	{ STR_MEDAL_SADISM,		"sadism" },
+	{ STR_MEDAL_EXECUTIONER,		"executioner" }
 };
 
 /*

@@ -174,6 +174,31 @@ def p_rampage():
     return tier(12, 0.26)
 
 
+def p_fury():
+    return tier(7, 0.215)
+
+
+def p_riot():
+    return tier(10, 0.245)
+
+
+def p_merciless():
+    return tier(14, 0.27)
+
+
+def p_fanaticism():
+    return tier(16, 0.28)
+
+
+def p_sadism():
+    return tier(18, 0.29)
+
+
+def p_executioner():
+    s, eyes = skull(0.5, 0.5, 0.13)
+    return s | (burst(0.5, 0.5, 0.3, 0.11, 20) - circle(0.5, 0.5, 0.2)), eyes
+
+
 def p_dominating():
     c = crown(0.5, 0.5, 0.2)
     gems = circle(0.4, 0.55, 0.03) | circle(0.5, 0.55, 0.03) | circle(0.6, 0.55, 0.03)
@@ -301,7 +326,7 @@ MEDALS = [
     "grimreaper", "avatarofdeath", "killingspree",
     "rage", "frenzy", "rampage", "dominating", "powerupmassacre", "gauntletgod", "machinegungod",
     "shotgungod", "nailgungod", "triboltgod", "rocketgod", "lightninggod", "railgod", "damagedealer",
-    "netmaster", "assistant",
+    "netmaster", "assistant", "fury", "riot", "merciless", "fanaticism", "sadism", "executioner",
     "impressive", "excellent", "gauntlet", "defend", "capture", "assist", "accuracy", "frags", "victory",
 ]
 MASTERS = {"gauntletgod", "machinegungod", "shotgungod", "nailgungod", "triboltgod", "rocketgod",

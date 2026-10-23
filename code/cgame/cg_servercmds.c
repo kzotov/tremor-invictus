@@ -1138,7 +1138,10 @@ static const int cg_medalRank[MEDAL_NUM] = {
 	0, 0, 0, 0, 0, 0, 0, 0,		// the weapon gods
 	MEDAL_RANK_TOTALS,	// MEDAL_DAMAGEDEALER
 	MEDAL_RANK_TOTALS,	// MEDAL_NETMASTER
-	MEDAL_RANK_TOTALS	// MEDAL_ASSISTANT
+	MEDAL_RANK_TOTALS,	// MEDAL_ASSISTANT
+	15,		// MEDAL_FURY (15 kills: by Rage)
+	3,		// MEDAL_RIOT (25: by Frenzy)
+	2, 2, 2, 2		// Merciless, Fanaticism, Sadism, Executioner (40-75: by Rampage)
 };
 
 static void CG_Medal( int medal, int count ) {

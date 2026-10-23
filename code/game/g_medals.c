@@ -307,8 +307,14 @@ static void G_MedalsKill( gentity_t *self, gentity_t *inflictor, gentity_t *atta
 	switch ( ++client->streak ) {
 	case 5:		G_Medal( attacker, MEDAL_SPREE ); break;
 	case 10:	G_Medal( attacker, MEDAL_RAGE ); break;
+	case 15:	G_Medal( attacker, MEDAL_FURY ); break;
 	case 20:	G_Medal( attacker, MEDAL_FRENZY ); break;
+	case 25:	G_Medal( attacker, MEDAL_RIOT ); break;
 	case 30:	G_Medal( attacker, MEDAL_RAMPAGE ); break;
+	case 40:	G_Medal( attacker, MEDAL_MERCILESS ); break;
+	case 50:	G_Medal( attacker, MEDAL_FANATICISM ); break;
+	case 60:	G_Medal( attacker, MEDAL_SADISM ); break;
+	case 75:	G_Medal( attacker, MEDAL_EXECUTIONER ); break;
 	}
 	if ( victim->streak >= 5 ) {
 		G_Medal( attacker, MEDAL_SHOWSTOPPER );
