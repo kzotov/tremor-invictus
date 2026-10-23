@@ -316,8 +316,8 @@ void Team_FragBonuses(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker
 		attacker->client->pers.teamState.lastfraggedcarrier = level.time;
 		AddScore(attacker, targ->r.currentOrigin, CTF_FRAG_CARRIER_BONUS);
 		attacker->client->pers.teamState.fragcarrier++;
-		PrintMsg(NULL, "%s" S_COLOR_WHITE " fragged %s's flag carrier!\n",
-			attacker->client->pers.netname, TeamName(team));
+		G_SysMsg( -1, team == TEAM_RED ? STR_SYS_RED_CARRIER_FRAGGED : STR_SYS_BLUE_CARRIER_FRAGGED,
+			attacker->client->pers.netname, NULL );
 
 		// the target had the flag, clear the hurt carrier
 		// field on the other team
