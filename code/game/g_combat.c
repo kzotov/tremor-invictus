@@ -1249,7 +1249,12 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		} else {
 			attacker->client->ps.persistant[PERS_HITS]++;
 		}
-		attacker->client->ps.persistant[PERS_ATTACKEE_ARMOR] = 0;		// (this hit's damage is added below)
+		// this frame's damage so far (added to below); a new frame starts at 0
+		if ( attacker->client->hitFrameTime != level.time ) {
+			attacker->client->hitFrameTime = level.time;
+			attacker->client->hitFrameDamage = 0;
+			attacker->client->ps.persistant[PERS_ATTACKEE_ARMOR] = 0;
+		}
 		hitArmorBefore = client->ps.stats[STAT_ARMOR];
 		hitAttacker = attacker;
 	}

@@ -1048,6 +1048,24 @@ srcHandle_t S_AL_SrcAlloc( alSrcPriority_t priority, int entnum, int channel )
 	int same_ent = -1, same_other = -1;	// equal-priority one-shots to take over
 	src_t *curSource;
 
+	// The channel system is not actually adhered to by baseq3, and not
+	// implemented in snd_dma.c, so it is kept to CHAN_HEARTBEAT, whose new
+	// sound replaces the one still playing
+	if(channel == CHAN_HEARTBEAT)
+	{
+		for(i = 0; i < srcCount; i++)
+		{
+			curSource = &srcList[i];
+			if(!curSource->isLocked && curSource->isActive && curSource->entity == entnum && curSource->channel == channel)
+			{
+				S_AL_SrcKill(i);
+				srcList[i].isActive = qtrue;
+				srcActiveCnt++;
+				return i;
+			}
+		}
+	}
+
 	for(i = 0; i < srcCount; i++)
 	{
 		curSource = &srcList[i];
@@ -1055,17 +1073,6 @@ srcHandle_t S_AL_SrcAlloc( alSrcPriority_t priority, int entnum, int channel )
 		// If it's locked, we aren't even going to look at it
 		if(curSource->isLocked)
 			continue;
-
-		// The channel system is not actually adhered to by baseq3, and not
-		// implemented in snd_dma.c, so it is kept to CHAN_HEARTBEAT, whose new
-		// sound replaces the one still playing
-		if(channel == CHAN_HEARTBEAT && curSource->isActive && curSource->entity == entnum && curSource->channel == channel)
-		{
-			S_AL_SrcKill(i);
-			srcList[i].isActive = qtrue;
-			srcActiveCnt++;
-			return i;
-		}
 
 		// sound-clarity.md 2: at equal priority a world one-shot takes the
 		// oldest sound of the same entity, else the oldest, quietest one of
@@ -1246,6 +1253,18 @@ static
 void S_AL_StartLocalSound(sfxHandle_t sfx, int channel)
 {
 	srcHandle_t src;
+	int i;
+
+	// no sound on CHAN_HEARTBEAT: stop the beat still sounding
+	if(sfx == 0 && channel == CHAN_HEARTBEAT)
+	{
+		for(i = 0; i < srcCount; i++)
+		{
+			if(!srcList[i].isLocked && srcList[i].isActive && srcList[i].entity == -1 && srcList[i].channel == channel)
+				S_AL_SrcKill(i);
+		}
+		return;
+	}
 	
 	if(S_AL_CheckInput(0, sfx))
 		return;

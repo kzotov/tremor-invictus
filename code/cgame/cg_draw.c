@@ -4404,6 +4404,9 @@ void CG_LowHealthFrame( void ) {
 			trap_S_StartLocalSound( ci->breatheStopSound, CHAN_VOICE );
 		}
 		cg.lowHealthBreathing = qfalse;
+		if ( old >= LH_LOW ) {
+			trap_S_StartLocalSound( 0, CHAN_HEARTBEAT );		// the last beat's tail stops too
+		}
 		return;
 	}
 
@@ -4494,12 +4497,16 @@ static void CG_DrawLowHealth( void ) {
 		depth *= h;
 		band = depth / LH_BANDS;
 		for ( i = 0 ; i < LH_BANDS ; i++ ) {
-			// band i reaches (LH_BANDS - i) / LH_BANDS of the depth; their
-			// shares add up to edge * (1 - d)^2 at a distance d of the depth
-			a = (float)( i + 1 ) / LH_BANDS;
+			// band i reaches (LH_BANDS - i) / LH_BANDS of the depth; blended
+			// over each other they cover edge * (1 - d)^2 at a distance d of
+			// the depth: each band's alpha is 1 - (1 - C_i) / (1 - C_i-1)
+			float	c = edge * ( (float)( i + 1 ) / LH_BANDS ) * ( (float)( i + 1 ) / LH_BANDS );
+			float	cPrev = edge * ( (float)i / LH_BANDS ) * ( (float)i / LH_BANDS );
+
+			a = 1.0f - ( 1.0f - c ) / ( 1.0f - cPrev );
 			color[0] = 0.75f;
 			color[1] = color[2] = 0;
-			color[3] = edge * ( a * a - ( a - 1.0f / LH_BANDS ) * ( a - 1.0f / LH_BANDS ) );
+			color[3] = a;
 			trap_R_SetColor( color );
 			// each band covers from the edge to its depth: the alphas stack
 			trap_R_DrawStretchPic( 0, 0, w, band * ( LH_BANDS - i ), 0, 0, 1, 1, cgs.media.whiteShader );
@@ -6198,7 +6205,7 @@ value, the blocks over base brighter; then "value / base"
 */
 static void CG_DrawStackBar( float x, float y, int value, int base, const vec4_t barTint, const vec4_t tint, qboolean lowRed, float pulse ) {
 	static vec4_t	overBlue = { 0.35f, 0.6f, 1, 1 };
-	vec4_t	off = { 0.2f, 0.2f, 0.22f, 0.8f }, lit, over;
+	vec4_t	off = { 0.2f, 0.2f, 0.22f, 0.8f }, lit, over, lowColor;
 	int		blocks = ( base + 75 ) / 25, i;
 	float	bw = 22 * DP, gap = 3 * DP, cw = BIGCHAR_WIDTH * pulse, ch = BIGCHAR_HEIGHT * pulse;
 	const float	*numColor = tint;
@@ -6216,7 +6223,8 @@ static void CG_DrawStackBar( float x, float y, int value, int base, const vec4_t
 		// rising: the tint stays (white armour, green health); the low-health
 		// beat pulses the red number
 	} else if ( lowRed && value <= 25 && tint[0] == 1 && tint[1] == 1 ) {
-		numColor = colorRed;
+		CG_HealthPalette( 0, lowColor );		// red, or the colour-blind palette's low
+		numColor = lowColor;
 	} else if ( value > base && tint[0] == 1 && tint[1] == 1 ) {
 		numColor = overBlue;
 	}

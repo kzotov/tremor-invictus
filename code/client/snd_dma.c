@@ -708,6 +708,18 @@ void S_Base_StartLocalSound( sfxHandle_t sfxHandle, int channelNum ) {
 		Com_Printf( S_COLOR_YELLOW "S_StartLocalSound: handle %i out of range\n", sfxHandle );
 		return;
 	}
+	// no sound on CHAN_HEARTBEAT: stop the beat still sounding
+	if ( sfxHandle == 0 && channelNum == CHAN_HEARTBEAT ) {
+		int			i;
+		channel_t	*ch;
+
+		for ( i = 0, ch = s_channels ; i < MAX_CHANNELS ; i++, ch++ ) {
+			if ( ch->thesfx && ch->entnum == listener_number && ch->entchannel == CHAN_HEARTBEAT ) {
+				S_ChannelFree( ch );
+			}
+		}
+		return;
+	}
 	if ( sfxHandle == 0 || s_knownSfx[sfxHandle].defaultSound ) {
 		return;		// a missing sound plays nothing (sound-clarity.md 2)
 	}

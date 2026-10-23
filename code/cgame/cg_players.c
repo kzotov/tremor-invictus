@@ -796,6 +796,9 @@ static void CG_CopyClientInfoModel( clientInfo_t *from, clientInfo_t *to ) {
 
 	memcpy( to->animations, from->animations, sizeof( to->animations ) );
 	memcpy( to->sounds, from->sounds, sizeof( to->sounds ) );
+	to->breatheSound = from->breatheSound;
+	to->breatheStopSound = from->breatheStopSound;
+	memcpy( to->lowHealthSounds, from->lowHealthSounds, sizeof( to->lowHealthSounds ) );
 }
 
 /*
