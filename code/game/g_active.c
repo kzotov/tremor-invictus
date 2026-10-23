@@ -616,7 +616,7 @@ Heavyweight: running or falling into an enemy hurts them and knocks them back.
 Athena's hook swing hurts whoever she swings into.
 =================
 */
-static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed ) {
+static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed, const vec3_t preVelocity ) {
 	gclient_t			*client = ent->client;
 	const champion_t	*champ = BG_Champion( client->ps.stats[STAT_CHAMPION] );
 	gentity_t			*other;
@@ -697,9 +697,13 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed ) 
 			// a survivor stops the bull rush; a kill does not
 			G_EndRush( ent );
 		}
-		// abilities.md: Athena's hook lets go after her impact hits
+		// abilities.md: Athena's hook lets go after her impact hits; a hit
+		// that kills keeps her speed (movement.md)
 		if ( !( champ->abilities & MOVEABIL_HEAVYWEIGHT ) && client->hook ) {
 			Weapon_HookFree( client->hook );
+			if ( other->health <= 0 ) {
+				VectorCopy( preVelocity, client->ps.velocity );
+			}
 		}
 	}
 }
@@ -1158,6 +1162,7 @@ void ClientThink_real( gentity_t *ent ) {
 	int			oldEventSequence;
 	int			msec;
 	float		impactSpeed;
+	vec3_t		preVelocity;
 	usercmd_t	*ucmd;
 
 	client = ent->client;
@@ -1353,6 +1358,7 @@ void ClientThink_real( gentity_t *ent ) {
 	}
 
 	impactSpeed = VectorLength( client->ps.velocity );
+	VectorCopy( client->ps.velocity, preVelocity );		// (kept through a killing hook impact)
 
 	VectorCopy( client->ps.origin, client->oldOrigin );
 
@@ -1421,7 +1427,7 @@ void ClientThink_real( gentity_t *ent ) {
 	ClientImpacts( ent, &pm );
 
 	// champion collisions and ability bookkeeping
-	G_CollisionDamage( ent, &pm, impactSpeed );
+	G_CollisionDamage( ent, &pm, impactSpeed, preVelocity );
 	G_AbilityUpkeep( ent, msec );
 
 	// save results of triggers and client events

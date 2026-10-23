@@ -106,8 +106,11 @@ static void G_CancelAbility( gentity_t *ent ) {
 	BG_SetAbility( &client->ps, ABILITY_IDLE, BG_AbilityCharges( &client->ps ) );
 	client->ps.stats[STAT_ABILITY_TIME] = 0;
 	client->ps.pm_flags &= ~PMF_GRAPPLE_PULL;
-	if ( active == ACTIVE_HOOK && client->hook ) {
-		Weapon_HookFree( client->hook );
+	if ( active == ACTIVE_HOOK ) {
+		client->ps.stats[STAT_MOVE_STATE] = 0;		// (the swing's rope)
+		if ( client->hook ) {
+			Weapon_HookFree( client->hook );
+		}
 	}
 	if ( active == ACTIVE_RIFTANCHOR && client->anchorEnt ) {
 		G_FreeEntity( client->anchorEnt );

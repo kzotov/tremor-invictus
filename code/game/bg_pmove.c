@@ -2953,7 +2953,7 @@ static void PM_EndAbility( void ) {
 
 	BG_SetAbility( pm->ps, ABILITY_IDLE, BG_AbilityCharges( pm->ps ) );
 	pm->ps->stats[STAT_ABILITY_TIME] = 0;
-	if ( pm->ps->pm_flags & PMF_GRAPPLE_PULL ) {
+	if ( active == ACTIVE_HOOK ) {
 		pm->ps->stats[STAT_MOVE_STATE] = 0;		// the swing's rope, not a climb speed for the ramp jump
 	}
 	pm->ps->pm_flags &= ~PMF_GRAPPLE_PULL;
