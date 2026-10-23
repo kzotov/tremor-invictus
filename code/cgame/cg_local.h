@@ -465,8 +465,8 @@ typedef struct {
 #define MAX_REWARDSTACK		10
 #define MAX_REVEAL_MODELS	64
 #define MAX_AWARD_LINES		16
-#define MAX_SOUNDBUFFER		16		// announcer queue
-#define SOUNDBUFFER_WAIT	250		// msec a queued line may wait to start
+#define MAX_SOUNDBUFFER		32		// announcer queue (sound-clarity.md 3)
+#define SOUNDBUFFER_GAP		1500	// msec from one line's start to the next at least
 
 //======================================================================
 
@@ -674,6 +674,9 @@ typedef struct {
 	int			damageArcValue[DAMAGE_ARCS];
 	int			damageArcNext;		// the slot the next hit takes
 	int			lowHealthBeat;		// cg.time of the last low-health heartbeat
+	sfxHandle_t	pendingHitBeep;		// this frame's hit beep, played once the frame's events are in
+	qboolean	pendingKillBeep;	// a frag this frame: the kill beep instead
+	qboolean	triboltImpact;		// the impact being drawn is a Tri-bolt bolt's
 	int			abilityReadyTime;	// cg.time the active ability last became ready
 
 	// status bar head
@@ -878,7 +881,8 @@ typedef struct {
 	qhandle_t	sportShader;
 	qhandle_t	tintShader;
 	qhandle_t	outlineShader;
-	sfxHandle_t	hitArmorSound, hitHealthSound, hitArmorBreakSound;	// tremor-assets.pk3; 0 when missing
+	sfxHandle_t	hitBeepSounds[4];	// by damage: <= 25, 26-49, 50-74, >= 75 (tremor-assets.pk3)
+	sfxHandle_t	killBeepSound;
 	qhandle_t	regenShader;
 	qhandle_t	battleSuitShader;
 	qhandle_t	battleWeaponShader;
@@ -1426,6 +1430,7 @@ void CG_ZoomDown_f( void );
 void CG_ZoomUp_f( void );
 void CG_AddBufferedSound( sfxHandle_t sfx);
 void CG_AddBufferedSoundPriority( sfxHandle_t sfx, int priority );
+void CG_ClearBufferedSounds( void );
 
 void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demoPlayback );
 

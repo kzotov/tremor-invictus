@@ -469,7 +469,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_damagePlumScale, "cg_damagePlumScale", "1", CVAR_ARCHIVE },	// their size, 1.0-2.0
 	{ &cg_damagePlumSum, "cg_damagePlumSum", "2", CVAR_ARCHIVE },		// 0 each hit, 1 per damage type, 2 all hits on a target
 	{ &cg_damagePlumHidden, "cg_damagePlumHidden", "0", CVAR_ARCHIVE },	// numbers for targets out of sight
-	{ &cg_hitBeep, "cg_hitBeep", "1", CVAR_ARCHIVE},
+	{ &cg_hitBeep, "cg_hitBeep", "2", CVAR_ARCHIVE},	// 0 off, 1 one beep, 2 by damage, 3 by damage reversed
 	{ &cg_killBeep, "cg_killBeep", "1", CVAR_ARCHIVE},
 	{ &cg_worldItemTimers, "cg_worldItemTimers", "1", CVAR_ARCHIVE},	// markers and countdowns on away items
 	{ &cg_lowHealthWarning, "cg_lowHealthWarning", "1", CVAR_ARCHIVE},	// red edge and heartbeat below 25 health
@@ -701,16 +701,21 @@ static void CG_RegisterSounds( void ) {
 	char	name[MAX_QPATH];
 	const char	*soundName;
 
-	// hit tones by what the shot hit (tremor-assets.pk3)
-	cgs.media.hitArmorSound = trap_S_RegisterSound( "sound/tremor/hit_armor.wav", qfalse );
+	// hit beeps by damage, falling in pitch, and the kill beep (tremor-assets.pk3;
+	// a pack's feedback/killbeep.wav first)
+	for ( i = 0 ; i < 4 ; i++ ) {
+		cgs.media.hitBeepSounds[i] = trap_S_RegisterSound( va( "sound/tremor/hitbeep%i.wav", i + 1 ), qfalse );
+	}
+	cgs.media.killBeepSound = trap_S_RegisterSound( "sound/feedback/killbeep.wav", qfalse );
+	if ( !cgs.media.killBeepSound ) {
+		cgs.media.killBeepSound = trap_S_RegisterSound( "sound/tremor/killbeep.wav", qfalse );
+	}
 	cgs.media.dodgeSound = trap_S_RegisterSound( "sound/tremor/dodge.wav", qfalse );
 	cgs.media.hookAttachSound = trap_S_RegisterSound( "sound/tremor/hook_attach.wav", qfalse );
 	for ( i = 1 ; i < ACTIVE_NUM_ABILITIES ; i++ ) {
 		cgs.media.abilitySounds[i][0] = trap_S_RegisterSound( va( "sound/abilities/%s_cast.wav", bg_abilityInfo[i].cvarName ), qfalse );
 		cgs.media.abilitySounds[i][1] = trap_S_RegisterSound( va( "sound/abilities/%s_end.wav", bg_abilityInfo[i].cvarName ), qfalse );
 	}
-	cgs.media.hitHealthSound = trap_S_RegisterSound( "sound/tremor/hit_health.wav", qfalse );
-	cgs.media.hitArmorBreakSound = trap_S_RegisterSound( "sound/tremor/armor_break.wav", qfalse );
 
 	// voice commands
 #ifdef MISSIONPACK

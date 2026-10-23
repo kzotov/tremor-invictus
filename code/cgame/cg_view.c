@@ -853,28 +853,19 @@ static void CG_PowerupTimerSounds( void ) {
 CG_AddBufferedSoundPriority
 
 Queues an announcer line: 3 general, 4-5 pickups and timers, 6 pre-round
-and Sacrifice. A full queue drops its least important, oldest line.
+and Sacrifice. A full queue drops its oldest line (sound-clarity.md 3).
 =====================
 */
 static void CG_DropBufferedSound( int i );
 
 void CG_AddBufferedSoundPriority( sfxHandle_t sfx, int priority ) {
-	int		i, worst;
+	int		i;
 
 	if ( !sfx ) {
 		return;
 	}
 	if ( cg.soundBufferCount == MAX_SOUNDBUFFER ) {
-		worst = 0;
-		for ( i = 1 ; i < MAX_SOUNDBUFFER ; i++ ) {
-			if ( cg.soundBufferPriority[i] < cg.soundBufferPriority[worst] ) {
-				worst = i;
-			}
-		}
-		if ( cg.soundBufferPriority[worst] > priority ) {
-			return;		// everything waiting matters more
-		}
-		CG_DropBufferedSound( worst );
+		CG_DropBufferedSound( 0 );
 	}
 	i = cg.soundBufferCount++;
 	cg.soundBuffer[i] = sfx;
@@ -884,6 +875,17 @@ void CG_AddBufferedSoundPriority( sfxHandle_t sfx, int priority ) {
 
 void CG_AddBufferedSound( sfxHandle_t sfx ) {
 	CG_AddBufferedSoundPriority( sfx, 3 );
+}
+
+/*
+=====================
+CG_ClearBufferedSounds
+
+At a round's start and the match's end the waiting lines are stale
+=====================
+*/
+void CG_ClearBufferedSounds( void ) {
+	cg.soundBufferCount = 0;
 }
 
 /*
@@ -903,8 +905,8 @@ static void CG_DropBufferedSound( int i ) {
 =====================
 CG_PlayBufferedSounds
 
-The most important waiting line plays next (the oldest of those); a line
-that cannot start within SOUNDBUFFER_WAIT is dropped
+The most important waiting line plays next (the oldest of those), once
+the previous line has ended and at least 1.5 s after it started
 =====================
 */
 #define ANNOUNCER_LINE_MAX	12000
@@ -912,12 +914,8 @@ that cannot start within SOUNDBUFFER_WAIT is dropped
 static void CG_PlayBufferedSounds( void ) {
 	int		i, best, hold;
 
-	for ( i = 0 ; i < cg.soundBufferCount ; ) {
-		if ( cg.soundTime >= cg.time && cg.time - cg.soundBufferTime[i] > SOUNDBUFFER_WAIT ) {
-			CG_DropBufferedSound( i );
-		} else {
-			i++;
-		}
+	if ( cg.soundTime > cg.time + ANNOUNCER_LINE_MAX ) {
+		cg.soundTime = 0;		// (a time reset)
 	}
 	if ( cg.soundTime >= cg.time || !cg.soundBufferCount ) {
 		return;
@@ -931,13 +929,37 @@ static void CG_PlayBufferedSounds( void ) {
 	// a line holds the announcer while it plays, up to 12 s (1.5 s when
 	// its length is unknown)
 	hold = trap_S_SoundDuration( cg.soundBuffer[best] );
-	hold = hold > 0 ? hold + 100 : 1500;
+	hold = hold > 0 ? hold + 100 : SOUNDBUFFER_GAP;
+	if ( hold < SOUNDBUFFER_GAP ) {
+		hold = SOUNDBUFFER_GAP;
+	}
 	if ( hold > ANNOUNCER_LINE_MAX ) {
 		hold = ANNOUNCER_LINE_MAX;
 	}
 	trap_S_StartLocalSound( cg.soundBuffer[best], CHAN_ANNOUNCER );
 	CG_DropBufferedSound( best );
 	cg.soundTime = cg.time + hold;
+}
+
+/*
+=====================
+CG_PlayHitBeep
+
+After the frame's snapshot and prediction: at most one beep, the kill beep
+when a frag came in the same frame as the hit
+=====================
+*/
+static void CG_PlayHitBeep( void ) {
+	sfxHandle_t	sfx = cg.pendingHitBeep;
+
+	if ( cg.pendingKillBeep ) {
+		sfx = cgs.media.killBeepSound ? cgs.media.killBeepSound : cgs.media.hitSound;
+	}
+	if ( sfx ) {
+		trap_S_StartLocalSound( sfx, CHAN_LOCAL_SOUND );
+	}
+	cg.pendingHitBeep = 0;
+	cg.pendingKillBeep = qfalse;
 }
 
 //=========================================================================
@@ -1049,6 +1071,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 
 	// add buffered sounds
 	CG_PlayBufferedSounds();
+	CG_PlayHitBeep();
 
 #ifdef MISSIONPACK
 	// play buffered voice chats

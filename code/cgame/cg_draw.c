@@ -4345,13 +4345,15 @@ static void CG_DrawDamageArc( void ) {
 CG_DrawLowHealth
 
 Below 25 health: a pulsing red edge and a heartbeat each second, when the
-install has a heartbeat sound
+install has a heartbeat sound; a beat is never restarted while it still
+plays (sound-clarity.md 3)
 =================
 */
 #define LOW_HEALTH			25
 static void CG_DrawLowHealth( void ) {
 	static qboolean		loaded;
 	static sfxHandle_t	beat;
+	static int			beatLength;
 	vec4_t	color = { 0.8f, 0.0f, 0.0f, 0 };
 	int		health = cg.snap->ps.stats[STAT_HEALTH];
 
@@ -4370,10 +4372,14 @@ static void CG_DrawLowHealth( void ) {
 	if ( !loaded ) {
 		loaded = qtrue;
 		beat = trap_S_RegisterSound( "sound/feedback/heartbeat.wav", qfalse );
+		beatLength = beat ? trap_S_SoundDuration( beat ) : 0;
 	}
-	if ( beat && cg.time - cg.lowHealthBeat >= 1000 ) {
+	if ( cg.lowHealthBeat > cg.time ) {
+		cg.lowHealthBeat = 0;		// (a time reset)
+	}
+	if ( beat && cg.time - cg.lowHealthBeat >= ( beatLength > 1000 ? beatLength : 1000 ) ) {
 		cg.lowHealthBeat = cg.time;
-		trap_S_StartLocalSound( beat, CHAN_LOCAL_SOUND );
+		trap_S_StartLocalSound( beat, CHAN_BODY );		// (the hit beeps don't cut it)
 	}
 }
 

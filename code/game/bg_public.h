@@ -1776,6 +1776,7 @@ typedef enum {
 #define	WP_TRIBOLT			WP_GRENADE_LAUNCHER	// three sticky bolts per trigger pull
 #define	TRIBOLT_BOLTS		3					// (g_triboltShots and g_triboltInterval's defaults)
 #define	TRIBOLT_INTERVAL	125
+#define	TRIBOLT_MARK		255					// s.generic1 of a Tri-bolt bolt (past abilityVisual_t)
 #define	WP_SUPER_NAILGUN	WP_PLASMAGUN		// shares the nailgun's slot and ammo
 
 int		BG_AmmoPartner( int weapon );

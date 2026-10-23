@@ -1964,8 +1964,11 @@ void CG_TriboltSounds( centity_t *cent ) {
 	if ( cent->triboltLeft <= 0 ) {
 		return;
 	}
-	if ( ( cent->currentState.eFlags & EF_DEAD ) || cent->triboltNext > cg.time + TRIBOLT_INTERVAL * TRIBOLT_BOLTS ) {
-		cent->triboltLeft = 0;		// died mid-burst, or a time reset
+	// died mid-burst, a time reset, or out of view (or a demo jump) for more
+	// than an interval: the rest is dropped, not played all at once
+	if ( ( cent->currentState.eFlags & EF_DEAD ) || cent->triboltNext > cg.time + TRIBOLT_INTERVAL * TRIBOLT_BOLTS
+		|| cg.time - cent->triboltNext > TRIBOLT_INTERVAL ) {
+		cent->triboltLeft = 0;
 		return;
 	}
 	if ( cg.time < cent->triboltNext ) {
@@ -2065,10 +2068,10 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, im
 		isSprite = qtrue;
 		break;
 #endif
-	case WP_GRENADE_LAUNCHER:		// (the Tri-bolt)
+	case WP_GRENADE_LAUNCHER:
 		mod = cgs.media.dishFlashModel;
 		shader = cgs.media.grenadeExplosionShader;
-		sfx = cgs.media.sfx_triboltexp;
+		sfx = cg.triboltImpact ? cgs.media.sfx_triboltexp : cgs.media.sfx_rockexp;
 		mark = cgs.media.burnMarkShader;
 		radius = 64;
 		light = 300;

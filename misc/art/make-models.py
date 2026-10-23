@@ -24,6 +24,9 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
   sound/tremor/slide_start.wav, slide_loop.wav, slide_stop.wav   the crouch slide
   sound/tremor/dodge.wav                    Clutch's dodge
   sound/tremor/hook_attach.wav              Athena's hook biting
+  sound/tremor/hitbeep1.wav .. hitbeep4.wav the hit beeps by damage (<= 25, 26-49,
+                                            50-74, >= 75), pitch falling as it rises
+  sound/tremor/killbeep.wav                 the kill beep: a short bell
   sound/tremor/tribolt_exp.wav              a Tri-bolt bolt bursting: a short
                                             crack over a low thump, lighter
                                             than a rocket
@@ -468,6 +471,13 @@ def write_wav(path, samples, rate=22050):
         f.write(b"data" + struct.pack("<I", len(data)) + data)
 
 
+def level(samples, db=-1.0):
+    """Scaled so the peak sits at db dBFS (sound-clarity.md 4: never clipped)."""
+    peak = max(abs(v) for v in samples) or 1.0
+    gain = 10 ** (db / 20) * 32767 / 32000 / peak
+    return [v * gain for v in samples]
+
+
 def tone(freqs, seconds, decay, noise=0.0, rate=22050, seed=5):
     rnd = random.Random(seed)
     out = []
@@ -551,14 +561,21 @@ def sounds(out):
     write_wav(os.path.join(out, "sound/tremor/slide_loop.wav"), scrape(1.0, 420, 0, seed=43, loop=True))
     write_wav(os.path.join(out, "sound/tremor/slide_stop.wav"), scrape(0.18, 300, 22, seed=47))
     # Clutch's dodge: a short airy whoosh
-    write_wav(os.path.join(out, "sound/tremor/dodge.wav"), whoosh(0.28, seed=53))
+    write_wav(os.path.join(out, "sound/tremor/dodge.wav"), level(whoosh(0.28, seed=53)))
     # Athena's hook biting: a short metallic clank
     write_wav(os.path.join(out, "sound/tremor/hook_attach.wav"), tone([(1400, 0.5), (2300, 0.35), (3700, 0.2)], 0.22, 22, noise=0.35, seed=59))
+    # the hit beeps, 0.12 s each, falling in pitch with the damage tier
+    for n, f in enumerate((1560, 1240, 960, 740)):
+        write_wav(os.path.join(out, "sound/tremor/hitbeep%i.wav" % (n + 1)),
+                  tone([(f, 0.8), (f * 2, 0.15)], 0.12, 30, seed=71 + n))
+    # the kill beep: a short bell
+    write_wav(os.path.join(out, "sound/tremor/killbeep.wav"),
+              tone([(1760, 0.6), (1760 * 2.76, 0.18), (1760 * 5.4, 0.06)], 0.35, 11, seed=79))
     # a Tri-bolt bolt bursting: a short crack over a low thump
     crack = scrape(0.55, 1800, 9, seed=61)
     thump = tone([(95, 0.9), (62, 0.6)], 0.55, 8, seed=67)
     write_wav(os.path.join(out, "sound/tremor/tribolt_exp.wav"),
-              [0.75 * a + 0.9 * b for a, b in zip(crack, thump)])
+              level([0.75 * a + 0.9 * b for a, b in zip(crack, thump)]))
     # each ability: a rising sweep on casting, a falling blip at the end,
     # pitched by the name so they differ
     for name in ABILITIES:

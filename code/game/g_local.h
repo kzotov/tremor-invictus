@@ -405,6 +405,8 @@ struct gclient_s {
 	vec3_t		anchorOrigin;
 	struct gentity_s	*anchorEnt;
 	int			abilityPrevState;	// ability state after the last think
+	int			hitFrameTime;		// level.time of hitFrameDamage, the damage this client dealt
+	int			hitFrameDamage;		// in that frame (the hit beep's tier)
 	int			lastDamageTime;		// level.time this client was last hit (armour-only hits too; the regenerations wait on it)
 	int			regenResidual;		// msec of regeneration not yet turned into health
 

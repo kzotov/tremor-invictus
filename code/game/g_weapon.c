@@ -711,6 +711,7 @@ static void G_FireTribolt( gentity_t *ent ) {
 
 	bolt = fire_grenade( ent, muzzle, forward );
 	bolt->classname = "tribolt";
+	bolt->s.generic1 = TRIBOLT_MARK;			// its own impact sound
 	bolt->s.eFlags = 0;							// no bouncing
 	bolt->s.pos.trType = TR_GRAVITY_LOW;		// bolts drop at 400 u/s^2
 	G_WeaponTuneMissile( bolt, WP_TRIBOLT );

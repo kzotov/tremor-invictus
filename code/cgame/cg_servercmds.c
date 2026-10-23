@@ -351,7 +351,12 @@ static void CG_ConfigStringModified( void ) {
 	} else if ( num >= CS_TEAMVOTE_STRING && num <= CS_TEAMVOTE_STRING + 1) {
 		Q_strncpyz( cgs.teamVoteString[num-CS_TEAMVOTE_STRING], str, sizeof( cgs.teamVoteString[0] ) );
 	} else if ( num == CS_INTERMISSION ) {
+		if ( atoi( str ) && !cg.intermissionStarted ) {
+			CG_ClearBufferedSounds();
+		}
 		cg.intermissionStarted = atoi( str );
+	} else if ( num == CS_ROUNDINFO ) {
+		CG_ClearBufferedSounds();		// a new round
 	} else if ( num >= CS_MODELS && num < CS_MODELS+MAX_MODELS ) {
 		cgs.gameModels[ num-CS_MODELS ] = trap_R_RegisterModel( str );
 	} else if ( num >= CS_SOUNDS && num < CS_SOUNDS+MAX_SOUNDS ) {

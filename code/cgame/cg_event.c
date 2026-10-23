@@ -138,16 +138,9 @@ static void CG_Obituary( entityState_t *ent ) {
 	attacker = ent->otherEntityNum2;
 
 	// the kill beep, for our own frags
+	// (in place of the frame's hit beep: CG_PlayHitBeep)
 	if ( cg_killBeep.integer && attacker == cg.snap->ps.clientNum && target != attacker && target >= 0 && target < MAX_CLIENTS ) {
-		static sfxHandle_t	beep;
-
-		if ( !beep ) {
-			beep = trap_S_RegisterSound( "sound/feedback/killbeep.wav", qfalse );
-			if ( !beep ) {
-				beep = cgs.media.hitSound;
-			}
-		}
-		trap_S_StartLocalSound( beep, CHAN_LOCAL_SOUND );
+		cg.pendingKillBeep = qtrue;
 	}
 	mod = ent->eventParm;
 
@@ -1219,7 +1212,9 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			CG_OrbBurst( position, dir );
 			break;
 		}
+		cg.triboltImpact = es->generic1 == TRIBOLT_MARK;
 		CG_MissileHitPlayer( es->weapon, position, dir, es->otherEntityNum );
+		cg.triboltImpact = qfalse;
 		break;
 
 	case EV_MISSILE_MISS:
@@ -1230,7 +1225,9 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			CG_ImpactMark( cgs.media.burnMarkShader, position, dir, random() * 360, 1, 1, 1, 1, qfalse, 48, qfalse );
 			break;
 		}
+		cg.triboltImpact = es->generic1 == TRIBOLT_MARK;
 		CG_MissileHitWall( es->weapon, 0, position, dir, IMPACTSOUND_DEFAULT );
+		cg.triboltImpact = qfalse;
 		if ( es->generic1 == AV_ACID && cgs.media.acidMarkShader ) {
 			CG_ImpactMark( cgs.media.acidMarkShader, position, dir, random() * 360, 1, 1, 1, 1, qtrue, 40, qfalse );
 		}
@@ -1249,7 +1246,9 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	case EV_MISSILE_MISS_METAL:
 		DEBUGNAME("EV_MISSILE_MISS_METAL");
 		ByteToDir( es->eventParm, dir );
+		cg.triboltImpact = es->generic1 == TRIBOLT_MARK;
 		CG_MissileHitWall( es->weapon, 0, position, dir, IMPACTSOUND_METAL );
+		cg.triboltImpact = qfalse;
 		break;
 
 	case EV_RAILTRAIL:

@@ -358,23 +358,23 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 			trap_S_StartLocalSound( cgs.media.hitSound, CHAN_LOCAL_SOUND );
 		}
 #else
-		if ( cg_hitBeep.integer ) {
-			int	hit = ps->persistant[PERS_ATTACKEE_ARMOR];
+		// sound-clarity.md 3: one beep for the snapshot, its tier by the
+		// damage dealt (PERS_ATTACKEE_ARMOR's low 9 bits), pitch falling as
+		// the damage rises
+		if ( cg_hitBeep.integer == 1 ) {
+			cg.pendingHitBeep = cgs.media.hitSound;
+		} else if ( cg_hitBeep.integer >= 2 ) {
+			int		damage = ps->persistant[PERS_ATTACKEE_ARMOR] & 0x1ff;
+			int		tier = damage <= 25 ? 0 : damage < 50 ? 1 : damage < 75 ? 2 : 3;
 
-			// a tone for armour, another for health, a crack when armour breaks
-			if ( ( hit & 0x400 ) && cgs.media.hitArmorBreakSound ) {
-				trap_S_StartLocalSound( cgs.media.hitArmorBreakSound, CHAN_LOCAL_SOUND );
-			} else if ( ( hit & 0x200 ) && cgs.media.hitArmorSound ) {
-				trap_S_StartLocalSound( cgs.media.hitArmorSound, CHAN_LOCAL_SOUND );
-			} else if ( cgs.media.hitHealthSound ) {
-				trap_S_StartLocalSound( cgs.media.hitHealthSound, CHAN_LOCAL_SOUND );
-			} else {
-				trap_S_StartLocalSound( cgs.media.hitSound, CHAN_LOCAL_SOUND );
+			if ( cg_hitBeep.integer == 3 ) {
+				tier = 3 - tier;
 			}
+			cg.pendingHitBeep = cgs.media.hitBeepSounds[tier] ? cgs.media.hitBeepSounds[tier] : cgs.media.hitSound;
 		}
 #endif
 	} else if ( ps->persistant[PERS_HITS] < ops->persistant[PERS_HITS] ) {
-		trap_S_StartLocalSound( cgs.media.hitTeamSound, CHAN_LOCAL_SOUND );
+		cg.pendingHitBeep = cgs.media.hitTeamSound;
 	}
 
 	// health changes of more than -1 should make pain sounds

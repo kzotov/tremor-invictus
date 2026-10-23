@@ -1347,12 +1347,19 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			targ->health, take, asave );
 	}
 
-	// the attacker's hit tone: on armour, or the armour breaking
-	// (PERS_ATTACKEE_ARMOR: armour left, 0x200 had armour, 0x400 it broke)
+	// the attacker's hit beep (PERS_ATTACKEE_ARMOR: the damage dealt this
+	// frame, capped at 511, so a shotgun volley is one sum; 0x200 the hit was
+	// on armour, 0x400 the armour broke)
 	if ( hitAttacker && client ) {
-		int armorAfter = client->ps.stats[STAT_ARMOR] > 0 ? client->ps.stats[STAT_ARMOR] : 0;
+		gclient_t	*hc = hitAttacker->client;
+		int			armorAfter = client->ps.stats[STAT_ARMOR] > 0 ? client->ps.stats[STAT_ARMOR] : 0;
 
-		hitAttacker->client->ps.persistant[PERS_ATTACKEE_ARMOR] = ( armorAfter & 0x1ff )
+		if ( hc->hitFrameTime != level.time ) {
+			hc->hitFrameTime = level.time;
+			hc->hitFrameDamage = 0;
+		}
+		hc->hitFrameDamage += take + asave;
+		hc->ps.persistant[PERS_ATTACKEE_ARMOR] = ( hc->hitFrameDamage > 0x1ff ? 0x1ff : hc->hitFrameDamage )
 			| ( hitArmorBefore > 0 && asave > 0 ? 0x200 : 0 ) | ( hitArmorBefore > 0 && armorAfter == 0 ? 0x400 : 0 );
 	}
 
