@@ -1256,8 +1256,10 @@ static void PM_AirControl( const vec3_t wishdir, float wishspeed, float strength
 		return;		// no turning while slowing down
 	}
 
-	// turn rate grows with the square of how well aim and velocity agree
-	k = strength * 32 * dot * dot * pml.frametime;
+	// movement.md: the velocity turns toward the wish direction by
+	// 0.8 x intensity x dot^2 x dt metres per second (40 u to the metre:
+	// 32 u/s per point of intensity, so 4800 u/s at 150)
+	k = 0.8f * strength * UNITS_PER_METRE * dot * dot * pml.frametime;
 	VectorScale( dir, speed, dir );
 	VectorMA( dir, k, wishdir, dir );
 	VectorNormalize( dir );
@@ -1523,9 +1525,13 @@ static void PM_WalkMove( void ) {
 	if ( PM_SlowMoving() ) {
 		float	slow = PM_SlowSpeed();
 
-		// walking is a light touch on the keys: it moves at the walk speed
+		// walking is a light touch on the keys: full walk input (64, the
+		// client's walk value) moves at the walk speed, an analog stick in
+		// proportion
 		if ( ( pm->cmd.buttons & BUTTON_WALKING ) && !( pm->ps->pm_flags & PMF_DUCKED ) && wishspeed > 0 ) {
-			wishspeed = slow;
+			int		in = abs( pm->cmd.forwardmove ) > abs( pm->cmd.rightmove ) ? abs( pm->cmd.forwardmove ) : abs( pm->cmd.rightmove );
+
+			wishspeed = in >= 64 ? slow : slow * in / 64.0f;
 		} else if ( wishspeed > slow ) {
 			wishspeed = slow;
 		}
@@ -1564,13 +1570,16 @@ static void PM_WalkMove( void ) {
 
 	vel = VectorLength(pm->ps->velocity);
 
-	// slide along the ground plane
-	PM_ClipVelocity (pm->ps->velocity, pml.groundTrace.plane.normal, 
-		pm->ps->velocity, OVERCLIP );
+	// slide along the ground plane; for 250 ms after a hard landing the
+	// velocity is not clipped to it (movement.md: ground and landing)
+	if ( !( ( pm->ps->pm_flags & PMF_TIME_LAND ) && pm->ps->pm_time > 0 ) ) {
+		PM_ClipVelocity (pm->ps->velocity, pml.groundTrace.plane.normal,
+			pm->ps->velocity, OVERCLIP );
 
-	// don't decrease velocity when going up or down a slope
-	VectorNormalize(pm->ps->velocity);
-	VectorScale(pm->ps->velocity, vel, pm->ps->velocity);
+		// don't decrease velocity when going up or down a slope
+		VectorNormalize(pm->ps->velocity);
+		VectorScale(pm->ps->velocity, vel, pm->ps->velocity);
+	}
 
 	// don't do anything if standing still
 	if (!pm->ps->velocity[0] && !pm->ps->velocity[1]) {
@@ -1767,10 +1776,9 @@ static void PM_CrashLand( void ) {
 			if ( pm->ps->stats[STAT_HEALTH] > 0 ) {
 				PM_AddEvent( EV_FALL_MEDIUM );
 			}
-		} else if ( delta > 7 ) {
-			PM_AddEvent( EV_FALL_SHORT );
 		} else {
-			PM_AddEvent( PM_FootstepForSurface() );
+			// the landing event from 100 u/s of impact (delta 1)
+			PM_AddEvent( EV_FALL_SHORT );
 		}
 	}
 
@@ -2010,9 +2018,9 @@ static void PM_GroundTrace( void ) {
 		PM_CrashLand();
 		pm->ps->stats[STAT_LAND_TIME] = 0;
 
-		// don't do landing time if we were just going down a slope
+		// a hard landing (below -200 u/s, not just going down a slope):
+		// 250 ms without the ground clip
 		if ( pml.previous_velocity[2] < -200 ) {
-			// don't allow another jump for a little while
 			pm->ps->pm_flags |= PMF_TIME_LAND;
 			pm->ps->pm_time = 250;
 		}

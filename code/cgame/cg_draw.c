@@ -4240,8 +4240,11 @@ static void CG_DrawDeathScreen( void ) {
 		return;
 	}
 	// the killer block (88), the respawn line, the starter line under it
-	// (+6), room for the bind hint, 6 above and below
-	CG_FillRect( 140, y - 6, 360, ( cg.deathKiller >= 0 ? 88 : 0 ) + 2 * SMALLCHAR_HEIGHT + 6 + TINYCHAR_HEIGHT + 2 + 12, back );
+	// (+6), the bind hint when a weapon key is unbound, 6 above and below
+	w = ( !CG_BindName( va( "weapon %i", BG_WeaponSlot( WP_MACHINEGUN ) ) )[0]
+		|| !CG_BindName( va( "weapon %i", BG_WeaponSlot( WP_SHOTGUN ) ) )[0]
+		|| !CG_BindName( va( "weapon %i", BG_WeaponSlot( WP_NAILGUN ) ) )[0] ) ? TINYCHAR_HEIGHT + 2 : 0;
+	CG_FillRect( 140, y - 6, 360, ( cg.deathKiller >= 0 ? 88 : 0 ) + 2 * SMALLCHAR_HEIGHT + 6 + w + 12, back );
 
 	if ( cg.deathKiller >= 0 && cg.deathKiller < MAX_CLIENTS ) {
 		int champ;

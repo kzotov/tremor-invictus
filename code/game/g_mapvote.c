@@ -305,7 +305,8 @@ typedef enum {
 	LOBBY_VOTE,
 	LOBBY_REVEAL,
 	LOBBY_PICK,
-	LOBBY_START		// the countdown
+	LOBBY_START,	// the countdown
+	LOBBY_CHANGE	// the voted map is loading (shown as the reveal)
 } lobbyPhase_t;
 
 #define LOBBY_SOON_MSEC		5000	// (d)
@@ -408,7 +409,8 @@ static void G_LobbySend( void ) {
 				votes[mapVoteOf[i] - 1]++;
 			}
 		}
-		Com_sprintf( text, sizeof( text ), "%i %i %i %i %s %s %s %i %i %i", lobbyPhase, lobbyEnd, mode, lobbyWinner,
+		Com_sprintf( text, sizeof( text ), "%i %i %i %i %s %s %s %i %i %i",
+			lobbyPhase == LOBBY_CHANGE ? LOBBY_REVEAL : lobbyPhase, lobbyEnd, mode, lobbyWinner,
 			mapVoteCount > 0 ? mapVoteMaps[0] : "-", mapVoteCount > 1 ? mapVoteMaps[1] : "-",
 			mapVoteCount > 2 ? mapVoteMaps[2] : "-", votes[0], votes[1], votes[2] );
 		for ( i = 0 ; i < level.maxclients ; i++ ) {
@@ -631,8 +633,11 @@ void G_LobbyThink( void ) {
 				trap_Cvar_Set( "g_lobbyState", "pick" );
 				trap_Cvar_Set( "g_lobbyMap", mapVoteMaps[lobbyWinner - 1] );
 				trap_SendConsoleCommand( EXEC_APPEND, va( "map %s\n", mapVoteMaps[lobbyWinner - 1] ) );
-				lobbyPhase = LOBBY_OFF;		// (the map load starts it again)
-				return;
+				// the map load starts the lobby again; if it doesn't come
+				// (a map that won't load) the pick goes on here
+				lobbyPhase = LOBBY_CHANGE;
+				lobbyEnd = level.time + 3000;
+				break;
 			}
 			lobbyPhase = LOBBY_PICK;
 			lobbyEnd = 0;
@@ -675,6 +680,14 @@ void G_LobbyThink( void ) {
 					}
 				}
 			}
+		}
+		break;
+	case LOBBY_CHANGE:
+		if ( level.time >= lobbyEnd ) {
+			trap_Cvar_Set( "g_lobbyState", "" );
+			trap_Cvar_Set( "g_lobbyMap", "" );
+			lobbyPhase = LOBBY_PICK;
+			lobbyEnd = 0;
 		}
 		break;
 	case LOBBY_START:
