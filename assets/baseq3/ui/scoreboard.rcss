@@ -1,0 +1,118 @@
+/* The Tab scoreboard (scoreboard.md): one centred panel over the game,
+   fixed columns per mode, a team stripe on each row's left edge */
+
+body {
+	font-family: "Arial Narrow";
+	font-weight: bold;
+	color: #e8e4dc;
+	width: 100%;
+	height: 100%;
+}
+
+div { display: block; }
+
+.board {
+	display: block;
+	width: 1400dp;
+	max-width: 88%;
+	margin: 120dp auto 0dp auto;
+	padding: 20dp 24dp 16dp 24dp;
+	background-color: rgba(10, 10, 14, 210);
+}
+
+/* the header */
+.top {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+	margin-bottom: 14dp;
+}
+.title { font-size: 18dp; color: #9a9aa0; }
+.line { font-size: 30dp; }
+.time { font-size: 22dp; text-align: right; }
+.round { font-size: 18dp; color: #9a9aa0; text-align: right; }
+
+/* rows */
+.row {
+	display: flex;
+	align-items: center;
+	height: 40dp;
+	margin-bottom: 4dp;
+	border-left: 6dp transparent;
+	font-size: 22dp;
+	white-space: nowrap;
+}
+.row:nth-child(even) { background-color: rgba(255, 255, 255, 10); }
+.row.head {
+	height: 24dp;
+	font-size: 15dp;
+	color: #9a9aa0;
+	background-color: transparent;
+}
+.row.red { border-left-color: #ff3838; }
+.row.blue { border-left-color: #2f8bff; }
+.row.self {
+	border: 2dp #ffb748;
+	border-left-width: 6dp;
+	background-color: rgba(255, 255, 255, 26);
+}
+.row.self.red { border-left-color: #ff3838; }
+.row.self.blue { border-left-color: #2f8bff; }
+.row.connecting { color: #8a8a90; }
+
+.row span { display: block; overflow: hidden; }
+.c-rank { width: 48dp; text-align: right; padding-right: 8dp; }
+.c-por { width: 40dp; height: 32dp; }
+.c-por img { width: 32dp; height: 32dp; margin-left: 4dp; }
+.c-name { width: 360dp; padding-left: 8dp; text-overflow: ellipsis; }
+.v { width: 90dp; text-align: right; }
+.v.wide { width: 110dp; }
+.c-ping { width: 80dp; text-align: right; padding-right: 10dp; }
+.good { color: #5bd75b; }
+.mid { color: #e8d04a; }
+.bad { color: #ff5050; }
+.bot { color: #9a9aa0; }
+
+.cols3 .v4th, .cols3 .v5th { display: none; }
+.cols4 .v5th { display: none; }
+
+/* team modes: two columns */
+.teams { display: flex; justify-content: space-between; }
+.team { width: 49%; }
+.team .c-rank { display: none; }
+.team .c-name { width: 220dp; flex: 1; }
+.team .v { width: 70dp; }
+.team .v.wide { width: 90dp; }
+.team .c-ping { width: 60dp; }
+.teamhead {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+	height: 60dp;
+	margin-bottom: 6dp;
+	border-bottom: 3dp transparent;
+}
+.teamhead.red { border-bottom-color: #ff3838; color: #ff6a6a; }
+.teamhead.blue { border-bottom-color: #2f8bff; color: #6aaeff; }
+.teamname { font-size: 26dp; }
+.teamscore { font-size: 48dp; }
+.teamtotal { font-size: 15dp; color: #9a9aa0; }
+
+/* duel: two players side by side */
+.duel { display: flex; justify-content: space-between; }
+.duelist { width: 40%; text-align: center; padding: 8dp; border: 2dp transparent; }
+.duelist.self { border-color: #ffb748; }
+.duelist img { width: 64dp; height: 64dp; }
+.duelist .portrait { height: 64dp; }
+.duelname { font-size: 26dp; height: 36dp; line-height: 36dp; }
+.duelfrags { font-size: 56dp; height: 66dp; line-height: 66dp; }
+.labels { width: 20%; text-align: center; color: #9a9aa0; font-size: 15dp; padding-top: 176dp; }
+.stat { height: 30dp; line-height: 30dp; font-size: 22dp; }
+.labels .stat { font-size: 15dp; }
+.weapons { margin-top: 10dp; }
+.wrow { display: flex; justify-content: space-between; align-items: center; height: 30dp; font-size: 20dp; }
+.wrow span { display: block; width: 18%; text-align: center; }
+.wrow img { width: 24dp; height: 24dp; }
+.wicon { width: 28%; text-align: center; }
+
+.specs { margin-top: 12dp; font-size: 15dp; color: #9a9aa0; }

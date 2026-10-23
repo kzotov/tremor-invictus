@@ -52,6 +52,15 @@ Rml::ElementDocument	*document;
 Rml::String		documentPath;
 int				screenWidth, screenHeight;
 
+// the overlay: one document over the game that takes no input (the Tab
+// scoreboard), shown while the cvar rml_overlay names it
+Rml::Context	*overlayContext;
+Rml::ElementDocument	*overlay;
+Rml::String		overlayPath;
+int				overlayShowTime, overlayHideTime;	// fade in 120 ms, out 80 ms
+#define OVERLAY_FADE_IN		120
+#define OVERLAY_FADE_OUT	80
+
 // the champion stage (see UpdateStage)
 #define MAX_STAGES		8
 
@@ -493,6 +502,8 @@ extern "C" void RML_Init( const rmlImport_t *import, int width, int height ) {
 	context = Rml::CreateContext( "main", Rml::Vector2i( width, height ) );
 	// documents are laid out at 1080 lines; dp units scale to the window
 	context->SetDensityIndependentPixelRatio( height / 1080.0f );
+	overlayContext = Rml::CreateContext( "overlay", Rml::Vector2i( width, height ) );
+	overlayContext->SetDensityIndependentPixelRatio( height / 1080.0f );
 	initialised = true;
 	imp.SetCvar( "rml_ok", "1" );		// the menus can use RmlUi
 }
@@ -505,6 +516,9 @@ extern "C" void RML_Shutdown( void ) {
 	initialised = false;
 	context = nullptr;
 	document = nullptr;
+	overlayContext = nullptr;
+	overlay = nullptr;
+	overlayPath.clear();
 }
 
 extern "C" void RML_RendererRestart( int width, int height ) {
@@ -518,6 +532,8 @@ extern "C" void RML_RendererRestart( int width, int height ) {
 	screenHeight = height;
 	context->SetDimensions( Rml::Vector2i( width, height ) );
 	context->SetDensityIndependentPixelRatio( height / 1080.0f );
+	overlayContext->SetDimensions( Rml::Vector2i( width, height ) );
+	overlayContext->SetDensityIndependentPixelRatio( height / 1080.0f );
 }
 
 extern "C" int RML_Active( void ) {
@@ -568,6 +584,48 @@ bool Condition( const Rml::String &when ) {
 	return true;
 }
 
+Rml::String Escape( const char *text ) {
+	Rml::String	escaped;
+
+	for ( const char *c = text; *c; c++ ) {
+		escaped += *c == '<' ? "&lt;" : *c == '>' ? "&gt;" : *c == '&' ? "&amp;" : Rml::String( 1, *c );
+	}
+	return escaped;
+}
+
+/*
+=================
+Rows
+
+data-row="<cvar>": a row filled from a cvar of fields split by '|'; the row
+hides while the cvar is empty. Inside it, data-cell="n" takes field n as
+its text, data-cell-src="n" as its image (hidden when empty), and
+data-cell-class="n" (on the row or a cell) adds field n's class names to
+the element's own.
+=================
+*/
+const std::vector<Rml::String>	*rowFields;
+
+const Rml::String &RowField( Rml::Variant *index ) {
+	static const Rml::String	none;
+	size_t	n = (size_t)atoi( index->Get<Rml::String>().c_str() );
+
+	return rowFields && n < rowFields->size() ? ( *rowFields )[n] : none;
+}
+
+void RowClasses( Rml::Element *element, Rml::Variant *index ) {
+	Rml::String	base = element->GetAttribute<Rml::String>( "data-base-class", "" ), want;
+
+	if ( !element->GetAttribute( "data-base-class" ) ) {
+		base = element->GetClassNames();
+		element->SetAttribute( "data-base-class", base );
+	}
+	want = base + " " + RowField( index );
+	if ( element->GetClassNames() != want ) {
+		element->SetClassNames( want );
+	}
+}
+
 void ApplyConditions( Rml::Element *element ) {
 	for ( int i = 0 ; i < element->GetNumChildren() ; i++ ) {
 		Rml::Element	*child = element->GetChild( i );
@@ -575,6 +633,59 @@ void ApplyConditions( Rml::Element *element ) {
 		Rml::Variant	*src = child->GetAttribute( "data-src-cvar" );
 		Rml::Variant	*cls = child->GetAttribute( "data-class" );
 		Rml::Variant	*text = child->GetAttribute( "data-text-cvar" );
+		Rml::Variant	*row = child->GetAttribute( "data-row" );
+		Rml::Variant	*cell = child->GetAttribute( "data-cell" );
+		Rml::Variant	*cellSrc = child->GetAttribute( "data-cell-src" );
+		Rml::Variant	*cellClass = child->GetAttribute( "data-cell-class" );
+
+		if ( row ) {
+			char							value[256];
+			std::vector<Rml::String>		fields;
+			const std::vector<Rml::String>	*outer = rowFields;
+			size_t							start = 0, bar;
+
+			imp.GetCvar( row->Get<Rml::String>().c_str(), value, sizeof( value ) );
+			if ( !value[0] ) {
+				child->SetProperty( "display", "none" );
+				continue;
+			}
+			child->RemoveProperty( "display" );
+			Rml::String	all( value );
+			while ( ( bar = all.find( '|', start ) ) != Rml::String::npos ) {
+				fields.push_back( all.substr( start, bar - start ) );
+				start = bar + 1;
+			}
+			fields.push_back( all.substr( start ) );
+			rowFields = &fields;
+			if ( cellClass ) {
+				RowClasses( child, cellClass );
+			}
+			ApplyConditions( child );
+			rowFields = outer;
+			continue;
+		}
+		if ( cell ) {
+			Rml::String	escaped = Escape( RowField( cell ).c_str() );
+
+			if ( child->GetInnerRML() != escaped ) {
+				child->SetInnerRML( escaped );
+			}
+		}
+		if ( cellSrc ) {
+			const Rml::String	&path = RowField( cellSrc );
+
+			if ( path.empty() ) {
+				child->SetProperty( "display", "none" );
+			} else {
+				child->RemoveProperty( "display" );
+				if ( child->GetAttribute<Rml::String>( "src", "" ) != "/" + path ) {
+					child->SetAttribute( "src", "/" + path );
+				}
+			}
+		}
+		if ( cellClass ) {
+			RowClasses( child, cellClass );
+		}
 
 		// text that follows a cvar while the document is open
 		if ( text ) {
@@ -582,9 +693,7 @@ void ApplyConditions( Rml::Element *element ) {
 			Rml::String	escaped;
 
 			imp.GetCvar( text->Get<Rml::String>().c_str(), value, sizeof( value ) );
-			for ( const char *c = value; *c; c++ ) {
-				escaped += *c == '<' ? "&lt;" : *c == '>' ? "&gt;" : *c == '&' ? "&amp;" : Rml::String( 1, *c );
-			}
+			escaped = Escape( value );
 			if ( child->GetInnerRML() != escaped ) {
 				child->SetInnerRML( escaped );
 			}
@@ -643,6 +752,127 @@ void FillValues( Rml::Element *element ) {
 	}
 }
 
+/*
+=================
+Repeats
+
+data-repeat="N" on an element makes N copies of it in place; in each copy
+and its children, '#' in data- attributes becomes the copy's number (0 for
+the first), so one written row serves a whole list
+=================
+*/
+void NumberCopy( Rml::Element *element, int n ) {
+	Rml::ElementAttributes	attributes = element->GetAttributes();
+
+	for ( auto &it : attributes ) {
+		if ( it.first.compare( 0, 5, "data-" ) || it.first == "data-repeat" ) {
+			continue;
+		}
+		Rml::String	value = it.second.Get<Rml::String>();
+		size_t		hash = value.find( '#' );
+
+		if ( hash != Rml::String::npos ) {
+			while ( hash != Rml::String::npos ) {
+				value.replace( hash, 1, std::to_string( n ) );
+				hash = value.find( '#', hash );
+			}
+			element->SetAttribute( it.first, value );
+		}
+	}
+	for ( int i = 0 ; i < element->GetNumChildren() ; i++ ) {
+		NumberCopy( element->GetChild( i ), n );
+	}
+}
+
+void ExpandRepeats( Rml::Element *element ) {
+	for ( int i = 0 ; i < element->GetNumChildren() ; i++ ) {
+		Rml::Element	*child = element->GetChild( i );
+		int				count = atoi( child->GetAttribute<Rml::String>( "data-repeat", "0" ).c_str() );
+
+		if ( count > 1 ) {
+			child->RemoveAttribute( "data-repeat" );
+			for ( int n = count - 1 ; n >= 1 ; n-- ) {
+				Rml::ElementPtr	copy = child->Clone();
+
+				NumberCopy( copy.get(), n );
+				element->InsertBefore( std::move( copy ), child->GetNextSibling() );
+			}
+			NumberCopy( child, 0 );
+			i += count - 1;
+			continue;
+		}
+		ExpandRepeats( child );
+	}
+}
+
+/*
+=================
+RML_OverlayFrame
+
+The overlay follows the cvar rml_overlay (a document path, or empty);
+drawn after the game's own 2D and under the menus
+=================
+*/
+extern "C" void RML_OverlayFrame( void ) {
+	char	path[256];
+	int		now;
+	float	alpha;
+
+	if ( !initialised ) {
+		return;
+	}
+	now = imp.Milliseconds();
+	imp.GetCvar( "rml_overlay", path, sizeof( path ) );
+	if ( path[0] && ( !overlay || overlayPath != path ) ) {
+		if ( overlay ) {
+			overlay->Close();
+		}
+		overlay = overlayContext->LoadDocument( path );
+		overlayPath = path;
+		if ( !overlay ) {
+			imp.Print( ( Rml::String( "RmlUi: could not load " ) + path + "\n" ).c_str() );
+			return;
+		}
+		ExpandRepeats( overlay );
+		overlayShowTime = now;
+		overlayHideTime = 0;
+	}
+	if ( !overlay ) {
+		return;
+	}
+	if ( path[0] ) {
+		if ( overlayHideTime || !overlay->IsVisible() ) {
+			// shown again: fade in from where it is
+			overlayShowTime = now;
+			overlayHideTime = 0;
+		}
+		alpha = ( now - overlayShowTime ) / (float)OVERLAY_FADE_IN;
+	} else {
+		if ( !overlay->IsVisible() ) {
+			return;
+		}
+		if ( !overlayHideTime ) {
+			overlayHideTime = now;
+		}
+		alpha = 1 - ( now - overlayHideTime ) / (float)OVERLAY_FADE_OUT;
+		if ( alpha <= 0 ) {
+			overlay->Hide();
+			return;
+		}
+	}
+	if ( alpha > 1 ) {
+		alpha = 1;
+	}
+	if ( !overlay->IsVisible() ) {
+		overlay->Show( Rml::ModalFlag::None, Rml::FocusFlag::None );
+	}
+	overlay->SetProperty( "opacity", std::to_string( alpha ) );
+	ApplyConditions( overlay );
+	overlayContext->Update();
+	overlayContext->Render();
+	imp.SetScissor2D( 0, 0, 0, 0 );
+}
+
 extern "C" void RML_Show( const char *path ) {
 	if ( !initialised ) {
 		return;
@@ -666,6 +896,7 @@ extern "C" void RML_Show( const char *path ) {
 	}
 	documentPath = path;
 	imp.SetCvar( "rml_doc", path );
+	ExpandRepeats( document );
 	FillValues( document );
 	ApplyConditions( document );
 	document->Show();
@@ -698,6 +929,11 @@ extern "C" void RML_Reload( void ) {
 	Rml::Factory::ClearStyleSheetCache();
 	Rml::Factory::ClearTemplateCache();
 	documentPath.clear();
+	if ( overlay ) {
+		overlay->Close();		// loaded again on its next frame
+		overlay = nullptr;
+		overlayPath.clear();
+	}
 	RML_Show( path.c_str() );
 }
 

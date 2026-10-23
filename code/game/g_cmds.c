@@ -1760,7 +1760,7 @@ void Cmd_CallTeamVote_f( gentity_t *ent ) {
 		if ( level.clients[i].pers.connected == CON_DISCONNECTED )
 			continue;
 		if (level.clients[i].sess.sessionTeam == team)
-			trap_SendServerCommand( i, va("print \"%s called a team vote.\n\"", ent->client->pers.netname ) );
+			G_SysMsg( i, STR_SYS_TEAMVOTE_CALLED, ent->client->pers.netname, NULL );
 	}
 
 	// start the voting, the caller automatically votes yes

@@ -406,6 +406,11 @@ qboolean CG_DrawOldScoreboard( void ) {
 		return qfalse;
 	}
 
+	// scoreboard.md: the RmlUi board, when the client has it
+	if ( CG_RmlScoreboard() ) {
+		return cg.showScores || cg.predictedPlayerState.pm_type == PM_INTERMISSION;
+	}
+
 	// don't draw scoreboard during death while warmup up
 	if ( cg.warmup && !cg.showScores ) {
 		return qfalse;
@@ -718,3 +723,473 @@ static qboolean CG_FlagBoard( void ) {
 }
 
 
+
+/*
+================================================================================
+
+THE RMLUI SCOREBOARD (scoreboard.md)
+
+The board is the document ui/scoreboard.rml, drawn by the client over the
+game while rml_overlay names it. The game fills it through sb_* cvars:
+rows are '|'-separated fields (see the document), written only when they
+change and at most every 100 ms.
+
+================================================================================
+*/
+
+char	cg_portraitPath[32][MAX_QPATH];
+
+#define SB_ROWS			24		// free-for-all rows
+#define SB_TEAM_ROWS	12		// rows per team
+#define SB_WEAPON_ROWS	8		// duel weapon lines
+
+static void CG_BoardCvar( const char *name, const char *value ) {
+	char	old[MAX_CVAR_VALUE_STRING];
+
+	trap_Cvar_VariableStringBuffer( name, old, sizeof( old ) );
+	if ( strcmp( old, value ) ) {
+		trap_Cvar_Set( name, value );
+	}
+}
+
+// a name for a row: no colour codes, no field separators
+static const char *CG_BoardName( int client ) {
+	static char	name[MAX_QPATH];
+	char		*p;
+
+	Q_strncpyz( name, cgs.clientinfo[client].name, sizeof( name ) );
+	Q_CleanStr( name );
+	for ( p = name ; *p ; p++ ) {
+		if ( *p == '|' ) {
+			*p = '/';
+		}
+	}
+	return name;
+}
+
+static const char *CG_BoardPortrait( int client ) {
+	int		champion = BG_ChampionForModel( cgs.clientinfo[client].modelName );
+
+	return champion >= 0 && champion < 32 ? cg_portraitPath[champion] : "";
+}
+
+// the ping text and its colour class (green to 60 ms, yellow to 120)
+static void CG_BoardPing( int client, int ping, char *text, int size, const char **cls ) {
+	if ( cgs.clientinfo[client].botSkill ) {
+		Q_strncpyz( text, BG_String( STR_BD_BOT ), size );
+		*cls = "bot";
+		return;
+	}
+	Com_sprintf( text, size, "%i", ping );
+	*cls = ping <= 60 ? "good" : ping <= 120 ? "mid" : "bad";
+}
+
+// the viewed player: you, or whoever you follow
+static int CG_BoardViewed( void ) {
+	return cg.snap ? cg.snap->ps.clientNum : cg.clientNum;
+}
+
+/*
+=================
+CG_BoardRow
+
+classes|portrait|rank|name|v4|v5|v6|v7|v8|v9|ping|ping class
+=================
+*/
+static void CG_BoardRow( const char *cvar, const score_t *s, const char *rank, const char *classes, const char **v ) {
+	char		ping[16], row[MAX_CVAR_VALUE_STRING];
+	const char	*pingClass;
+	clientInfo_t	*ci = &cgs.clientinfo[s->client];
+
+	CG_BoardPing( s->client, s->ping, ping, sizeof( ping ), &pingClass );
+	Com_sprintf( row, sizeof( row ), "%s%s%s%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s",
+		classes,
+		ci->team == TEAM_RED ? " red" : ci->team == TEAM_BLUE ? " blue" : "",
+		s->client == CG_BoardViewed() ? " self" : "",
+		s->ping == 999 ? " connecting" : "",
+		CG_BoardPortrait( s->client ), rank, CG_BoardName( s->client ),
+		v[0], v[1], v[2], v[3], v[4], v[5], ping, pingClass );
+	CG_BoardCvar( cvar, row );
+}
+
+// one score's values for its mode's columns; returns how many
+static int CG_BoardValues( const score_t *s, char values[6][16] ) {
+	int		i, n = 0, mode = CG_ModeBoard();
+
+	for ( i = 0 ; i < 6 ; i++ ) {
+		values[i][0] = 0;
+	}
+	if ( cgs.gametype < GT_TEAM ) {
+		Com_sprintf( values[n++], 16, "%i", s->score );
+		Com_sprintf( values[n++], 16, "%i", s->deaths );
+		Com_sprintf( values[n++], 16, "%i.%i", s->deaths ? s->score / s->deaths : s->score,
+			s->deaths ? ( s->score * 10 / s->deaths ) % 10 : 0 );
+		Com_sprintf( values[n++], 16, "%i", s->damage );
+		Com_sprintf( values[n++], 16, "%i%%", s->accuracy );
+	} else if ( mode == 1 ) {		// Sacrifice
+		Com_sprintf( values[n++], 16, "%i", s->score );
+		Com_sprintf( values[n++], 16, "%i", s->deaths );
+		Com_sprintf( values[n++], 16, "%i", s->modeStat[0] );
+		Com_sprintf( values[n++], 16, "%i", s->modeStat[1] );
+	} else if ( mode == 2 ) {		// Clan Arena
+		Com_sprintf( values[n++], 16, "%i", s->damage );
+		Com_sprintf( values[n++], 16, "%i", s->score );
+		Com_sprintf( values[n++], 16, "%i", s->deaths );
+	} else if ( CG_FlagBoard() ) {
+		Com_sprintf( values[n++], 16, "%i", s->score );
+		Com_sprintf( values[n++], 16, "%i", s->captures );
+		Com_sprintf( values[n++], 16, "%i", s->assistCount );
+		Com_sprintf( values[n++], 16, "%i", s->defendCount );
+		Com_sprintf( values[n++], 16, "%i", s->deaths );
+	} else {
+		Com_sprintf( values[n++], 16, "%i", s->score );
+		Com_sprintf( values[n++], 16, "%i", s->deaths );
+		Com_sprintf( values[n++], 16, "%i", s->damage );
+	}
+	return n;
+}
+
+// the column titles in the same order
+static int CG_BoardTitles( const char **t ) {
+	int		n = 0, mode = CG_ModeBoard();
+
+	if ( cgs.gametype < GT_TEAM ) {
+		t[n++] = BG_String( STR_BD_SCORE );
+		t[n++] = BG_String( STR_BD_DEATHS );
+		t[n++] = BG_String( STR_BD_KD );
+		t[n++] = BG_String( STR_BD_DAMAGE );
+		t[n++] = BG_String( STR_BD_ACC );
+	} else if ( mode == 1 ) {
+		t[n++] = BG_String( STR_BD_SCORE );
+		t[n++] = BG_String( STR_BD_DEATHS );
+		t[n++] = BG_String( STR_BD_PLANTS );
+		t[n++] = BG_String( STR_BD_EXTRACTS );
+	} else if ( mode == 2 ) {
+		t[n++] = BG_String( STR_BD_DAMAGE );
+		t[n++] = BG_String( STR_BD_SCORE );
+		t[n++] = BG_String( STR_BD_DEATHS );
+	} else if ( CG_FlagBoard() ) {
+		t[n++] = BG_String( STR_BD_SCORE );
+		t[n++] = BG_String( STR_BD_CAPS );
+		t[n++] = BG_String( STR_BD_ASSISTS );
+		t[n++] = BG_String( STR_BD_DEFENDS );
+		t[n++] = BG_String( STR_BD_DEATHS );
+	} else {
+		t[n++] = BG_String( STR_BD_SCORE );
+		t[n++] = BG_String( STR_BD_DEATHS );
+		t[n++] = BG_String( STR_BD_DAMAGE );
+	}
+	return n;
+}
+
+/*
+=================
+CG_BoardHeader
+
+The mode and map, the score line, the time and the round
+=================
+*/
+static void CG_BoardHeader( void ) {
+	char	text[MAX_CVAR_VALUE_STRING], map[MAX_QPATH];
+	int		sec, me = CG_BoardViewed(), mine = -1, best = -1, i;
+	const char	*info = CG_ConfigString( CS_SERVERINFO );
+
+	COM_StripExtension( COM_SkipPath( cgs.mapname ), map, sizeof( map ) );
+	Com_sprintf( text, sizeof( text ), "%s  -  %s", CG_ModeString(), map );
+	CG_BoardCvar( "sb_title", text );
+
+	// the score line: teams by their scores, else you against the best of
+	// the rest
+	text[0] = 0;
+	if ( cgs.gametype >= GT_TEAM ) {
+		Com_sprintf( text, sizeof( text ), "%s %i  -  %i %s", BG_String( STR_HUD_RED ), cg.teamScores[0],
+			cg.teamScores[1], BG_String( STR_HUD_BLUE ) );
+	} else if ( cg.snap && cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
+		for ( i = 0 ; i < cg.numScores ; i++ ) {
+			if ( cg.scores[i].client == me ) {
+				mine = cg.scores[i].score;
+			} else if ( best < 0 || cg.scores[i].score > best ) {
+				best = cg.scores[i].score;
+			}
+		}
+		if ( mine >= 0 && best >= 0 ) {
+			Com_sprintf( text, sizeof( text ), BG_String( mine > best ? STR_BD_LEAD : mine < best ? STR_BD_TRAIL : STR_BD_TIED ),
+				mine > best ? mine - best : mine < best ? best - mine : mine );
+		}
+	}
+	CG_BoardCvar( "sb_line", text );
+
+	// time and limit
+	sec = ( cg.time - cgs.levelStartTime ) / 1000;
+	if ( sec < 0 || cg.warmup ) {
+		sec = 0;
+	}
+	if ( cgs.timelimit > 0 ) {
+		Com_sprintf( text, sizeof( text ), "%i:%02i / %i:00", sec / 60, sec % 60, cgs.timelimit );
+	} else {
+		Com_sprintf( text, sizeof( text ), "%i:%02i", sec / 60, sec % 60 );
+	}
+	CG_BoardCvar( "sb_time", text );
+
+	// round modes: the round and the target
+	text[0] = 0;
+	if ( CG_ModeBoard() || atoi( Info_ValueForKey( info, "g_roundDuel" ) ) ) {
+		const char	*limit = Info_ValueForKey( info, CG_ModeBoard() == 1 ? "g_sacRounds" : CG_ModeBoard() == 2 ? "g_caRounds" : "g_rdRounds" );
+
+		if ( atoi( limit ) > 0 ) {
+			Com_sprintf( text, sizeof( text ), BG_String( STR_BD_ROUND ), cg.teamScores[0] + cg.teamScores[1] + 1, atoi( limit ) );
+		}
+	}
+	CG_BoardCvar( "sb_round", text );
+}
+
+/*
+=================
+CG_BoardSpectators
+=================
+*/
+static void CG_BoardSpectators( void ) {
+	char	names[MAX_CVAR_VALUE_STRING], text[MAX_CVAR_VALUE_STRING];
+	int		i;
+
+	names[0] = 0;
+	for ( i = 0 ; i < cg.numScores ; i++ ) {
+		if ( cgs.clientinfo[cg.scores[i].client].team != TEAM_SPECTATOR ) {
+			continue;
+		}
+		if ( names[0] ) {
+			Q_strcat( names, sizeof( names ), ", " );
+		}
+		Q_strcat( names, sizeof( names ), CG_BoardName( cg.scores[i].client ) );
+	}
+	if ( names[0] ) {
+		Com_sprintf( text, sizeof( text ), BG_String( STR_BD_SPECTATORS ), names );
+	} else {
+		text[0] = 0;
+	}
+	CG_BoardCvar( "sb_specs", text );
+}
+
+/*
+=================
+CG_BoardList
+
+Free-for-all and the team columns: the column titles and the rows
+=================
+*/
+static void CG_BoardList( void ) {
+	const char	*titles[6] = { "", "", "", "", "", "" }, *v[6];
+	char		values[6][16], rank[8], head[MAX_CVAR_VALUE_STRING], cols[16], cvar[16];
+	int			i, j, n, row, side, team, rows[2] = { 0, 0 }, total[2] = { 0, 0 }, shownRank = 1;
+	int			left = TEAM_RED;
+	score_t		*s;
+
+	n = CG_BoardTitles( titles );
+	Com_sprintf( cols, sizeof( cols ), "cols%i", n );
+	Com_sprintf( head, sizeof( head ), "head %s||%s|%s|%s|%s|%s|%s|%s|%s|%s|",
+		cols, cgs.gametype < GT_TEAM ? "#" : "", BG_String( STR_BD_PLAYER ),
+		titles[0], titles[1], titles[2], titles[3], titles[4], titles[5], BG_String( STR_BD_PING ) );
+	CG_BoardCvar( "sb_head", head );
+
+	if ( cgs.gametype < GT_TEAM ) {
+		row = 0;
+		for ( i = 0 ; i < cg.numScores && row < SB_ROWS ; i++ ) {
+			s = &cg.scores[i];
+			if ( cgs.clientinfo[s->client].team == TEAM_SPECTATOR ) {
+				continue;
+			}
+			// ties share a rank
+			if ( row && s->score != cg.scores[i - 1].score ) {
+				shownRank = row + 1;
+			}
+			Com_sprintf( rank, sizeof( rank ), "%i.", shownRank );
+			CG_BoardValues( s, values );
+			for ( j = 0 ; j < 6 ; j++ ) {
+				v[j] = values[j];
+			}
+			Com_sprintf( cvar, sizeof( cvar ), "sb_f%i", row++ );
+			CG_BoardRow( cvar, s, rank, cols, v );
+		}
+		for ( ; row < SB_ROWS ; row++ ) {
+			CG_BoardCvar( va( "sb_f%i", row ), "" );
+		}
+		return;
+	}
+
+	// teams: yours on the left when you play, red on the left otherwise;
+	// the viewed player first in their team
+	if ( cg.snap && cg.snap->ps.persistant[PERS_TEAM] == TEAM_BLUE ) {
+		left = TEAM_BLUE;
+	}
+	for ( side = 0 ; side < 2 ; side++ ) {
+		team = side ? ( left == TEAM_RED ? TEAM_BLUE : TEAM_RED ) : left;
+		for ( j = 0 ; j < 2 ; j++ ) {		// pass 0: the viewed player, pass 1: the rest
+			for ( i = 0 ; i < cg.numScores && rows[side] < SB_TEAM_ROWS ; i++ ) {
+				s = &cg.scores[i];
+				if ( cgs.clientinfo[s->client].team != team || ( s->client == CG_BoardViewed() ) != !j ) {
+					continue;
+				}
+				CG_BoardValues( s, values );
+				for ( n = 0 ; n < 6 ; n++ ) {
+					v[n] = values[n];
+				}
+				total[side] += s->damage;
+				Com_sprintf( cvar, sizeof( cvar ), "sb_%c%i", side ? 'r' : 'l', rows[side]++ );
+				CG_BoardRow( cvar, s, "", cols, v );
+			}
+		}
+		for ( ; rows[side] < SB_TEAM_ROWS ; rows[side]++ ) {
+			CG_BoardCvar( va( "sb_%c%i", side ? 'r' : 'l', rows[side] ), "" );
+		}
+		// the team header: classes|name|score|totals
+		Com_sprintf( head, sizeof( head ), "%s|%s|%i|%s", team == TEAM_RED ? "red" : "blue",
+			BG_String( team == TEAM_RED ? STR_HUD_RED : STR_HUD_BLUE ), cg.teamScores[team == TEAM_RED ? 0 : 1],
+			va( (char *)BG_String( STR_BD_TEAM_DAMAGE ), total[side] ) );
+		CG_BoardCvar( side ? "sb_rt" : "sb_lt", head );
+	}
+}
+
+/*
+=================
+CG_BoardDuel
+
+The two players side by side; the opponent's detailed stats hidden during
+the match (shown to spectators and at the end)
+=================
+*/
+static void CG_BoardDuel( void ) {
+	char	row[MAX_CVAR_VALUE_STRING], ping[16], acc[16], hs[24];
+	int		p, w, line = 0, shots, hits, pingValue, i;
+	int		me = CG_BoardViewed();
+	qboolean	open = cg.snap && ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR
+		|| cg.predictedPlayerState.pm_type == PM_INTERMISSION );
+	const char	*pingClass;
+
+	if ( cg.time - cg.duelStatsTime > 1000 || cg.duelStatsTime > cg.time ) {
+		cg.duelStatsTime = cg.time;
+		trap_SendClientCommand( "dstats" );
+	}
+	// you on the left (the board's left column is p 0)
+	for ( p = 0 ; p < 2 ; p++ ) {
+		int		idx = p;
+		qboolean	hidden;
+
+		if ( cg.numDuelStats == 2 && cg.duelStats[1].client == me ) {
+			idx = !p;
+		}
+		if ( idx >= cg.numDuelStats ) {
+			CG_BoardCvar( va( "sb_d%i", p ), "" );
+			continue;
+		}
+		hidden = !open && cg.duelStats[idx].client != me;
+		pingValue = 0;
+		for ( i = 0 ; i < cg.numScores ; i++ ) {
+			if ( cg.scores[i].client == cg.duelStats[idx].client ) {
+				pingValue = cg.scores[i].ping;
+			}
+		}
+		CG_BoardPing( cg.duelStats[idx].client, pingValue, ping, sizeof( ping ), &pingClass );
+		shots = hits = 0;
+		for ( w = WP_GAUNTLET + 1 ; w < WP_NUM_WEAPONS ; w++ ) {
+			shots += cg.duelStats[idx].shots[w];
+			hits += cg.duelStats[idx].hits[w];
+		}
+		Com_sprintf( acc, sizeof( acc ), shots ? "%i%%" : "-", shots ? hits * 100 / shots : 0 );
+		Com_sprintf( hs, sizeof( hs ), "%i / %i", hits, shots );
+		// classes|portrait|name|ping|ping class|frags|given|taken|accuracy|hits/shots|mega|heavy|light
+		Com_sprintf( row, sizeof( row ), "%s|%s|%s|%s|%s|%i|%s|%s|%s|%s|%i|%i|%i",
+			cg.duelStats[idx].client == me ? "self" : "",
+			CG_BoardPortrait( cg.duelStats[idx].client ), CG_BoardName( cg.duelStats[idx].client ),
+			ping, pingClass, cg.duelStats[idx].score,
+			hidden ? "-" : va( "%i", cg.duelStats[idx].given ),
+			hidden ? "-" : va( "%i", cg.duelStats[idx].taken ),
+			hidden ? "-" : acc, hidden ? "-" : hs,
+			cg.duelStats[idx].mega, cg.duelStats[idx].heavy, cg.duelStats[idx].light );
+		CG_BoardCvar( va( "sb_d%i", p ), row );
+	}
+
+	// the weapons either player used: icon|acc|hits/shots|acc|hits/shots
+	for ( w = WP_GAUNTLET + 1 ; w < WP_NUM_WEAPONS && line < SB_WEAPON_ROWS ; w++ ) {
+		char	cell[2][32];
+		gitem_t	*item;
+		int		any = 0;
+
+		for ( p = 0 ; p < 2 ; p++ ) {
+			int		idx = p;
+
+			if ( cg.numDuelStats == 2 && cg.duelStats[1].client == me ) {
+				idx = !p;
+			}
+			cell[p][0] = 0;
+			if ( idx >= cg.numDuelStats ) {
+				continue;
+			}
+			any |= cg.duelStats[idx].shots[w];
+			if ( !open && cg.duelStats[idx].client != me ) {
+				Q_strncpyz( cell[p], "-|-", sizeof( cell[p] ) );
+			} else if ( cg.duelStats[idx].shots[w] ) {
+				Com_sprintf( cell[p], sizeof( cell[p] ), "%i%%|%i / %i", cg.duelStats[idx].hits[w] * 100 / cg.duelStats[idx].shots[w],
+					cg.duelStats[idx].hits[w], cg.duelStats[idx].shots[w] );
+			} else {
+				Q_strncpyz( cell[p], "-|-", sizeof( cell[p] ) );
+			}
+		}
+		if ( !any ) {
+			continue;
+		}
+		item = BG_FindItemForWeapon( w );
+		Com_sprintf( row, sizeof( row ), "%s.tga|%s|%s", item && item->icon ? item->icon : "", cell[0], cell[1] );
+		CG_BoardCvar( va( "sb_w%i", line++ ), row );
+	}
+	for ( ; line < SB_WEAPON_ROWS ; line++ ) {
+		CG_BoardCvar( va( "sb_w%i", line ), "" );
+	}
+	// the banner
+	if ( cg.numDuelStats == 2 ) {
+		int		mine = cg.duelStats[0].client == me ? cg.duelStats[0].score : cg.duelStats[1].score;
+		int		theirs = cg.duelStats[0].client == me ? cg.duelStats[1].score : cg.duelStats[0].score;
+
+		if ( !open ) {
+			CG_BoardCvar( "sb_line", va( (char *)BG_String( mine > theirs ? STR_BD_LEAD : mine < theirs ? STR_BD_TRAIL : STR_BD_TIED ),
+				mine > theirs ? mine - theirs : mine < theirs ? theirs - mine : mine ) );
+		}
+	}
+}
+
+/*
+=================
+CG_RmlScoreboard
+
+True when the RmlUi board takes the place of the drawn one; shows it while
+Tab is held or at intermission, hides it otherwise
+=================
+*/
+qboolean CG_RmlScoreboard( void ) {
+	static int	lastFill;
+	char		ok[8];
+	qboolean	show;
+
+	trap_Cvar_VariableStringBuffer( "rml_ok", ok, sizeof( ok ) );
+	if ( !cg_rmlScoreboard.integer || atoi( ok ) != 1 ) {
+		CG_BoardCvar( "rml_overlay", "" );
+		return qfalse;
+	}
+	show = cg.showScores || cg.predictedPlayerState.pm_type == PM_INTERMISSION;
+	if ( !show ) {
+		CG_BoardCvar( "rml_overlay", "" );
+		return qtrue;
+	}
+	if ( cg.time - lastFill >= 100 || cg.time < lastFill ) {
+		lastFill = cg.time;
+		CG_BoardCvar( "sb_mode", cgs.gametype == GT_TOURNAMENT ? "duel" : cgs.gametype >= GT_TEAM ? "team" : "ffa" );
+		CG_BoardHeader();
+		if ( cgs.gametype == GT_TOURNAMENT ) {
+			CG_BoardDuel();
+		} else {
+			CG_BoardList();
+		}
+		CG_BoardSpectators();
+	}
+	CG_BoardCvar( "rml_overlay", "ui/scoreboard.rml" );
+	return qtrue;
+}

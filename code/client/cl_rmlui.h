@@ -57,6 +57,7 @@ void	RML_Hide( void );
 void	RML_Reload( void );
 void	RML_Toggle( const char *id, const char *className );	// a class on an element of the document
 void	RML_Frame( void );
+void	RML_OverlayFrame( void );						// the overlay named by rml_overlay, over the game
 int		RML_KeyEvent( int key, int down );				// nonzero when the interface took it
 int		RML_CharEvent( int ch );
 void	RML_MouseMove( int dx, int dy );

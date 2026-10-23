@@ -335,6 +335,13 @@ static void CG_ConfigStringModified( void ) {
 	} else if ( num >= CS_TEAMVOTE_TIME && num <= CS_TEAMVOTE_TIME + 1) {
 		cgs.teamVoteTime[num-CS_TEAMVOTE_TIME] = atoi( str );
 		cgs.teamVoteModified[num-CS_TEAMVOTE_TIME] = qtrue;
+		// a team vote starts (its time changes even when its text doesn't):
+		// players of that team hear the call
+		if ( cgs.teamVoteTime[num-CS_TEAMVOTE_TIME]
+			&& ( ( num == CS_TEAMVOTE_TIME && cgs.clientinfo[cg.clientNum].team == TEAM_RED )
+			|| ( num == CS_TEAMVOTE_TIME + 1 && cgs.clientinfo[cg.clientNum].team == TEAM_BLUE ) ) ) {
+			CG_AddBufferedSoundPriority( cgs.media.voteNow, 3 );
+		}
 	} else if ( num >= CS_TEAMVOTE_YES && num <= CS_TEAMVOTE_YES + 1) {
 		cgs.teamVoteYes[num-CS_TEAMVOTE_YES] = atoi( str );
 		cgs.teamVoteModified[num-CS_TEAMVOTE_YES] = qtrue;
@@ -343,9 +350,6 @@ static void CG_ConfigStringModified( void ) {
 		cgs.teamVoteModified[num-CS_TEAMVOTE_NO] = qtrue;
 	} else if ( num >= CS_TEAMVOTE_STRING && num <= CS_TEAMVOTE_STRING + 1) {
 		Q_strncpyz( cgs.teamVoteString[num-CS_TEAMVOTE_STRING], str, sizeof( cgs.teamVoteString[0] ) );
-		if ( str[0] && num - CS_TEAMVOTE_STRING == ( cgs.clientinfo[cg.clientNum].team == TEAM_BLUE ) ) {
-			CG_AddBufferedSoundPriority( cgs.media.voteNow, 3 );		// our team's vote was called
-		}
 	} else if ( num == CS_INTERMISSION ) {
 		cg.intermissionStarted = atoi( str );
 	} else if ( num >= CS_MODELS && num < CS_MODELS+MAX_MODELS ) {

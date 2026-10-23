@@ -1,0 +1,115 @@
+<rml>
+<head>
+	<title>Scoreboard</title>
+	<link type="text/rcss" href="scoreboard.rcss"/>
+</head>
+<!-- The Tab board (scoreboard.md), drawn over the game while the game
+     sets rml_overlay. Rows come from sb_* cvars, fields split by '|':
+     list rows   classes|portrait|rank|name|v|v|v|v|v|v|ping|ping class
+     team header classes|name|score|totals
+     duelists    classes|portrait|name|ping|ping class|frags|given|taken|accuracy|hits/shots|mega|heavy|light
+     weapons     icon|accuracy|hits/shots|accuracy|hits/shots -->
+<body>
+	<div class="board">
+		<div class="top">
+			<div>
+				<div class="title" data-text-cvar="sb_title"></div>
+				<div class="line" data-text-cvar="sb_line"></div>
+			</div>
+			<div>
+				<div class="time" data-text-cvar="sb_time"></div>
+				<div class="round" data-when="sb_round!=" data-text-cvar="sb_round"></div>
+			</div>
+		</div>
+
+		<!-- free-for-all -->
+		<div class="ffa" data-when="sb_mode=ffa">
+			<div class="row head" data-row="sb_head" data-cell-class="0">
+				<span class="c-rank" data-cell="2"></span><span class="c-por"></span><span class="c-name" data-cell="3"></span>
+				<span class="v" data-cell="4"></span><span class="v" data-cell="5"></span><span class="v" data-cell="6"></span>
+				<span class="v v4th" data-cell="7"></span><span class="v v5th" data-cell="8"></span><span class="c-ping" data-cell="10"></span>
+			</div>
+			<div class="row" data-row="sb_f#" data-repeat="24" data-cell-class="0">
+				<span class="c-rank" data-cell="2"></span><span class="c-por"><img data-cell-src="1"/></span><span class="c-name" data-cell="3"></span>
+				<span class="v" data-cell="4"></span><span class="v" data-cell="5"></span><span class="v" data-cell="6"></span>
+				<span class="v v4th" data-cell="7"></span><span class="v v5th" data-cell="8"></span><span class="c-ping" data-cell="10" data-cell-class="11"></span>
+			</div>
+		</div>
+
+		<!-- team modes: your team on the left -->
+		<div class="teams" data-when="sb_mode=team">
+			<div class="team">
+				<div class="teamhead" data-row="sb_lt" data-cell-class="0">
+					<div><div class="teamname" data-cell="1"></div><div class="teamtotal" data-cell="3"></div></div>
+					<div class="teamscore" data-cell="2"></div>
+				</div>
+				<div class="row head" data-row="sb_head" data-cell-class="0">
+					<span class="c-por"></span><span class="c-name" data-cell="3"></span>
+					<span class="v" data-cell="4"></span><span class="v" data-cell="5"></span><span class="v" data-cell="6"></span>
+					<span class="v v4th" data-cell="7"></span><span class="v v5th" data-cell="8"></span><span class="c-ping" data-cell="10"></span>
+				</div>
+				<div class="row" data-row="sb_l#" data-repeat="12" data-cell-class="0">
+					<span class="c-por"><img data-cell-src="1"/></span><span class="c-name" data-cell="3"></span>
+					<span class="v" data-cell="4"></span><span class="v" data-cell="5"></span><span class="v" data-cell="6"></span>
+					<span class="v v4th" data-cell="7"></span><span class="v v5th" data-cell="8"></span><span class="c-ping" data-cell="10" data-cell-class="11"></span>
+				</div>
+			</div>
+			<div class="team">
+				<div class="teamhead" data-row="sb_rt" data-cell-class="0">
+					<div><div class="teamname" data-cell="1"></div><div class="teamtotal" data-cell="3"></div></div>
+					<div class="teamscore" data-cell="2"></div>
+				</div>
+				<div class="row head" data-row="sb_head" data-cell-class="0">
+					<span class="c-por"></span><span class="c-name" data-cell="3"></span>
+					<span class="v" data-cell="4"></span><span class="v" data-cell="5"></span><span class="v" data-cell="6"></span>
+					<span class="v v4th" data-cell="7"></span><span class="v v5th" data-cell="8"></span><span class="c-ping" data-cell="10"></span>
+				</div>
+				<div class="row" data-row="sb_r#" data-repeat="12" data-cell-class="0">
+					<span class="c-por"><img data-cell-src="1"/></span><span class="c-name" data-cell="3"></span>
+					<span class="v" data-cell="4"></span><span class="v" data-cell="5"></span><span class="v" data-cell="6"></span>
+					<span class="v v4th" data-cell="7"></span><span class="v v5th" data-cell="8"></span><span class="c-ping" data-cell="10" data-cell-class="11"></span>
+				</div>
+			</div>
+		</div>
+
+		<!-- duel: you on the left -->
+		<div data-when="sb_mode=duel">
+			<div class="duel">
+				<div class="duelist" data-row="sb_d0" data-cell-class="0">
+					<div class="portrait"><img data-cell-src="1"/></div>
+					<div class="duelname" data-cell="2"></div>
+					<div class="duelfrags" data-cell="5"></div>
+					<div class="stat" data-cell="6"></div><div class="stat" data-cell="7"></div>
+					<div class="stat" data-cell="8"></div><div class="stat" data-cell="9"></div>
+					<div class="stat" data-cell="10"></div><div class="stat" data-cell="11"></div><div class="stat" data-cell="12"></div>
+					<div class="stat" data-cell="3" data-cell-class="4"></div>
+				</div>
+				<div class="labels">
+					<div class="stat">[sb_given]</div><div class="stat">[sb_taken]</div>
+					<div class="stat">[sb_accuracy]</div><div class="stat">[sb_hits]</div>
+					<div class="stat">[sb_mega]</div><div class="stat">[sb_heavy]</div><div class="stat">[sb_light]</div>
+					<div class="stat">[fs_ping]</div>
+				</div>
+				<div class="duelist" data-row="sb_d1" data-cell-class="0">
+					<div class="portrait"><img data-cell-src="1"/></div>
+					<div class="duelname" data-cell="2"></div>
+					<div class="duelfrags" data-cell="5"></div>
+					<div class="stat" data-cell="6"></div><div class="stat" data-cell="7"></div>
+					<div class="stat" data-cell="8"></div><div class="stat" data-cell="9"></div>
+					<div class="stat" data-cell="10"></div><div class="stat" data-cell="11"></div><div class="stat" data-cell="12"></div>
+					<div class="stat" data-cell="3" data-cell-class="4"></div>
+				</div>
+			</div>
+			<div class="weapons">
+				<div class="wrow" data-row="sb_w#" data-repeat="8">
+					<span data-cell="1"></span><span data-cell="2"></span>
+					<span class="wicon"><img data-cell-src="0"/></span>
+					<span data-cell="3"></span><span data-cell="4"></span>
+				</div>
+			</div>
+		</div>
+
+		<div class="specs" data-when="sb_specs!=" data-text-cvar="sb_specs"></div>
+	</div>
+</body>
+</rml>

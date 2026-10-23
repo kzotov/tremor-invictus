@@ -4453,7 +4453,8 @@ static void CG_DrawTeamVote(void) {
 		}
 		CG_DrawStringExt( 50 * DP, 110 * DP + ( cgs.voteTime ? 2.5f * h : 0 ), s, colorYellow, qfalse, qtrue, cw, h, 0 );
 	} else {
-		CG_DrawSmallStringColor( 8, 90, s, colorYellow );
+		// under the main vote and its key line when both run
+		CG_DrawSmallStringColor( 8, cgs.voteTime ? 58 + 3 * ( SMALLCHAR_HEIGHT + 2 ) : 90, s, colorYellow );
 	}
 	cg_hudAnchor = ANCHOR_CENTER;
 }

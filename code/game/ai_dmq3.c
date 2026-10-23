@@ -3472,7 +3472,7 @@ void BotAimAtEnemy(bot_state_t *bs) {
 		}
 		//bots.md aim points: the Rocket Launcher at the feet from Easy up;
 		//Tri-bolt and Nailgun use the points below instead
-		if ((wi.number == WP_ROCKET_LAUNCHER && BotLevel(bs) >= 2) ||
+		if (wi.number == WP_ROCKET_LAUNCHER ? BotLevel(bs) >= 2 :
 			(aim_skill > 0.6 && (wi.proj.damagetype & DAMAGETYPE_RADIAL)
 			&& wi.number != WP_TRIBOLT && wi.number != WP_NAILGUN)) {
 			//if the enemy isn't standing significantly higher than the bot

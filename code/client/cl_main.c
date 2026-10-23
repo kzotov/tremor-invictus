@@ -3329,6 +3329,7 @@ static void CL_RmlStart( void ) {
 	imp.SetCvar = CL_RmlSetCvar;
 	imp.GetCvar = CL_RmlGetCvar;
 	Cvar_Get( "rml_active", "0", CVAR_ROM );
+	Cvar_Get( "rml_overlay", "", CVAR_TEMP );
 	Cmd_AddCommand( "rml_show", CL_RmlShow_f );
 	Cmd_AddCommand( "rml_hide", CL_RmlHide_f );
 	Cmd_AddCommand( "rml_reload", CL_RmlReload_f );

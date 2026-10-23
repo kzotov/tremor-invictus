@@ -1211,6 +1211,7 @@ extern	vmCvar_t		cg_drawCrosshair;
 extern	vmCvar_t		cg_drawCrosshairNames;
 extern	vmCvar_t		cg_drawItemPickups;
 extern	vmCvar_t		cg_hudLayout;
+extern	vmCvar_t		cg_rmlScoreboard;
 extern	vmCvar_t		cg_fragBanner;
 extern	vmCvar_t		cg_medals;
 extern	vmCvar_t		cg_eventBanner;
@@ -1679,6 +1680,10 @@ void CG_RevealModel( const refEntity_t *ent, int clientNum );
 #define MEDAL_RANK_IMPRESSIVE	34
 #define MEDAL_RANK_EXCELLENT	35
 #define MEDAL_RANK_TOTALS		40
+
+// the champion portraits' game paths, for the RmlUi scoreboard
+extern char	cg_portraitPath[32][MAX_QPATH];
+qboolean CG_RmlScoreboard( void );
 
 void CG_PushReward( sfxHandle_t sfx, qhandle_t shader, int rewardCount, int name, int rank );
 void CG_CheckChangedPredictableEvents( playerState_t *ps );

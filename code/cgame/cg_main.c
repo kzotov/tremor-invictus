@@ -224,6 +224,7 @@ vmCvar_t	cg_enemyOutline;
 vmCvar_t	cg_enemyOutlineColor;
 vmCvar_t	cg_colorBlind;
 vmCvar_t	cg_hudLayout;
+vmCvar_t	cg_rmlScoreboard;
 vmCvar_t	cg_drawCooldownArc;
 vmCvar_t	cg_obituaryRowSize;
 vmCvar_t	cg_chatHistoryLength;
@@ -431,7 +432,8 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_enemyOutlineColor, "cg_enemyOutlineColor", "0xFF2020FF", CVAR_ARCHIVE },
 	{ &cg_colorBlind, "cg_colorBlind", "0", CVAR_ARCHIVE },
 	// 1: the champions HUD, 0: the classic status bar
-	{ &cg_hudLayout, "cg_hudLayout", "modern", CVAR_ARCHIVE},		// hud/<name>.hud: modern or classic
+	{ &cg_hudLayout, "cg_hudLayout", "modern", CVAR_ARCHIVE},
+	{ &cg_rmlScoreboard, "cg_rmlScoreboard", "1", CVAR_ARCHIVE },		// the RmlUi Tab board (scoreboard.md)		// hud/<name>.hud: modern or classic
 	// the ability arc by the crosshair: 0 off, 2 top, 3 bottom, 4 left, 5 right
 	{ &cg_drawCooldownArc, "cg_drawCooldownArc", "1", CVAR_ARCHIVE},	// 0 off, 1 layout (bottom), 2 top, 3 right, 4 bottom, 5 left
 	{ &cg_obituaryRowSize, "cg_obituaryRowSize", "5", CVAR_ARCHIVE},
@@ -1057,7 +1059,8 @@ static void CG_RegisterGraphics( void ) {
 		int					s;
 
 		for ( s = 0 ; s < 2 ; s++ ) {
-			qhandle_t	h = trap_R_RegisterShaderNoMip( va( "gfx/champions/%s%s", c->name, s ? "_small" : "" ) );
+			const char	*path = va( "gfx/champions/%s%s", c->name, s ? "_small" : "" );
+			qhandle_t	h = trap_R_RegisterShaderNoMip( path );
 
 			if ( !h ) {
 				char	model[MAX_QPATH], *skin;
@@ -1067,12 +1070,17 @@ static void CG_RegisterGraphics( void ) {
 				if ( skin ) {
 					*skin++ = 0;
 				}
-				h = trap_R_RegisterShaderNoMip( va( "models/players/%s/icon_%s", model, skin ? skin : "default" ) );
+				path = va( "models/players/%s/icon_%s", model, skin ? skin : "default" );
+				h = trap_R_RegisterShaderNoMip( path );
 			}
 			if ( !h ) {
-				h = trap_R_RegisterShaderNoMip( va( "gfx/champions-generated/%s%s", c->name, s ? "_small" : "" ) );
+				path = va( "gfx/champions-generated/%s%s", c->name, s ? "_small" : "" );
+				h = trap_R_RegisterShaderNoMip( path );
 			}
 			cgs.media.portrait[i][s] = h;
+			if ( s && h ) {
+				Com_sprintf( cg_portraitPath[i], sizeof( cg_portraitPath[i] ), "%s.tga", path );
+			}
 		}
 	}
 	cgs.media.barrierShader = trap_R_RegisterShader( "tremor/fx/barrier" );
@@ -2186,6 +2194,7 @@ Called before every level change or subsystem restart
 void CG_Shutdown( void ) {
 	// some mods may need to do cleanup work here,
 	// like closing files or archiving session data
+	trap_Cvar_Set( "rml_overlay", "" );		// the Tab board goes with the game
 }
 
 
