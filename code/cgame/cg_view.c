@@ -1072,6 +1072,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 	// add buffered sounds
 	CG_PlayBufferedSounds();
 	CG_PlayHitBeep();
+	CG_LowHealthFrame();
 
 #ifdef MISSIONPACK
 	// play buffered voice chats

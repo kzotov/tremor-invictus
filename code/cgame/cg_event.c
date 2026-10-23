@@ -1228,8 +1228,10 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			break;
 		}
 		cg.triboltImpact = es->generic1 == TRIBOLT_MARK;
+		cg.impactShooter = es->weapon == WP_LIGHTNING ? es->clientNum : -1;
 		CG_MissileHitWall( es->weapon, 0, position, dir, IMPACTSOUND_DEFAULT );
 		cg.triboltImpact = qfalse;
+		cg.impactShooter = -1;
 		if ( es->generic1 == AV_ACID && cgs.media.acidMarkShader ) {
 			CG_ImpactMark( cgs.media.acidMarkShader, position, dir, random() * 360, 1, 1, 1, 1, qtrue, 40, qfalse );
 		}
@@ -1249,8 +1251,10 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		DEBUGNAME("EV_MISSILE_MISS_METAL");
 		ByteToDir( es->eventParm, dir );
 		cg.triboltImpact = es->generic1 == TRIBOLT_MARK;
+		cg.impactShooter = es->weapon == WP_LIGHTNING ? es->clientNum : -1;
 		CG_MissileHitWall( es->weapon, 0, position, dir, IMPACTSOUND_METAL );
 		cg.triboltImpact = qfalse;
+		cg.impactShooter = -1;
 		break;
 
 	case EV_RAILTRAIL:

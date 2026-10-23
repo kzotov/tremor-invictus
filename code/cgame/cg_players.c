@@ -643,6 +643,28 @@ static void CG_ColorFromString( const char *v, vec3_t color ) {
 
 /*
 ===================
+CG_ModelSound
+
+sound/player/<model>/<name> when the model has it, else 0 (no default
+beep, no warning)
+===================
+*/
+static sfxHandle_t CG_ModelSound( const char *model, const char *name ) {
+	fileHandle_t	f;
+	const char		*path = va( "sound/player/%s/%s", model, name );
+	sfxHandle_t		sfx = 0;
+
+	if ( trap_FS_FOpenFile( path, &f, FS_READ ) > 0 ) {
+		sfx = trap_S_RegisterSound( path, qfalse );
+	}
+	if ( f ) {
+		trap_FS_FCloseFile( f );
+	}
+	return sfx;
+}
+
+/*
+===================
 CG_LoadClientInfo
 
 Load it now, taking the disk hits.
@@ -726,6 +748,17 @@ static void CG_LoadClientInfo( int clientNum, clientInfo_t *ci ) {
 		}
 		if ( !ci->sounds[i] ) {
 			ci->sounds[i] = trap_S_RegisterSound( va("sound/player/%s/%s", fallback, s + 1), qfalse );
+		}
+	}
+
+	// low health: breathing, its exhale, the voice lines (only the model's own)
+	ci->breatheSound = ci->breatheStopSound = 0;
+	memset( ci->lowHealthSounds, 0, sizeof( ci->lowHealthSounds ) );
+	if ( modelloaded ) {
+		ci->breatheSound = CG_ModelSound( dir, "breathe.wav" );
+		ci->breatheStopSound = CG_ModelSound( dir, "breathe_stop.wav" );
+		for ( i = 0 ; i < 3 ; i++ ) {
+			ci->lowHealthSounds[i] = CG_ModelSound( dir, va( "lowhealth%i.wav", i + 1 ) );
 		}
 	}
 

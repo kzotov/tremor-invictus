@@ -334,9 +334,6 @@ CG_CheckLocalSounds
 */
 void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 	int			highScore, reward;
-#ifdef MISSIONPACK
-	int			health, armor;
-#endif
 	sfxHandle_t sfx;
 
 	// don't play the sounds if the player just changed teams
@@ -347,17 +344,6 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 	// hit changes
 	if ( ps->persistant[PERS_HITS] > ops->persistant[PERS_HITS] ) {
 		cg.hitMarkerTime = cg.time;		// the hit marker at the crosshair
-#ifdef MISSIONPACK
-		armor  = ps->persistant[PERS_ATTACKEE_ARMOR] & 0xff;
-		health = ps->persistant[PERS_ATTACKEE_ARMOR] >> 8;
-		if (armor > 50 ) {
-			trap_S_StartLocalSound( cgs.media.hitSoundHighArmor, CHAN_LOCAL_SOUND );
-		} else if (armor || health > 100) {
-			trap_S_StartLocalSound( cgs.media.hitSoundLowArmor, CHAN_LOCAL_SOUND );
-		} else {
-			trap_S_StartLocalSound( cgs.media.hitSound, CHAN_LOCAL_SOUND );
-		}
-#else
 		// sound-clarity.md 3: one beep for the snapshot, its tier by the
 		// damage dealt (PERS_ATTACKEE_ARMOR's low 9 bits), pitch falling as
 		// the damage rises
@@ -372,7 +358,6 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 			}
 			cg.pendingHitBeep = cgs.media.hitBeepSounds[tier] ? cgs.media.hitBeepSounds[tier] : cgs.media.hitSound;
 		}
-#endif
 	} else if ( ps->persistant[PERS_HITS] < ops->persistant[PERS_HITS] ) {
 		cg.pendingHitBeep = cgs.media.hitTeamSound;
 	}

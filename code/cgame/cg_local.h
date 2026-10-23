@@ -394,6 +394,9 @@ typedef struct {
 	animation_t		animations[MAX_TOTALANIMATIONS];
 
 	sfxHandle_t		sounds[MAX_CUSTOM_SOUNDS];
+	sfxHandle_t		breatheSound;		// low health (low-health.md 2): the breathing loop,
+	sfxHandle_t		breatheStopSound;	// its exhale, and the voice lines; 0 when the model
+	sfxHandle_t		lowHealthSounds[3];	// has none
 	int				abilityStat;	// teammates: STAT_ABILITY from the team overlay
 } clientInfo_t;
 
@@ -466,6 +469,12 @@ typedef struct {
 #define MAX_REVEAL_MODELS	64
 #define MAX_AWARD_LINES		16
 #define MAX_SOUNDBUFFER		32		// announcer queue (sound-clarity.md 3)
+
+// low-health.md 1: the viewed player's health steps
+#define LH_NONE				0
+#define LH_HURT				1		// <= 50
+#define LH_LOW				2		// <= 25
+#define LH_CRITICAL			3		// <= 10
 #define SOUNDBUFFER_GAP		1500	// msec from one line's start to the next at least
 
 //======================================================================
@@ -674,6 +683,12 @@ typedef struct {
 	int			damageArcValue[DAMAGE_ARCS];
 	int			damageArcNext;		// the slot the next hit takes
 	int			lowHealthBeat;		// cg.time of the last low-health heartbeat
+	int			lowHealthStep;		// LH_* of the viewed player
+	int			lowHealthSince;		// cg.time they reached LH_LOW
+	int			lowHealthClient;	// whose health it is
+	qboolean	lowHealthBreathing;	// the breathing loop is on
+	int			lowHealthVoiceSpawn;	// PERS_SPAWN_COUNT of the life that had its voice line
+	int			lowHealthVoiceTime;	// cg.time of that line
 	sfxHandle_t	pendingHitBeep;		// this frame's hit beep, played once the frame's events are in
 	qboolean	pendingKillBeep;	// a frag this frame: the kill beep instead
 	qboolean	triboltImpact;		// the impact being drawn is a Tri-bolt bolt's
@@ -1377,6 +1392,9 @@ extern	vmCvar_t		cg_hitBeep;
 extern	vmCvar_t		cg_killBeep;
 extern	vmCvar_t		cg_worldItemTimers;
 extern	vmCvar_t		cg_lowHealthWarning;
+extern	vmCvar_t		cg_lowHealthSound;
+extern	vmCvar_t		cg_heavyBreathing;
+extern	vmCvar_t		cg_championVO;
 extern	vmCvar_t		cg_drawLineup;
 extern	vmCvar_t		cg_layoutDump;
 #ifdef MISSIONPACK
@@ -1432,6 +1450,8 @@ void CG_ZoomUp_f( void );
 void CG_AddBufferedSound( sfxHandle_t sfx);
 void CG_AddBufferedSoundPriority( sfxHandle_t sfx, int priority );
 void CG_ClearBufferedSounds( void );
+void CG_LowHealthFrame( void );
+float CG_LowHealthPulse( void );
 
 void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demoPlayback );
 

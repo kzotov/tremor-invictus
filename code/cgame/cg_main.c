@@ -257,6 +257,9 @@ vmCvar_t	cg_hitBeep;
 vmCvar_t	cg_killBeep;
 vmCvar_t	cg_worldItemTimers;
 vmCvar_t	cg_lowHealthWarning;
+vmCvar_t	cg_lowHealthSound;
+vmCvar_t	cg_heavyBreathing;
+vmCvar_t	cg_championVO;
 vmCvar_t	cg_drawLineup;
 vmCvar_t	cg_layoutDump;
 
@@ -472,7 +475,10 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_hitBeep, "cg_hitBeep", "2", CVAR_ARCHIVE},	// 0 off, 1 one beep, 2 by damage, 3 by damage reversed
 	{ &cg_killBeep, "cg_killBeep", "1", CVAR_ARCHIVE},
 	{ &cg_worldItemTimers, "cg_worldItemTimers", "1", CVAR_ARCHIVE},	// markers and countdowns on away items
-	{ &cg_lowHealthWarning, "cg_lowHealthWarning", "1", CVAR_ARCHIVE},	// red edge and heartbeat below 25 health
+	{ &cg_lowHealthWarning, "cg_lowHealthWarning", "1", CVAR_ARCHIVE},	// the red screen edge at 50 health and below
+	{ &cg_lowHealthSound, "cg_lowHealthSound", "1", CVAR_ARCHIVE},	// the heartbeat at 25 and below
+	{ &cg_heavyBreathing, "cg_heavyBreathing", "1", CVAR_ARCHIVE},	// your champion breathing hard at 25 and below
+	{ &cg_championVO, "cg_championVO", "1", CVAR_ARCHIVE},		// champion voice lines
 	{ &cg_drawLineup, "cg_drawLineup", "1", CVAR_ARCHIVE},
 	{ &cg_layoutDump, "cg_layoutDump", "0", 0}
 //	{ &cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR_USERINFO | CVAR_ARCHIVE }

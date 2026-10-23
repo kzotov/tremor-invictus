@@ -4342,44 +4342,184 @@ static void CG_DrawDamageArc( void ) {
 
 /*
 =================
-CG_DrawLowHealth
-
-Below 25 health: a pulsing red edge and a heartbeat each second, when the
-install has a heartbeat sound; a beat is never restarted while it still
-plays (sound-clarity.md 3)
+CG_LowHealthStep
 =================
 */
-#define LOW_HEALTH			25
-static void CG_DrawLowHealth( void ) {
+static int CG_LowHealthStep( const playerState_t *ps ) {
+	int		health = ps->stats[STAT_HEALTH];
+
+	if ( health <= 0 || ps->pm_type == PM_SPECTATOR || ps->pm_type == PM_INTERMISSION
+		|| ps->persistant[PERS_TEAM] == TEAM_SPECTATOR && !( ps->pm_flags & PMF_FOLLOW ) ) {
+		return LH_NONE;
+	}
+	return health <= 10 ? LH_CRITICAL : health <= 25 ? LH_LOW : health <= 50 ? LH_HURT : LH_NONE;
+}
+
+/*
+=================
+CG_LowHealthFrame
+
+low-health.md 2, each frame after the entities' loops: the heartbeat (each
+beat replacing the last on one channel), your champion's breathing from
+2 s after reaching 25 with an exhale when healed, and a voice line 1 s
+after (once a life, 10 s apart). Followers hear the heartbeat only.
+=================
+*/
+void CG_LowHealthFrame( void ) {
 	static qboolean		loaded;
 	static sfxHandle_t	beat;
-	static int			beatLength;
-	vec4_t	color = { 0.8f, 0.0f, 0.0f, 0 };
-	int		health = cg.snap->ps.stats[STAT_HEALTH];
+	const playerState_t	*ps;
+	clientInfo_t		*ci;
+	int					step, old = cg.lowHealthStep;
+	qboolean			own;
 
-	if ( !cg_lowHealthWarning.integer || health <= 0 || health >= LOW_HEALTH ) {
+	if ( !cg.snap ) {
 		return;
 	}
-	color[3] = 0.2f + 0.15f * sin( cg.time * 0.00628f );
-	CG_FillRect( 0, 0, SCREEN_WIDTH, 10, color );
-	CG_FillRect( 0, SCREEN_HEIGHT - 10, SCREEN_WIDTH, 10, color );
-	cg_hudAnchor = ANCHOR_LEFT;
-	CG_FillRect( 0, 10, 10, SCREEN_HEIGHT - 20, color );
-	cg_hudAnchor = ANCHOR_RIGHT;
-	CG_FillRect( SCREEN_WIDTH - 10, 10, 10, SCREEN_HEIGHT - 20, color );
-	cg_hudAnchor = ANCHOR_CENTER;
-
+	ps = &cg.snap->ps;
 	if ( !loaded ) {
 		loaded = qtrue;
 		beat = trap_S_RegisterSound( "sound/feedback/heartbeat.wav", qfalse );
-		beatLength = beat ? trap_S_SoundDuration( beat ) : 0;
 	}
-	if ( cg.lowHealthBeat > cg.time ) {
-		cg.lowHealthBeat = 0;		// (a time reset)
+	// a time reset or a different player starts over
+	if ( cg.lowHealthBeat > cg.time || cg.lowHealthSince > cg.time || cg.lowHealthVoiceTime > cg.time
+		|| cg.lowHealthClient != ps->clientNum ) {
+		cg.lowHealthBeat = cg.lowHealthSince = cg.lowHealthVoiceTime = 0;
+		cg.lowHealthClient = ps->clientNum;
+		cg.lowHealthBreathing = qfalse;
+		old = LH_NONE;
 	}
-	if ( beat && cg.time - cg.lowHealthBeat >= ( beatLength > 1000 ? beatLength : 1000 ) ) {
+	step = CG_LowHealthStep( ps );
+	cg.lowHealthStep = step;
+	own = !( ps->pm_flags & PMF_FOLLOW ) && !cg.demoPlayback;
+	ci = &cgs.clientinfo[ps->clientNum];
+
+	if ( step >= LH_LOW && old < LH_LOW ) {
+		cg.lowHealthSince = cg.time;
+		cg.lowHealthBeat = 0;		// the first beat at once
+	}
+	if ( step < LH_LOW ) {
+		// healed above 25: an exhale; death just stops it
+		if ( cg.lowHealthBreathing && ps->stats[STAT_HEALTH] > 0 && ci->breatheStopSound ) {
+			trap_S_StartLocalSound( ci->breatheStopSound, CHAN_VOICE );
+		}
+		cg.lowHealthBreathing = qfalse;
+		return;
+	}
+
+	// the beat keeps the screen's rhythm even with its sound off
+	if ( !cg.lowHealthBeat || cg.time - cg.lowHealthBeat >= ( step == LH_CRITICAL ? 700 : 1000 ) ) {
 		cg.lowHealthBeat = cg.time;
-		trap_S_StartLocalSound( beat, CHAN_BODY );		// (the hit beeps don't cut it)
+		if ( cg_lowHealthSound.integer && beat ) {
+			trap_S_StartLocalSound( beat, CHAN_HEARTBEAT );		// (replaces the beat still sounding)
+		}
+	}
+
+	if ( !own ) {
+		cg.lowHealthBreathing = qfalse;
+		return;
+	}
+	if ( cg_heavyBreathing.integer && ci->breatheSound && cg.time - cg.lowHealthSince >= 2000 ) {
+		cg.lowHealthBreathing = qtrue;
+		trap_S_AddLoopingSound( ENTITYNUM_NONE, cg.refdef.vieworg, vec3_origin, ci->breatheSound );
+	} else {
+		cg.lowHealthBreathing = qfalse;
+	}
+	if ( cg_championVO.integer && cg.time - cg.lowHealthSince >= 1000
+		&& cg.lowHealthVoiceSpawn != ps->persistant[PERS_SPAWN_COUNT]
+		&& ( !cg.lowHealthVoiceTime || cg.time - cg.lowHealthVoiceTime >= 10000 ) ) {
+		sfxHandle_t	lines[3];
+		int			n = 0, i;
+
+		for ( i = 0 ; i < 3 ; i++ ) {
+			if ( ci->lowHealthSounds[i] ) {
+				lines[n++] = ci->lowHealthSounds[i];
+			}
+		}
+		cg.lowHealthVoiceSpawn = ps->persistant[PERS_SPAWN_COUNT];
+		if ( n ) {
+			cg.lowHealthVoiceTime = cg.time;
+			trap_S_StartLocalSound( lines[rand() % n], CHAN_VOICE );
+		}
+	}
+}
+
+/*
+=================
+CG_LowHealthPulse
+
+0..1, peaking on each heartbeat at Low and Critical, 0 otherwise
+=================
+*/
+float CG_LowHealthPulse( void ) {
+	float	t;
+
+	if ( cg.lowHealthStep < LH_LOW || !cg.lowHealthBeat ) {
+		return 0;
+	}
+	t = 1.0f - (float)( cg.time - cg.lowHealthBeat ) / ( cg.lowHealthStep == LH_CRITICAL ? 700 : 1000 );
+	if ( t < 0 ) {
+		t = 0;
+	}
+	return t * t;
+}
+
+/*
+=================
+CG_DrawLowHealth
+
+low-health.md 3-4: a soft red gradient in from every edge (static at 50
+and below, pulsing on the beat at 25, stronger and deeper at 10), and the
+LOW HEALTH warning blinking with it. cg_lowHealthWarning 0 takes the
+gradient away.
+=================
+*/
+#define LH_BANDS	24
+
+static void CG_DrawLowHealth( void ) {
+	float	edge, depth, pulse = CG_LowHealthPulse(), w = cgs.glconfig.vidWidth, h = cgs.glconfig.vidHeight;
+	float	band, a;
+	vec4_t	color;
+	int		i;
+
+	if ( cg.lowHealthStep == LH_NONE ) {
+		return;
+	}
+	if ( cg_lowHealthWarning.integer ) {
+		switch ( cg.lowHealthStep ) {
+		case LH_HURT:		edge = 0.12f; depth = 0.22f; break;
+		case LH_LOW:		edge = 0.22f + 0.20f * pulse; depth = 0.22f; break;
+		default:			edge = 0.35f + 0.20f * pulse; depth = 0.30f; break;
+		}
+		depth *= h;
+		band = depth / LH_BANDS;
+		for ( i = 0 ; i < LH_BANDS ; i++ ) {
+			// band i reaches (LH_BANDS - i) / LH_BANDS of the depth; their
+			// shares add up to edge * (1 - d)^2 at a distance d of the depth
+			a = (float)( i + 1 ) / LH_BANDS;
+			color[0] = 0.75f;
+			color[1] = color[2] = 0;
+			color[3] = edge * ( a * a - ( a - 1.0f / LH_BANDS ) * ( a - 1.0f / LH_BANDS ) );
+			trap_R_SetColor( color );
+			// each band covers from the edge to its depth: the alphas stack
+			trap_R_DrawStretchPic( 0, 0, w, band * ( LH_BANDS - i ), 0, 0, 1, 1, cgs.media.whiteShader );
+			trap_R_DrawStretchPic( 0, h - band * ( LH_BANDS - i ), w, band * ( LH_BANDS - i ), 0, 0, 1, 1, cgs.media.whiteShader );
+			trap_R_DrawStretchPic( 0, 0, band * ( LH_BANDS - i ), h, 0, 0, 1, 1, cgs.media.whiteShader );
+			trap_R_DrawStretchPic( w - band * ( LH_BANDS - i ), 0, band * ( LH_BANDS - i ), h, 0, 0, 1, 1, cgs.media.whiteShader );
+		}
+		trap_R_SetColor( NULL );
+	}
+
+	// the warning slot at centre + 466, top 586 (hud.md 9.2), blinking
+	if ( cg.lowHealthStep >= LH_LOW ) {
+		float	ch = 26 * DP, cw = ch * 0.8f;
+
+		color[0] = 1;
+		color[1] = 0.22f;
+		color[2] = 0.22f;
+		color[3] = 0.45f + 0.55f * pulse;
+		cg_hudAnchor = ANCHOR_CENTER;
+		CG_DrawStringExt( 320 + 466 * DP, 586 * DP, BG_String( STR_HUD_LOW_HEALTH ), color, qtrue, qtrue, cw, ch, 0 );
 	}
 }
 
@@ -6072,8 +6212,9 @@ static void CG_DrawStackBar( float x, float y, int value, int base, const vec4_t
 	}
 	// the number: red when low (not for armour on a class that starts
 	// without it), blue over the base, else the given tint
-	if ( pulse > 1 ) {
-		// rising: the tint stays (white armour, green health)
+	if ( pulse > 1 && !( lowRed && value <= 25 && tint[0] == 1 && tint[1] == 1 ) ) {
+		// rising: the tint stays (white armour, green health); the low-health
+		// beat pulses the red number
 	} else if ( lowRed && value <= 25 && tint[0] == 1 && tint[1] == 1 ) {
 		numColor = colorRed;
 	} else if ( value > base && tint[0] == 1 && tint[1] == 1 ) {
@@ -6151,6 +6292,8 @@ static void CG_DrawModernHud( void ) {
 		if ( healthTime && cg.time - healthTime < 150 ) {
 			Vector4Copy( healthUp ? riseGreen : dropRed, healthTint );
 			healthPulse = healthUp ? 1.15f : 1;
+		} else if ( cg.lowHealthStep >= LH_LOW ) {
+			healthPulse = 1.0f + 0.1f * CG_LowHealthPulse();		// in step with the heartbeat (hud.md 8.8)
 		}
 		if ( armorTime && cg.time - armorTime < 150 && ( armorUp || spawnArmor ) ) {
 			Vector4Copy( armorUp ? colorWhite : dropRed, armorTint );

@@ -607,6 +607,15 @@ static void S_Base_StartSoundEx( vec3_t origin, int entityNum, int entchannel, s
 
 	sfx->lastTimeUsed = time;
 
+	// the heartbeat's new beat replaces the one still sounding
+	if ( entchannel == CHAN_HEARTBEAT ) {
+		for ( i = 0, ch = s_channels ; i < MAX_CHANNELS ; i++, ch++ ) {
+			if ( ch->thesfx && ch->entnum == entityNum && ch->entchannel == CHAN_HEARTBEAT ) {
+				S_ChannelFree( ch );
+			}
+		}
+	}
+
 	ch = S_ChannelMalloc();	// entityNum, entchannel);
 	if (!ch) {
 		ch = s_channels;

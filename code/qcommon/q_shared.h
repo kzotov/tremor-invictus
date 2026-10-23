@@ -1055,7 +1055,8 @@ typedef enum {
 	CHAN_ITEM,
 	CHAN_BODY,
 	CHAN_LOCAL_SOUND,	// chat messages, etc
-	CHAN_ANNOUNCER		// announcer voices, etc
+	CHAN_ANNOUNCER,		// announcer voices, etc
+	CHAN_HEARTBEAT		// the low-health heartbeat: a new sound replaces the one still playing
 } soundChannel_t;
 
 
