@@ -1809,7 +1809,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"REMOVE FAVOURITE",
 	"Looking for servers...",
 	"%i of %i servers",
-	"No master server is set (sv_master1).",
+	"No internet server list yet: showing LAN servers.",
 	"No servers found.",
 	"Retina",
 	"Draws at the display's full resolution; sharper, slower. Applies after a restart.",

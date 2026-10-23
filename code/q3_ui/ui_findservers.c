@@ -117,11 +117,13 @@ static findServers_t	s_fs;
 FS_Source
 =================
 */
+static qboolean FS_HasMaster( void );
+
 static int FS_Source( void ) {
 	switch ( s_fs.source.curvalue ) {
 	case SRC_LAN:		return AS_LOCAL;
 	case SRC_FAVORITES:	return AS_FAVORITES;
-	default:			return AS_GLOBAL;
+	default:			return FS_HasMaster() ? AS_GLOBAL : AS_LOCAL;		// no internet list yet: LAN
 	}
 }
 
@@ -401,14 +403,15 @@ static void FS_Draw( void ) {
 
 	Menu_Draw( &s_fs.menu );
 
-	if ( FS_Source() == AS_GLOBAL && !FS_HasMaster() ) {
-		status = BG_String( STR_FS_NOMASTER );
-	} else if ( s_fs.pinging ) {
+	if ( s_fs.pinging ) {
 		status = BG_String( STR_FS_SCANNING );
 	} else if ( !s_fs.numListed ) {
 		status = BG_String( STR_FS_NONE );
 	} else {
 		status = va( (char *)BG_String( STR_FS_COUNT ), s_fs.numListed, s_fs.total );
+	}
+	if ( s_fs.source.curvalue != SRC_LAN && s_fs.source.curvalue != SRC_FAVORITES && !FS_HasMaster() ) {
+		status = va( "%s %s", BG_String( STR_FS_NOMASTER ), status );
 	}
 	UI_DrawString( 320, LIST_Y + VISIBLE_ROWS * ROW_HEIGHT + 6, status, UI_CENTER | UI_SMALLFONT, text_color_disabled );
 }
@@ -685,14 +688,15 @@ void UI_FindServers_Frame( void ) {
 	}
 	trap_Cvar_SetValue( "ui_fsSel", s_fs.selected - s_fs.top );
 
-	if ( FS_Source() == AS_GLOBAL && !FS_HasMaster() ) {
-		status = BG_String( STR_FS_NOMASTER );
-	} else if ( s_fs.pinging ) {
+	if ( s_fs.pinging ) {
 		status = BG_String( STR_FS_SCANNING );
 	} else if ( !s_fs.numListed ) {
 		status = BG_String( STR_FS_NONE );
 	} else {
 		status = va( (char *)BG_String( STR_FS_COUNT ), s_fs.numListed, s_fs.total );
+	}
+	if ( s_fs.source.curvalue != SRC_LAN && s_fs.source.curvalue != SRC_FAVORITES && !FS_HasMaster() ) {
+		status = va( "%s %s", BG_String( STR_FS_NOMASTER ), status );
 	}
 	trap_Cvar_Set( "ui_fsStatus", status );
 }
