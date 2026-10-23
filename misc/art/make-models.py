@@ -213,6 +213,18 @@ def orb_swirl(u, v, n=Fbm(23, 5, 4)):
     return [0.45 * k + 0.08, 0.12 * k + 0.02, 0.75 * k + 0.12, 1]
 
 
+def blood_edge(u, v, n=Fbm(47, 5, 5), m=Fbm(53, 3, 14)):
+    """hud.md 9.7, the low-health overlay: dark red at the screen edges in
+    blotches, clear in the middle (ours, drawn for the purpose)."""
+    edge = min(u, 1 - u, v, 1 - v)                     # 0 at an edge, 0.5 in the middle
+    reach = 0.1 + 0.16 * n.at(u, v)                    # how far in the stain reaches here
+    k = max(0.0, 1.0 - edge / reach)
+    k = k * k * (3 - 2 * k)
+    k *= 0.75 + 0.25 * m.at(u, v)                      # small mottling
+    shade = 0.32 + 0.25 * m.at(v, u)
+    return [shade, 0.01, 0.02, min(1.0, k * 1.15)]
+
+
 def trail(u, v, n=Fbm(31, 4, 8)):
     # across the ribbon (v): a hot core with a cyan edge; along it (u): noise
     d = abs(v - 0.5) * 2
@@ -624,6 +636,18 @@ def sounds(out):
 SHADERS = """// tremor-invictus generated assets (misc/art/make-models.py)
 // Replaceable: a pack loaded later may define these names again.
 
+// the low-health overlay (hud.md 9.7), coloured and faded by the HUD
+gfx/tremor/blood_edge
+{
+	nopicmip
+	{
+		clampmap gfx/tremor/blood_edge.tga
+		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		rgbGen vertex
+		alphaGen vertex
+	}
+}
+
 models/powerups/hourglass/frame
 {
 	{
@@ -814,6 +838,7 @@ def main():
     portraits(src)
     sounds(src)
     texture(os.path.join(src, "gfx/abilities/plasmatrail.tga"), 128, 64, trail, False)
+    texture(os.path.join(src, "gfx/tremor/blood_edge.tga"), 256, 256, blood_edge)
     os.makedirs(os.path.join(src, "scripts"), exist_ok=True)
     with open(os.path.join(src, "scripts/tremor-assets.shader"), "w") as f:
         f.write(SHADERS)

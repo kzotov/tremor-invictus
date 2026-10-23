@@ -4604,7 +4604,36 @@ static void CG_DrawLowHealth( void ) {
 	if ( cg.lowHealthStep == LH_NONE ) {
 		return;
 	}
-	if ( cg_lowHealthWarning.integer ) {
+	// hud.md 9.7, the modern layout: the reference's look instead of the
+	// gradient. Low: a blood overlay at the edges, back at full on each beat
+	// and fading over 1.7 s while it slightly zooms; critical: a red tint
+	// over the screen fading over 1.6 s, the overlay held at 0.6-0.7
+	if ( cg_lowHealthWarning.integer && CG_HudModern() ) {
+		static qhandle_t	blood;
+		float				t = cg.lowHealthBeat ? cg.time - cg.lowHealthBeat : 0, k, zoom;
+
+		if ( !blood ) {
+			blood = trap_R_RegisterShaderNoMip( "gfx/tremor/blood_edge" );
+		}
+		if ( cg.lowHealthStep == LH_CRITICAL ) {
+			color[0] = 0.7f;
+			color[1] = color[2] = 0;
+			color[3] = 0.3f * ( t < 1600 ? 1 - t / 1600.0f : 0 );
+			if ( color[3] > 0 ) {
+				trap_R_SetColor( color );
+				trap_R_DrawStretchPic( 0, 0, w, h, 0, 0, 1, 1, cgs.media.whiteShader );
+			}
+		}
+		if ( blood && cg.lowHealthStep >= LH_LOW ) {
+			k = t < 1700 ? 1 - t / 1700.0f : 0;
+			zoom = 1 + 0.04f * ( 1 - k );
+			color[0] = color[1] = color[2] = 1;
+			color[3] = cg.lowHealthStep == LH_CRITICAL ? 0.6f + 0.1f * k : k;
+			trap_R_SetColor( color );
+			trap_R_DrawStretchPic( -w * ( zoom - 1 ) / 2, -h * ( zoom - 1 ) / 2, w * zoom, h * zoom, 0, 0, 1, 1, blood );
+		}
+		trap_R_SetColor( NULL );
+	} else if ( cg_lowHealthWarning.integer ) {
 		switch ( cg.lowHealthStep ) {
 		case LH_HURT:		edge = 0.12f; depth = 0.22f; break;
 		case LH_LOW:		edge = 0.22f + 0.20f * pulse; depth = 0.22f; break;
@@ -7411,6 +7440,8 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 		// the status stays up with the scoreboard open (only the centre
 		// messages hide); nothing while dead
 		if ( cg.snap->ps.stats[STAT_HEALTH] > 0 ) {
+			// the low-health screen under the HUD, so the numbers stay readable
+			CG_DrawLowHealth();
 
 #ifdef MISSIONPACK
 			if ( cg_drawStatus.integer ) {
@@ -7441,7 +7472,6 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 #ifndef MISSIONPACK
 			CG_DrawWorldItemTimers();
 #endif
-			CG_DrawLowHealth();
 			// the classic pop-up weapon row; the modern layout has its bar on the right
 			if ( !CG_HudModern() ) {
 				CG_DrawWeaponSelect();
