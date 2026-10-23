@@ -67,6 +67,18 @@ qboolean G_RoundDuel( void ) {
 
 /*
 =================
+G_RoundDuelHidesPicks
+
+round-duel.md 3: the first champions stay hidden through the countdown,
+so the players look like the default champion until the fight starts
+=================
+*/
+qboolean G_RoundDuelHidesPicks( void ) {
+	return G_RoundDuel() && rd.state == RD_COUNTDOWN;
+}
+
+/*
+=================
 G_RoundDuelHolds
 
 True while players are held in place: the draft, the countdown, the result
@@ -426,9 +438,15 @@ void G_RoundDuelCheckRules( void ) {
 
 	case RD_COUNTDOWN:
 		if ( level.time >= rd.stateTime ) {
+			int		side;
+
 			rd.state = RD_FIGHTING;
 			rd.roundStart = level.time;
 			G_RDUpdateHud();
+			// the fight: the first champions show (G_RoundDuelHidesPicks)
+			for ( side = 0 ; side < 2 ; side++ ) {
+				ClientUserinfoChanged( rd.player[side] );
+			}
 		}
 		break;
 

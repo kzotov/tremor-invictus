@@ -853,6 +853,7 @@ gentity_t	*G_SacrificeSpawnPoint( gentity_t *ent, vec3_t origin, vec3_t angles, 
 
 // g_roundduel.c
 qboolean	G_RoundDuel( void );
+qboolean	G_RoundDuelHidesPicks( void );
 qboolean	G_RoundDuelHolds( void );
 int			G_RoundDuelChampion( gclient_t *client );
 void		G_RoundDuelKill( gentity_t *victim );

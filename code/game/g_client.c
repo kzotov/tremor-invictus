@@ -813,7 +813,8 @@ void ClientUserinfoChanged( int clientNum ) {
 
 	// the champion being played decides the model; a new pick shows on respawn.
 	// Blind pick: before a duel's countdown everyone looks like the default
-	if ( ( g_blindPick.integer && g_gametype.integer == GT_TOURNAMENT && level.warmupTime < 0 ) || G_LobbyHidesPicks() ) {
+	if ( ( g_blindPick.integer && g_gametype.integer == GT_TOURNAMENT && level.warmupTime < 0 ) || G_LobbyHidesPicks()
+		|| G_RoundDuelHidesPicks() ) {
 		G_ChampionModel( 0, model, sizeof( model ) );
 	} else {
 		G_ChampionModel( client->ps.stats[STAT_CHAMPION], model, sizeof( model ) );
