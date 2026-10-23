@@ -1443,6 +1443,10 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"was caught in the storm of",
 	"was mauled by the hound of",
 	"was rammed by",
+	"was torn apart by the return of",
+	"was crushed by the orb jump of",
+	"was ripped apart by",
+	"was kicked down by",
 	"VIDEO",
 	"MOUSE",
 	"CONTROLS",
@@ -2029,6 +2033,34 @@ Actives that move the player, the ones warm-up keeps
 */
 qboolean BG_MovementAbility( int active ) {
 	return active == ACTIVE_HOOK || active == ACTIVE_BULLRUSH || active == ACTIVE_ORB || active == ACTIVE_RIFTANCHOR;
+}
+
+/*
+==============
+BG_ChampionModelScale
+
+champion-audit.md: each champion's model drawn at the reference's scale
+(the hull stays the same); champions without data at 1
+==============
+*/
+float BG_ChampionModelScale( int champion ) {
+	static const struct { const char *name; float scale; } scales[] = {
+		{ "nyx", 1.1f }, { "anarki", 1.05f }, { "slash", 1.0f }, { "athena", 1.1f }, { "ranger", 1.05f },
+		{ "visor", 1.075f }, { "galena", 1.2f }, { "bj", 1.1f }, { "doomslayer", 1.1f }, { "strogg", 1.1f },
+		{ "deathknight", 1.1f }, { "eisen", 1.1f }, { "wrack", 1.1f }, { "scalebearer", 1.175f },
+		{ "clutch", 1.15f }, { "sorlag", 1.0f }, { "keel", 1.22f }
+	};
+	int		i;
+
+	if ( champion < 0 || champion >= bg_numChampions ) {
+		return 1.0f;
+	}
+	for ( i = 0 ; i < ARRAY_LEN( scales ) ; i++ ) {
+		if ( !Q_stricmp( bg_championList[champion].name, scales[i].name ) ) {
+			return scales[i].scale;
+		}
+	}
+	return 1.0f;
 }
 
 /*
@@ -3015,7 +3047,8 @@ char *eventnames[] = {
 	"EV_USE_ABILITY",
 	"EV_ABILITY_REPRESS",
 	"EV_DAMAGEPLUM",
-	"EV_DODGE"
+	"EV_DODGE",
+	"EV_ABILITY_END"
 };
 
 /*

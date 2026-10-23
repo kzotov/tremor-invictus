@@ -373,7 +373,7 @@ static void G_GhostWalkEnd( gentity_t *ent ) {
 			continue;
 		}
 		G_Damage( other, ent, ent, NULL, NULL, g_ghostWalkTelefrag.integer,
-			DAMAGE_NO_PROTECTION, MOD_TELEFRAG );
+			DAMAGE_NO_PROTECTION, MOD_GHOSTWALK );
 	}
 }
 
@@ -529,6 +529,13 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 	// timed abilities starting and ending
 	if ( client->abilityPrevState != ABILITY_ACTIVE && state == ABILITY_ACTIVE ) {
 		G_AbilityStarted( ent );
+	}
+	// champion-audit.md: the end sound on every end (natural, second press,
+	// cancel), not on a second press that doesn't end it
+	if ( ( client->abilityPrevState == ABILITY_ACTIVE || client->abilityPrevState == ABILITY_RUSH
+		|| client->abilityPrevState == ABILITY_HOOK_FLYING || client->abilityPrevState == ABILITY_HOOK_PULL )
+		&& state == ABILITY_IDLE ) {
+		G_AddEvent( ent, EV_ABILITY_END, 0 );
 	}
 	if ( client->abilityPrevState == ABILITY_ACTIVE && state != ABILITY_ACTIVE ) {
 		if ( champ->active == ACTIVE_GHOSTWALK ) {

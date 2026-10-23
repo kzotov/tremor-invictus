@@ -689,6 +689,10 @@ typedef enum {
 	STR_OBIT_STORM,
 	STR_OBIT_HOUND,
 	STR_OBIT_HOOKIMPACT,
+	STR_OBIT_GHOSTWALK,
+	STR_OBIT_ORBTELEFRAG,
+	STR_OBIT_BERSERK,
+	STR_OBIT_LEAPINGKICK,
 	STR_SET_TAB_VIDEO,
 	STR_SET_TAB_MOUSE,
 	STR_SET_TAB_CONTROLS,
@@ -1412,6 +1416,7 @@ int					BG_ChampionForName( const char *name );
 void				BG_ChampionModel( int champion, char *out, int size );
 #define	MAX_CHAMPIONS		32
 int					BG_ChampionForModel( const char *model );
+float				BG_ChampionModelScale( int champion );
 const champion_t	*BG_Champion( int index );
 qboolean			BG_MovementAbility( int active );
 
@@ -1688,6 +1693,9 @@ typedef enum {
 
 // shell-shocked until this time (a powerup slot the base game doesn't use)
 #define	PW_SHELLSHOCK		PW_SCOUT
+// burning and poisoned (end times), shown to everyone (Team Arena runes only)
+#define	PW_BURNING			PW_DOUBLER
+#define	PW_POISONED			PW_AMMOREGEN
 
 // NOTE: may not have more than 16
 typedef enum {
@@ -1894,7 +1902,8 @@ typedef enum {
 	EV_USE_ABILITY,					// active ability takes effect (game side)
 	EV_ABILITY_REPRESS,				// ability pressed again while active
 	EV_DAMAGEPLUM,					// damage dealt, a number over the target for the attacker only
-	EV_DODGE						// Clutch's dodge: a whoosh, not the jump voice
+	EV_DODGE,						// Clutch's dodge: a whoosh, not the jump voice
+	EV_ABILITY_END					// an ability ended, for any reason: its end sound
 } entity_event_t;
 
 
@@ -2060,7 +2069,12 @@ typedef enum {
 	MOD_SPINES,
 	MOD_STORM,
 	MOD_HOUND,
-	MOD_HOOKIMPACT			// Athena flying into an enemy on her hook (an ability kill)
+	MOD_HOOKIMPACT,			// Athena flying into an enemy on her hook (an ability kill)
+	// champion-audit.md: each ability its own means of death
+	MOD_GHOSTWALK,			// Nyx coming out of Ghost Walk inside someone
+	MOD_ORBTELEFRAG,		// Ranger teleporting to his orb onto someone
+	MOD_BERSERK,			// Doom Slayer's Berserk punches
+	MOD_LEAPINGKICK			// Xaero's Leaping Kick
 } meansOfDeath_t;
 
 

@@ -360,6 +360,18 @@ static void CG_Obituary( entityState_t *ent ) {
 		case MOD_HOOKIMPACT:
 			message = (char *)BG_String( STR_OBIT_HOOKIMPACT );
 			break;
+		case MOD_GHOSTWALK:
+			message = (char *)BG_String( STR_OBIT_GHOSTWALK );
+			break;
+		case MOD_ORBTELEFRAG:
+			message = (char *)BG_String( STR_OBIT_ORBTELEFRAG );
+			break;
+		case MOD_BERSERK:
+			message = (char *)BG_String( STR_OBIT_BERSERK );
+			break;
+		case MOD_LEAPINGKICK:
+			message = (char *)BG_String( STR_OBIT_LEAPINGKICK );
+			break;
 		case MOD_GAUNTLET:
 			message = "was pummeled by";
 			break;
@@ -883,6 +895,9 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		break;
 	case EV_ABILITY_REPRESS:
 		DEBUGNAME("EV_ABILITY_REPRESS");
+		break;		// the end sound comes with EV_ABILITY_END, if it ends
+	case EV_ABILITY_END:
+		DEBUGNAME("EV_ABILITY_END");
 		CG_AbilitySound( es, 1 );
 		break;
 	case EV_TAUNT:

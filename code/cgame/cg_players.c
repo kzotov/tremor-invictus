@@ -1867,6 +1867,22 @@ static void CG_PlayerPowerups( centity_t *cent, refEntity_t *torso ) {
 		return;
 	}
 
+	// burning: small flames rising off the body; poisoned: green drips
+	// (champion-audit.md), a few puffs a second
+	if ( ( powerups & ( ( 1 << PW_BURNING ) | ( 1 << PW_POISONED ) ) ) && cg.time >= cent->dotPuffTime ) {
+		vec3_t		p, vel;
+		qboolean	burn = ( powerups & ( 1 << PW_BURNING ) ) != 0;
+
+		cent->dotPuffTime = cg.time + 90;
+		VectorCopy( cent->lerpOrigin, p );
+		p[0] += crandom() * 10;
+		p[1] += crandom() * 10;
+		p[2] += burn ? crandom() * 16 : 8 + crandom() * 12;
+		VectorSet( vel, 0, 0, burn ? 40 : -30 );
+		CG_SmokePuff( p, vel, burn ? 7 : 4, burn ? 1 : 0.3f, burn ? 0.5f : 1, burn ? 0.1f : 0.2f, 0.8f,
+			burn ? 450 : 600, cg.time, 0, LEF_PUFF_DONT_SCALE, cgs.media.smokePuffShader );
+	}
+
 	// quad gives a dlight
 	if ( powerups & ( 1 << PW_QUAD ) ) {
 		trap_R_AddLightToScene( cent->lerpOrigin, 200 + (rand()&31), 0.2f, 0.2f, 1 );
@@ -2342,7 +2358,8 @@ void CG_Player( centity_t *cent ) {
 
 	// player models are built for a shorter body: scale them to the hull,
 	// keeping the feet on the floor. The torso and head follow through their tags.
-	scale = ( DEFAULT_HEIGHT - MINS_Z ) / (float)MODEL_HEIGHT * cg_playerScale.value;
+	scale = ( DEFAULT_HEIGHT - MINS_Z ) / (float)MODEL_HEIGHT * cg_playerScale.value
+		* BG_ChampionModelScale( BG_ChampionForModel( ci->modelName ) );		// the champion's own size, drawn only
 	if ( scale > 0 && scale != 1.0f ) {
 		VectorScale( legs.axis[0], scale, legs.axis[0] );
 		VectorScale( legs.axis[1], scale, legs.axis[1] );
@@ -2729,7 +2746,8 @@ void CG_DroneBody( centity_t *cent ) {
 	AnglesToAxis( angles, legs.axis );
 	// the player hull scale, as on a player (feet kept on the floor)
 	{
-		float	scale = ( DEFAULT_HEIGHT - MINS_Z ) / (float)MODEL_HEIGHT * cg_playerScale.value;
+		float	scale = ( DEFAULT_HEIGHT - MINS_Z ) / (float)MODEL_HEIGHT * cg_playerScale.value
+			* BG_ChampionModelScale( BG_ChampionForModel( ci->modelName ) );
 
 		if ( scale > 0 && scale != 1.0f ) {
 			VectorScale( legs.axis[0], scale, legs.axis[0] );

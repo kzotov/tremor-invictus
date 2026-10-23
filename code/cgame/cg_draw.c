@@ -3126,7 +3126,9 @@ qboolean CG_PlayerRevealed( int clientNum ) {
 	if ( cgs.gametype >= GT_TEAM && cgs.clientinfo[clientNum].team == ps->persistant[PERS_TEAM] ) {
 		return qfalse;
 	}
-	if ( cent->currentState.eFlags & EF_MARKED ) {
+	// marked: only for the player or team that marked them (s.time2)
+	if ( ( cent->currentState.eFlags & EF_MARKED ) && ps->clientNum < 32
+		&& ( cent->currentState.time2 & ( 1 << ps->clientNum ) ) ) {
 		return qtrue;
 	}
 	return BG_Champion( ps->stats[STAT_CHAMPION] )->active == ACTIVE_PIERCINGSIGHT
@@ -6254,12 +6256,47 @@ static void CG_ReadyCvars( void ) {
 	}
 }
 
+/*
+=================
+CG_DrawDotEdge
+
+champion-audit.md: while burning (orange) or poisoned (green), a soft
+coloured edge around the screen, pulsing
+=================
+*/
+static void CG_DrawDotEdge( void ) {
+	playerState_t	*ps = &cg.snap->ps;
+	vec4_t			color;
+	int				i, w = 640, h = 480, band = 6;
+	float			pulse;
+
+	if ( ps->stats[STAT_HEALTH] <= 0 ) {
+		return;
+	}
+	if ( ps->powerups[PW_BURNING] > cg.time ) {
+		VectorSet( color, 1, 0.45f, 0.05f );
+	} else if ( ps->powerups[PW_POISONED] > cg.time ) {
+		VectorSet( color, 0.3f, 0.95f, 0.15f );
+	} else {
+		return;
+	}
+	pulse = 0.75f + 0.25f * sin( cg.time * 0.008f );
+	for ( i = 0 ; i < 6 ; i++ ) {
+		color[3] = ( 0.35f - i * 0.055f ) * pulse;
+		CG_FillRect( -80 + 0, i * band, w + 160, band, color );
+		CG_FillRect( -80 + 0, h - ( i + 1 ) * band, w + 160, band, color );
+		CG_FillRect( -80 + i * band, 0, band, h, color );
+		CG_FillRect( w + 80 - ( i + 1 ) * band, 0, band, h, color );
+	}
+}
+
 static void CG_Draw2D(stereoFrame_t stereoFrame)
 {
 	float	voteY = 0;		// the vote line goes under the team overlay
 
 	CG_HudLayout();		// every state draws from the layout
 	CG_ReadyCvars();
+	CG_DrawDotEdge();
 
 #ifdef MISSIONPACK
 	if (cgs.orderPending && cg.time > cgs.orderTime) {

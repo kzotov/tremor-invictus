@@ -450,7 +450,7 @@ static void G_OrbTeleport( gentity_t *ent ) {
 	for ( i = 0 ; i < num ; i++ ) {
 		other = &g_entities[touch[i]];
 		if ( G_AbilityEnemy( ent, other ) && Distance( other->r.currentOrigin, spot ) <= ORB_TELEFRAG_RANGE ) {
-			G_Damage( other, ent, ent, NULL, NULL, g_orbTelefragDamage.integer, DAMAGE_NO_PROTECTION, MOD_TELEFRAG );
+			G_Damage( other, ent, ent, NULL, NULL, g_orbTelefragDamage.integer, DAMAGE_NO_PROTECTION, MOD_ORBTELEFRAG );
 		}
 	}
 
@@ -1883,6 +1883,7 @@ void G_AbilityClientThink( gentity_t *ent ) {
 			trap_Trace( &tr, client->ps.origin, NULL, NULL, other->r.currentOrigin, ent->s.number, MASK_SOLID );
 			if ( tr.fraction == 1.0f ) {
 				other->client->revealEndTime = level.time + 300;
+				other->client->revealTeam = g_gametype.integer >= GT_TEAM ? client->sess.sessionTeam : 1000 + ent->s.number;
 			}
 		}
 	}

@@ -635,12 +635,34 @@ void G_ChampionClientThink( gentity_t *ent ) {
 	int			passives = G_Passives( ent );
 	int			add;
 
+	// burning and poison, for the client's feedback (champion-audit.md)
+	client->ps.powerups[PW_BURNING] = client->burnEndTime > level.time && ent->health > 0 ? client->burnEndTime : 0;
+	client->ps.powerups[PW_POISONED] = client->poisonEndTime > level.time && ent->health > 0 ? client->poisonEndTime : 0;
+
 	// marked (or seen by an enemy drone): everyone else is sent this player,
 	// and sees them through walls
+	// champion-audit.md: shown only to the player or team that marked them;
+	// s.time2 carries which clients may see it (0-31)
 	if ( ( client->markEndTime > level.time || client->revealEndTime > level.time ) && ent->health > 0 ) {
+		int		i, seers = 0;
+
+		for ( i = 0 ; i < level.maxclients && i < 32 ; i++ ) {
+			gclient_t	*cl = &level.clients[i];
+			int			team = g_gametype.integer >= GT_TEAM ? cl->sess.sessionTeam : 1000 + i;
+
+			if ( cl->pers.connected != CON_CONNECTED ) {
+				continue;
+			}
+			if ( ( client->markEndTime > level.time && client->markTeam == team )
+				|| ( client->revealEndTime > level.time && client->revealTeam == team ) ) {
+				seers |= 1 << i;
+			}
+		}
 		client->ps.eFlags |= EF_MARKED;
+		ent->s.time2 = seers;
 	} else {
 		client->ps.eFlags &= ~EF_MARKED;
+		ent->s.time2 = 0;
 	}
 
 	// the rift anchor fades with the ability
@@ -935,7 +957,7 @@ void G_XaeroThink( gentity_t *ent ) {
 				continue;
 			}
 			client->kickHits[n >> 5] |= 1 << ( n & 31 );
-			G_Damage( other, ent, ent, client->ps.velocity, other->r.currentOrigin, 25, DAMAGE_NO_KNOCKBACK, MOD_UNKNOWN );
+			G_Damage( other, ent, ent, client->ps.velocity, other->r.currentOrigin, 25, DAMAGE_NO_KNOCKBACK, MOD_LEAPINGKICK );
 		}
 	}
 	if ( !( G_Passives( ent ) & PASSIVE_LEAPINGKICK ) ) {

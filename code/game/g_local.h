@@ -374,6 +374,7 @@ struct gclient_s {
 	int			hasteEndTime;		// Ranger: +10% run speed after a teleport
 	int			stunEndTime;		// no firing and no ability until then
 	int			revealEndTime;		// seen by an enemy drone: shown through walls
+	int			revealTeam;			// whose drone: as markTeam
 	int			markTeam;			// team (or client + 1000 in free for all) whose hits are stronger
 	// Xaero
 	int			kickExpire[KICK_MAX];	// banked Leaping Kicks, level.time each runs out

@@ -319,11 +319,11 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 			}
 			*last = level.time;
 		}
-		damage = g_berserkDamage.value * s_quadFactor;
+		damage = g_berserkDamage.value;		// an ability: no Quad (champion-audit.md)
 	}
 	G_WeaponKnock( WP_GAUNTLET, traceEnt, ent );
 	G_Damage( traceEnt, ent, ent, forward, tr.endpos,
-		damage, 0, MOD_GAUNTLET );
+		damage, 0, G_AbilityActive( ent, ACTIVE_BERSERK ) ? MOD_BERSERK : MOD_GAUNTLET );
 	if ( traceEnt->client && ( BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_CHARRING ) ) {
 		G_Ignite( traceEnt, ent );
 	}
