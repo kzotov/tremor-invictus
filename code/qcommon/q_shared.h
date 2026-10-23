@@ -1230,6 +1230,7 @@ typedef struct playerState_s {
 #define	BUTTON_ANY			2048			// any key whatsoever
 #define	BUTTON_ABILITY		4096			// champion active ability, bound to +button12
 #define	BUTTON_ZOOM			8192			// zoomed, for weapons that change when zoomed (+button13)
+#define	BUTTON_CROUCH		16384			// crouch held (+movedown), apart from the up-move so jump still works
 
 #define	MOVE_RUN			120			// if forwardmove or rightmove are >= MOVE_RUN,
 										// then BUTTON_WALKING should be set

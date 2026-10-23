@@ -21,6 +21,7 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
                                             prefers gfx/champions/<champion> (a
                                             portrait pack), then the model's icon
   sound/tremor/hit_armor.wav, hit_health.wav, armor_break.wav
+  sound/tremor/slide_start.wav, slide_loop.wav, slide_stop.wav   the crouch slide
                                             hit tones: a bright ping on armour, a
                                             dull knock on health, a crack when the
                                             armour breaks (synthesised)
@@ -488,6 +489,24 @@ def sweep(f0, f1, seconds, decay, noise=0.12, rate=22050, seed=5):
     return out
 
 
+def scrape(seconds, cutoff, decay, rate=22050, seed=5, loop=False):
+    """Low-passed noise: a body sliding on the floor. A loop fades in and
+    out over its ends so it repeats without a click."""
+    rnd = random.Random(seed)
+    out, lp = [], 0.0
+    k = 1.0 - math.exp(-2 * math.pi * cutoff / rate)
+    n = int(seconds * rate)
+    for i in range(n):
+        t = i / rate
+        lp += k * ((rnd.random() * 2 - 1) - lp)
+        if loop:
+            env = min(1.0, i / (0.05 * rate), (n - i) / (0.05 * rate))
+        else:
+            env = math.exp(-t * decay) * min(1.0, t * 200)
+        out.append(lp * env * 1.6)
+    return out
+
+
 # the active abilities' names (bg_abilityInfo's cvarName)
 ABILITIES = ["hook", "bullrush", "injection", "dualwield", "barrier", "flamestrike", "berserk", "turret",
              "totem", "grenades", "ghostwalk", "orb", "plasmatrail", "acidspit", "drone", "piercingsight",
@@ -507,6 +526,10 @@ def sounds(out):
         for i, v in enumerate(bell):
             call[start + i] += v * 0.6
     write_wav(os.path.join(out, "sound/tremor/match_found.wav"), call)
+    # the crouch slide: a scrape starting, a steady loop, a short stop
+    write_wav(os.path.join(out, "sound/tremor/slide_start.wav"), scrape(0.25, 600, 9, seed=41))
+    write_wav(os.path.join(out, "sound/tremor/slide_loop.wav"), scrape(1.0, 420, 0, seed=43, loop=True))
+    write_wav(os.path.join(out, "sound/tremor/slide_stop.wav"), scrape(0.18, 300, 22, seed=47))
     # each ability: a rising sweep on casting, a falling blip at the end,
     # pitched by the name so they differ
     for name in ABILITIES:

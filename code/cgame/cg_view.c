@@ -358,6 +358,59 @@ CG_OffsetFirstPersonView
 
 ===============
 */
+/*
+===============
+CG_LocalSliding
+
+Whether the viewed player is in a crouch slide now (the movement code's
+rule: a slider, crouched on the ground with charge left, above the crouch
+walk)
+===============
+*/
+static qboolean CG_LocalSliding( void ) {
+	playerState_t		*ps = &cg.predictedPlayerState;
+	const champion_t	*champ = BG_Champion( ps->stats[STAT_CHAMPION] );
+	float				min;
+
+	if ( champ->moveStyle != MOVE_SLIDE || !( ps->pm_flags & PMF_DUCKED ) || ps->groundEntityNum == ENTITYNUM_NONE
+		|| BG_SlideCharge( ps ) <= 0 || ps->pm_type != PM_NORMAL ) {
+		return qfalse;
+	}
+	min = champ->runSpeed * ( !Q_stricmp( champ->name, "slash" ) ? bg_pmoveSettings.slideCrouchScale : bg_pmoveSettings.crouchWalkScale );
+	return sqrt( ps->velocity[0] * ps->velocity[0] + ps->velocity[1] * ps->velocity[1] ) > min;
+}
+
+/*
+===============
+CG_SlideSounds
+
+The slide's start, loop and stop sounds for the viewed player
+===============
+*/
+static void CG_SlideSounds( void ) {
+	static qboolean		was;
+	static sfxHandle_t	start, loop, stop;
+	static qboolean		loaded;
+	qboolean			now = CG_LocalSliding();
+	int					self = cg.predictedPlayerState.clientNum;
+
+	if ( !loaded ) {
+		start = trap_S_RegisterSound( "sound/tremor/slide_start.wav", qfalse );
+		loop = trap_S_RegisterSound( "sound/tremor/slide_loop.wav", qfalse );
+		stop = trap_S_RegisterSound( "sound/tremor/slide_stop.wav", qfalse );
+		loaded = qtrue;
+	}
+	if ( now && !was && start ) {
+		trap_S_StartSound( NULL, self, CHAN_BODY, start );
+	} else if ( !now && was && stop ) {
+		trap_S_StartSound( NULL, self, CHAN_BODY, stop );
+	}
+	if ( now && loop ) {
+		trap_S_AddLoopingSound( self, cg.predictedPlayerState.origin, cg.predictedPlayerState.velocity, loop );
+	}
+	was = now;
+}
+
 static void CG_OffsetFirstPersonView( void ) {
 	float			*origin;
 	float			*angles;
@@ -368,6 +421,7 @@ static void CG_OffsetFirstPersonView( void ) {
 	float			f;
 	vec3_t			predictedVelocity;
 	int				timeDelta;
+	qboolean		sliding;
 	
 	if ( cg.snap->ps.pm_type == PM_INTERMISSION ) {
 		return;
@@ -423,11 +477,13 @@ static void CG_OffsetFirstPersonView( void ) {
 	// make sure the bob is visible even at low speeds
 	speed = cg.xyspeed > 200 ? cg.xyspeed : 200;
 
-	delta = cg.bobfracsin * cg_bobpitch.value * speed;
+	// no bob while sliding (movement.md slide fixes)
+	sliding = CG_LocalSliding();
+	delta = sliding ? 0 : cg.bobfracsin * cg_bobpitch.value * speed;
 	if (cg.predictedPlayerState.pm_flags & PMF_DUCKED)
 		delta *= 3;		// crouching
 	angles[PITCH] += delta;
-	delta = cg.bobfracsin * cg_bobroll.value * speed;
+	delta = sliding ? 0 : cg.bobfracsin * cg_bobroll.value * speed;
 	if (cg.predictedPlayerState.pm_flags & PMF_DUCKED)
 		delta *= 3;		// crouching accentuates roll
 	if (cg.bobcycle & 1)
@@ -960,6 +1016,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 
 	// update cg.predictedPlayerState
 	CG_PredictPlayerState();
+	CG_SlideSounds();
 
 	// decide on third person view
 	cg.renderingThirdPerson = cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR

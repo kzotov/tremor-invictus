@@ -1581,13 +1581,15 @@ typedef enum {
 #define	KICK_MAX				3
 
 // crouch slide state in STAT_MOVE_STATE (stats travel as 16 bits): the charge
-// in 8 ms units in the low 10 bits, time in the air in 64 ms units above
+// in 8 ms units in the low 10 bits, time in the air in 4 ms units (rounded,
+// so frames of any length add up) in the 6 bits above
 #define BG_SLIDE_CHARGE_UNIT	8
-#define BG_SLIDE_AIR_UNIT		64
+#define BG_SLIDE_AIR_UNIT		4
+#define BG_SLIDE_AIR_MAX		63
 #define BG_SLIDE_CHARGE_BITS	10
 #define BG_SlideCharge( ps )	( ( (ps)->stats[STAT_MOVE_STATE] & ( ( 1 << BG_SLIDE_CHARGE_BITS ) - 1 ) ) * BG_SLIDE_CHARGE_UNIT )
-#define BG_SlideAirTime( ps )	( ( ( (ps)->stats[STAT_MOVE_STATE] >> BG_SLIDE_CHARGE_BITS ) & 31 ) * BG_SLIDE_AIR_UNIT )
-#define BG_SlideState( charge, air )	( ( (charge) / BG_SLIDE_CHARGE_UNIT ) | ( ( (air) / BG_SLIDE_AIR_UNIT ) << BG_SLIDE_CHARGE_BITS ) )
+#define BG_SlideAirTime( ps )	( ( ( ( (ps)->stats[STAT_MOVE_STATE] & 0xffff ) >> BG_SLIDE_CHARGE_BITS ) & BG_SLIDE_AIR_MAX ) * BG_SLIDE_AIR_UNIT )
+#define BG_SlideState( charge, air )	( ( (charge) / BG_SLIDE_CHARGE_UNIT ) | ( ( ( (air) + BG_SLIDE_AIR_UNIT / 2 ) / BG_SLIDE_AIR_UNIT ) << BG_SLIDE_CHARGE_BITS ) )
 
 
 // STAT_MOVE_STATE holds one champion-specific value:

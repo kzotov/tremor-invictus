@@ -346,8 +346,14 @@ void CL_KeyMove( usercmd_t *cmd ) {
 	side -= movespeed * CL_KeyState (&in_moveleft);
 
 
+	// crouch is its own button; with jump held as well, jump wins the up-move
+	if ( in_down.active ) {
+		cmd->buttons |= BUTTON_CROUCH;
+	}
 	up += movespeed * CL_KeyState (&in_up);
-	up -= movespeed * CL_KeyState (&in_down);
+	if ( !in_up.active ) {
+		up -= movespeed * CL_KeyState (&in_down);
+	}
 
 	forward += movespeed * CL_KeyState (&in_forward);
 	forward -= movespeed * CL_KeyState (&in_back);

@@ -452,17 +452,61 @@ static float PM_SlideAirGrace( void ) {
 	return PM_IsSlash() ? bg_pmoveSettings.slideAirGrace : bg_pmoveSettings.slideAirGraceStrogg;
 }
 
+#define SLIDE_LAND_GRACE	16		// ms after touchdown a crouch still starts the slide
+
+/*
+==================
+PM_CrouchHeld
+
+Crouch: the button, or a negative up-move (bots)
+==================
+*/
+static qboolean PM_CrouchHeld( void ) {
+	return pm->cmd.upmove < 0 || ( pm->cmd.buttons & BUTTON_CROUCH );
+}
+
+/*
+==================
+PM_SlideMinSpeed
+
+movement.md slide fixes: a slide runs only above the crouch-walk speed
+(Slash 272, Strogg 160)
+==================
+*/
+static float PM_SlideMinSpeed( void ) {
+	return pml.runSpeed * ( PM_IsSlash() ? bg_pmoveSettings.slideCrouchScale : bg_pmoveSettings.crouchWalkScale );
+}
+
 /*
 ==================
 PM_IsSliding
 
-Slide style: crouching on the ground with slide charge left
+Slide style: crouching on the ground with slide charge left, faster than
+the crouch walk
 ==================
 */
 static qboolean PM_IsSliding( void ) {
 	return pml.champion->moveStyle == MOVE_SLIDE && pml.walking
 		&& ( pm->ps->pm_flags & PMF_DUCKED )
-		&& BG_SlideCharge( pm->ps ) > 0;
+		&& BG_SlideCharge( pm->ps ) > 0
+		&& sqrt( pm->ps->velocity[0] * pm->ps->velocity[0] + pm->ps->velocity[1] * pm->ps->velocity[1] ) > PM_SlideMinSpeed();
+}
+
+/*
+==================
+PM_SlideRules
+
+Sliding, or in the air within the slide's tolerance: the slide's rules hold
+(no slow crouch speed, the champion's air cap)
+==================
+*/
+static qboolean PM_SlideRules( void ) {
+	if ( PM_IsSliding() ) {
+		return qtrue;
+	}
+	return pml.champion->moveStyle == MOVE_SLIDE && !pml.walking
+		&& ( pm->ps->pm_flags & PMF_DUCKED ) && BG_SlideCharge( pm->ps ) > 0
+		&& BG_SlideAirTime( pm->ps ) <= PM_SlideAirGrace();
 }
 
 /*
@@ -571,7 +615,7 @@ Crouched (not sliding) or holding walk: a fixed slow speed
 */
 static qboolean PM_SlowMoving( void ) {
 	if ( pm->ps->pm_flags & PMF_DUCKED ) {
-		return !PM_IsSliding();
+		return !PM_SlideRules();
 	}
 	return ( pm->cmd.buttons & BUTTON_WALKING ) != 0;
 }
@@ -676,19 +720,21 @@ static float PM_CmdScale( usercmd_t *cmd ) {
 	float	total;
 	float	scale;
 
+	int		up = cmd->upmove > 0 ? cmd->upmove : 0;		// crouch never scales the wish speed
+
 	max = abs( cmd->forwardmove );
 	if ( abs( cmd->rightmove ) > max ) {
 		max = abs( cmd->rightmove );
 	}
-	if ( abs( cmd->upmove ) > max ) {
-		max = abs( cmd->upmove );
+	if ( up > max ) {
+		max = up;
 	}
 	if ( !max ) {
 		return 0;
 	}
 
 	total = sqrt( cmd->forwardmove * cmd->forwardmove
-		+ cmd->rightmove * cmd->rightmove + cmd->upmove * cmd->upmove );
+		+ cmd->rightmove * cmd->rightmove + up * up );
 	scale = pml.runSpeed * max / ( 127.0 * total );
 
 	return scale;
@@ -2140,7 +2186,7 @@ static void PM_CheckDuck (void)
 		return;
 	}
 
-	if (pm->cmd.upmove < 0)
+	if ( PM_CrouchHeld() )
 	{	// duck
 		pm->ps->pm_flags |= PMF_DUCKED;
 	}
@@ -2233,7 +2279,11 @@ static void PM_Footsteps( void ) {
 
 	footstep = qfalse;
 
-	if ( pm->ps->pm_flags & PMF_DUCKED ) {
+	if ( PM_IsSliding() ) {
+		// movement.md slide fixes: no bob, the legs held in the crouch
+		bobmove = 0;
+		PM_ContinueLegsAnim( LEGS_IDLECR );
+	} else if ( pm->ps->pm_flags & PMF_DUCKED ) {
 		bobmove = 0.5;	// ducked characters bob much faster
 		if ( pm->ps->pm_flags & PMF_BACKWARDS_RUN ) {
 			PM_ContinueLegsAnim( LEGS_BACKCR );
@@ -2724,23 +2774,28 @@ static void PM_MoveTimers( void ) {
 	air = BG_SlideAirTime( pm->ps );
 	if ( pm->ps->groundEntityNum == ENTITYNUM_NONE ) {
 		// in the air: falling without holding crouch charges the slide
-		if ( pm->ps->velocity[2] < 0 && pm->cmd.upmove >= 0 ) {
+		if ( pm->ps->velocity[2] < 0 && !PM_CrouchHeld() ) {
 			charge += bg_pmoveSettings.slideChargeRate * pml.msec;
 		}
 		air += pml.msec;
 		// a slide over a bump keeps draining while within the grace time
-		if ( pm->cmd.upmove < 0 && air <= PM_SlideAirGrace() ) {
+		if ( PM_CrouchHeld() && air <= PM_SlideAirGrace() ) {
 			charge -= bg_pmoveSettings.slideDrain * pml.msec;
 		}
 		// a slide that stays in the air too long is over (a bump or small drop isn't)
 		if ( air > PM_SlideAirGrace() && air - pml.msec <= PM_SlideAirGrace()
-			&& pm->cmd.upmove < 0 ) {
+			&& PM_CrouchHeld() ) {
 			charge = 0;
 		}
 	} else {
 		// on the ground without crouch held the charge is gone: no slide
-		// starts, and letting go of crouch ends one for good
-		if ( pm->cmd.upmove >= 0 ) {
+		// starts, and letting go of crouch ends one for good; a crouch
+		// pressed within 16 ms of the touchdown still slides
+		if ( !PM_CrouchHeld() && pm->ps->stats[STAT_LAND_TIME] > SLIDE_LAND_GRACE ) {
+			charge = 0;
+		}
+		// too slow to slide (down to the crouch walk): over, charge emptied
+		if ( PM_CrouchHeld() && PM_HorizontalSpeed() <= PM_SlideMinSpeed() ) {
 			charge = 0;
 		}
 		air = 0;
@@ -2752,8 +2807,8 @@ static void PM_MoveTimers( void ) {
 	if ( charge < 0 ) {
 		charge = 0;
 	}
-	if ( air > 31 * BG_SLIDE_AIR_UNIT ) {
-		air = 31 * BG_SLIDE_AIR_UNIT;
+	if ( air > BG_SLIDE_AIR_MAX * BG_SLIDE_AIR_UNIT ) {
+		air = BG_SLIDE_AIR_MAX * BG_SLIDE_AIR_UNIT;
 	}
 	pm->ps->stats[STAT_MOVE_STATE] = BG_SlideState( charge, air );
 }
