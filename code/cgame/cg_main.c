@@ -1098,6 +1098,7 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.barrierShader = trap_R_RegisterShader( "tremor/fx/barrier" );
 	cgs.media.ringShader = trap_R_RegisterShader( "tremor/fx/ring" );
 	cgs.media.droneModel = trap_R_RegisterModel( "models/powerups/holdable/teleporter.md3" );
+	cgs.media.turretModel = trap_R_RegisterModel( "models/abilities/turret/turret.md3" );
 	cgs.media.brightShader = trap_R_RegisterShader( "tremor/bright" );
 	cgs.media.sportShader = trap_R_RegisterShader( "tremor/sport" );
 	cgs.media.tintShader = trap_R_RegisterShader( "tremor/tint" );
