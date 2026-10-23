@@ -1568,6 +1568,9 @@ qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, floa
 		mins[i] = origin[i] - radius;
 		maxs[i] = origin[i] + radius;
 	}
+	// a tall player's shot volume reaches above their box (HIT-01): look
+	// that much further down for them
+	mins[2] -= 28;
 
 	numListedEntities = trap_EntitiesInBox( mins, maxs, entityList, MAX_GENTITIES );
 

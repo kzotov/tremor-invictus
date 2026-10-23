@@ -2892,6 +2892,40 @@ int CG_ClientChampion( clientInfo_t *ci ) {
 
 /*
 ===============
+CG_ChampionPreview
+
+A champion's model loaded apart from any player, for the lobby's own pick
+(a blind pick hides it from your client info)
+===============
+*/
+clientInfo_t *CG_ChampionPreview( int champion ) {
+	static clientInfo_t	preview;
+	static int			loaded = -1;
+	char				model[MAX_QPATH], *skin;
+
+	if ( champion < 0 || champion >= bg_numChampions ) {
+		return NULL;
+	}
+	if ( loaded != champion ) {
+		memset( &preview, 0, sizeof( preview ) );
+		BG_ChampionModel( champion, model, sizeof( model ) );
+		skin = strchr( model, '/' );
+		if ( skin ) {
+			*skin++ = 0;
+		}
+		Q_strncpyz( preview.modelName, model, sizeof( preview.modelName ) );
+		Q_strncpyz( preview.skinName, skin ? skin : "default", sizeof( preview.skinName ) );
+		Q_strncpyz( preview.headModelName, model, sizeof( preview.headModelName ) );
+		Q_strncpyz( preview.headSkinName, skin ? skin : "default", sizeof( preview.headSkinName ) );
+		preview.infoValid = qtrue;
+		CG_LoadClientInfo( -1, &preview );
+		loaded = champion;
+	}
+	return &preview;
+}
+
+/*
+===============
 CG_EyeHeight
 
 A player's eye above their origin, standing or crouched (BG_ViewHeight)

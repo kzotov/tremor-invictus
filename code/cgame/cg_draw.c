@@ -5340,7 +5340,9 @@ vertical view fixed at 40 degrees; the pillars run out of the bottom
 static void CG_AddPillar( const vec3_t base, const byte *glow, int rank );
 static void CG_AddPillarPlayerTurned( int clientNum, const vec3_t feet, float yaw );
 
-static void CG_DrawFaceoff( int left, int right, qboolean rightHidden ) {
+static void CG_AddPillarInfo( clientInfo_t *ci, const vec3_t feet, float yaw );
+
+static void CG_DrawFaceoff( int left, int right, qboolean rightHidden, int leftChampion ) {
 	static const byte	glows[2][4] = { { 40, 90, 220, 255 }, { 208, 26, 26, 255 } };
 	refdef_t	refdef;
 	vec3_t		base, light;
@@ -5362,15 +5364,29 @@ static void CG_DrawFaceoff( int left, int right, qboolean rightHidden ) {
 		VectorSet( base, 183, i ? -59 : 59, top );
 		CG_AddPillar( base, glows[i], 0 );
 		if ( who[i] >= 0 && who[i] < MAX_CLIENTS ) {
+			clientInfo_t	*ci = &cgs.clientinfo[who[i]];
+
+			// your own pick even while a blind pick hides it from the others
+			if ( !i && leftChampion >= 0 && CG_ChampionPreview( leftChampion ) ) {
+				ci = CG_ChampionPreview( leftChampion );
+			}
 			pillarSilhouette = i && rightHidden;
 			// 48 degrees in, less the idle stance's own turn to the right
-			CG_AddPillarPlayerTurned( who[i], base, i ? -48 + 30 : 48 + 30 );
+			CG_AddPillarInfo( ci, base, i ? -48 + 30 : 48 + 30 );
 			pillarSilhouette = qfalse;
 		}
 		VectorSet( light, 63, base[1], top + 160 );
 		trap_R_AddLightToScene( light, 400, 1.0f, 0.95f, 0.9f );
 	}
 	trap_R_RenderScene( &refdef );
+
+	// a hidden pick: "?" over the dark figure
+	if ( rightHidden ) {
+		static const vec4_t	mark = { 0.85f, 0.85f, 0.9f, 0.9f };
+
+		cg_hudAnchor = ANCHOR_CENTER;
+		CG_DrawStringExt( 320 + 480 * DP - 27 * DP, 380 * DP, "?", mark, qtrue, qfalse, 54 * DP, 90 * DP, 0 );
+	}
 }
 #define PILLAR_V_SCALE	128		// side texture: v runs over this many units down
 
@@ -5498,8 +5514,13 @@ static void CG_AddPillarPlayer( int clientNum, const vec3_t feet ) {
 	CG_AddPillarPlayerTurned( clientNum, feet, 0 );
 }
 
+static void CG_AddPillarInfo( clientInfo_t *ci, const vec3_t feet, float yaw );
+
 static void CG_AddPillarPlayerTurned( int clientNum, const vec3_t feet, float yaw ) {
-	clientInfo_t	*ci = &cgs.clientinfo[clientNum];
+	CG_AddPillarInfo( &cgs.clientinfo[clientNum], feet, yaw );
+}
+
+static void CG_AddPillarInfo( clientInfo_t *ci, const vec3_t feet, float yaw ) {
 	refEntity_t		legs, torso, head;
 	vec3_t			angles;
 
@@ -5857,8 +5878,10 @@ static qboolean CG_DrawLobby( void ) {
 	if ( cgs.gametype == GT_TOURNAMENT && players == 2 ) {
 		int		left = seen[1] == me ? 1 : 0;
 
-		// a blind pick shows the opponent as a dark figure until the reveal
-		CG_DrawFaceoff( seen[left], seen[1 - left], mode == 1 && phase == 5 && seenChamp[1 - left] < 0 );
+		// a blind pick: you see your own pick, the opponent as a dark figure
+		// with "?" while the picks are hidden
+		CG_DrawFaceoff( seen[left], seen[1 - left], mode == 1 && seenChamp[1 - left] < 0,
+			mode == 1 ? seenChamp[left] : -1 );
 	}
 	return qtrue;
 }

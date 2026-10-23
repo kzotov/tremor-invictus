@@ -30,11 +30,11 @@ div { display: block; }
 .pava { width: 56dp; height: 56dp; margin: 0 10dp; }
 .pnm { font-size: 16dp; color: #ffffff; }
 .pst { font-size: 14dp; }
-.pick { position: absolute; top: 200dp; width: 505dp; padding: 8dp; background-color: rgba(10, 10, 14, 170); }
+.pick { position: absolute; top: 200dp; width: 505dp; padding: 6dp 8dp; background-color: rgba(10, 10, 14, 170); }
 .pick.pkleft { left: 80dp; }
 .pick.pkright { left: 100%; margin-left: -585dp; text-align: right; }
-.pkt { font-size: 25dp; color: #9a9aa0; }
-.pkc { font-size: 15dp; color: #ff674a; margin: 4dp 0; }
+.pkt { font-size: 20dp; color: #9a9aa0; margin-bottom: 6dp; }
+.pkc { font-size: 15dp; color: #ff674a; margin-left: 10dp; }
 .pkbar { display: flex; width: 505dp; height: 7dp; background-color: rgba(255, 255, 255, 20); }
 .pkbar .seg { width: 50.5dp; height: 7dp; }
 .pkbar.blue .seg { background-color: #2f8bff; }

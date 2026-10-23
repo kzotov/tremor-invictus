@@ -53,11 +53,11 @@
 				<img class="pava" data-cell-src="1"/><div class="pwho"><div class="pnm" data-cell="2"></div><div class="pst"><span class="pin">[lb_locked_in]</span><span class="pout">[lb_picking]</span></div></div>
 			</div>
 			<div class="pick pkleft" data-row="lb_dl" data-cell-class="0" data-when="lb_phase=pick">
-				<div class="pkt">[lb_champion]</div><div class="pkc" data-cell="3"></div>
+				<div class="pkt">[lb_champion] <span class="pkc" data-cell="3"></span></div>
 				<div class="pkbar blue"><div class="seg" data-when="lb_frac>=1"></div><div class="seg" data-when="lb_frac>=11"></div><div class="seg" data-when="lb_frac>=21"></div><div class="seg" data-when="lb_frac>=31"></div><div class="seg" data-when="lb_frac>=41"></div><div class="seg" data-when="lb_frac>=51"></div><div class="seg" data-when="lb_frac>=61"></div><div class="seg" data-when="lb_frac>=71"></div><div class="seg" data-when="lb_frac>=81"></div><div class="seg" data-when="lb_frac>=91"></div></div>
 			</div>
 			<div class="pick pkright" data-row="lb_dr" data-cell-class="0" data-when="lb_phase=pick">
-				<div class="pkt">[lb_champion]</div><div class="pkc" data-cell="3"></div>
+				<div class="pkt">[lb_champion] <span class="pkc" data-cell="3"></span></div>
 				<div class="pkbar red"><div class="seg" data-when="lb_frac>=1"></div><div class="seg" data-when="lb_frac>=11"></div><div class="seg" data-when="lb_frac>=21"></div><div class="seg" data-when="lb_frac>=31"></div><div class="seg" data-when="lb_frac>=41"></div><div class="seg" data-when="lb_frac>=51"></div><div class="seg" data-when="lb_frac>=61"></div><div class="seg" data-when="lb_frac>=71"></div><div class="seg" data-when="lb_frac>=81"></div><div class="seg" data-when="lb_frac>=91"></div></div>
 			</div>
 			<div class="lvs"><div class="vsglow">VS</div><div class="vstext">VS</div></div>
