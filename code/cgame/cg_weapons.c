@@ -1761,19 +1761,23 @@ void CG_Weapon_f( void ) {
 		return;
 	}
 
-	// spectating: the weapon keys follow the n-th player of the scores
-	// (spectator.md keys: follow player 1-8)
+	// spectating: the weapon keys follow the n-th player (spectator.md keys:
+	// follow player 1-8), numbered in a stable order: red, blue, then
+	// players on no team, each by client number
 	if ( cg.snap->ps.pm_type != PM_INTERMISSION
 		&& ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR || ( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) ) {
-		int		i, n = 0;
+		static const int	order[3] = { TEAM_RED, TEAM_BLUE, TEAM_FREE };
+		int		t, i, n = 0;
 
-		for ( i = 0 ; i < cg.numScores ; i++ ) {
-			if ( cgs.clientinfo[cg.scores[i].client].team == TEAM_SPECTATOR ) {
-				continue;
-			}
-			if ( ++n == num ) {
-				trap_SendClientCommand( va( "follow %i", cg.scores[i].client ) );
-				break;
+		for ( t = 0 ; t < 3 ; t++ ) {
+			for ( i = 0 ; i < MAX_CLIENTS ; i++ ) {
+				if ( !cgs.clientinfo[i].infoValid || cgs.clientinfo[i].team != order[t] ) {
+					continue;
+				}
+				if ( ++n == num ) {
+					trap_SendClientCommand( va( "follow %i", i ) );
+					return;
+				}
 			}
 		}
 		return;
