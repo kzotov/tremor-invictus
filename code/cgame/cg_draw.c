@@ -6290,12 +6290,48 @@ static void CG_DrawDotEdge( void ) {
 	}
 }
 
+/*
+=================
+CG_DrawBerserkCone
+
+champion-audit.md: during Berserk the view is darkened outside a 95 degree
+cone around the aim
+=================
+*/
+#define BERSERK_CONE	95
+
+static void CG_DrawBerserkCone( void ) {
+	playerState_t	*ps = &cg.snap->ps;
+	static const vec4_t	dark = { 0, 0, 0, 0.8f };
+	float			half, frac, x0, x1, y0, y1;
+
+	if ( BG_Champion( ps->stats[STAT_CHAMPION] )->active != ACTIVE_BERSERK || BG_AbilityState( ps ) != ABILITY_ACTIVE
+		|| ps->stats[STAT_HEALTH] <= 0 || cg.refdef.fov_x <= BERSERK_CONE ) {
+		return;
+	}
+	// the cone's edge as a share of the half screen, across and up
+	half = tan( DEG2RAD( BERSERK_CONE * 0.5f ) );
+	frac = half / tan( DEG2RAD( cg.refdef.fov_x * 0.5f ) );
+	x0 = 320 - 320 * frac;
+	x1 = 640 - x0;
+	frac = half / tan( DEG2RAD( cg.refdef.fov_y * 0.5f ) );
+	y0 = frac < 1 ? 240 - 240 * frac : 0;
+	y1 = 480 - y0;
+	CG_FillRect( -200, 0, x0 + 200, 480, dark );
+	CG_FillRect( x1, 0, 840 - x1, 480, dark );
+	if ( y0 > 0 ) {
+		CG_FillRect( x0, 0, x1 - x0, y0, dark );
+		CG_FillRect( x0, y1, x1 - x0, 480 - y1, dark );
+	}
+}
+
 static void CG_Draw2D(stereoFrame_t stereoFrame)
 {
 	float	voteY = 0;		// the vote line goes under the team overlay
 
 	CG_HudLayout();		// every state draws from the layout
 	CG_ReadyCvars();
+	CG_DrawBerserkCone();
 	CG_DrawDotEdge();
 
 #ifdef MISSIONPACK

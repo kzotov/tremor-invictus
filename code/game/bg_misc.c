@@ -2331,7 +2331,7 @@ const abilityInfo_t bg_abilityInfo[ACTIVE_NUM_ABILITIES] = {
 	{ "dualwield",		STR_ABILITY_DUALWIELD,		qfalse,	{ "1", "60000", "0", "5500", "400" } },
 	{ "barrier",		STR_ABILITY_BARRIER,		qtrue,	{ "1", "60000", "250", "8000", "0" } },
 	{ "flamestrike",	STR_ABILITY_FLAMESTRIKE,	qfalse,	{ "1", "60000", "125", "5000", "1000" } },
-	{ "berserk",		STR_ABILITY_BERSERK,		qtrue,	{ "1", "60000", "0", "3000", "400" } },
+	{ "berserk",		STR_ABILITY_BERSERK,		qtrue,	{ "1", "60000", "0", "3000", "200" } },	// fists down over 0.2 s
 	{ "turret",			STR_ABILITY_TURRET,			qfalse,	{ "1", "60000", "0", "0", "400" } },
 	{ "totem",			STR_ABILITY_TOTEM,			qfalse,	{ "1", "60000", "0", "0", "400" } },
 	{ "grenades",		STR_ABILITY_GRENADES,		qfalse,	{ "3", "20000", "0", "0", "400" } },

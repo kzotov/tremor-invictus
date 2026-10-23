@@ -127,6 +127,8 @@ Berserk punches reach everything inside a cylinder in front of the player:
 the nearest enemy along it, if nothing solid is in the way
 ===============
 */
+#define BERSERK_PUNCH_KNOCK	132
+
 static gentity_t *G_BerserkTarget( gentity_t *ent, vec3_t org, vec3_t dir, trace_t *tr ) {
 	gentity_t	*best = NULL, *other;
 	vec3_t		delta, point;
@@ -145,7 +147,7 @@ static gentity_t *G_BerserkTarget( gentity_t *ent, vec3_t org, vec3_t dir, trace
 			continue;
 		}
 		VectorMA( delta, -along, dir, point );
-		side = VectorLength( point ) - other->r.maxs[0];		// to the body's edge
+		side = VectorLength( point );		// from the target's centre (champion-audit.md)
 		if ( side > g_berserkRadius.value ) {
 			continue;
 		}
@@ -321,7 +323,11 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 		}
 		damage = g_berserkDamage.value;		// an ability: no Quad (champion-audit.md)
 	}
-	G_WeaponKnock( WP_GAUNTLET, traceEnt, ent );
+	if ( G_AbilityActive( ent, ACTIVE_BERSERK ) ) {
+		G_NextKnockback( BERSERK_PUNCH_KNOCK );		// impulse 100 x 2, at the 132 cap
+	} else {
+		G_WeaponKnock( WP_GAUNTLET, traceEnt, ent );
+	}
 	G_Damage( traceEnt, ent, ent, forward, tr.endpos,
 		damage, 0, G_AbilityActive( ent, ACTIVE_BERSERK ) ? MOD_BERSERK : MOD_GAUNTLET );
 	if ( traceEnt->client && ( BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_CHARRING ) ) {

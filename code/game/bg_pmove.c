@@ -786,6 +786,7 @@ PM_CheckJump
 */
 #define CHAIN_FULL_MSEC		300		// air control: full chain boost this soon after a jump
 #define JUMP_REPEAT_MSEC	50		// holding jump hops again after this long
+#define DOUBLEJUMP_MIN_MSEC	100		// the double jump comes this long after the first
 
 static qboolean PM_CheckJump( void ) {
 	qboolean	silent;
@@ -1248,8 +1249,8 @@ static qboolean PM_CheckDoubleJump( void ) {
 		return qfalse;
 	}
 	jt = pm->ps->stats[STAT_JUMP_TIME];
-	if ( jt < JUMP_REPEAT_MSEC ) {
-		return qfalse;		// at least 0.05 s after the last jump
+	if ( jt < DOUBLEJUMP_MIN_MSEC ) {
+		return qfalse;		// at least 0.1 s after the first jump (champion-audit.md)
 	}
 
 	// a jump like any other: lower from a crouch, and the chain bonus
@@ -2478,6 +2479,12 @@ PM_Weapon
 Generates weapon events and modifes the weapon counter
 ==============
 */
+#define LUNGE_MSEC		250		// the jump strike builds over this long
+#define LUNGE_TOP		800		// to this speed
+#define LUNGE_EASE		0.75f	// and is then eased off
+#define LUNGE_USED		0x4000	// this airtime's lunge is spent
+#define BERSERK_RAISE	800		// no punches while the fists come up
+
 static void PM_Weapon( void ) {
 	int		addTime;
 
@@ -2499,16 +2506,36 @@ static void PM_Weapon( void ) {
 		&& ( PM_AbilityActive( ACTIVE_BERSERK ) || BG_AbilityState( pm->ps ) == ABILITY_WINDUP ) ) {
 		pm->cmd.weapon = WP_GAUNTLET;
 
-		// the jump strike: a punch in the air lunges where the player looks,
-		// once per time off the ground
-		if ( PM_AbilityActive( ACTIVE_BERSERK ) && pm->ps->groundEntityNum == ENTITYNUM_NONE
-			&& ( pm->cmd.buttons & BUTTON_ATTACK ) && pm->ps->weaponTime <= 0
-			&& !( pm->ps->pm_flags & PMF_AIRMOVE_USED ) ) {
+		// the jump strike (champion-audit.md): a punch in the air lunges where
+		// the player looks, building from 666 to 800 u/s over 0.25 s, then
+		// eased off (x 0.75); once per time off the ground, apart from the
+		// double jump. STAT_MOVE_STATE: msec into the lunge + 1 (bits 0-9),
+		// LUNGE_USED (bit 14)
+		{
+			int		state = pm->ps->stats[STAT_MOVE_STATE] & 0xffff, t = state & 1023;
 			vec3_t	forward;
 
-			AngleVectors( pm->ps->viewangles, forward, NULL, NULL );
-			VectorScale( forward, bg_pmoveSettings.berserkLunge, pm->ps->velocity );
-			pm->ps->pm_flags |= PMF_AIRMOVE_USED;
+			if ( pm->ps->groundEntityNum != ENTITYNUM_NONE ) {
+				state = 0;		// landed: the next airtime has its own lunge
+				t = 0;
+			} else if ( !t && !( state & LUNGE_USED ) && PM_AbilityActive( ACTIVE_BERSERK )
+				&& ( pm->cmd.buttons & BUTTON_ATTACK ) && pm->ps->weaponTime <= 0 ) {
+				t = 1;
+				state |= LUNGE_USED;
+			} else if ( t ) {
+				t += pml.msec;
+			}
+			if ( t ) {
+				AngleVectors( pm->ps->viewangles, forward, NULL, NULL );
+				if ( t <= LUNGE_MSEC + 1 ) {
+					VectorScale( forward, bg_pmoveSettings.berserkLunge
+						+ ( LUNGE_TOP - bg_pmoveSettings.berserkLunge ) * ( t - 1 ) / (float)LUNGE_MSEC, pm->ps->velocity );
+				} else {
+					VectorScale( pm->ps->velocity, LUNGE_EASE, pm->ps->velocity );
+					t = 0;
+				}
+			}
+			pm->ps->stats[STAT_MOVE_STATE] = ( state & LUNGE_USED ) | ( t > 1023 ? 1023 : t );
 		}
 	}
 
@@ -2623,7 +2650,8 @@ static void PM_Weapon( void ) {
 	switch( pm->ps->weapon ) {
 	default:
 	case WP_GAUNTLET:
-		addTime = 400;
+		// Berserk punches: a full second to recover (champion-audit.md)
+		addTime = PM_AbilityActive( ACTIVE_BERSERK ) ? 1000 : 400;
 		break;
 	case WP_LIGHTNING:
 		addTime = 50;
@@ -3094,6 +3122,9 @@ static void PM_StartAbility( int *state, int *time ) {
 		PM_AddEvent( EV_USE_ABILITY );
 		*time = BG_AbilityParam( active, AP_DURATION );
 		*state = *time > 0 ? ABILITY_ACTIVE : ABILITY_IDLE;
+		if ( active == ACTIVE_BERSERK && pm->ps->weaponTime < BERSERK_RAISE ) {
+			pm->ps->weaponTime = BERSERK_RAISE;		// the fists come up over 0.8 s
+		}
 		// (the drone's take-off point is set by the game, which leaves the
 		// body where Strogg was)
 		break;
