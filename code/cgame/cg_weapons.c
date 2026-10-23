@@ -1930,6 +1930,13 @@ void CG_FireWeapon( centity_t *cent ) {
 		}
 	}
 
+	// sound-clarity.md 3: the server fires the Tri-bolt's other bolts later
+	// with no event of their own, so their sounds are played from here
+	if ( ent->weapon == WP_TRIBOLT ) {
+		cent->triboltLeft = TRIBOLT_BOLTS - 1;
+		cent->triboltNext = cg.time + TRIBOLT_INTERVAL;
+	}
+
 	// do brass ejection
 	if ( weap->ejectBrassFunc && cg_brassTime.integer > 0 ) {
 		weap->ejectBrassFunc( cent );
@@ -1941,6 +1948,38 @@ void CG_FireWeapon( centity_t *cent ) {
 	}
 }
 
+
+/*
+=================
+CG_TriboltSounds
+
+Each frame for a player: the fire sound of the Tri-bolt's second and third
+bolts, 125 and 250 ms after the first
+=================
+*/
+void CG_TriboltSounds( centity_t *cent ) {
+	weaponInfo_t	*weap = &cg_weapons[WP_TRIBOLT];
+	int				c;
+
+	if ( cent->triboltLeft <= 0 ) {
+		return;
+	}
+	if ( ( cent->currentState.eFlags & EF_DEAD ) || cent->triboltNext > cg.time + TRIBOLT_INTERVAL * TRIBOLT_BOLTS ) {
+		cent->triboltLeft = 0;		// died mid-burst, or a time reset
+		return;
+	}
+	if ( cg.time < cent->triboltNext ) {
+		return;
+	}
+	cent->triboltLeft--;
+	cent->triboltNext += TRIBOLT_INTERVAL;
+	for ( c = 0 ; c < 4 && weap->flashSound[c] ; c++ ) {
+	}
+	if ( c > 0 ) {
+		// on CHAN_AUTO, so it doesn't cut the bolt before it
+		trap_S_StartSound( NULL, cent->currentState.number, CHAN_AUTO, weap->flashSound[rand() % c] );
+	}
+}
 
 /*
 =================
@@ -2026,10 +2065,10 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, im
 		isSprite = qtrue;
 		break;
 #endif
-	case WP_GRENADE_LAUNCHER:
+	case WP_GRENADE_LAUNCHER:		// (the Tri-bolt)
 		mod = cgs.media.dishFlashModel;
 		shader = cgs.media.grenadeExplosionShader;
-		sfx = cgs.media.sfx_rockexp;
+		sfx = cgs.media.sfx_triboltexp;
 		mark = cgs.media.burnMarkShader;
 		radius = 64;
 		light = 300;

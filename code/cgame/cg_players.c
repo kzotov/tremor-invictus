@@ -2287,6 +2287,7 @@ void CG_Player( centity_t *cent ) {
 	if ( !ci->infoValid ) {
 		return;
 	}
+	CG_TriboltSounds( cent );
 
 	// a player flying the drone is drawn as the drone
 	if ( cent->currentState.eFlags & EF_DRONE ) {

@@ -170,6 +170,8 @@ typedef struct centity_s {
 	qboolean		currentValid;	// true if cg.frame holds this entity
 
 	int				muzzleFlashTime;	// move to playerEntity?
+	int				triboltLeft;		// Tri-bolt bolts still to sound after the first
+	int				triboltNext;		// cg.time of the next one
 	int				previousEvent;
 	int				teleportFlag;
 
@@ -950,6 +952,7 @@ typedef struct {
 	sfxHandle_t	sfx_ric3;
 	//sfxHandle_t	sfx_railg;
 	sfxHandle_t	sfx_rockexp;
+	sfxHandle_t	sfx_triboltexp;
 	sfxHandle_t	sfx_plasmaexp;
 #ifdef MISSIONPACK
 	sfxHandle_t	sfx_proxexp;
@@ -1572,6 +1575,7 @@ void CG_RegisterWeapon( int weaponNum );
 void CG_RegisterItemVisuals( int itemNum );
 
 void CG_FireWeapon( centity_t *cent );
+void CG_TriboltSounds( centity_t *cent );
 void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, impactSound_t soundType );
 void CG_MissileHitPlayer( int weapon, vec3_t origin, vec3_t dir, int entityNum );
 void CG_ShotgunFire( entityState_t *es );

@@ -24,6 +24,9 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
   sound/tremor/slide_start.wav, slide_loop.wav, slide_stop.wav   the crouch slide
   sound/tremor/dodge.wav                    Clutch's dodge
   sound/tremor/hook_attach.wav              Athena's hook biting
+  sound/tremor/tribolt_exp.wav              a Tri-bolt bolt bursting: a short
+                                            crack over a low thump, lighter
+                                            than a rocket
                                             hit tones: a bright ping on armour, a
                                             dull knock on health, a crack when the
                                             armour breaks (synthesised)
@@ -551,6 +554,11 @@ def sounds(out):
     write_wav(os.path.join(out, "sound/tremor/dodge.wav"), whoosh(0.28, seed=53))
     # Athena's hook biting: a short metallic clank
     write_wav(os.path.join(out, "sound/tremor/hook_attach.wav"), tone([(1400, 0.5), (2300, 0.35), (3700, 0.2)], 0.22, 22, noise=0.35, seed=59))
+    # a Tri-bolt bolt bursting: a short crack over a low thump
+    crack = scrape(0.55, 1800, 9, seed=61)
+    thump = tone([(95, 0.9), (62, 0.6)], 0.55, 8, seed=67)
+    write_wav(os.path.join(out, "sound/tremor/tribolt_exp.wav"),
+              [0.75 * a + 0.9 * b for a, b in zip(crack, thump)])
     # each ability: a rising sweep on casting, a falling blip at the end,
     # pitched by the name so they differ
     for name in ABILITIES:
