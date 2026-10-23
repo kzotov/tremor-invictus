@@ -108,6 +108,44 @@ static qboolean CG_DraftState( int players[2], int picks[2][3] );
 
 /*
 =================
+CG_RoundDuelRoster
+
+Round duel's line-ups from CS_SACRIFICE's "#" part, the whole match: the
+two players, their picks (-1 not yet), the fallen (a bit per pick) and the
+pick in play (-1 none)
+=================
+*/
+static qboolean CG_RoundDuelRoster( int players[2], int picks[2][3], int dead[2], int current[2] ) {
+	const char	*cs = strchr( CG_ConfigString( CS_SACRIFICE ), '#' );
+	char		*p;
+	int			i;
+
+	if ( !cs || Q_strncmp( CG_ConfigString( CS_SACRIFICE ), "rd|", 3 ) ) {
+		return qfalse;
+	}
+	p = (char *)cs + 1;
+	COM_Parse( &p );		// drafting
+	players[0] = atoi( COM_Parse( &p ) );
+	players[1] = atoi( COM_Parse( &p ) );
+	for ( i = 0 ; i < 6 ; i++ ) {
+		picks[i / 3][i % 3] = atoi( COM_Parse( &p ) );
+	}
+	dead[0] = atoi( COM_Parse( &p ) );
+	dead[1] = atoi( COM_Parse( &p ) );
+	current[0] = current[1] = -1;
+	{
+		const char	*t = COM_Parse( &p );
+
+		if ( t[0] ) {
+			current[0] = atoi( t );
+			current[1] = atoi( COM_Parse( &p ) );
+		}
+	}
+	return qtrue;
+}
+
+/*
+=================
 CG_HudLayout
 
 Reads hud/<cg_hudLayout>.hud when the setting changes
@@ -1831,47 +1869,63 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 			}
 			portrait = CG_ChampionPortrait( BG_ChampionForModel( cgs.clientinfo[who].modelName ), qtrue );
 			if ( atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_roundDuel" ) ) ) {
-				// hud.md 9.1: the active champion centred at (819.5, 49.5) /
-				// (1040.5, 49.5), the rest of the line-up at 0.85x at +-175 / +-236
-				int		players[2], picks[2][3], k, n = 0, current = BG_ChampionForModel( cgs.clientinfo[who].modelName );
+				// hud.md 9.1 / 9.7, round duel: a name plate with the round wins
+				// at its inner end, the champion in play (61 dp from (819.5,
+				// 49.5) / (1040.5, 49.5), outlined) and the other two of the
+				// line-up at 0.85x from x 698, 759 / 1110, 1171, the fallen
+				// crossed out; no duel score boxes
+				int			players[2], picks[2][3], dead[2], current[2], k, n = 0, row;
+				float		px = 320 + ( side ? 214 : -515 ) * DP;
+				static const float	lineup[2][2] = { { 698, 759 }, { 1110, 1171 } };
 
-				if ( portrait ) {
-					CG_DrawPic( 320 + ( ( side ? 80.5f : -140.5f ) - 30.5f ) * DP, 19 * DP, 61 * DP, 61 * DP, portrait );
-				}
-				if ( CG_DraftState( players, picks ) ) {
-					int	row = players[1] == who ? 1 : 0;
-
-					for ( k = 0 ; k < 3 && n < 2 ; k++ ) {
-						qhandle_t	pic;
-
-						if ( picks[row][k] < 0 || picks[row][k] == current ) {
-							continue;
-						}
-						pic = CG_ChampionPortrait( picks[row][k], qtrue );
-						if ( pic ) {
-							CG_DrawPic( 320 + ( sign * ( n ? 236 : 175 ) - 26 ) * DP, 23.5f * DP, 52 * DP, 52 * DP, pic );
-						}
-						n++;
+				CG_FillRect( px, 6 * DP, 300 * DP, 32 * DP, box );
+				CG_TopText( side ? 254 : -255, 12, 20, CG_CapName( cgs.clientinfo[who].name, 20, 220 ), side ? theirRed : ourBlue,
+					side ? -1 : 1 );
+				CG_TopText( side ? 222 : -223, 6, 32, va( "%i", CG_ClientScore( who ) ), colorWhite, side ? 1 : -1 );
+				if ( !CG_RoundDuelRoster( players, picks, dead, current ) ) {
+					if ( portrait ) {
+						CG_DrawPic( 320 + ( side ? 1040.5f : 819.5f ) * DP - 960 * DP, 49.5f * DP, 61 * DP, 61 * DP, portrait );
 					}
+					continue;
 				}
-			} else if ( portrait ) {
+				row = players[1] == who ? 1 : 0;
+				if ( current[row] >= 0 && current[row] < 3 && picks[row][current[row]] >= 0 ) {
+					portrait = CG_ChampionPortrait( picks[row][current[row]], qtrue );
+				}
+				if ( portrait ) {
+					float	ax = 320 + ( ( side ? 1040.5f : 819.5f ) - 960 ) * DP;
+
+					CG_DrawPic( ax, 49.5f * DP, 61 * DP, 61 * DP, portrait );
+					CG_DrawRect( ax - 1, 49.5f * DP - 1, 61 * DP + 2, 61 * DP + 2, 1, colorWhite );
+				}
+				for ( k = 0 ; k < 3 && n < 2 ; k++ ) {
+					qhandle_t	pic;
+					float		lx;
+
+					if ( picks[row][k] < 0 || k == current[row] ) {
+						continue;
+					}
+					lx = 320 + ( lineup[side][side ? n : 1 - n] - 960 ) * DP;
+					pic = CG_ChampionPortrait( picks[row][k], qtrue );
+					if ( pic ) {
+						CG_DrawPic( lx, 54 * DP, 52 * DP, 52 * DP, pic );
+					}
+					if ( dead[row] & ( 1 << k ) ) {
+						static const vec4_t	cross = { 1, 0.2f, 0.2f, 0.85f }, dim = { 0, 0, 0, 0.55f };
+
+						CG_FillRect( lx, 54 * DP, 52 * DP, 52 * DP, dim );
+						CG_DrawStringExt( lx + 14 * DP, 58 * DP, "X", cross, qtrue, qfalse, 24 * DP, 44 * DP, 0 );
+					}
+					n++;
+				}
+				continue;
+			}
+			if ( portrait ) {
 				CG_DrawPic( 320 + ( 250 * sign - 30.5f ) * DP, 24 * DP, 61 * DP, 61 * DP, portrait );
 			}
 			CG_FillRect( 320 + ( side ? inner : outer ) * DP, 23 * DP, 129 * DP, 69 * DP, box );
 			score = va( "%i", CG_ClientScore( who ) );
 			CG_TopText( ( inner + outer ) / 2, 23, 70 * 0.9f, score, colorWhite, 0 );
-			// round duel (hud.md 9.7): the names 20 dp on 300 x 32 plates at
-			// the top, blue on the left (you) and red on the right
-			if ( atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_roundDuel" ) ) ) {
-				// x 445-745 and 1174-1474, the left name right-aligned and the
-				// right one left-aligned (toward the middle)
-				float	px = 320 + ( side ? 214 : -515 ) * DP;
-
-				CG_FillRect( px, 6 * DP, 300 * DP, 32 * DP, box );
-				CG_TopText( side ? 224 : -225, 12, 20, CG_CapName( cgs.clientinfo[who].name, 20, 280 ), side ? theirRed : ourBlue,
-					side ? -1 : 1 );
-				continue;
-			}
 			CG_TopText( ( inner + outer ) / 2, 92, 15, CG_CapName( cgs.clientinfo[who].name, 15, 200 ), darkGrey, 0 );
 		}
 		return;
@@ -2940,7 +2994,11 @@ static float CG_DrawSacrifice( float y ) {
 		return y;
 	}
 
-	// round duel: "rd|first roster|second roster"
+	// round duel: "rd|first roster|second roster" (the modern layout shows
+	// the line-ups in the top bar instead)
+	if ( !Q_strncmp( cs, "rd|", 3 ) && CG_HudModern() ) {
+		return y;
+	}
 	if ( !Q_strncmp( cs, "rd|", 3 ) ) {
 		char	line[256];
 		int		n;
