@@ -1206,6 +1206,10 @@ typedef enum {
 	STR_NET_LOSS,
 	STR_NET_SPIKE,
 	STR_NET_FPS,
+	STR_SPEC_NEXT,					// the spectator key hints
+	STR_SPEC_PICK,
+	STR_SPEC_FREE,
+	STR_SPEC_HIDE,
 	STR_EV_RED_FLAG_TAKEN,			// event line, priority 2: first of the objectives
 	STR_EV_BLUE_FLAG_TAKEN,
 	STR_EV_RED_FLAG_DROPPED,

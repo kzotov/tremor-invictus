@@ -1217,6 +1217,7 @@ extern	vmCvar_t		cg_hudLayout;
 extern	vmCvar_t		cg_rmlScoreboard;
 extern	vmCvar_t		cg_netWarnings;
 extern	vmCvar_t		cg_hitMarker;
+extern	vmCvar_t		cg_specHints;
 extern	vmCvar_t		cg_damagePlumScale;
 extern	vmCvar_t		cg_damagePlumSum;
 extern	vmCvar_t		cg_damagePlumHidden;

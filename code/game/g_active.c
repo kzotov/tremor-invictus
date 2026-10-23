@@ -756,6 +756,11 @@ void SpectatorThink( gentity_t *ent, usercmd_t *ucmd ) {
 	if ( ( client->buttons & BUTTON_ATTACK ) && ! ( client->oldbuttons & BUTTON_ATTACK ) ) {
 		Cmd_FollowCycle_f( ent, 1 );
 	}
+	// jump while following: back to the free camera (spectator.md keys)
+	if ( client->sess.spectatorState == SPECTATOR_FOLLOW && ucmd->upmove > 0 && !client->specJumpHeld ) {
+		StopFollowing( ent );
+	}
+	client->specJumpHeld = ucmd->upmove > 0;
 }
 
 

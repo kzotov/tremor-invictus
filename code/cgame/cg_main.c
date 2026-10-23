@@ -227,6 +227,7 @@ vmCvar_t	cg_hudLayout;
 vmCvar_t	cg_rmlScoreboard;
 vmCvar_t	cg_netWarnings;
 vmCvar_t	cg_hitMarker;
+vmCvar_t	cg_specHints;
 vmCvar_t	cg_drawCooldownArc;
 vmCvar_t	cg_obituaryRowSize;
 vmCvar_t	cg_chatHistoryLength;
@@ -441,6 +442,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_rmlScoreboard, "cg_rmlScoreboard", "1", CVAR_ARCHIVE },		// the RmlUi Tab board (scoreboard.md)
 	{ &cg_netWarnings, "cg_netWarnings", "0", CVAR_ARCHIVE },			// ping / loss / spike / fps warnings
 	{ &cg_hitMarker, "cg_hitMarker", "1", CVAR_ARCHIVE },				// a crosshair mark on each confirmed hit
+	{ &cg_specHints, "cg_specHints", "1", CVAR_ARCHIVE },				// the spectator key-hints bar
 	// the ability arc by the crosshair: 0 off, 2 top, 3 bottom, 4 left, 5 right
 	{ &cg_drawCooldownArc, "cg_drawCooldownArc", "1", CVAR_ARCHIVE},	// 0 off, 1 layout (bottom), 2 top, 3 right, 4 bottom, 5 left
 	{ &cg_obituaryRowSize, "cg_obituaryRowSize", "5", CVAR_ARCHIVE},

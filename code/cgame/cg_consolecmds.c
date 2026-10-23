@@ -462,6 +462,17 @@ static void CG_Camera_f( void ) {
 */
 
 
+/*
+=================
+CG_ToggleSpecHints_f
+
+The spectator key-hints bar on and off
+=================
+*/
+static void CG_ToggleSpecHints_f( void ) {
+	trap_Cvar_Set( "cg_specHints", cg_specHints.integer ? "0" : "1" );
+}
+
 typedef struct {
 	char	*cmd;
 	void	(*function)(void);
@@ -470,6 +481,7 @@ typedef struct {
 static consoleCommand_t	commands[] = {
 	{ "testgun", CG_TestGun_f },
 	{ "lobbypick", CG_LobbyPick_f },
+	{ "togglespechints", CG_ToggleSpecHints_f },
 	{ "testmodel", CG_TestModel_f },
 	{ "nextframe", CG_TestModelNextFrame_f },
 	{ "prevframe", CG_TestModelPrevFrame_f },

@@ -1756,12 +1756,26 @@ void CG_Weapon_f( void ) {
 	if ( !cg.snap ) {
 		return;
 	}
-	if ( cg.snap->ps.pm_flags & PMF_FOLLOW ) {
+	num = atoi( CG_Argv( 1 ) );
+	if ( num < 1 || num > 8 ) {
 		return;
 	}
 
-	num = atoi( CG_Argv( 1 ) );
-	if ( num < 1 || num > 8 ) {
+	// spectating: the weapon keys follow the n-th player of the scores
+	// (spectator.md keys: follow player 1-8)
+	if ( cg.snap->ps.pm_type != PM_INTERMISSION
+		&& ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR || ( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) ) {
+		int		i, n = 0;
+
+		for ( i = 0 ; i < cg.numScores ; i++ ) {
+			if ( cgs.clientinfo[cg.scores[i].client].team == TEAM_SPECTATOR ) {
+				continue;
+			}
+			if ( ++n == num ) {
+				trap_SendClientCommand( va( "follow %i", cg.scores[i].client ) );
+				break;
+			}
+		}
 		return;
 	}
 

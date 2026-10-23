@@ -4512,6 +4512,36 @@ static void CG_DrawNextSpawn( void ) {
 
 /*
 =================
+CG_DrawSpecHints
+
+spectator.md: a key-hints bar at the bottom, with a key that hides it;
+shown in free camera and while following
+=================
+*/
+static qboolean CG_DrawSpecHints( void ) {
+	if ( cg_specHints.integer ) {
+		char		line[256];
+		const char	*k;
+
+		line[0] = 0;
+		k = CG_BindName( "+attack" );
+		Q_strcat( line, sizeof( line ), va( "[%s] %s   ", k[0] ? k : "?", BG_String( STR_SPEC_NEXT ) ) );
+		Q_strcat( line, sizeof( line ), va( "[1-8] %s   ", BG_String( STR_SPEC_PICK ) ) );
+		if ( cg.snap->ps.pm_flags & PMF_FOLLOW ) {
+			k = CG_BindName( "+moveup" );
+			Q_strcat( line, sizeof( line ), va( "[%s] %s   ", k[0] ? k : "?", BG_String( STR_SPEC_FREE ) ) );
+		}
+		k = CG_BindName( "togglespechints" );
+		Q_strcat( line, sizeof( line ), va( "[%s] %s", k[0] ? k : "/togglespechints", BG_String( STR_SPEC_HIDE ) ) );
+		CG_DrawStringExt( 320 - CG_DrawStrlen( line ) * TINYCHAR_WIDTH / 2, 470, line, colorLtGrey, qfalse, qtrue,
+			TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+		return qtrue;
+	}
+	return qfalse;
+}
+
+/*
+=================
 CG_DrawTrailGrey
 
 Settings > Champions: the world greyed while you lay Plasma Trail
@@ -4536,6 +4566,9 @@ static void CG_DrawSpectator(void) {
 		CG_DrawSpectatorAbilities();
 	}
 	CG_DrawBigString(320 - 9 * 8, 440, "SPECTATOR", 1.0F);
+	if ( CG_DrawSpecHints() ) {
+		return;
+	}
 	if ( cgs.gametype == GT_TOURNAMENT ) {
 		CG_DrawBigString(320 - 15 * 8, 460, "waiting to play", 1.0F);
 	}
@@ -6139,6 +6172,9 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 		CG_DrawWorldItemTimers();
 #endif
 	} else {
+		if ( cg.snap->ps.pm_flags & PMF_FOLLOW ) {
+			CG_DrawSpecHints();
+		}
 		if ( !cg.scoreBoardShowing && !( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
 			CG_DrawNextSpawn();
 		}
