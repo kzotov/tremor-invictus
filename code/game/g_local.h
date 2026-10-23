@@ -750,6 +750,7 @@ void		G_Announce( int clientNum, const char *key );
 void		G_SysMsg( int clientNum, int id, const char *a, const char *b );
 void		G_EventLine( int clientNum, int id, const char *a, const char *b );
 void		G_BannerWord( int id );
+void		G_RoundInfo( int round, int overtime, qboolean suddenDeath );
 void		G_ServerLine( int clientNum, const char *text );
 
 //

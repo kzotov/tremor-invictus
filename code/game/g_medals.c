@@ -546,3 +546,15 @@ void G_MedalsRail( gentity_t *ent, int hits ) {
 		G_Medal( ent, MEDAL_DOUBLEWHAMMY );
 	}
 }
+
+/*
+=================
+G_RoundInfo
+
+The top bar's round (Clan Arena, Sacrifice, round duel), duel overtime
+period and sudden death, in CS_ROUNDINFO
+=================
+*/
+void G_RoundInfo( int round, int overtime, qboolean suddenDeath ) {
+	trap_SetConfigstring( CS_ROUNDINFO, va( "%i %i %i", round, overtime, suddenDeath ) );
+}

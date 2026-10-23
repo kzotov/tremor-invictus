@@ -543,6 +543,7 @@ static void G_SacrificeStartRound( void ) {
 	int			i;
 
 	sac.round++;
+	G_RoundInfo( sac.round, 0, qfalse );
 	sac.state = SAC_PLAYING;
 	G_Announce( -1, "roundbegins" );
 	sac.roundStart = level.time;
@@ -786,6 +787,7 @@ void G_SacrificeCheckRules( void ) {
 					winner = sac.meter[TEAM_RED] > sac.meter[TEAM_BLUE] ? TEAM_RED : TEAM_BLUE;
 				} else {
 					sac.suddenDeath = qtrue;
+					G_RoundInfo( sac.round, 0, qtrue );
 					memcpy( sac.suddenMeter, sac.meter, sizeof( sac.meter ) );
 					G_SacrificeAnnounce( STR_SAC_SUDDEN_DEATH, NULL );
 				}

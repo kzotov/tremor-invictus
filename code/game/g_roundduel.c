@@ -307,6 +307,7 @@ static void G_RDStartRound( void ) {
 	int		side;
 
 	rd.round++;
+	G_RoundInfo( rd.round, 0, qfalse );
 	rd.state = RD_COUNTDOWN;
 	rd.stateTime = level.time + RD_COUNTDOWN_MSEC;
 	rd.suddenDeath = qfalse;
@@ -443,6 +444,7 @@ void G_RoundDuelCheckRules( void ) {
 			break;
 		}
 		rd.suddenDeath = qtrue;
+		G_RoundInfo( rd.round, 0, qtrue );
 		G_RDAnnounce( STR_RD_SUDDEN_DEATH, NULL, NULL );
 		break;
 

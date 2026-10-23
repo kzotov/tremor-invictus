@@ -118,6 +118,7 @@ static void G_CAStartRound( void ) {
 	int			i;
 
 	level.caRound++;
+	G_RoundInfo( level.caRound, 0, qfalse );
 	level.caState = CA_COUNTDOWN;
 	level.caStateTime = level.time + CA_COUNTDOWN_MSEC;
 

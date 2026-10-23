@@ -192,8 +192,9 @@ typedef enum {
 #define CS_READYUP				(CS_PARTICLES+MAX_LOCATIONS)	// warm-up: "readyUp share ready players needed startTime"
 
 #define CS_LOBBY				(CS_READYUP+1)	// the pre-match lobby (g_mapvote.c)
+#define CS_ROUNDINFO			(CS_LOBBY+1)	// "round overtime suddenDeath": the round modes' round, duel overtime period
 
-#define CS_MAX					(CS_LOBBY+1)
+#define CS_MAX					(CS_ROUNDINFO+1)
 
 #if (CS_MAX) > MAX_CONFIGSTRINGS
 #error overflow: (CS_MAX) > MAX_CONFIGSTRINGS
@@ -1184,7 +1185,8 @@ typedef enum {
 	STR_SYS_NEW_LEADER,
 	STR_SYS_NOT_TEAM_PLAYER,
 	STR_HUD_ROUND,					// "ROUND %i": the top bar label in round modes
-	STR_HUD_OVERTIME,
+	STR_HUD_OVERTIME,				// "OVERTIME %i"
+	STR_HUD_SUDDEN_DEATH,
 	STR_EV_RED_FLAG_TAKEN,			// event line, priority 2: first of the objectives
 	STR_EV_BLUE_FLAG_TAKEN,
 	STR_EV_RED_FLAG_DROPPED,

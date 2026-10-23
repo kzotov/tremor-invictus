@@ -918,6 +918,7 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 
 	trap_SetConfigstring( CS_INTERMISSION, "" );
 	trap_SetConfigstring( CS_MAPVOTE, "" );
+	trap_SetConfigstring( CS_ROUNDINFO, "" );
 	G_LoadAccess();
 	G_LobbyInit( restart );
 }

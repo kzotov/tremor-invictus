@@ -1666,6 +1666,10 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 	float			clockX, clockTop, lineX, lineTop;
 	int				i, me = cg.snap->ps.clientNum;
 	qboolean		freeCam = cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR && !( cg.snap->ps.pm_flags & PMF_FOLLOW );
+	int				roundInfo[3] = { 0, 0, 0 };
+
+	(void)overtime;
+	sscanf( CG_ConfigString( CS_ROUNDINFO ), "%i %i %i", &roundInfo[0], &roundInfo[1], &roundInfo[2] );
 
 	// the places come from the layout's clock and clockline (top 35 and 92)
 	CG_HudPlace( "clock", &clockX, &clockTop );
@@ -1684,21 +1688,22 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 	{
 		// the label: WARM-UP, ROUND n in Clan Arena and Sacrifice (rounds won
 		// so far + 1), else the mode
-		const char	*info = CG_ConfigString( CS_SERVERINFO ), *label = CG_ModeString();
+		const char	*label = CG_ModeString();
 
 		if ( cg.warmup ) {
 			label = BG_String( STR_WARMUP );
-		} else if ( cgs.gametype >= GT_TEAM && ( atoi( Info_ValueForKey( info, "g_clanArena" ) )
-			|| atoi( Info_ValueForKey( info, "g_sacrifice" ) ) ) ) {
-			label = va( (char *)BG_String( STR_HUD_ROUND ), cgs.scores1 + cgs.scores2 + 1 );
+		} else if ( roundInfo[0] > 0 ) {
+			label = va( (char *)BG_String( STR_HUD_ROUND ), roundInfo[0] );		// the server's round
 		}
 		CG_TopText( clockX, clockTop - 19, 20, label, cg.warmup ? pale : grey, 0 );
 	}
 	if ( !cg.warmup ) {
 		CG_TopText( clockX, clockTop, 45, clock, finalSeconds ? red : colorWhite, 0 );
-		// the limit line, OVERTIME once the clock runs past it
-		if ( overtime ) {
-			CG_TopText( lineX, lineTop, 18, BG_String( STR_HUD_OVERTIME ), red, 0 );
+		// the limit line: SUDDEN DEATH, OVERTIME n (the period), or the limit
+		if ( roundInfo[2] ) {
+			CG_TopText( lineX, lineTop, 18, BG_String( STR_HUD_SUDDEN_DEATH ), red, 0 );
+		} else if ( roundInfo[1] > 0 ) {
+			CG_TopText( lineX, lineTop, 18, va( (char *)BG_String( STR_HUD_OVERTIME ), roundInfo[1] ), red, 0 );
 		} else if ( limit ) {
 			CG_TopText( lineX, lineTop, 18, va( "%i:00", limit ), grey, 0 );
 		}
