@@ -3262,6 +3262,33 @@ int BotEnemyCubeCarrierVisible(bot_state_t *bs) {
 
 /*
 ==================
+BotLevel
+
+bots.md corrections: seven levels, Training to Nightmare; our skills 1-5
+are Easy to Expert (levels 2-6)
+==================
+*/
+int BotLevel(bot_state_t *bs) {
+	int lvl = (int) (bs->settings.skill + 0.5f) + 1;
+
+	if (lvl < 1) lvl = 1;
+	if (lvl > 7) lvl = 7;
+	return lvl;
+}
+
+/*
+==================
+BotLevelLerp
+
+A value that moves evenly from its Training value to its Nightmare one
+==================
+*/
+float BotLevelLerp(bot_state_t *bs, float training, float nightmare) {
+	return training + (nightmare - training) * (BotLevel(bs) - 1) / 6.0f;
+}
+
+/*
+==================
 BotAimAtEnemy
 ==================
 */
@@ -3443,8 +3470,11 @@ void BotAimAtEnemy(bot_state_t *bs) {
 				}
 			}
 		}
-		//if the projectile does radial damage
-		if (aim_skill > 0.6 && wi.proj.damagetype & DAMAGETYPE_RADIAL) {
+		//bots.md aim points: the Rocket Launcher at the feet from Easy up;
+		//Tri-bolt and Nailgun use the points below instead
+		if ((wi.number == WP_ROCKET_LAUNCHER && BotLevel(bs) >= 2) ||
+			(aim_skill > 0.6 && (wi.proj.damagetype & DAMAGETYPE_RADIAL)
+			&& wi.number != WP_TRIBOLT && wi.number != WP_NAILGUN)) {
 			//if the enemy isn't standing significantly higher than the bot
 			if (entinfo.origin[2] < bs->origin[2] + 16) {
 				//try to aim at the ground in front of the enemy
@@ -3476,6 +3506,17 @@ void BotAimAtEnemy(bot_state_t *bs) {
 					}
 				}
 			}
+		}
+		//Tri-bolt: centre to Medium, the head from Hard; Nailgun: the head
+		//to Easy, centre Intermediate to Hard, the feet from Expert
+		if (wi.number == WP_TRIBOLT) {
+			bestorigin[2] = entinfo.origin[2] + (BotLevel(bs) >= 5 ? 22 : 4);
+		}
+		else if (wi.number == WP_NAILGUN) {
+			bestorigin[2] = entinfo.origin[2] + (BotLevel(bs) <= 2 ? 22 : BotLevel(bs) <= 5 ? 4 : -18);
+		}
+		else if (wi.number == WP_SHOTGUN || wi.number == WP_LIGHTNING) {
+			bestorigin[2] = entinfo.origin[2] + 4;
 		}
 		bestorigin[0] += 20 * crandom() * (1 - aim_accuracy);
 		bestorigin[1] += 20 * crandom() * (1 - aim_accuracy);
@@ -3588,7 +3629,9 @@ void BotCheckAttack(bot_state_t *bs) {
 #endif
 	}
 	//
-	reactiontime = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_REACTIONTIME, 0, 1);
+	//bots.md: fire sight time 0.2-0.7 s at Training down to 0 at Nightmare
+	//(the middle of each level's range)
+	reactiontime = BotLevelLerp(bs, 0.45f, 0);
 	if (bs->enemysight_time > FloatTime() - reactiontime) return;
 	if (bs->teleport_time > FloatTime() - reactiontime) return;
 	//if changing weapons
@@ -3615,10 +3658,12 @@ void BotCheckAttack(bot_state_t *bs) {
 			return;
 		}
 	}
+	//bots.md: the fire field of view narrows from 45-55 deg at Training to
+	//15-20 at Nightmare
 	if (VectorLengthSquared(dir) < Square(100))
 		fov = 120;
 	else
-		fov = 50;
+		fov = BotLevelLerp(bs, 45, 15) + random() * BotLevelLerp(bs, 10, 5);
 	//
 	vectoangles(dir, angles);
 	if (!InFieldOfVision(bs->viewangles, fov, angles))

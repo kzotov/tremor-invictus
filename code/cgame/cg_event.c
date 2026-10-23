@@ -86,7 +86,7 @@ void CG_CheckFollowKiller( void ) {
 		return;
 	}
 	cg.followKillerTime = 0;
-	if ( cg.snap && ( cg.snap->ps.pm_flags & PMF_FOLLOW ) && cg.followKiller != cg.snap->ps.clientNum ) {
+	if ( cg.snap && ( cg.snap->ps.pm_flags & PMF_FOLLOW ) && cg.snap->ps.clientNum == cg.followKillerVictim ) {
 		trap_SendClientCommand( va( "follow %i", cg.followKiller ) );
 	}
 }
@@ -156,6 +156,7 @@ static void CG_Obituary( entityState_t *ent ) {
 	if ( cg_followKiller.integer && !cg.demoPlayback && ( cg.snap->ps.pm_flags & PMF_FOLLOW )
 		&& target == cg.snap->ps.clientNum && attacker >= 0 && attacker < MAX_CLIENTS && attacker != target ) {
 		cg.followKiller = attacker;
+		cg.followKillerVictim = target;
 		cg.followKillerTime = cg.time + 1000;
 	}
 

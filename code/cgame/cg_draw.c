@@ -3745,6 +3745,9 @@ static void CG_DrawCenterString( void ) {
 		&& cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
 		if ( bannerShown.time ) {
 			bannerShown.time += cg.frametime;
+			if ( bannerShown.priority >= 3 && cg.time - bannerShown.queued > 5000 ) {
+				bannerShown.time = 0;		// the shown line expires too
+			}
 		}
 		// hud.md 8.9: held lines of priority 3-5 expire after 5 s
 		for ( i = 0 ; i < bannerQueued ; ) {
@@ -3805,7 +3808,7 @@ static void CG_DrawCenterString( void ) {
 		}
 		linebuffer[i] = 0;
 		w = lineW * CG_DrawStrlen( linebuffer );
-		CG_DrawStringExt( centre - w / 2, y, linebuffer, color, qfalse, qtrue, lineW, lineH, 0 );
+		CG_DrawStringExt( centre - w / 2, y, linebuffer, color, bannerShown.alarm, qtrue, lineW, lineH, 0 );
 		y += lineH + 4;
 		start += i;
 		while ( *start == '\n' ) {
@@ -4430,9 +4433,29 @@ static void CG_DrawTeamVote(void) {
 	if ( sec < 0 ) {
 		sec = 0;
 	}
-	s = va("TEAMVOTE(%i):%s yes:%i no:%i", sec, cgs.teamVoteString[cs_offset],
-							cgs.teamVoteYes[cs_offset], cgs.teamVoteNo[cs_offset] );
-	CG_DrawSmallString( 0, 90, s, 1.0F );
+	// as the main vote line, with the team-vote keys, under it (gaps.md:
+	// votes yellow, one per line)
+	{
+		char	yesKey[8], noKey[8];
+
+		Q_strncpyz( yesKey, CG_BindName( "teamvote yes" ), sizeof( yesKey ) );
+		Q_strncpyz( noKey, CG_BindName( "teamvote no" ), sizeof( noKey ) );
+		s = va( (char *)BG_String( STR_VOTE_LINE ), sec, cgs.teamVoteString[cs_offset], yesKey,
+			cgs.teamVoteYes[cs_offset], noKey, cgs.teamVoteNo[cs_offset] );
+	}
+	cg_hudAnchor = ANCHOR_LEFT;
+	if ( CG_HudModern() ) {
+		float	h = 22 * DP, cw = h * 0.6f;
+		int		len = CG_DrawStrlen( s );
+
+		if ( len * cw > 480 * DP ) {
+			cw = 480 * DP / len;
+		}
+		CG_DrawStringExt( 50 * DP, 110 * DP + ( cgs.voteTime ? 2.5f * h : 0 ), s, colorYellow, qfalse, qtrue, cw, h, 0 );
+	} else {
+		CG_DrawSmallStringColor( 8, 90, s, colorYellow );
+	}
+	cg_hudAnchor = ANCHOR_CENTER;
 }
 
 

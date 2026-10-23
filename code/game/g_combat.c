@@ -95,6 +95,7 @@ void TossClientItems( gentity_t *self ) {
 		velocity[2] = 150;
 		drop = LaunchItem( shard, self->s.pos.trBase, velocity );
 		drop->nextthink = level.time + g_shardLife.integer;
+		drop->s.time = drop->nextthink;		// the client blinks it before it goes
 	}
 
 	// drop the weapon if not a gauntlet or machinegun
@@ -193,6 +194,7 @@ void TossClientCubes( gentity_t *self ) {
 	drop = LaunchItem( item, origin, velocity );
 
 	drop->nextthink = level.time + g_cubeTimeout.integer * 1000;
+	drop->s.time = drop->nextthink;
 	drop->think = G_FreeEntity;
 	drop->spawnflags = self->client->sess.sessionTeam;
 }

@@ -772,6 +772,13 @@ void BotChangeViewAngles(bot_state_t *bs, float thinktime) {
 		maxchange = 360;
 	}
 	if (maxchange < 240) maxchange = 240;
+	//bots.md: in a fight the turn speed goes from 65-110 deg/s at Training to
+	//90-180 at Nightmare (each bot keeps its place in its level's range)
+	if (bs->enemy >= 0) {
+		float place = ( bs->client * 37 % 100 ) / 100.0f;
+
+		maxchange = BotLevelLerp(bs, 65, 90) + place * BotLevelLerp(bs, 45, 90);
+	}
 	maxchange *= thinktime;
 	for (i = 0; i < 2; i++) {
 		//

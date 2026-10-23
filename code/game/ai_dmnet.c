@@ -1255,13 +1255,19 @@ void AIEnter_Respawn(bot_state_t *bs, char *s) {
 	trap_BotResetAvoidGoals(bs->gs);
 	trap_BotResetAvoidReach(bs->ms);
 	//if the bot wants to chat
-	if (BotChat_Death(bs)) {
-		bs->respawn_time = FloatTime() + BotChatTime(bs);
-		bs->respawnchat_time = FloatTime();
-	}
-	else {
-		bs->respawn_time = FloatTime() + 1 + random();
-		bs->respawnchat_time = 0;
+	//bots.md respawn delays: 3-6 s at Easy, 3-5.5 Intermediate, 3-5 Medium,
+	//3-4.5 Hard, 3-4 Expert, 3-3.5 Nightmare
+	{
+		float delay = 3 + random() * BotLevelLerp(bs, 3.5f, 0.5f);
+
+		if (BotChat_Death(bs)) {
+			bs->respawn_time = FloatTime() + MAX(delay, BotChatTime(bs));
+			bs->respawnchat_time = FloatTime();
+		}
+		else {
+			bs->respawn_time = FloatTime() + delay;
+			bs->respawnchat_time = 0;
+		}
 	}
 	//set respawn state
 	bs->respawn_wait = qfalse;

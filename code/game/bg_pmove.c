@@ -1050,16 +1050,15 @@ static void PM_FlyMove( void ) {
 ===================
 PM_SpectatorMove
 
-spectator.md corrections: free fly at 400 u/s, 800 while the speed key is
-held, reached at 1600 u/s per second (6400 when fast); letting go slows
-at the same rate
+spectator.md corrections: free fly at 400 u/s, 800 when running, reached
+at 1600 u/s per second (6400 when fast); letting go slows at the same rate
 ===================
 */
 static void PM_SpectatorMove( void ) {
 	int		i;
 	vec3_t	wish, delta;
 	float	speed, accel, len, step;
-	qboolean	fast = ( pm->cmd.buttons & BUTTON_WALKING ) != 0;
+	qboolean	fast = !( pm->cmd.buttons & BUTTON_WALKING );		// the run state, whatever cl_run is
 
 	speed = fast ? 800 : 400;
 	accel = fast ? 6400 : 1600;

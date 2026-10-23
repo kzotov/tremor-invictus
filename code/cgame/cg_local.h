@@ -711,6 +711,7 @@ typedef struct {
 	int			deathTime;					// cg.time it arrived, 0 for none
 	int			followKiller;				// client to follow at followKillerTime, -1 for none
 	int			followKillerTime;
+	int			followKillerVictim;			// only while still following them
 	int			deathKiller, deathMod, deathWeapon, deathHealth, deathArmor;
 	int			deathDealt, deathTaken, deathRespawn;	// respawn: msec after deathTime
 } cg_t;

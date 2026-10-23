@@ -122,6 +122,9 @@ void BotRoamGoal(bot_state_t *bs, vec3_t goal);
 float BotEntityVisible(int viewer, vec3_t eye, vec3_t viewangles, float fov, int ent);
 //the bot will aim at the current enemy
 void BotAimAtEnemy(bot_state_t *bs);
+// bots.md levels: 1 Training ... 7 Nightmare; skills 1-5 are levels 2-6
+int BotLevel(bot_state_t *bs);
+float BotLevelLerp(bot_state_t *bs, float training, float nightmare);
 //check if the bot should attack
 void BotCheckAttack(bot_state_t *bs);
 //AI when the bot is blocked

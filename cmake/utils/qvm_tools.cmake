@@ -60,15 +60,18 @@ function(add_qvm MODULE_NAME)
     set(QVM_HEADERS "")
     foreach(SOURCE ${ARG_SOURCES})
         get_filename_component(SOURCE_FOLDER ${SOURCE} DIRECTORY)
-        file(GLOB FOLDER_HEADERS ${SOURCE_FOLDER}/*.h)
+        file(GLOB FOLDER_HEADERS CONFIGURE_DEPENDS ${SOURCE_FOLDER}/*.h)
         list(APPEND QVM_HEADERS ${FOLDER_HEADERS})
     endforeach()
-    file(GLOB SHARED_HEADERS
+    file(GLOB SHARED_HEADERS CONFIGURE_DEPENDS
         ${SOURCE_DIR}/game/*.h
         ${SOURCE_DIR}/cgame/cg_public.h
-        ${SOURCE_DIR}/ui/ui_public.h
+        ${SOURCE_DIR}/ui/*.h
+        ${SOURCE_DIR}/botlib/*.h
         ${SOURCE_DIR}/qcommon/q_shared.h
-        ${SOURCE_DIR}/qcommon/surfaceflags.h)
+        ${SOURCE_DIR}/qcommon/surfaceflags.h
+        ${SOURCE_DIR}/renderercommon/tr_types.h
+        ${SOURCE_DIR}/client/keycodes.h)
     list(APPEND QVM_HEADERS ${SHARED_HEADERS})
     list(REMOVE_DUPLICATES QVM_HEADERS)
 

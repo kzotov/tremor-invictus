@@ -991,7 +991,12 @@ void G_Say( gentity_t *ent, gentity_t *target, int mode, const char *chatText ) 
 		G_LogPrintf( "sayteam: %s: %s\n", ent->client->pers.netname, chatText );
 		if ( ent->client->sess.sessionTeam == TEAM_SPECTATOR ) {
 			// spectators' team chat goes to spectators: "(SPEC)" is enough
-			Com_sprintf (name, sizeof(name), EC"%s%c%c"EC""EC": ", who, Q_COLOR_ESCAPE, COLOR_WHITE );
+			// (G_ChatName leaves it out in warm-up and intermission)
+			if ( level.warmupTime || level.intermissiontime ) {
+				Com_sprintf (name, sizeof(name), EC"%s %s%c%c"EC""EC": ", BG_String( STR_CHAT_SPEC ), who, Q_COLOR_ESCAPE, COLOR_WHITE );
+			} else {
+				Com_sprintf (name, sizeof(name), EC"%s%c%c"EC""EC": ", who, Q_COLOR_ESCAPE, COLOR_WHITE );
+			}
 		} else if (Team_GetLocationMsg(ent, location, sizeof(location)))
 			Com_sprintf (name, sizeof(name), EC"%s %s%c%c"EC" (%s)"EC": ",
 				BG_String( STR_CHAT_TEAM ), who, Q_COLOR_ESCAPE, COLOR_WHITE, location);
