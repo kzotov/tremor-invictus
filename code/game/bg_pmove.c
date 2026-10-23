@@ -2499,6 +2499,8 @@ Generates weapon events and modifes the weapon counter
 #define LUNGE_STOP_MSEC	200		// for this long
 #define LUNGE_USED		0x4000	// this airtime's lunge is spent
 #define BERSERK_RAISE	800		// no punches while the fists come up
+#define RUSH_LAND_WAIT		1000	// a Bull Rush pressed in the air waits this long for the ground
+#define RUSH_CANCEL_AFTER	1000	// and can be cancelled after this long
 
 static void PM_Weapon( void ) {
 	int		addTime;
@@ -3152,8 +3154,16 @@ static void PM_StartAbility( int *state, int *time ) {
 		PM_AddEvent( EV_USE_ABILITY );
 		break;
 	case ACTIVE_BULLRUSH:
+		// champion-audit.md: in the air the rush waits for the landing (up
+		// to 1 s, as a wind-up), then starts with its cast sound
+		if ( *state != ABILITY_WINDUP && pm->ps->groundEntityNum == ENTITYNUM_NONE ) {
+			*state = ABILITY_WINDUP;
+			*time = RUSH_LAND_WAIT;
+			break;
+		}
 		*state = ABILITY_RUSH;
 		*time = BG_AbilityParam( active, AP_DURATION );
+		PM_AddEvent( EV_USE_ABILITY );
 		break;
 	default:
 		PM_AddEvent( EV_USE_ABILITY );
@@ -3232,6 +3242,9 @@ static void PM_Ability( void ) {
 		PM_StartAbility( &state, &time );
 	} else if ( state == ABILITY_WINDUP ) {
 		time -= pml.msec;
+		if ( active == ACTIVE_BULLRUSH && pm->ps->groundEntityNum != ENTITYNUM_NONE ) {
+			time = 0;		// landed: the rush goes now
+		}
 		if ( time <= 0 ) {
 			PM_StartAbility( &state, &time );
 		}
@@ -3332,6 +3345,12 @@ static void PM_Ability( void ) {
 			time = STAT_TIME_CAP;
 		}
 	} else if ( state == ABILITY_RUSH || state == ABILITY_ACTIVE ) {
+		// a second press cancels the rush once it has run 1 s
+		if ( pressed && state == ABILITY_RUSH && BG_AbilityParam( active, AP_DURATION ) - time >= RUSH_CANCEL_AFTER ) {
+			BG_SetAbility( pm->ps, ABILITY_IDLE, charges );
+			PM_EndAbility();
+			return;
+		}
 		if ( pressed && state == ABILITY_ACTIVE ) {
 			// Berserk can be ended early once it has run a while
 			if ( active == ACTIVE_BERSERK && BG_AbilityParam( active, AP_DURATION ) - time >= BERSERK_MIN_TIME ) {

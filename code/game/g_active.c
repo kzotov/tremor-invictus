@@ -652,8 +652,9 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed, c
 		if ( other == ent || !other->client || other->health <= 0 || !other->takedamage ) {
 			continue;
 		}
-		if ( swinging && !( champ->abilities & MOVEABIL_HEAVYWEIGHT ) && OnSameTeam( ent, other ) ) {
-			continue;		// Athena's impact hits enemies only
+		if ( OnSameTeam( ent, other ) && ( ( swinging && !( champ->abilities & MOVEABIL_HEAVYWEIGHT ) )
+			|| BG_AbilityState( &client->ps ) == ABILITY_RUSH ) ) {
+			continue;		// Athena's impact and the Bull Rush hit enemies only (and teammates don't stop it)
 		}
 		if ( level.time - client->collisionTime[other->s.number]
 			< ( swinging ? g_hookSwingRepeat.integer : g_collisionRepeat.integer ) ) {
@@ -701,8 +702,8 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed, c
 			G_Damage( other, ent, ent, dir, other->r.currentOrigin, damage, 0, MOD_HOOKIMPACT );
 		}
 		if ( other->health > 0 ) {
-			if ( G_AbilityActive( ent, ACTIVE_BULLRUSH ) ) {
-				G_Slow( other, 0.7f, 1000 );		// spirit slow
+			if ( BG_AbilityState( &client->ps ) == ABILITY_RUSH ) {
+				G_Slow( other, 0.7f, 1000 );		// spirit slow (the rush is ABILITY_RUSH, not ACTIVE)
 			}
 			// a survivor stops the bull rush; a kill does not
 			G_EndRush( ent );
