@@ -1121,6 +1121,17 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		}
 	}
 
+	// Strogg's body during the drone takes knockback as a player (no timer)
+	if ( knockback && !targ->client && targ->classname && !strcmp( targ->classname, "drone_body" ) && dir ) {
+		vec3_t	push, kvel;
+
+		VectorCopy( dir, push );
+		push[2] += tilt >= 0 ? tilt : G_PushTilt( mod );
+		VectorNormalize( push );
+		VectorScale( push, g_knockback.value * (float)knockback / 200, kvel );
+		G_DroneBodyPush( targ, kvel );
+	}
+
 	// clan arena: rocket and nail jumps and falls cost nothing
 	if ( G_ClanArena() && ( targ == attacker || mod == MOD_FALLING ) ) {
 		return;

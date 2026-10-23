@@ -308,6 +308,7 @@ struct gclient_s {
 	int			latched_buttons;
 
 	vec3_t		oldOrigin;
+	vec3_t		oldVelocity;		// before this command's move (the drone leaves the body with it)
 
 	// sum up damage over an entire frame, so
 	// shotgun blasts give a single big kick
@@ -413,6 +414,7 @@ struct gclient_s {
 	vec3_t		trailLast;			// where the last plasma trail charge was dropped
 	gentity_t	*droneBody;			// the body left behind while flying the drone
 	int			droneStartTime;
+	int			droneEndTime;		// input waits 0.25 s after the drone ends
 	vec3_t		droneBodyAngles;
 	int			droneArmor;
 
@@ -888,6 +890,8 @@ void G_ShotTrace( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3
 void G_AbilityStarted( gentity_t *ent );
 void G_AbilityEnded( gentity_t *ent );
 void G_DroneEnd( gentity_t *ent, qboolean launch );
+void G_DroneBodyPush( gentity_t *body, const vec3_t kvel );
+#define DRONE_INPUT_WAIT	250		// msec of no input after the drone ends
 float G_BarrierScale( gentity_t *targ, int mod );
 void G_BarrierHit( gentity_t *targ, int damage );
 qboolean G_DroneAbsorbDamage( gentity_t *ent, int take );

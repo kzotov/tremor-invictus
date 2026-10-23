@@ -1260,6 +1260,11 @@ void ClientThink_real( gentity_t *ent ) {
 	if ( level.warmupTime > 0 && client->ps.stats[STAT_HEALTH] > 0 ) {
 		ucmd->buttons &= ~BUTTON_ATTACK;		// (the dead still press fire to respawn)
 	}
+	// abilities.md: Strogg's input waits 0.25 s after the drone ends
+	if ( client->droneEndTime && level.time < client->droneEndTime + DRONE_INPUT_WAIT ) {
+		ucmd->forwardmove = ucmd->rightmove = ucmd->upmove = 0;
+		ucmd->buttons = 0;
+	}
 
 	client->ps.gravity = g_gravity.value;
 
@@ -1372,6 +1377,7 @@ void ClientThink_real( gentity_t *ent ) {
 	VectorCopy( client->ps.velocity, preVelocity );		// (kept through a killing hook impact)
 
 	VectorCopy( client->ps.origin, client->oldOrigin );
+	VectorCopy( client->ps.velocity, client->oldVelocity );
 
 #ifdef MISSIONPACK
 		if (level.intermissionQueued != 0 && g_singlePlayer.integer) {

@@ -1291,6 +1291,172 @@ static void G_DroneBodyPain( gentity_t *body, gentity_t *attacker, int damage ) 
 	body->s.time = level.time;
 }
 
+/*
+================
+G_DroneBodyThink
+
+The body left behind falls under gravity and lands crouched; a mover
+carries it (physicsObject), and pushed off an edge it falls again
+================
+*/
+#define DRONE_TAKEOFF		88		// the drone starts this far above the body
+#define DRONE_BODY_AIR		12000	// msec under water before drowning, as a player
+
+/*
+================
+G_DroneBodyPush
+
+Knockback, jump pads and teleporters move the body: a new fall from where
+it is, with this velocity added
+================
+*/
+void G_DroneBodyPush( gentity_t *body, const vec3_t kvel ) {
+	vec3_t	vel;
+
+	if ( body->s.pos.trType == TR_STATIONARY ) {
+		VectorClear( vel );
+	} else {
+		BG_EvaluateTrajectoryDelta( &body->s.pos, level.time, vel );
+	}
+	VectorAdd( vel, kvel, vel );
+	VectorCopy( body->r.currentOrigin, body->s.pos.trBase );
+	VectorCopy( vel, body->s.pos.trDelta );
+	body->s.pos.trType = TR_GRAVITY;
+	body->s.pos.trTime = level.time;
+	body->s.groundEntityNum = ENTITYNUM_NONE;
+}
+
+/*
+================
+G_DroneBodyWorld
+
+What the world does to the body each frame, as to an idle player: jump
+pads, teleporters and hurt triggers it touches; lava, slime and drowning
+================
+*/
+static void G_DroneBodyWorld( gentity_t *body ) {
+	int			touch[MAX_GENTITIES], num, i, contents;
+	vec3_t		mins, maxs, head;
+	gentity_t	*hit;
+	trace_t		tr;
+
+	VectorAdd( body->r.currentOrigin, body->r.mins, mins );
+	VectorAdd( body->r.currentOrigin, body->r.maxs, maxs );
+	num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
+	memset( &tr, 0, sizeof( tr ) );
+	for ( i = 0 ; i < num ; i++ ) {
+		hit = &g_entities[touch[i]];
+		if ( !hit->classname || !( hit->r.contents & CONTENTS_TRIGGER ) || !trap_EntityContact( mins, maxs, hit ) ) {
+			continue;
+		}
+		if ( !strcmp( hit->classname, "trigger_push" ) ) {
+			// launched as a player would be (origin2 holds the pad's velocity)
+			VectorCopy( body->r.currentOrigin, body->s.pos.trBase );
+			VectorCopy( hit->s.origin2, body->s.pos.trDelta );
+			body->s.pos.trType = TR_GRAVITY;
+			body->s.pos.trTime = level.time;
+			body->s.groundEntityNum = ENTITYNUM_NONE;
+		} else if ( !strcmp( hit->classname, "trigger_teleport" ) && !( hit->spawnflags & 1 ) ) {
+			gentity_t	*dest = G_PickTarget( hit->target );
+
+			if ( dest ) {
+				vec3_t	origin;
+
+				VectorCopy( dest->s.origin, origin );
+				origin[2] += 1;
+				G_SetOrigin( body, origin );
+				body->s.pos.trType = TR_GRAVITY;
+				body->s.pos.trTime = level.time;
+				VectorClear( body->s.pos.trDelta );
+				body->s.groundEntityNum = ENTITYNUM_NONE;
+				body->s.apos.trBase[YAW] = dest->s.angles[YAW];
+				return;
+			}
+		} else if ( !strcmp( hit->classname, "trigger_hurt" ) && hit->touch ) {
+			hit->touch( hit, body, &tr );
+			if ( !body->inuse || body->health <= 0 ) {
+				return;
+			}
+		}
+	}
+
+	// lava and slime burn once a second, as on a player; drowning after 12 s
+	if ( level.time >= body->pain_debounce_time ) {
+		contents = trap_PointContents( body->r.currentOrigin, -1 );
+		if ( contents & ( CONTENTS_LAVA | CONTENTS_SLIME ) ) {
+			body->pain_debounce_time = level.time + 1000;
+			G_Damage( body, NULL, NULL, NULL, NULL, ( contents & CONTENTS_LAVA ) ? 30 : 10, 0,
+				( contents & CONTENTS_LAVA ) ? MOD_LAVA : MOD_SLIME );
+			if ( !body->inuse || body->health <= 0 ) {
+				return;
+			}
+		}
+	}
+	VectorCopy( body->r.currentOrigin, head );
+	head[2] += CROUCH_VIEWHEIGHT;
+	if ( trap_PointContents( head, -1 ) & MASK_WATER ) {
+		if ( level.time > body->wait && level.time >= body->pain_debounce_time ) {
+			body->count = body->count < 15 ? body->count + 2 : 15;
+			body->pain_debounce_time = level.time + 1000;
+			G_Damage( body, NULL, NULL, NULL, NULL, body->count, DAMAGE_NO_ARMOR, MOD_WATER );
+		}
+	} else {
+		body->wait = level.time + DRONE_BODY_AIR;
+		body->count = 0;
+	}
+}
+
+static void G_DroneBodyThink( gentity_t *body ) {
+	vec3_t	origin, down;
+	trace_t	tr;
+
+	body->nextthink = level.time + 1;		// every frame
+	G_DroneBodyWorld( body );
+	if ( !body->inuse || body->health <= 0 || body->think != G_DroneBodyThink ) {
+		return;
+	}
+	if ( body->s.pos.trType == TR_STATIONARY ) {
+		// still standing on something?
+		VectorCopy( body->r.currentOrigin, down );
+		down[2] -= 1;
+		trap_Trace( &tr, body->r.currentOrigin, body->r.mins, body->r.maxs, down, body->s.number, body->clipmask );
+		if ( tr.fraction < 1 && !tr.startsolid ) {
+			return;
+		}
+		body->s.groundEntityNum = ENTITYNUM_NONE;
+		body->s.pos.trType = TR_GRAVITY;
+		body->s.pos.trTime = level.time;
+		VectorCopy( body->r.currentOrigin, body->s.pos.trBase );
+		VectorClear( body->s.pos.trDelta );
+	}
+	BG_EvaluateTrajectory( &body->s.pos, level.time, origin );
+	trap_Trace( &tr, body->r.currentOrigin, body->r.mins, body->r.maxs, origin, body->s.number, body->clipmask );
+	if ( tr.startsolid ) {
+		tr.fraction = 0;
+	}
+	VectorCopy( tr.endpos, body->r.currentOrigin );
+	if ( tr.fraction < 1 ) {
+		if ( tr.plane.normal[2] > 0.7f ) {
+			// landed
+			G_SetOrigin( body, tr.endpos );
+			body->s.groundEntityNum = tr.entityNum;
+		} else {
+			// a wall or ceiling: keep falling straight from here
+			vec3_t	vel;
+
+			BG_EvaluateTrajectoryDelta( &body->s.pos, level.time, vel );
+			vel[0] = vel[1] = 0;
+			if ( vel[2] > 0 ) {
+				vel[2] = 0;
+			}
+			VectorCopy( tr.endpos, body->s.pos.trBase );
+			VectorCopy( vel, body->s.pos.trDelta );
+			body->s.pos.trTime = level.time;
+		}
+	}
+	trap_LinkEntity( body );
+}
+
 static void G_StartDrone( gentity_t *ent ) {
 	gclient_t	*client = ent->client;
 	gentity_t	*body;
@@ -1314,10 +1480,33 @@ static void G_StartDrone( gentity_t *ent ) {
 	body->health = ent->health;
 	body->die = G_DroneBodyDie;
 	body->pain = G_DroneBodyPain;
-	VectorCopy( client->ps.origin, origin );
-	origin[2] -= DEFAULT_VIEWHEIGHT;		// pmove lifted the player to eye height
+	body->physicsObject = qtrue;		// movers carry it
+	body->clipmask = MASK_PLAYERSOLID & ~CONTENTS_BODY;
+	// the body stays where Strogg was, moving as he was (abilities.md: it
+	// keeps falling, rides movers, takes jump pads and teleporters)
+	VectorCopy( client->oldOrigin, origin );
 	G_SetOrigin( body, origin );
+	body->s.groundEntityNum = ENTITYNUM_NONE;
+	body->s.pos.trType = TR_GRAVITY;
+	body->s.pos.trTime = level.time;
+	VectorCopy( client->oldVelocity, body->s.pos.trDelta );
+	body->think = G_DroneBodyThink;
+	body->nextthink = level.time + 1;
+	body->wait = level.time + DRONE_BODY_AIR;		// air left (drowning)
 	trap_LinkEntity( body );
+
+	// the drone takes off about 88 u above him (less under a ceiling)
+	{
+		trace_t	tr;
+		vec3_t	up;
+
+		VectorCopy( origin, up );
+		up[2] += DRONE_TAKEOFF;
+		trap_Trace( &tr, origin, ent->r.mins, ent->r.maxs, up, ent->s.number, MASK_PLAYERSOLID );
+		VectorCopy( tr.endpos, client->ps.origin );
+		VectorClear( client->ps.velocity );
+		client->ps.eFlags ^= EF_TELEPORT_BIT;
+	}
 
 	client->droneBody = body;
 	client->droneStartTime = level.time;
@@ -1356,6 +1545,7 @@ void G_DroneEnd( gentity_t *ent, qboolean launch ) {
 	}
 
 	client->droneBody = NULL;
+	client->droneEndTime = level.time;		// input waits a moment (g_active)
 	// however the flight ends, the weapons stay locked a moment longer
 	if ( client->ps.weaponTime < BG_AbilityParam( ACTIVE_DRONE, AP_LOCKOUT ) ) {
 		client->ps.weaponTime = BG_AbilityParam( ACTIVE_DRONE, AP_LOCKOUT );

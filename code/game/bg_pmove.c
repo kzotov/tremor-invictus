@@ -3094,11 +3094,8 @@ static void PM_StartAbility( int *state, int *time ) {
 		PM_AddEvent( EV_USE_ABILITY );
 		*time = BG_AbilityParam( active, AP_DURATION );
 		*state = *time > 0 ? ABILITY_ACTIVE : ABILITY_IDLE;
-		if ( active == ACTIVE_DRONE ) {
-			// the drone takes off from eye height; the game leaves the body below
-			pm->ps->origin[2] += DEFAULT_VIEWHEIGHT;
-			VectorClear( pm->ps->velocity );
-		}
+		// (the drone's take-off point is set by the game, which leaves the
+		// body where Strogg was)
 		break;
 	}
 }
