@@ -260,6 +260,7 @@ typedef struct {
 	qboolean	ready;				// duel warmup: readyup typed
 	qboolean	championLocked;		// duel: the match's champion is fixed
 	int			lockedChampion;
+	qboolean	abilityKept;		// died since the last spawn: the ability carries over (duel.md 1)
 	int			caDamage;			// clan arena: damage to enemies not yet turned into points
 	int			startWeapon;		// weapon_t chosen to spawn with
 	qboolean	autoHop;			// userinfo cg_autoHop
@@ -547,6 +548,7 @@ typedef struct {
 	int			caRoundStart;			// level.time the round's fighting began
 	int			caRound;				// rounds played, this one included
 	qboolean	caSpawning;				// the round start is spawning everyone
+	qboolean	abilityRefill;			// a round start spawning everyone with the ability ready
 	int			exitTime;
 	vec3_t		intermission_origin;	// also used for spectator spawns
 	vec3_t		intermission_angle;

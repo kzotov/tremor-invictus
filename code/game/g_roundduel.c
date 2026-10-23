@@ -312,11 +312,13 @@ static void G_RDStartRound( void ) {
 	rd.stateTime = level.time + RD_COUNTDOWN_MSEC;
 	rd.suddenDeath = qfalse;
 	G_ResetMapItems();
+	level.abilityRefill = qtrue;		// every champion's first life starts ready
 	for ( side = 0 ; side < 2 ; side++ ) {
 		rd.dead[side] = 0;
 		rd.current[side] = 0;
 		ClientSpawn( &g_entities[rd.player[side]] );
 	}
+	level.abilityRefill = qfalse;
 	G_RDAnnounce( STR_RD_ROUND, va( "%i", rd.round ), NULL );
 	G_Announce( -1, "roundbegins" );
 	G_RDUpdateHud();

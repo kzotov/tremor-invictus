@@ -1168,6 +1168,8 @@ void ClientSpawn(gentity_t *ent) {
 //	char	*savedAreaBits;
 	int		accuracy_hits, accuracy_shots;
 	int		eventSequence;
+	int		keptChampion, keptCharges, keptRecharge;
+	qboolean	kept;
 	char	userinfo[MAX_INFO_STRING];
 
 	index = ent - g_entities;
@@ -1237,6 +1239,13 @@ void ClientSpawn(gentity_t *ent) {
 		persistant[i] = client->ps.persistant[i];
 	}
 	eventSequence = client->ps.eventSequence;
+	// duel.md 1: the ability's cooldown keeps running through death; a full
+	// ability only in warm-up, at a round start and for a new champion
+	kept = client->pers.abilityKept && !level.warmupTime && !level.abilityRefill;
+	keptChampion = client->ps.stats[STAT_CHAMPION];
+	keptCharges = BG_AbilityCharges( &client->ps );
+	keptRecharge = client->abilityRecharge;
+	client->pers.abilityKept = qfalse;
 
 	Com_Memset (client, 0, sizeof(*client));
 
@@ -1304,9 +1313,14 @@ void ClientSpawn(gentity_t *ent) {
 	}
 	G_RewindReset( ent );
 	ClientUserinfoChanged( index );		// show this champion's model
-	BG_SetAbility( &client->ps, ABILITY_IDLE,
-		BG_AbilityParam( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active, AP_CHARGES ) );
-	client->abilityRecharge = 0;
+	if ( kept && keptChampion == client->ps.stats[STAT_CHAMPION] ) {
+		BG_SetAbility( &client->ps, ABILITY_IDLE, keptCharges );
+		client->abilityRecharge = keptRecharge;
+	} else {
+		BG_SetAbility( &client->ps, ABILITY_IDLE,
+			BG_AbilityParam( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active, AP_CHARGES ) );
+		client->abilityRecharge = 0;
+	}
 	client->abilityPrevState = ABILITY_IDLE;
 	client->lastDamageTime = 0;
 	memset( client->kickExpire, 0, sizeof( client->kickExpire ) );

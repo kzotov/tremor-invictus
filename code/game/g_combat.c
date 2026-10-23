@@ -506,6 +506,9 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 		return;
 	}
 
+	// the ability's charges and recharge carry over to the next spawn
+	self->client->pers.abilityKept = qtrue;
+
 	// check for an almost capture
 	CheckAlmostCapture( self, attacker );
 	// check for a player that almost brought in cubes
