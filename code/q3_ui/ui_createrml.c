@@ -122,7 +122,17 @@ static void CS_PublishPage( void ) {
 	}
 }
 
-// the mode's maps: arenas that list its game type, or every arena when none do
+// a map's shown name, colours removed, for sorting
+static void CS_MapName( int arena, char *out, int size ) {
+	const char	*info = UI_GetArenaInfoByNumber( arena );
+
+	Q_strncpyz( out, Info_ValueForKey( info, "longname" )[0] ? Info_ValueForKey( info, "longname" )
+		: Info_ValueForKey( info, "map" ), size );
+	Q_CleanStr( out );
+}
+
+// the mode's maps: arenas that list its game type, or every arena when none
+// do; sorted A to Z by the shown name
 static void CS_SetMode( int mode ) {
 	int		i, bits;
 
@@ -137,6 +147,23 @@ static void CS_SetMode( int mode ) {
 	if ( !cs.numMaps ) {
 		for ( i = 0; i < UI_GetNumArenas() && i < CS_MAX_MAPS; i++ ) {
 			cs.maps[cs.numMaps++] = i;
+		}
+	}
+	{
+		char	a[MAX_QPATH], b[MAX_QPATH];
+		int		j, k, tmp;
+
+		for ( j = 1; j < cs.numMaps; j++ ) {
+			tmp = cs.maps[j];
+			CS_MapName( tmp, a, sizeof( a ) );
+			for ( k = j - 1; k >= 0; k-- ) {
+				CS_MapName( cs.maps[k], b, sizeof( b ) );
+				if ( Q_stricmp( b, a ) <= 0 ) {
+					break;
+				}
+				cs.maps[k + 1] = cs.maps[k];
+			}
+			cs.maps[k + 1] = tmp;
 		}
 	}
 	cs.page = 0;

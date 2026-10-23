@@ -118,6 +118,24 @@ G_MapVoteChoose
 Three maps at random from the mode's pool, never the current one
 =================
 */
+// a map's shown name (its arena long name, else the map), for sorting
+static void G_MapVoteName( const char *map, char *out, int size ) {
+	int		i;
+
+	Q_strncpyz( out, map, size );
+	for ( i = 0 ; i < G_ArenaCount() ; i++ ) {
+		const char	*info = G_ArenaInfo( i );
+
+		if ( !Q_stricmp( Info_ValueForKey( info, "map" ), map ) ) {
+			if ( Info_ValueForKey( info, "longname" )[0] ) {
+				Q_strncpyz( out, Info_ValueForKey( info, "longname" ), size );
+			}
+			break;
+		}
+	}
+	Q_CleanStr( out );
+}
+
 static void G_MapVoteChoose( void ) {
 	char		pool[64][MAX_QPATH];
 	char		current[MAX_QPATH];
@@ -175,6 +193,22 @@ static void G_MapVoteChoose( void ) {
 		Q_strncpyz( mapVoteMaps[mapVoteCount++], pool[j], MAX_QPATH );
 		Q_strncpyz( pool[j], pool[numPool - 1], MAX_QPATH );
 		numPool--;
+	}
+
+	// shown A to Z by name
+	for ( i = 1 ; i < mapVoteCount ; i++ ) {
+		for ( j = i ; j > 0 ; j-- ) {
+			char	a[MAX_QPATH], b[MAX_QPATH], tmp[MAX_QPATH];
+
+			G_MapVoteName( mapVoteMaps[j - 1], a, sizeof( a ) );
+			G_MapVoteName( mapVoteMaps[j], b, sizeof( b ) );
+			if ( Q_stricmp( a, b ) <= 0 ) {
+				break;
+			}
+			Q_strncpyz( tmp, mapVoteMaps[j], MAX_QPATH );
+			Q_strncpyz( mapVoteMaps[j], mapVoteMaps[j - 1], MAX_QPATH );
+			Q_strncpyz( mapVoteMaps[j - 1], tmp, MAX_QPATH );
+		}
 	}
 }
 
