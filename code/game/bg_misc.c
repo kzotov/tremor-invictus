@@ -1613,7 +1613,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Charges forward, knocking back and hurting anyone in the way.",
 	"Heals over your maximum health at once.",
 	"Fires a second copy of your weapon for a few seconds.",
-	"Raises a shield in front of you that stops shots, then fires a laser.",
+	"Raises a shield around you that halves damage, then fires a laser.",
 	"Throws fireballs that burst and set the ground burning.",
 	"Fists only: fast, heavy punches and healing on each kill.",
 	"Places a sentry gun that fires at enemies it sees.",
@@ -3014,7 +3014,8 @@ char *eventnames[] = {
 
 	"EV_USE_ABILITY",
 	"EV_ABILITY_REPRESS",
-	"EV_DAMAGEPLUM"
+	"EV_DAMAGEPLUM",
+	"EV_DODGE"
 };
 
 /*

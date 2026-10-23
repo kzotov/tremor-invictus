@@ -2194,6 +2194,30 @@ static void CG_DrawPassiveState( void ) {
 			qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
 		cg_hudAnchor = ANCHOR_CENTER;
 	}
+	// Clutch's dodge stamina (movement.md Clutch fixes): 3 pips, the next one
+	// filling; all dimmed below one full charge
+	if ( BG_Champion( ps->stats[STAT_CHAMPION] )->abilities & MOVEABIL_AIRDODGE ) {
+		static const vec4_t	full = { 1, 1, 1, 0.9f }, dimFull = { 0.5f, 0.5f, 0.5f, 0.7f }, empty = { 0.2f, 0.2f, 0.2f, 0.6f };
+		float	px = 320, py = 410, w = 14, h = 4, fill;
+		int		i, stamina = ps->generic1 & 0xff;		// 40 a dodge, 120 at most
+
+		if ( CG_HudModern() ) {
+			CG_HudPlace( "passive", &px, &py );
+		}
+		for ( i = 0 ; i < 3 ; i++ ) {
+			float	x = px - 1.5f * ( w + 3 ) + i * ( w + 3 );
+
+			fill = ( stamina - i * 40 ) / 40.0f;
+			if ( fill > 1 ) {
+				fill = 1;
+			}
+			CG_FillRect( x, py, w, h, empty );
+			if ( fill > 0 ) {
+				CG_FillRect( x, py, w * fill, h, stamina >= 40 ? full : dimFull );
+			}
+		}
+		cg_hudAnchor = ANCHOR_CENTER;
+	}
 }
 
 /*

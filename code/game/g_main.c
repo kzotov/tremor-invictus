@@ -446,7 +446,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_barrierScale, "g_barrierScale", "0.5", 0, 0, qtrue },
 	{ &g_barrierHealth, "g_barrierHealth", "200", 0, 0, qtrue },
 	{ &g_laserTime, "g_laserTime", "3000", 0, 0, qtrue },
-	{ &g_laserDelay, "g_laserDelay", "250", 0, 0, qtrue },
+	{ &g_laserDelay, "g_laserDelay", "0", 0, 0, qtrue },		// fires on the press (the gate is the 0.25 s before it)
 	{ &g_laserInterval, "g_laserInterval", "125", 0, 0, qtrue },
 	{ &g_laserDamage, "g_laserDamage", "10", 0, 0, qtrue },
 	{ &g_laserRange, "g_laserRange", "2000", 0, 0, qtrue },

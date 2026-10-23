@@ -1893,7 +1893,8 @@ typedef enum {
 
 	EV_USE_ABILITY,					// active ability takes effect (game side)
 	EV_ABILITY_REPRESS,				// ability pressed again while active
-	EV_DAMAGEPLUM					// damage dealt, a number over the target for the attacker only
+	EV_DAMAGEPLUM,					// damage dealt, a number over the target for the attacker only
+	EV_DODGE						// Clutch's dodge: a whoosh, not the jump voice
 } entity_event_t;
 
 

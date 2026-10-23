@@ -2848,15 +2848,19 @@ static void PM_FlatDirection( int which, vec3_t dir ) {
 ================
 PM_AirDodge
 
-Double-tapping a movement direction dashes that way while airborne,
-once per airtime
+Double-tapping a movement direction dashes that way, on the ground or in
+the air, for a charge of stamina (movement.md Clutch fixes)
 ================
 */
 #define DODGE_STAMINA_UNIT	40		// one dodge; refills at 10 units a second
 #define DODGE_STAMINA_MAX	120
+#define DODGE_GAP			90		// msec between dodges
+#define DODGE_SPEED_CAP		2000
+#define TAP_DODGED			7		// TAP_DIR value right after a dodge
 
 static void PM_AirDodge( void ) {
 	int		taps, held, last, time, fresh, i, stamina;
+	qboolean	blocked;
 	vec3_t	dir;
 	float	along;
 
@@ -2887,30 +2891,49 @@ static void PM_AirDodge( void ) {
 	if ( pm->cmd.rightmove > 0 ) held |= 8;
 	fresh = held & ~( taps & TAP_HELD_MASK );
 
-	for ( i = 0 ; i < 4 ; i++ ) {
+	// no dodge with the Barrier up or the laser firing, in waist-deep
+	// water or on a hook; and none within 90 ms of the last (taps then
+	// don't count)
+	blocked = BG_AbilityState( pm->ps ) == ABILITY_ACTIVE || pm->waterlevel >= 2
+		|| ( pm->ps->pm_flags & PMF_GRAPPLE_PULL ) || BG_AbilityState( pm->ps ) == ABILITY_HOOK_PULL
+		|| ( last == TAP_DODGED && time < DODGE_GAP );
+
+	for ( i = 0 ; i < 4 && !blocked ; i++ ) {
 		if ( !( fresh & ( 1 << i ) ) ) {
 			continue;
 		}
-		if ( last == i + 1 && time <= bg_pmoveSettings.dodgeTapWindow && time >= 90
+		if ( last == i + 1 && time <= bg_pmoveSettings.dodgeTapWindow
 			&& pm->ps->generic1 >= DODGE_STAMINA_UNIT ) {
-			// dash on the ground or in the air, for a charge of stamina
-			float	speed = pm->ps->groundEntityNum == ENTITYNUM_NONE
-				? bg_pmoveSettings.dodgeSpeed : bg_pmoveSettings.dodgeGroundSpeed;
-			float	up = pm->ps->groundEntityNum == ENTITYNUM_NONE
-				? bg_pmoveSettings.dodgeUp : bg_pmoveSettings.dodgeGroundUp;
+			// adds its speed: on the ground 480 along and 72 up, leaving the
+			// ground at once; in the air 320 along and up to 80 above zero
+			qboolean	ground = pm->ps->groundEntityNum != ENTITYNUM_NONE;
+			float		speed = ground ? bg_pmoveSettings.dodgeGroundSpeed : bg_pmoveSettings.dodgeSpeed;
+			float		up = speed * ( ground ? bg_pmoveSettings.dodgeGroundUp : bg_pmoveSettings.dodgeUp );
 
 			PM_FlatDirection( i, dir );
-			along = DotProduct( pm->ps->velocity, dir );
-			if ( along < speed ) {
-				VectorMA( pm->ps->velocity, speed - along, dir, pm->ps->velocity );
+			VectorMA( pm->ps->velocity, speed, dir, pm->ps->velocity );
+			if ( ground ) {
+				pm->ps->velocity[2] += up;
+			} else {
+				pm->ps->velocity[2] = ( pm->ps->velocity[2] > 0 ? pm->ps->velocity[2] : 0 ) + up;
 			}
-			if ( up > 0 && pm->ps->velocity[2] < speed * up ) {
-				pm->ps->velocity[2] = speed * up;
+			along = VectorLength( pm->ps->velocity );
+			if ( along > DODGE_SPEED_CAP ) {
+				VectorScale( pm->ps->velocity, DODGE_SPEED_CAP / along, pm->ps->velocity );
 			}
 			pm->ps->groundEntityNum = ENTITYNUM_NONE;
+			pml.walking = qfalse;
+			pml.groundPlane = qfalse;
 			pm->ps->generic1 -= DODGE_STAMINA_UNIT;
-			PM_AddEvent( EV_JUMP );
-			last = 0;
+			// a sideways or backward dodge ends Clutch's step acceleration
+			if ( i != 0 && ( pml.champion->abilities & MOVEABIL_ACCELERATION ) ) {
+				pm->ps->stats[STAT_MOVE_STATE] = 0;
+			}
+			PM_AddEvent( EV_DODGE );
+			PM_ForceLegsAnim( LEGS_JUMP );
+			last = TAP_DODGED;
+			time = 0;
+			break;
 		} else {
 			last = i + 1;
 			time = 0;
@@ -2939,7 +2962,7 @@ static void PM_Acceleration( void ) {
 	static const int	heavyHold[] = { 0 };
 	const int	*top, *accel, *hold;
 	int		steps, state, bonus, held, i, maxBonus;
-	vec3_t	flatvel, forward;
+	vec3_t	flatvel;
 	float	speed, run;
 
 	if ( !( pml.champion->abilities & MOVEABIL_ACCELERATION ) ) {
@@ -2958,16 +2981,17 @@ static void PM_Acceleration( void ) {
 	if ( pml.walking ) {
 		VectorSet( flatvel, pm->ps->velocity[0], pm->ps->velocity[1], 0 );
 		speed = VectorNormalize( flatvel );
-		PM_FlatDirection( 0, forward );
-		if ( pm->cmd.forwardmove > 0 && pm->cmd.rightmove == 0
-			&& speed >= pm->ps->speed * 0.9f
-			&& DotProduct( flatvel, forward ) >= cos( DEG2RAD( bg_pmoveSettings.accelAngle ) ) ) {
+		// movement.md Clutch fixes: forward only (strafe, back or crouch
+		// resets it), from 320 u/s (1 u/s tolerance); turning never resets
+		if ( pm->cmd.forwardmove > 0 && pm->cmd.rightmove == 0 && !( pm->ps->pm_flags & PMF_DUCKED )
+			&& speed >= pm->ps->speed - 1 ) {
 			run = pm->ps->speed + bonus * 0.1f;
 			for ( i = 0; i < steps - 1 && run >= top[i]; i++ ) {
 			}
 			if ( run < top[i] && ( i == 0 || held * ACCEL_HOLD_UNIT >= hold[i] ) ) {
-				// climbing toward the next step
-				bonus += (int)( accel[i] * 10 * pml.frametime + 0.5f );
+				// climbing toward the next step, in whole 10 ms steps so the
+				// rate is exact at any frame rate (bonus in tenths of u/s)
+				bonus += accel[i] / 10 * ( pm->cmd.serverTime / 10 - pm->ps->commandTime / 10 );
 				if ( pm->ps->speed + bonus * 0.1f > top[i] ) {
 					bonus = ( top[i] - pm->ps->speed ) * 10;
 				}
@@ -2994,7 +3018,8 @@ static void PM_Acceleration( void ) {
 		bonus = 0;
 	}
 	pm->ps->stats[STAT_MOVE_STATE] = bonus | ( held << ACCEL_HOLD_SHIFT );
-	pml.runSpeed = pm->ps->speed + bonus * 0.1f;
+	// in the air the bonus is frozen and the air wish speed stays at the base
+	pml.runSpeed = pml.walking ? pm->ps->speed + bonus * 0.1f : pm->ps->speed;
 }
 
 /*

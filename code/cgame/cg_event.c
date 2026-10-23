@@ -871,6 +871,12 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		DEBUGNAME("EV_JUMP");
 		trap_S_StartSound (NULL, es->number, CHAN_VOICE, CG_CustomSound( es->number, "*jump1.wav" ) );
 		break;
+	case EV_DODGE:
+		DEBUGNAME("EV_DODGE");
+		if ( cgs.media.dodgeSound ) {
+			trap_S_StartSound( NULL, es->number, CHAN_BODY, cgs.media.dodgeSound );
+		}
+		break;
 	case EV_USE_ABILITY:
 		DEBUGNAME("EV_USE_ABILITY");
 		CG_AbilitySound( es, 0 );

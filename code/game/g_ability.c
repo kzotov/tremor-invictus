@@ -1081,21 +1081,33 @@ static void G_BarrierToLaser( gentity_t *ent ) {
 	if ( ent->client->barrierMode != 1 ) {
 		return;
 	}
+	// abilities.md Clutch Barrier fixes: the shield drops and the laser
+	// fires at once, always for its full time (the ability runs on past its
+	// 8 s if need be) with the weapons locked until it ends
 	ent->client->barrierMode = 2;
 	ent->client->ps.eFlags &= ~EF_BARRIER;
 	ent->client->laserTime = level.time + g_laserDelay.integer;
 	ent->client->laserEnd = ent->client->laserTime + g_laserTime.integer;
+	if ( ent->client->ps.stats[STAT_ABILITY_TIME] < g_laserTime.integer + g_laserDelay.integer + 100 ) {
+		ent->client->ps.stats[STAT_ABILITY_TIME] = g_laserTime.integer + g_laserDelay.integer + 100;
+	}
+	if ( ent->client->ps.weaponTime < g_laserTime.integer + g_laserDelay.integer ) {
+		ent->client->ps.weaponTime = g_laserTime.integer + g_laserDelay.integer;
+	}
 }
+
+#define LASER_RADIUS	10		// the beam's sweep, abilities.md
 
 static void G_FireLaser( gentity_t *ent ) {
 	vec3_t		start, forward, right, end;
+	vec3_t		mins = { -LASER_RADIUS, -LASER_RADIUS, -LASER_RADIUS }, maxs = { LASER_RADIUS, LASER_RADIUS, LASER_RADIUS };
 	trace_t		tr;
 	gentity_t	*tent, *other;
 
 	G_AbilityEyes( ent, start, forward, right );
 	VectorMA( start, g_laserRange.value, forward, end );
 	G_RewindPlayers( ent );
-	G_ShotTrace( &tr, start, NULL, NULL, end, ent->s.number, MASK_SHOT );
+	G_ShotTrace( &tr, start, mins, maxs, end, ent->s.number, MASK_SHOT );		// a 10 u wide beam
 	G_RestorePlayers();
 
 	tent = G_TempEntity( tr.endpos, EV_RAILTRAIL );
