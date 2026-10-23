@@ -104,6 +104,8 @@ static qboolean	hudLayoutTried;		// hudLayoutLoaded holds the name last tried (i
 #define HX_C( x )	( 320 + ( (x) - 960 ) * DP )
 #define HY( y )		( (y) * DP )
 
+static qboolean CG_DraftState( int players[2], int picks[2][3] );
+
 /*
 =================
 CG_HudLayout
@@ -1828,7 +1830,31 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 				continue;
 			}
 			portrait = CG_ChampionPortrait( BG_ChampionForModel( cgs.clientinfo[who].modelName ), qtrue );
-			if ( portrait ) {
+			if ( atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_roundDuel" ) ) ) {
+				// hud.md 9.1: the active champion centred at (819.5, 49.5) /
+				// (1040.5, 49.5), the rest of the line-up at 0.85x at +-175 / +-236
+				int		players[2], picks[2][3], k, n = 0, current = BG_ChampionForModel( cgs.clientinfo[who].modelName );
+
+				if ( portrait ) {
+					CG_DrawPic( 320 + ( ( side ? 80.5f : -140.5f ) - 30.5f ) * DP, 19 * DP, 61 * DP, 61 * DP, portrait );
+				}
+				if ( CG_DraftState( players, picks ) ) {
+					int	row = players[1] == who ? 1 : 0;
+
+					for ( k = 0 ; k < 3 && n < 2 ; k++ ) {
+						qhandle_t	pic;
+
+						if ( picks[row][k] < 0 || picks[row][k] == current ) {
+							continue;
+						}
+						pic = CG_ChampionPortrait( picks[row][k], qtrue );
+						if ( pic ) {
+							CG_DrawPic( 320 + ( sign * ( n ? 236 : 175 ) - 26 ) * DP, 23.5f * DP, 52 * DP, 52 * DP, pic );
+						}
+						n++;
+					}
+				}
+			} else if ( portrait ) {
 				CG_DrawPic( 320 + ( 250 * sign - 30.5f ) * DP, 24 * DP, 61 * DP, 61 * DP, portrait );
 			}
 			CG_FillRect( 320 + ( side ? inner : outer ) * DP, 23 * DP, 129 * DP, 69 * DP, box );
@@ -5167,6 +5193,16 @@ static qboolean CG_DrawSpecHints( void ) {
 			k = CG_BindName( "+moveup" );
 			Q_strcat( line, sizeof( line ), va( "[%s] %s   ", k[0] ? k : "?", BG_String( STR_SPEC_FREE ) ) );
 		}
+		// the modern layout: the bar at (500, 990), its toggle on the bottom
+		// line (CG_DrawSpectator)
+		if ( CG_HudModern() ) {
+			float	ch = 18 * DP;
+
+			cg_hudAnchor = ANCHOR_LEFT;
+			CG_DrawStringExt( 500 * DP, 990 * DP, line, colorLtGrey, qfalse, qtrue, ch * 0.6f, ch, 0 );
+			cg_hudAnchor = ANCHOR_CENTER;
+			return qtrue;
+		}
 		k = CG_BindName( "togglespechints" );
 		Q_strcat( line, sizeof( line ), va( "[%s] %s", k[0] ? k : "/togglespechints", BG_String( STR_SPEC_HIDE ) ) );
 		CG_DrawStringExt( 320 - CG_DrawStrlen( line ) * TINYCHAR_WIDTH / 2, 470, line, colorLtGrey, qfalse, qtrue,
@@ -5231,9 +5267,9 @@ static void CG_DrawSpectator(void) {
 			const char	*key = CG_BindName( "togglespechints" );
 
 			cg_hudAnchor = ANCHOR_RIGHT;
-			CG_DrawStringExt( 640 - ( 1920 - 1450 ) * DP, 1035 * DP, BG_String( STR_HUD_SPEC_TOGGLE ), hint, qtrue, qfalse,
-				18 * DP * 0.6f, 18 * DP, 0 );
-			CG_DrawStringExt( 640 - ( 1920 - 1760 ) * DP, 1036 * DP, key[0] ? va( "[%s]", key ) : "[/togglespechints]", keyColor,
+			CG_DrawStringExt( 640 - ( 1920 - 1450 ) * DP, 1035 * DP, BG_String( cg_specHints.integer ? STR_HUD_SPEC_TOGGLE : STR_HUD_SPEC_SHOW ),
+				hint, qtrue, qfalse, 18 * DP * 0.6f, 18 * DP, 0 );
+			CG_DrawStringExt( 640 - ( 1920 - 1760 ) * DP, 1035 * DP, key[0] ? va( "[%s]", key ) : "[/togglespechints]", keyColor,
 				qtrue, qfalse, 16 * DP * 0.6f, 16 * DP, 0 );
 		}
 		cg_hudAnchor = ANCHOR_CENTER;

@@ -1916,6 +1916,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"MG|SG|NG",
 	"SPECTATOR",
 	"HIDE KEYS",
+	"SHOW KEYS",
 	"One beep",
 	"By damage",
 	"By damage, reversed",
