@@ -55,6 +55,23 @@ function(add_qvm MODULE_NAME)
         list(APPEND LCC_FLAGS "-D${DEFINITION}")
     endforeach()
 
+    # lcc leaves no dependency file, so every C file depends on the headers
+    # it can reach: its own folder's, the shared game and engine ones
+    set(QVM_HEADERS "")
+    foreach(SOURCE ${ARG_SOURCES})
+        get_filename_component(SOURCE_FOLDER ${SOURCE} DIRECTORY)
+        file(GLOB FOLDER_HEADERS ${SOURCE_FOLDER}/*.h)
+        list(APPEND QVM_HEADERS ${FOLDER_HEADERS})
+    endforeach()
+    file(GLOB SHARED_HEADERS
+        ${SOURCE_DIR}/game/*.h
+        ${SOURCE_DIR}/cgame/cg_public.h
+        ${SOURCE_DIR}/ui/ui_public.h
+        ${SOURCE_DIR}/qcommon/q_shared.h
+        ${SOURCE_DIR}/qcommon/surfaceflags.h)
+    list(APPEND QVM_HEADERS ${SHARED_HEADERS})
+    list(REMOVE_DUPLICATES QVM_HEADERS)
+
     set(ASM_FILES "")
     foreach(SOURCE ${ARG_SOURCES})
         if(${SOURCE} MATCHES "\\.asm$")
@@ -69,7 +86,7 @@ function(add_qvm MODULE_NAME)
         add_custom_command(
             OUTPUT ${ASM_FILE}
             COMMAND ${Q3LCC} ${LCC_FLAGS} -o ${ASM_FILE} ${SOURCE}
-            DEPENDS ${SOURCE} qvm_tools ${Q3RCC} ${Q3CPP} ${Q3LCC}
+            DEPENDS ${SOURCE} ${QVM_HEADERS} qvm_tools ${Q3RCC} ${Q3CPP} ${Q3LCC}
             COMMENT "Building C object ${ASM_FILE_COMMENT}")
 
         list(APPEND ASM_FILES ${ASM_FILE})

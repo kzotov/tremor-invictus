@@ -23,5 +23,6 @@ check() {
 SHARED="$ROOT/code/qcommon/q_shared.c $ROOT/code/qcommon/q_math.c $ROOT/code/qcommon/q_shared.h $ROOT/code/qcommon/surfaceflags.h"
 check cgame "$ROOT/code/cgame" "$ROOT"/code/game/bg_*.c "$ROOT"/code/game/bg_*.h $SHARED
 check qagame "$ROOT/code/game" $SHARED
-check ui "$ROOT/code/q3_ui" "$ROOT"/code/game/bg_*.c "$ROOT"/code/game/bg_*.h $SHARED
+# the ui builds only bg_misc and bg_lib
+check ui "$ROOT/code/q3_ui" "$ROOT/code/game/bg_misc.c" "$ROOT/code/game/bg_lib.c" "$ROOT/code/game/bg_public.h" $SHARED
 exit $status
