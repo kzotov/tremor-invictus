@@ -480,6 +480,12 @@ qboolean S_AL_BufferInit( void )
 	memset(knownSfx, 0, sizeof(knownSfx));
 	numSfx = 0;
 
+	// handle 0 is kept silent: what a missing sound registers as
+	// (sound-clarity.md 2: never the fallback beep)
+	S_AL_BufferFind("::silent::");
+	knownSfx[0].isDefault = qtrue;
+	knownSfx[0].isDefaultChecked = qtrue;
+
 	// Load the default sound, and lock it
 	default_sfx = S_AL_BufferFind("sound/feedback/hit.wav");
 	S_AL_BufferUse(default_sfx);
@@ -829,6 +835,7 @@ static void S_AL_SrcSetup(srcHandle_t src, sfxHandle_t sfx, alSrcPriority_t prio
 	qalSourcefv(curSource->alSource, AL_VELOCITY, vec3_origin);
 	qalSourcei(curSource->alSource, AL_LOOPING, AL_FALSE);
 	qalSourcef(curSource->alSource, AL_REFERENCE_DISTANCE, s_alMinDistance->value);
+	qalSourcef(curSource->alSource, AL_MAX_DISTANCE, s_alMaxDistance->value);
 
 	if(local)
 	{
@@ -1038,6 +1045,7 @@ srcHandle_t S_AL_SrcAlloc( alSrcPriority_t priority, int entnum, int channel )
 	float weakest_gain = 1000.0;
 	qboolean weakest_isplaying = qtrue;
 	int weakest_numloops = 0;
+	int same_ent = -1, same_other = -1;	// equal-priority one-shots to take over
 	src_t *curSource;
 
 	for(i = 0; i < srcCount; i++)
@@ -1047,6 +1055,37 @@ srcHandle_t S_AL_SrcAlloc( alSrcPriority_t priority, int entnum, int channel )
 		// If it's locked, we aren't even going to look at it
 		if(curSource->isLocked)
 			continue;
+
+		// The channel system is not actually adhered to by baseq3, and not
+		// implemented in snd_dma.c, so it is kept to CHAN_HEARTBEAT, whose new
+		// sound replaces the one still playing
+		if(channel == CHAN_HEARTBEAT && curSource->isActive && curSource->entity == entnum && curSource->channel == channel)
+		{
+			S_AL_SrcKill(i);
+			srcList[i].isActive = qtrue;
+			srcActiveCnt++;
+			return i;
+		}
+
+		// sound-clarity.md 2: at equal priority a world one-shot takes the
+		// oldest sound of the same entity, else the oldest, quietest one of
+		// another entity that isn't the listener
+		if(curSource->isActive && curSource->isPlaying && !curSource->isLooping
+			&& priority == SRCPRI_ONESHOT && curSource->priority == priority)
+		{
+			if(curSource->entity == entnum)
+			{
+				if(same_ent < 0 || curSource->lastUsedTime < srcList[same_ent].lastUsedTime)
+					same_ent = i;
+			}
+			else if(curSource->entity != lastListenerNumber)
+			{
+				if(same_other < 0 || curSource->lastUsedTime < srcList[same_other].lastUsedTime
+					|| (curSource->lastUsedTime == srcList[same_other].lastUsedTime
+					&& curSource->scaleGain < srcList[same_other].scaleGain))
+					same_other = i;
+			}
+		}
 
 		// Is it empty or not?
 		if(!curSource->isActive)
@@ -1087,21 +1126,12 @@ srcHandle_t S_AL_SrcAlloc( alSrcPriority_t priority, int entnum, int channel )
 				weakest = i;
 			}
 		}
-
-		// The channel system is not actually adhered to by baseq3, and not
-		// implemented in snd_dma.c, so it is kept to CHAN_HEARTBEAT, whose new
-		// sound replaces the one still playing
-		if(channel == CHAN_HEARTBEAT && curSource->isActive && curSource->entity == entnum && curSource->channel == channel)
-		{
-			S_AL_SrcKill(i);
-			srcList[i].isActive = qtrue;
-			srcActiveCnt++;
-			return i;
-		}
 	}
 
 	if(empty == -1)
 		empty = weakest;
+	if(empty == -1)
+		empty = same_ent >= 0 ? same_ent : same_other;
 	
 	if(empty >= 0)
 	{
@@ -1198,6 +1228,10 @@ static qboolean S_AL_CheckInput(int entityNum, sfxHandle_t sfx)
 		return qtrue;
 	}
 
+	// a missing sound plays nothing (it was logged when it failed to load)
+	if (sfx == 0 || knownSfx[sfx].isDefault)
+		return qtrue;
+
 	return qfalse;
 }
 
@@ -1266,11 +1300,10 @@ static void S_AL_StartSound( vec3_t origin, int entnum, int entchannel, sfxHandl
 	
 	S_AL_SanitiseVector(sorigin);
 	
-	if((srcActiveCnt > 5 * srcCount / 3) &&
-		(DistanceSquared(sorigin, lastListenerOrigin) >=
-		(s_alMaxDistance->value + s_alGraceDistance->value) * (s_alMaxDistance->value + s_alGraceDistance->value)))
+	if(DistanceSquared(sorigin, lastListenerOrigin) >=
+		(s_alMaxDistance->value + s_alGraceDistance->value) * (s_alMaxDistance->value + s_alGraceDistance->value))
 	{
-		// We're getting tight on sources and source is not within hearing distance so don't add it
+		// beyond hearing: it would hold a source for nothing
 		return;
 	}
 
@@ -1471,6 +1504,8 @@ void S_AL_SrcUpdate( void )
 			qalSourcef(curSource->alSource, AL_ROLLOFF_FACTOR, s_alRolloff->value);
 		if(s_alMinDistance->modified)
 			qalSourcef(curSource->alSource, AL_REFERENCE_DISTANCE, s_alMinDistance->value);
+		if(s_alMaxDistance->modified)
+			qalSourcef(curSource->alSource, AL_MAX_DISTANCE, s_alMaxDistance->value);
 
 		if(curSource->isLooping)
 		{
@@ -2328,6 +2363,7 @@ void S_AL_Update( void )
 	s_announcerVolume->modified = qfalse;
 	s_musicVolume->modified = qfalse;
 	s_alMinDistance->modified = qfalse;
+	s_alMaxDistance->modified = qfalse;
 	s_alRolloff->modified = qfalse;
 }
 
@@ -2547,10 +2583,11 @@ qboolean S_AL_Init( soundInterface_t *si )
 	s_alSources = Cvar_Get( "s_alSources", "96", CVAR_ARCHIVE );
 	s_alDopplerFactor = Cvar_Get( "s_alDopplerFactor", "1.0", CVAR_ARCHIVE );
 	s_alDopplerSpeed = Cvar_Get( "s_alDopplerSpeed", "9000", CVAR_ARCHIVE );
-	s_alMinDistance = Cvar_Get( "s_alMinDistance", "120", CVAR_CHEAT );
-	s_alMaxDistance = Cvar_Get("s_alMaxDistance", "1024", CVAR_CHEAT);
-	s_alRolloff = Cvar_Get( "s_alRolloff", "2", CVAR_CHEAT);
-	s_alGraceDistance = Cvar_Get("s_alGraceDistance", "512", CVAR_CHEAT);
+	// sound-clarity.md 2: gain = 1 - 0.0008 x distance, silent from 1250 u
+	s_alMinDistance = Cvar_Get( "s_alMinDistance", "0", CVAR_CHEAT );
+	s_alMaxDistance = Cvar_Get("s_alMaxDistance", "1250", CVAR_CHEAT);
+	s_alRolloff = Cvar_Get( "s_alRolloff", "1", CVAR_CHEAT);
+	s_alGraceDistance = Cvar_Get("s_alGraceDistance", "0", CVAR_CHEAT);
 
 	s_alDriver = Cvar_Get( "s_alDriver", ALDRIVER_DEFAULT, CVAR_ARCHIVE | CVAR_LATCH | CVAR_PROTECTED );
 
@@ -2661,7 +2698,7 @@ qboolean S_AL_Init( soundInterface_t *si )
 	S_AL_SrcInit( );
 
 	// Set up OpenAL parameters (doppler, etc)
-	qalDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
+	qalDistanceModel(AL_LINEAR_DISTANCE_CLAMPED);
 	qalDopplerFactor( s_alDopplerFactor->value );
 	qalSpeedOfSound( s_alDopplerSpeed->value );
 

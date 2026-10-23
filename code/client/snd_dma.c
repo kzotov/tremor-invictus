@@ -47,7 +47,7 @@ static char		s_backgroundLoop[MAX_QPATH];
 // =======================================================================
 
 // only begin attenuating sound volumes when outside the FULLVOLUME range
-#define		SOUND_FULLVOLUME	80
+#define		SOUND_FULLVOLUME	0		// sound-clarity.md 2: linear from the listener, no full-volume radius
 
 #define		SOUND_ATTENUATE		0.0008f
 
@@ -381,12 +381,9 @@ sfxHandle_t	S_Base_RegisterSound( const char *name, qboolean compressed ) {
 		return 0;
 	}
 
-	if ( sfx->soundData ) {
-		if ( sfx->defaultSound ) {
-			Com_Printf( S_COLOR_YELLOW "WARNING: could not find %s - using default\n", sfx->soundName );
-			return 0;
-		}
-		return sfx - s_knownSfx;
+	if ( sfx->soundData || sfx->defaultSound ) {
+		// (a missing sound was logged the first time)
+		return sfx->defaultSound ? 0 : sfx - s_knownSfx;
 	}
 
 	sfx->inMemory = qfalse;
@@ -395,7 +392,7 @@ sfxHandle_t	S_Base_RegisterSound( const char *name, qboolean compressed ) {
   S_memoryLoad(sfx);
 
 	if ( sfx->defaultSound ) {
-		Com_Printf( S_COLOR_YELLOW "WARNING: could not find %s - using default\n", sfx->soundName );
+		Com_Printf( S_COLOR_YELLOW "WARNING: could not find %s - it stays silent\n", sfx->soundName );
 		return 0;
 	}
 
@@ -417,7 +414,13 @@ void S_Base_BeginRegistration( void ) {
 		Com_Memset(s_knownSfx, '\0', sizeof(s_knownSfx));
 		Com_Memset(sfxHash, '\0', sizeof(sfx_t *) * LOOP_HASH);
 
-		S_Base_RegisterSound("sound/feedback/hit.wav", qfalse);		// changed to a sound in baseq3
+		// handle 0 is kept silent: what a missing sound registers as
+		{
+			sfx_t	*silent = S_FindName( "::silent::" );
+
+			silent->defaultSound = qtrue;
+			silent->inMemory = qtrue;
+		}
 	}
 }
 
@@ -561,6 +564,9 @@ static void S_Base_StartSoundEx( vec3_t origin, int entityNum, int entchannel, s
 		Com_Printf( S_COLOR_YELLOW "S_StartSound: handle %i out of range\n", sfxHandle );
 		return;
 	}
+	if ( sfxHandle == 0 || s_knownSfx[sfxHandle].defaultSound ) {
+		return;		// a missing sound plays nothing (sound-clarity.md 2)
+	}
 
 	sfx = &s_knownSfx[ sfxHandle ];
 
@@ -702,6 +708,9 @@ void S_Base_StartLocalSound( sfxHandle_t sfxHandle, int channelNum ) {
 		Com_Printf( S_COLOR_YELLOW "S_StartLocalSound: handle %i out of range\n", sfxHandle );
 		return;
 	}
+	if ( sfxHandle == 0 || s_knownSfx[sfxHandle].defaultSound ) {
+		return;		// a missing sound plays nothing (sound-clarity.md 2)
+	}
 
 	S_Base_StartSoundEx( NULL, listener_number, channelNum, sfxHandle, qtrue );
 }
@@ -806,6 +815,9 @@ void S_Base_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t ve
 		Com_Printf( S_COLOR_YELLOW "S_AddLoopingSound: handle %i out of range\n", sfxHandle );
 		return;
 	}
+	if ( sfxHandle == 0 || s_knownSfx[sfxHandle].defaultSound ) {
+		return;		// a missing sound plays nothing (sound-clarity.md 2)
+	}
 
 	sfx = &s_knownSfx[ sfxHandle ];
 
@@ -868,6 +880,9 @@ void S_Base_AddRealLoopingSound( int entityNum, const vec3_t origin, const vec3_
 	if ( sfxHandle < 0 || sfxHandle >= s_numSfx ) {
 		Com_Printf( S_COLOR_YELLOW "S_AddRealLoopingSound: handle %i out of range\n", sfxHandle );
 		return;
+	}
+	if ( sfxHandle == 0 || s_knownSfx[sfxHandle].defaultSound ) {
+		return;		// a missing sound plays nothing (sound-clarity.md 2)
 	}
 
 	sfx = &s_knownSfx[ sfxHandle ];
@@ -1594,7 +1609,7 @@ qboolean S_Base_Init( soundInterface_t *si ) {
 		return qfalse;
 	}
 
-	s_mixahead = Cvar_Get ("s_mixahead", "0.2", CVAR_ARCHIVE);
+	s_mixahead = Cvar_Get ("s_mixahead", "0.14", CVAR_ARCHIVE);
 	s_mixPreStep = Cvar_Get ("s_mixPreStep", "0.05", CVAR_ARCHIVE);
 	s_show = Cvar_Get ("s_show", "0", CVAR_CHEAT);
 	s_testsound = Cvar_Get ("s_testsound", "0", CVAR_CHEAT);

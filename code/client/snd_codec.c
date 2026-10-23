@@ -164,7 +164,30 @@ S_CodecLoad
 */
 void *S_CodecLoad(const char *filename, snd_info_t *info)
 {
-	return S_CodecGetSound(filename, info);
+	byte	*data = S_CodecGetSound(filename, info);
+	int		i;
+
+	// sound-clarity.md 2: a stereo effect can't be placed or faded by
+	// distance, so it is mixed down to mono here (music streams don't come
+	// this way)
+	if( data && info->channels == 2 && ( info->width == 1 || info->width == 2 ) )
+	{
+		if( info->width == 2 )
+		{
+			short	*s = (short *)data;
+
+			for( i = 0; i < info->samples; i++ )
+				s[i] = ( s[i * 2] + s[i * 2 + 1] ) / 2;
+		}
+		else
+		{
+			for( i = 0; i < info->samples; i++ )
+				data[i] = ( data[i * 2] + data[i * 2 + 1] ) / 2;
+		}
+		info->channels = 1;
+		info->size = info->samples * info->width;
+	}
+	return data;
 }
 
 /*

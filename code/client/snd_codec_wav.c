@@ -131,7 +131,7 @@ S_ReadRIFFHeader
 static qboolean S_ReadRIFFHeader(fileHandle_t file, snd_info_t *info)
 {
 	char dump[16];
-	int bits;
+	int bits, format;
 	int fmtlen = 0;
 
 	// skip the riff wav header
@@ -145,16 +145,18 @@ static qboolean S_ReadRIFFHeader(fileHandle_t file, snd_info_t *info)
 	}
 
 	// Save the parameters
-	FGetLittleShort(file); // wav_format
+	format = FGetLittleShort(file);
 	info->channels = FGetLittleShort(file);
 	info->rate = FGetLittleLong(file);
 	FGetLittleLong(file);
 	FGetLittleShort(file);
 	bits = FGetLittleShort(file);
 
-	if( bits < 8 )
+	// sound-clarity.md 2: 8- or 16-bit PCM only (format 1, or the
+	// extensible header's 0xFFFE carrying PCM)
+	if( ( format != 1 && format != 0xFFFE ) || ( bits != 8 && bits != 16 ) )
 	{
-	  Com_Printf( S_COLOR_RED "ERROR: Less than 8 bit sound is not supported\n");
+	  Com_Printf( S_COLOR_YELLOW "WARNING: only 8- or 16-bit PCM WAV is supported (format %i, %i bits)\n", format, bits );
 	  return qfalse;
 	}
 
