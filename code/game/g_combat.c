@@ -1306,6 +1306,16 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		asave = CheckArmor (targ, take, dflags);
 		take -= asave;
 	}
+	// Eisen's turret has 50 armour of its own (champion-audit.md)
+	if ( !targ->client && targ->count > 0 && targ->classname && !strcmp( targ->classname, "sentry_turret" ) ) {
+		int	save = ceil( take * 0.66f );
+
+		if ( save > targ->count ) {
+			save = targ->count;
+		}
+		targ->count -= save;
+		take -= save;
+	}
 
 	if ( g_debugDamage.integer ) {
 		G_Printf( "%i: client:%i health:%i damage:%i armor:%i\n", level.time, targ->s.number,

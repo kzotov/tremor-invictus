@@ -518,7 +518,7 @@ static void G_ThrowGrenade( gentity_t *ent ) {
 	gren->splashFull = 12;
 	gren->splashSparesOwner = qtrue;
 	gren->wpKnock = g_swarmKnock.value;
-	gren->wpKnockSelf = g_swarmKnockSelf.value;
+	gren->wpKnockSelf = 0;		// they never hit Keel (splashSparesOwner)
 	gren->abilityImpact = G_GrenadeImpact;
 	gren->count = 0;
 }
@@ -1020,6 +1020,8 @@ static void G_TurretDie( gentity_t *self, gentity_t *inflictor, gentity_t *attac
 }
 
 #define TURRET_FOV		140
+#define TURRET_IMPULSE	10
+#define TURRET_ARMOR	50		// absorbs two thirds of each hit until spent
 
 static void G_TurretThink( gentity_t *turret ) {
 	gentity_t	*other, *best = NULL;
@@ -1100,6 +1102,9 @@ static void G_TurretThink( gentity_t *turret ) {
 		bolt = fire_plasma( turret->parent, muzzle, dir );
 		bolt->damage = g_turretDamage.integer;
 		bolt->splashDamage = 0;
+		bolt->wpTuned = qtrue;		// impulse 10: x0.9 on others, x1.5 on Eisen (champion-audit.md)
+		bolt->wpKnock = TURRET_IMPULSE * 0.9f;
+		bolt->wpKnockSelf = TURRET_IMPULSE * 1.5f;
 		bolt->methodOfDeath = MOD_TURRET;
 		bolt->splashMethodOfDeath = MOD_TURRET;
 		VectorScale( dir, g_turretBoltSpeed.value, bolt->s.pos.trDelta );
@@ -1163,6 +1168,7 @@ static void G_PlaceTurret( gentity_t *ent ) {
 	VectorSet( turret->r.maxs, 12, 12, 24 );
 	turret->takedamage = qtrue;
 	turret->health = g_turretHealth.integer;
+	turret->count = TURRET_ARMOR;		// its armour (G_Damage)
 	turret->die = G_TurretDie;
 	turret->think = G_TurretThink;
 	turret->nextthink = level.time + ABILITY_FRAME;

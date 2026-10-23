@@ -188,7 +188,6 @@ vmCvar_t	g_hookBreakDamage;
 vmCvar_t	g_totemBlastRadius;
 vmCvar_t	g_turretDeployTime;
 vmCvar_t	g_turretTurnRate;
-vmCvar_t	g_swarmKnockSelf;
 vmCvar_t	g_reinforcedSelfScale;
 vmCvar_t	g_collisionRepeat;
 vmCvar_t	g_gravity;
@@ -523,7 +522,6 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_totemBlastRadius, "g_totemBlastRadius", "160", 0, 0, qtrue },
 	{ &g_turretDeployTime, "g_turretDeployTime", "1500", 0, 0, qtrue },	// arms after this
 	{ &g_turretTurnRate, "g_turretTurnRate", "140", 0, 0, qtrue },	// degrees a second
-	{ &g_swarmKnockSelf, "g_swarmKnockSelf", "150", 0, 0, qtrue },	// x3 on yourself
 	{ &g_reinforcedSelfScale, "g_reinforcedSelfScale", "0.4", 0, 0, qtrue },
 	{ &g_collisionRepeat, "g_collisionRepeat", "500", 0, 0, qtrue },
 	{ &g_gravity, "g_gravity", "800", 0, 0, qtrue  },

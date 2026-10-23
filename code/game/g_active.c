@@ -340,8 +340,10 @@ void G_CutAbilityCooldown( gentity_t *ent, float fraction ) {
 		return;
 	}
 	active = BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->active;
+	// a share of the full cooldown (all charges: Keel's 60 s over three
+	// grenades), off the one recharging (champion-audit.md)
 	if ( BG_AbilityCharges( &ent->client->ps ) < BG_AbilityParam( active, AP_CHARGES ) ) {
-		ent->client->abilityRecharge += fraction * BG_AbilityParam( active, AP_RECHARGE );
+		ent->client->abilityRecharge += fraction * BG_AbilityParam( active, AP_RECHARGE ) * BG_AbilityParam( active, AP_CHARGES );
 	}
 }
 

@@ -1249,7 +1249,6 @@ extern	vmCvar_t	g_hookBreakDamage;
 extern	vmCvar_t	g_totemBlastRadius;
 extern	vmCvar_t	g_turretDeployTime;
 extern	vmCvar_t	g_turretTurnRate;
-extern	vmCvar_t	g_swarmKnockSelf;
 extern	vmCvar_t	g_reinforcedSelfScale;
 extern	vmCvar_t	g_collisionRepeat;
 extern	vmCvar_t	g_knockback;
