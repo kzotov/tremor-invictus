@@ -1168,8 +1168,9 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 #endif
 	case EV_DAMAGEPLUM:
 		DEBUGNAME("EV_DAMAGEPLUM");
-		CG_DamagePlum( cent->currentState.otherEntityNum, cent->currentState.otherEntityNum2, cent->currentState.generic1,
-			cent->lerpOrigin, cent->currentState.time );
+		// (summed by weapon: a rocket's direct hit and splash go together)
+		CG_DamagePlum( cent->currentState.otherEntityNum, cent->currentState.otherEntityNum2,
+			CG_WeaponForMod( cent->currentState.generic1 ), cent->lerpOrigin, cent->currentState.time );
 		break;
 
 	case EV_SCOREPLUM:

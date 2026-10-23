@@ -515,16 +515,16 @@ CG_DamagePlum
 
 The damage just dealt, floating up from the target for a second
 (cg_damagePlum). Settings (settings.md 9.5): cg_damagePlumScale 1.0-2.0
-sizes it; cg_damagePlumSum 1 adds hits of one damage type on one target
-within 0.5 s into one number, 2 adds all of them; cg_damagePlumHidden 0
-skips targets out of sight
+sizes it; cg_damagePlumSum 1 adds one weapon's hits on one target within
+0.5 s of the first into one number, 2 adds all of them; cg_damagePlumHidden
+0 skips targets out of view or behind walls
 ==================
 */
 #define PLUM_SUM_MSEC	500
 
 extern localEntity_t	cg_activeLocalEntities;		// (cg_localents.c)
 
-void CG_DamagePlum( int client, int target, int mod, vec3_t org, int damage ) {
+void CG_DamagePlum( int client, int target, int weapon, vec3_t org, int damage ) {
 	localEntity_t	*le;
 	vec3_t			angles;
 	float			scale;
@@ -534,7 +534,13 @@ void CG_DamagePlum( int client, int target, int mod, vec3_t org, int damage ) {
 	}
 	if ( !cg_damagePlumHidden.integer ) {
 		trace_t	tr;
+		vec3_t	dir;
 
+		// outside the view
+		VectorSubtract( org, cg.refdef.vieworg, dir );
+		if ( VectorNormalize( dir ) > 0 && DotProduct( dir, cg.refdef.viewaxis[0] ) < cos( DEG2RAD( cg.refdef.fov_x * 0.5f ) ) ) {
+			return;
+		}
 		CG_Trace( &tr, cg.refdef.vieworg, NULL, NULL, org, cg.predictedPlayerState.clientNum, CONTENTS_SOLID );
 		if ( tr.fraction < 1 ) {
 			return;		// behind a wall
@@ -544,8 +550,8 @@ void CG_DamagePlum( int client, int target, int mod, vec3_t org, int damage ) {
 	if ( cg_damagePlumSum.integer ) {
 		for ( le = cg_activeLocalEntities.prev ; le != &cg_activeLocalEntities ; le = le->prev ) {
 			if ( le->leType == LE_SCOREPLUM && le->refEntity.frame == target + 1
-				&& ( cg_damagePlumSum.integer == 2 || le->refEntity.oldframe == mod )
-				&& cg.time - le->startTime < PLUM_SUM_MSEC ) {
+				&& ( cg_damagePlumSum.integer == 2 || le->refEntity.oldframe == weapon )
+				&& cg.time - le->refEntity.customSkin < PLUM_SUM_MSEC ) {		// (from its first hit)
 				le->radius += damage;
 				le->startTime = cg.time;
 				le->endTime = cg.time + 1000;
@@ -568,8 +574,9 @@ void CG_DamagePlum( int client, int target, int mod, vec3_t org, int damage ) {
 	VectorCopy( org, le->pos.trBase );
 	le->refEntity.reType = RT_SPRITE;
 	le->refEntity.radius = 12;
-	le->refEntity.frame = target + 1;		// (the target and type, for summing)
-	le->refEntity.oldframe = mod;
+	le->refEntity.frame = target + 1;		// (the target, weapon and first hit, for summing)
+	le->refEntity.oldframe = weapon;
+	le->refEntity.customSkin = cg.time;
 	scale = cg_damagePlumScale.value;
 	le->light = scale < 1 ? 1 : scale > 2 ? 2 : scale;		// the number's size
 	VectorClear( angles );
