@@ -2325,7 +2325,7 @@ duration msec, weapon lockout msec. Numbers are placeholders until measured.
 
 const abilityInfo_t bg_abilityInfo[ACTIVE_NUM_ABILITIES] = {
 	{ "none",			STR_NONE,					qfalse,	{ "0", "0", "0", "0", "0" } },
-	{ "hook",			STR_ABILITY_HOOK,			qfalse,	{ "3", "15000", "2000", "0", "400" } },
+	{ "hook",			STR_ABILITY_HOOK,			qfalse,	{ "3", "20000", "2000", "0", "400" } },	// 20 s a hook
 	{ "bullrush",		STR_ABILITY_BULLRUSH,		qtrue,	{ "1", "60000", "0", "3000", "400" } },
 	{ "injection",		STR_ABILITY_INJECTION,		qfalse,	{ "1", "60000", "0", "5000", "1200" } },
 	{ "dualwield",		STR_ABILITY_DUALWIELD,		qfalse,	{ "1", "60000", "0", "5500", "400" } },
@@ -3048,7 +3048,8 @@ char *eventnames[] = {
 	"EV_ABILITY_REPRESS",
 	"EV_DAMAGEPLUM",
 	"EV_DODGE",
-	"EV_ABILITY_END"
+	"EV_ABILITY_END",
+	"EV_HOOK_ATTACH"
 };
 
 /*

@@ -1079,6 +1079,10 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if ( targ->flags & FL_NO_KNOCKBACK ) {
 		knockback = 0;
 	}
+	// Nyx in Ghost Walk is untouchable: splash doesn't move her
+	if ( targ->client && G_AbilityActive( targ, ACTIVE_GHOSTWALK ) ) {
+		knockback = 0;
+	}
 	if ( dflags & DAMAGE_NO_KNOCKBACK ) {
 		knockback = 0;
 	}

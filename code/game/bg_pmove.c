@@ -1152,7 +1152,9 @@ Looks for a wall to jump off in one horizontal direction
 static qboolean PM_WallTrace( const vec3_t dir, trace_t *trace ) {
 	vec3_t		end;
 
-	VectorMA( pm->ps->origin, pm->maxs[0] + bg_pmoveSettings.wallJumpReach, dir, end );
+	// the box sweeps only the reach: a wall at most that far from its edge
+	// (champion-audit.md: 18 u)
+	VectorMA( pm->ps->origin, bg_pmoveSettings.wallJumpReach, dir, end );
 	pm->trace( trace, pm->ps->origin, pm->mins, pm->maxs, end, pm->ps->clientNum, pm->tracemask );
 
 	if ( trace->allsolid || trace->fraction == 1.0f ) {
@@ -2512,10 +2514,7 @@ static void PM_Weapon( void ) {
 
 	// the drone has its own gun: machinegun rate set by pm_droneFireInterval, no ammo
 	if ( PM_DroneActive() ) {
-		pm->cmd.weapon = WP_MACHINEGUN;
-		if ( pm->ps->ammo[WP_MACHINEGUN] < 1 ) {
-			pm->ps->ammo[WP_MACHINEGUN] = 1;
-		}
+		pm->cmd.weapon = WP_MACHINEGUN;		// (its ammo isn't used or checked)
 	}
 
 	// berserk is fists only
@@ -2660,8 +2659,8 @@ static void PM_Weapon( void ) {
 
 	pm->ps->weaponstate = WEAPON_FIRING;
 
-	// check for out of ammo
-	if ( ! pm->ps->ammo[ pm->ps->weapon ] ) {
+	// check for out of ammo (the drone's gun needs none)
+	if ( ! pm->ps->ammo[ pm->ps->weapon ] && !PM_DroneActive() ) {
 		PM_AddEvent( EV_NOAMMO );
 		pm->ps->weaponTime += 500;
 		return;
@@ -3121,11 +3120,6 @@ static void PM_EndAbility( void ) {
 	}
 }
 
-// the hook counts as blocked at a surface near its point when, after this
-// long, Athena is this close and moving toward it slower than this
-#define HOOK_BLOCKED_MSEC		200
-#define HOOK_BLOCKED_RANGE		128
-#define HOOK_BLOCKED_SPEED		50
 #define HOOK_MAX_ROPE			3000	// let go beyond this much rope
 #define HOOK_STUCK_MSEC			200		// stuck: under HOOK_STUCK_DIST in this time
 #define HOOK_STUCK_DIST			32
@@ -3252,6 +3246,7 @@ static void PM_Ability( void ) {
 		if ( pm->ps->pm_flags & PMF_GRAPPLE_PULL ) {
 			// just attached: initial impulse toward the hook
 			state = ABILITY_HOOK_PULL;
+			PM_AddEvent( EV_HOOK_ATTACH );
 			time = 0;
 			pm->ps->stats[STAT_MOVE_STATE] &= HOOK_ON_PLAYER;		// (set by the game on the bite)
 			pm->ps->stats[STAT_HOOK] = pm->cmd.upmove >= 10 ? HOOK_JUMP_DOWN : 0;
@@ -3271,18 +3266,12 @@ static void PM_Ability( void ) {
 	} else if ( state == ABILITY_HOOK_PULL ) {
 		qboolean	arrived = qfalse;
 
-		// pulled in (not swinging): let go when a surface near the point
-		// stops the pull, so no second press is needed
 		{
-			float	dist, radial;
+			float	dist;
 			trace_t	tr;
 
 			VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
 			dist = VectorNormalize( dir );
-			radial = DotProduct( pm->ps->velocity, dir );
-			if ( !pml.abilityHeld && time > HOOK_BLOCKED_MSEC && dist < HOOK_BLOCKED_RANGE && radial < HOOK_BLOCKED_SPEED ) {
-				arrived = qtrue;
-			}
 			// abilities.md, Athena: the hook lets go under 40 u or over
 			// 3000 u of rope, on landing, on a jump, when stuck (under 32 u
 			// in 0.2 s, as speed under 160 u/s) and when the rope is cut;

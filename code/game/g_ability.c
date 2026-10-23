@@ -1696,6 +1696,7 @@ void G_DroneEnd( gentity_t *ent, qboolean launch ) {
 		tent = G_TempEntity( client->ps.origin, EV_MISSILE_MISS );
 		tent->s.weapon = WP_ROCKET_LAUNCHER;
 		tent->s.eventParm = DirToByte( vec3_origin );
+		body->takedamage = qfalse;		// the blast spares his own body
 		G_RadiusDamage( client->ps.origin, ent, g_droneRocketDamage.integer, g_droneRocketRadius.integer, ent, MOD_DRONE );
 	}
 	// no machinegun bullet left from the drone's gun

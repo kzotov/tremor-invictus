@@ -870,6 +870,7 @@ typedef struct {
 	qhandle_t	droneModel;
 	qhandle_t	turretModel;		// Eisen's, told apart from other general entities
 	sfxHandle_t	dodgeSound;		// generated; 0 when missing
+	sfxHandle_t	hookAttachSound;	// generated
 	qhandle_t	droneShimmerShader;	// Strogg's body during the drone
 	qhandle_t	brightShader;			// player colours
 	qhandle_t	sportShader;

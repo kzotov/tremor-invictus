@@ -1551,7 +1551,8 @@ static void CG_DrawAbilityRing( float cx, float cy, float radius, float startDeg
 	} else {
 		frac = recharge > 0 ? 1.0f - (float)left / recharge : 0;
 	}
-	if ( BG_AbilityState( ps ) == ABILITY_ACTIVE || BG_AbilityState( ps ) == ABILITY_RUSH ) {
+	if ( BG_AbilityState( ps ) == ABILITY_ACTIVE || BG_AbilityState( ps ) == ABILITY_RUSH
+		|| BG_AbilityState( ps ) == ABILITY_HOOK_FLYING || BG_AbilityState( ps ) == ABILITY_HOOK_PULL ) {
 		VectorSet( on, 0.3f, 0.9f, 1.0f );
 	}
 	// just ready: one flash, the dots swelling and fading back
@@ -6335,6 +6336,25 @@ static void CG_DrawBerserkCone( void ) {
 	}
 }
 
+/*
+=================
+CG_DrawInjectionTint
+
+champion-audit.md: a light tint over the view while Anarki's Injection runs
+=================
+*/
+static void CG_DrawInjectionTint( void ) {
+	playerState_t	*ps = &cg.snap->ps;
+	vec4_t			tint = { 0.55f, 1, 0.3f, 0.08f };
+
+	if ( BG_Champion( ps->stats[STAT_CHAMPION] )->active != ACTIVE_INJECTION || BG_AbilityState( ps ) != ABILITY_ACTIVE
+		|| ps->stats[STAT_HEALTH] <= 0 ) {
+		return;
+	}
+	tint[3] = 0.06f + 0.03f * sin( cg.time * 0.006f );
+	CG_FillRect( -cgs.screenXBias / cgs.screenXScale, 0, 640 + 2 * cgs.screenXBias / cgs.screenXScale, 480, tint );
+}
+
 static void CG_Draw2D(stereoFrame_t stereoFrame)
 {
 	float	voteY = 0;		// the vote line goes under the team overlay
@@ -6342,6 +6362,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	CG_HudLayout();		// every state draws from the layout
 	CG_ReadyCvars();
 	CG_DrawBerserkCone();
+	CG_DrawInjectionTint();
 	CG_DrawDotEdge();
 
 #ifdef MISSIONPACK

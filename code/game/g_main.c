@@ -516,7 +516,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_blindPick, "g_blindPick", "0", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_specChatToPlayers, "g_specChatToPlayers", "0", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_teleportKeepSpeed, "g_teleportKeepSpeed", "1", 0, 0, qtrue },
-	{ &g_injectionMaxGain, "g_injectionMaxGain", "5", 0, 0, qtrue },
+	{ &g_injectionMaxGain, "g_injectionMaxGain", "1", 0, 0, qtrue },
 	{ &g_injectionMaxGainCap, "g_injectionMaxGainCap", "25", 0, 0, qtrue },
 	{ &g_berserkHitCooldown, "g_berserkHitCooldown", "1000", 0, 0, qtrue },
 	{ &g_hookBreakDamage, "g_hookBreakDamage", "75", 0, 0, qtrue },

@@ -1905,7 +1905,8 @@ typedef enum {
 	EV_ABILITY_REPRESS,				// ability pressed again while active
 	EV_DAMAGEPLUM,					// damage dealt, a number over the target for the attacker only
 	EV_DODGE,						// Clutch's dodge: a whoosh, not the jump voice
-	EV_ABILITY_END					// an ability ended, for any reason: its end sound
+	EV_ABILITY_END,					// an ability ended, for any reason: its end sound
+	EV_HOOK_ATTACH					// Athena's hook bit into something
 } entity_event_t;
 
 
