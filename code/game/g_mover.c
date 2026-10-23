@@ -353,8 +353,9 @@ qboolean G_MoverPush( gentity_t *pusher, vec3_t move, vec3_t amove, gentity_t **
 			}
 		}
 #endif
-		// only push items and players
-		if ( check->s.eType != ET_ITEM && check->s.eType != ET_PLAYER && !check->physicsObject ) {
+		// only push items and players (and Strogg's body during the drone)
+		if ( check->s.eType != ET_ITEM && check->s.eType != ET_PLAYER && !check->physicsObject
+			&& !( check->classname && !strcmp( check->classname, "drone_body" ) ) ) {
 			continue;
 		}
 
@@ -798,6 +799,12 @@ Blocked_Door
 ================
 */
 void Blocked_Door( gentity_t *ent, gentity_t *other ) {
+	// Strogg's body during the drone is crushed like a player: killing it
+	// kills him and ends the drone
+	if ( other->classname && !strcmp( other->classname, "drone_body" ) ) {
+		G_Damage( other, ent, ent, NULL, NULL, 100000, DAMAGE_NO_PROTECTION, MOD_CRUSH );
+		return;
+	}
 	// remove anything other than a client
 	if ( !other->client ) {
 		// except CTF flags!!!!

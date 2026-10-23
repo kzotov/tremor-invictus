@@ -1360,16 +1360,22 @@ static void G_DroneBodyWorld( gentity_t *body ) {
 			gentity_t	*dest = G_PickTarget( hit->target );
 
 			if ( dest ) {
-				vec3_t	origin;
+				vec3_t	origin, forward;
 
+				// out of the exit at 400 u/s, as a player, facing its way
 				VectorCopy( dest->s.origin, origin );
 				origin[2] += 1;
 				G_SetOrigin( body, origin );
+				AngleVectors( dest->s.angles, forward, NULL, NULL );
 				body->s.pos.trType = TR_GRAVITY;
 				body->s.pos.trTime = level.time;
-				VectorClear( body->s.pos.trDelta );
+				VectorScale( forward, 400, body->s.pos.trDelta );
 				body->s.groundEntityNum = ENTITYNUM_NONE;
 				body->s.apos.trBase[YAW] = dest->s.angles[YAW];
+				body->s.eFlags ^= EF_TELEPORT_BIT;
+				if ( body->parent && body->parent->client ) {
+					body->parent->client->droneBodyAngles[YAW] = dest->s.angles[YAW];
+				}
 				return;
 			}
 		} else if ( !strcmp( hit->classname, "trigger_hurt" ) && hit->touch ) {
@@ -1380,16 +1386,45 @@ static void G_DroneBodyWorld( gentity_t *body ) {
 		}
 	}
 
-	// lava and slime burn once a second, as on a player; drowning after 12 s
-	if ( level.time >= body->pain_debounce_time ) {
-		contents = trap_PointContents( body->r.currentOrigin, -1 );
-		if ( contents & ( CONTENTS_LAVA | CONTENTS_SLIME ) ) {
+	// how deep it is in liquid, as a player: feet, waist, head (1-3)
+	{
+		vec3_t	p;
+		int		depth = 0;
+
+		VectorCopy( body->r.currentOrigin, p );
+		p[2] += body->r.mins[2] + 1;
+		contents = trap_PointContents( p, -1 );
+		if ( contents & MASK_WATER ) {
+			depth = 1;
+			p[2] = body->r.currentOrigin[2] + ( body->r.mins[2] + CROUCH_VIEWHEIGHT ) / 2;
+			if ( trap_PointContents( p, -1 ) & MASK_WATER ) {
+				depth = 2;
+				p[2] = body->r.currentOrigin[2] + CROUCH_VIEWHEIGHT;
+				if ( trap_PointContents( p, -1 ) & MASK_WATER ) {
+					depth = 3;
+				}
+			}
+		}
+		// a void that removes items: as a fall out of the map
+		if ( trap_PointContents( body->r.currentOrigin, -1 ) & CONTENTS_NODROP ) {
+			G_Damage( body, NULL, NULL, NULL, NULL, 100000, DAMAGE_NO_PROTECTION, MOD_TRIGGER_HURT );
+			return;
+		}
+		// lava and slime once a second, by depth (30 and 10 a level)
+		if ( depth && ( contents & ( CONTENTS_LAVA | CONTENTS_SLIME ) ) && level.time >= body->pain_debounce_time ) {
 			body->pain_debounce_time = level.time + 1000;
-			G_Damage( body, NULL, NULL, NULL, NULL, ( contents & CONTENTS_LAVA ) ? 30 : 10, 0,
+			G_Damage( body, NULL, NULL, NULL, NULL, ( contents & CONTENTS_LAVA ) ? 30 * depth : 10 * depth, 0,
 				( contents & CONTENTS_LAVA ) ? MOD_LAVA : MOD_SLIME );
 			if ( !body->inuse || body->health <= 0 ) {
 				return;
 			}
+		}
+		// in water past the waist it sinks slowly, as an idle player (60 u/s)
+		if ( depth >= 2 && body->s.pos.trType == TR_GRAVITY ) {
+			VectorCopy( body->r.currentOrigin, body->s.pos.trBase );
+			VectorSet( body->s.pos.trDelta, 0, 0, -60 );
+			body->s.pos.trType = TR_LINEAR;
+			body->s.pos.trTime = level.time;
 		}
 	}
 	VectorCopy( body->r.currentOrigin, head );
@@ -1480,7 +1515,6 @@ static void G_StartDrone( gentity_t *ent ) {
 	body->health = ent->health;
 	body->die = G_DroneBodyDie;
 	body->pain = G_DroneBodyPain;
-	body->physicsObject = qtrue;		// movers carry it
 	body->clipmask = MASK_PLAYERSOLID & ~CONTENTS_BODY;
 	// the body stays where Strogg was, moving as he was (abilities.md: it
 	// keeps falling, rides movers, takes jump pads and teleporters)
@@ -1551,7 +1585,20 @@ void G_DroneEnd( gentity_t *ent, qboolean launch ) {
 		client->ps.weaponTime = BG_AbilityParam( ACTIVE_DRONE, AP_LOCKOUT );
 	}
 	VectorCopy( body->r.currentOrigin, client->ps.origin );
-	VectorClear( client->ps.velocity );
+	// he goes on as the body was moving, crouched if there's no room to stand
+	if ( body->s.pos.trType == TR_STATIONARY ) {
+		VectorClear( client->ps.velocity );
+	} else {
+		BG_EvaluateTrajectoryDelta( &body->s.pos, level.time, client->ps.velocity );
+	}
+	{
+		trace_t	tr;
+
+		trap_Trace( &tr, client->ps.origin, ent->r.mins, ent->r.maxs, client->ps.origin, ent->s.number, MASK_PLAYERSOLID );
+		if ( tr.startsolid || tr.allsolid ) {
+			client->ps.pm_flags |= PMF_DUCKED;
+		}
+	}
 	client->ps.eFlags ^= EF_TELEPORT_BIT;
 	client->ps.eFlags &= ~EF_DRONE;
 	if ( body->health > 0 ) {

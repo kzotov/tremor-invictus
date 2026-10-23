@@ -1466,6 +1466,11 @@ void ClientDisconnect( int clientNum ) {
 		return;
 	}
 
+	// Strogg leaving mid-drone: the body goes with him
+	if ( ent->client->droneBody ) {
+		G_DroneEnd( ent, qfalse );
+	}
+
 	// stop any following clients
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
 		if ( level.clients[i].sess.sessionTeam == TEAM_SPECTATOR
