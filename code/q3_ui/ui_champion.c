@@ -737,9 +737,22 @@ Opens the RmlUi Champions screen on the selected champion
 =================
 */
 void UI_ChampionsRml( void ) {
+	UI_ChampionsRmlFor( qfalse );
+}
+
+/*
+=================
+UI_ChampionsRmlFor
+
+The same screen, or as Create server's second page (Back returns there,
+Start selects the champion and starts the server)
+=================
+*/
+void UI_ChampionsRmlFor( qboolean createServer ) {
 	char	name[MAX_QPATH];
 	int		i;
 
+	trap_Cvar_Set( "ui_chFromCs", createServer ? "1" : "0" );
 	UI_Champion_PublishCurrent();
 	Champion_Pictures();
 	trap_Cvar_VariableStringBuffer( "champion", name, sizeof( name ) );
@@ -794,6 +807,31 @@ qboolean UI_ChampionCommand( const char *cmd ) {
 			trap_Cvar_Set( Champion_WeaponCvar( i ), UI_Argv( 1 ) );
 			trap_Cvar_Set( "ui_chWeapon", UI_Argv( 1 ) );
 		}
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_champBack" ) ) {
+		if ( trap_Cvar_VariableValue( "ui_chFromCs" ) ) {
+			trap_Cvar_Set( "ui_chFromCs", "0" );
+			trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/createserver.rml\n" );
+		} else {
+			trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/main.rml\n" );
+		}
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_champStart" ) ) {
+		// Create server's Start: the shown champion is the one played
+		if ( Champion_Locked() ) {
+			trap_Cvar_Set( "ui_chLocked", "1" );
+			return qtrue;
+		}
+		trap_Cvar_VariableStringBuffer( "ui_chShown", name, sizeof( name ) );
+		i = BG_ChampionForName( name );
+		if ( i >= 0 ) {
+			trap_Cvar_Set( "cg_startWeapon", UI_Cvar_VariableString( Champion_WeaponCvar( i ) ) );
+			trap_Cvar_Set( "champion", bg_championList[i].name );
+		}
+		trap_Cvar_Set( "ui_chFromCs", "0" );
+		trap_Cmd_ExecuteText( EXEC_NOW, "ui_csStart\n" );
 		return qtrue;
 	}
 	if ( !Q_stricmp( cmd, "ui_champSelect" ) ) {

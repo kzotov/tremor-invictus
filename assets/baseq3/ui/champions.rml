@@ -3,7 +3,7 @@
 	<title>Champions</title>
 	<link type="text/rcss" href="tremor.rcss"/>
 </head>
-<body data-escape="rml_show ui/main.rml">
+<body data-escape="ui_champBack">
 	<!-- the roster: released champions, then the recreated section (menu.md section 10) -->
 	<div class="roster">
 		<h1>[ch_title]</h1>
@@ -167,8 +167,9 @@
 		</div>
 	</div>
 	<div class="chactions">
-		<button onclick="rml_show ui/main.rml">[menu_back]</button>
-		<button class="select" data-when="ui_chLocked=0&amp;ui_chFlash=0" onclick="ui_champSelect">[ch_select]</button>
+		<button onclick="ui_champBack">[menu_back]</button>
+		<button class="select" data-when="ui_chFromCs!=1&amp;ui_chLocked=0&amp;ui_chFlash=0" onclick="ui_champSelect">[ch_select]</button>
+		<button class="select" data-when="ui_chFromCs=1&amp;ui_chLocked=0" onclick="ui_champStart">[cs_start]</button>
 		<div class="selected" data-when="ui_chFlash=1"><span class="tick"></span>[ch_selected]</div>
 		<div class="locked" data-when="ui_chLocked=1">[ch_locked]</div>
 	</div>

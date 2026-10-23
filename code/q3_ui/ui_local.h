@@ -337,6 +337,7 @@ extern void UI_InGameMenu(void);
 extern void Champion_Cache( void );
 extern void UI_ChampionMenu( void );
 void UI_ChampionsRml( void );
+void UI_ChampionsRmlFor( qboolean createServer );
 qboolean UI_ChampionCommand( const char *cmd );
 void UI_Champion_Frame( void );
 void UI_Champion_PublishCurrent( void );

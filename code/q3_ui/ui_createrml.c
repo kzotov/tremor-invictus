@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //   ui_csPage <+1|-1>	the next or previous page of maps
 //   ui_csPick <slot>	pick the map in a slot of the page
 //   ui_csBotsAdd <+1|-1>	more or fewer bots (in ui_csBots)
+//   ui_csNext			on to the champion page (its Start runs ui_csStart)
 //   ui_csStart			start the server
 // Practice is the same document with ui_csPractice 1: opponents and
 // teammates (ui_prOpp, ui_prMates) instead of the server settings, and the
@@ -421,6 +422,10 @@ qboolean UI_CreateServerCommand( const char *cmd ) {
 		}
 		trap_Cvar_SetValue( "ui_prChamp", i );
 		CS_PublishChampion();
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_csNext" ) ) {
+		UI_ChampionsRmlFor( qtrue );		// the champion page, with Start
 		return qtrue;
 	}
 	if ( !Q_stricmp( cmd, "ui_csStart" ) ) {

@@ -83,7 +83,7 @@
 		<div class="note" data-when="ui_csPractice!=1">[cs_note]</div>
 		<div class="csactions">
 			<button onclick="rml_show ui/main.rml">[menu_back]</button>
-			<button class="go" onclick="ui_csStart">[cs_start]</button>
+			<button class="go" onclick="ui_csNext">[cs_next]</button>
 		</div>
 	</div>
 </body>
