@@ -2726,8 +2726,22 @@ void CG_DroneBody( centity_t *cent ) {
 	legs.hModel = ci->legsModel;
 	legs.frame = legs.oldframe = ci->animations[LEGS_IDLECR].firstFrame;
 	VectorCopy( cent->lerpOrigin, legs.origin );
-	VectorCopy( cent->lerpOrigin, legs.oldorigin );
 	AnglesToAxis( angles, legs.axis );
+	// the player hull scale, as on a player (feet kept on the floor)
+	{
+		float	scale = ( DEFAULT_HEIGHT - MINS_Z ) / (float)MODEL_HEIGHT * cg_playerScale.value;
+
+		if ( scale > 0 && scale != 1.0f ) {
+			VectorScale( legs.axis[0], scale, legs.axis[0] );
+			VectorScale( legs.axis[1], scale, legs.axis[1] );
+			VectorScale( legs.axis[2], scale, legs.axis[2] );
+			legs.nonNormalizedAxes = qtrue;
+			torso.nonNormalizedAxes = qtrue;
+			head.nonNormalizedAxes = qtrue;
+			legs.origin[2] += -MINS_Z * ( scale - 1.0f );
+		}
+	}
+	VectorCopy( legs.origin, legs.oldorigin );
 
 	torso.hModel = ci->torsoModel;
 	torso.frame = torso.oldframe = ci->animations[TORSO_STAND2].firstFrame;

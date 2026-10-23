@@ -2992,10 +2992,10 @@ static void PM_Acceleration( void ) {
 				// climbing toward the next step, in whole 10 ms steps so the
 				// rate is exact at any frame rate (bonus in tenths of u/s)
 				bonus += accel[i] / 10 * ( pm->cmd.serverTime / 10 - pml.oldCommandTime / 10 );
-				if ( pm->ps->speed + bonus * 0.1f > top[i] ) {
+				if ( pm->ps->speed + bonus * 0.1f >= top[i] ) {
 					bonus = ( top[i] - pm->ps->speed ) * 10;
+					held = 0;		// at this step's top: the next step's hold starts
 				}
-				held = 0;
 			} else if ( run < top[i] ) {
 				// holding the previous step's top speed (whole steps of
 				// time, so prediction and server agree)
