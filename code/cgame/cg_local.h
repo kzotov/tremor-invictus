@@ -689,6 +689,7 @@ typedef struct {
 	int			lowHealthSince;		// cg.time they reached LH_LOW
 	int			lowHealthClient;	// whose health it is
 	qboolean	lowHealthBreathing;	// the breathing loop is on
+	qboolean	lowHealthDuckSet;	// s_ambientDuck set since this cgame started
 	int			lowHealthVoiceSpawn;	// PERS_SPAWN_COUNT of the life that had its voice line
 	int			lowHealthVoiceTime;	// cg.time of that line
 	sfxHandle_t	pendingHitBeep;		// this frame's hit beep, played once the frame's events are in

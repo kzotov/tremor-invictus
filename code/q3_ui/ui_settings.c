@@ -199,7 +199,7 @@ static const settingRow_t hudRows[] = {
 static const settingRow_t soundRows[] = {
 	{ ROW_SLIDER, STR_SET_VOLUME, STR_SET_VOLUME_HELP, "s_volume", 0, { NULL }, { 0 }, 0, 1 },
 	{ ROW_SLIDER, STR_SET_MUSIC, STR_SET_MUSIC_HELP, "s_musicvolume", 0, { NULL }, { 0 }, 0, 1 },
-	{ ROW_SLIDER, STR_SET_ANNOUNCER, STR_SET_ANNOUNCER_HELP, "s_announcerVolume", 0, { NULL }, { 0 }, 0, 1 },
+	{ ROW_SLIDER, STR_SET_ANNOUNCER, STR_SET_ANNOUNCER_HELP, "s_announcerVolume", 0, { NULL }, { 0 }, 0, 2 },
 	{ ROW_SPIN, STR_SET_LHSOUND, STR_SET_LHSOUND_HELP, "cg_lowHealthSound", OFF_ON },
 	{ ROW_SPIN, STR_SET_BREATHING, STR_SET_BREATHING_HELP, "cg_heavyBreathing", OFF_ON },
 	{ ROW_SPIN, STR_SET_CHAMPVO, STR_SET_CHAMPVO_HELP, "cg_championVO", OFF_ON },

@@ -4568,6 +4568,11 @@ void CG_LowHealthFrame( void ) {
 	}
 	step = CG_LowHealthStep( ps );
 	cg.lowHealthStep = step;
+	// the map's ambience 6 dB down while low (the sound system eases it)
+	if ( ( step >= LH_LOW ) != ( old >= LH_LOW ) || !cg.lowHealthDuckSet ) {
+		trap_Cvar_Set( "s_ambientDuck", step >= LH_LOW ? "0.5" : "1" );
+		cg.lowHealthDuckSet = qtrue;
+	}
 	own = !( ps->pm_flags & PMF_FOLLOW ) && !cg.demoPlayback;
 	ci = &cgs.clientinfo[ps->clientNum];
 
