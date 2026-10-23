@@ -827,6 +827,9 @@ static void G_AcidImpact( gentity_t *blob, trace_t *trace ) {
 		trap_Trace( &down, trace->endpos, NULL, NULL, end, other->s.number, MASK_SOLID );
 		if ( down.fraction < 1 ) {
 			VectorMA( down.endpos, 1, down.plane.normal, point );
+		} else {
+			G_FreeEntity( blob );		// no floor below: no pool
+			return;
 		}
 	}
 	G_AbilityStop( blob, point );
@@ -932,7 +935,11 @@ static void G_TotemThink( gentity_t *totem ) {
 		}
 		dist = Distance( totem->r.currentOrigin, other->r.currentOrigin );
 		if ( G_AbilityEnemy( totem->parent, other ) ) {
-			if ( dist <= g_totemHurtRadius.value ) {
+			trace_t	los;
+
+			// the burst needs a clear line from the totem (champion-audit.md)
+			trap_Trace( &los, totem->r.currentOrigin, NULL, NULL, other->r.currentOrigin, totem->s.number, MASK_SOLID );
+			if ( dist <= g_totemHurtRadius.value && los.fraction == 1.0f ) {
 				G_TotemBurst( totem, enforced ? g_totemEnforcedDamage.integer : g_totemDamage.integer );
 				return;
 			}
@@ -1286,6 +1293,8 @@ for g_trailDamage every 200 ms. Pressing again detonates them all.
 
 #define TRAIL_BURN_MSEC		200
 
+static void G_TrailBurnOne( gentity_t *seg, gentity_t *other );
+
 static void G_TrailThink( gentity_t *seg ) {
 	int			touch[MAX_GENTITIES];
 	vec3_t		mins, maxs;
@@ -1296,20 +1305,61 @@ static void G_TrailThink( gentity_t *seg ) {
 		G_FreeEntity( seg );
 		return;
 	}
-	VectorAdd( seg->r.currentOrigin, seg->r.mins, mins );
-	VectorAdd( seg->r.currentOrigin, seg->r.maxs, maxs );
-	num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
-	for ( i = 0 ; i < num ; i++ ) {
-		other = &g_entities[touch[i]];
-		// once per 200 ms however many points overlap
-		if ( !G_AbilityEnemy( seg->parent, other ) || !other->client || level.time < other->client->trailBurnTime ) {
-			continue;
+	// champion-audit.md: the burn reaches 32 u around the trail's line from
+	// this point back to the one dropped before it, not only around points
+	{
+		gentity_t	*prev = seg->target_ent;
+		vec3_t		a, b;
+
+		VectorCopy( seg->r.currentOrigin, a );
+		if ( prev && prev->inuse && prev->parent == seg->parent && prev->classname
+			&& !strcmp( prev->classname, "plasma_trail" ) && prev->think == G_TrailThink ) {
+			VectorCopy( prev->r.currentOrigin, b );
+		} else {
+			VectorCopy( a, b );
 		}
-		other->client->trailBurnTime = level.time + TRAIL_BURN_MSEC;
-		G_Slow( other, 0.75f, TRAIL_BURN_MSEC + 50 );		// slowed while in it
-		G_Damage( other, seg, seg->parent, NULL, NULL, g_trailDamage.integer, DAMAGE_NO_KNOCKBACK, MOD_PLASMATRAIL );
+		for ( i = 0 ; i < 3 ; i++ ) {
+			mins[i] = ( a[i] < b[i] ? a[i] : b[i] ) + seg->r.mins[i];
+			maxs[i] = ( a[i] > b[i] ? a[i] : b[i] ) + seg->r.maxs[i];
+		}
+		num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
+		for ( i = 0 ; i < num ; i++ ) {
+			vec3_t	ab, ap, c, cmins, cmaxs;
+			float	t, len2;
+			int		k;
+
+			other = &g_entities[touch[i]];
+			if ( !G_AbilityEnemy( seg->parent, other ) || !other->client || level.time < other->client->trailBurnTime ) {
+				continue;
+			}
+			// the closest point of the line to the player, and its box
+			VectorSubtract( b, a, ab );
+			VectorSubtract( other->r.currentOrigin, a, ap );
+			len2 = DotProduct( ab, ab );
+			t = len2 > 0 ? DotProduct( ap, ab ) / len2 : 0;
+			t = t < 0 ? 0 : t > 1 ? 1 : t;
+			VectorMA( a, t, ab, c );
+			VectorAdd( c, seg->r.mins, cmins );
+			VectorAdd( c, seg->r.maxs, cmaxs );
+			for ( k = 0 ; k < 3 ; k++ ) {
+				if ( cmins[k] > other->r.absmax[k] || cmaxs[k] < other->r.absmin[k] ) {
+					break;
+				}
+			}
+			if ( k < 3 ) {
+				continue;
+			}
+			G_TrailBurnOne( seg, other );
+		}
 	}
 	seg->nextthink = level.time + ABILITY_FRAME;
+}
+
+static void G_TrailBurnOne( gentity_t *seg, gentity_t *other ) {
+	// once per 200 ms however many points overlap
+	other->client->trailBurnTime = level.time + TRAIL_BURN_MSEC;
+	G_Slow( other, 0.75f, TRAIL_BURN_MSEC + 50 );		// slowed while in it
+	G_Damage( other, seg, seg->parent, NULL, NULL, g_trailDamage.integer, DAMAGE_NO_KNOCKBACK, MOD_PLASMATRAIL );
 }
 
 static void G_DropTrail( gentity_t *ent ) {
@@ -1326,6 +1376,8 @@ static void G_DropTrail( gentity_t *ent ) {
 	VectorSet( seg->r.mins, -32, -32, 12 - 32 );
 	VectorSet( seg->r.maxs, 32, 32, 12 + 32 );
 	seg->abilityTime = level.time + g_trailLife.integer;
+	seg->target_ent = ent->client->lastTrailSeg;		// the line back to the last point
+	ent->client->lastTrailSeg = seg;
 	seg->think = G_TrailThink;
 	seg->nextthink = level.time + ABILITY_FRAME;
 	trap_LinkEntity( seg );
@@ -1337,7 +1389,8 @@ static void G_TrailBurst( gentity_t *seg ) {
 
 	if ( seg->parent ) {
 		G_SplashParams( 10, 0, 0 );		// down to 10 at the edge, no push
-		G_RadiusDamage( seg->r.currentOrigin, seg->parent, g_trailBlast.integer, g_trailRadius.integer, NULL, MOD_PLASMATRAIL );
+		// the detonation spares Slash (champion-audit.md)
+		G_RadiusDamage( seg->r.currentOrigin, seg->parent, g_trailBlast.integer, g_trailRadius.integer, seg->parent, MOD_PLASMATRAIL );
 	}
 	seg->s.eType = ET_GENERAL;
 	G_AddEvent( seg, EV_MISSILE_MISS, DirToByte( dir ) );

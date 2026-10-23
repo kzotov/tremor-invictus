@@ -1193,7 +1193,9 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if ( client ) {
 		int		passives = BG_Champion( client->ps.stats[STAT_CHAMPION] )->passives;
 
-		if ( G_AbilityActive( targ, ACTIVE_GHOSTWALK ) ) {
+		// Ghost Walk: untouchable by players and their abilities; the void,
+		// hazards and falls still apply (as in the warm-up countdown)
+		if ( G_AbilityActive( targ, ACTIVE_GHOSTWALK ) && attacker->client ) {
 			return;
 		}
 		if ( ( passives & PASSIVE_FIREPROOF ) && mod == MOD_LAVA ) {

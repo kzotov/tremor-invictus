@@ -119,6 +119,10 @@ static void G_CancelAbility( gentity_t *ent ) {
 	if ( active == ACTIVE_BERSERK ) {
 		client->ps.stats[STAT_MOVE_STATE] &= ~1023;	// a lunge in progress ends too
 	}
+	// a cancelled Bull Rush still gets its end lockout
+	if ( state == ABILITY_RUSH && client->ps.weaponTime < BG_AbilityParam( active, AP_LOCKOUT ) ) {
+		client->ps.weaponTime = BG_AbilityParam( active, AP_LOCKOUT );
+	}
 	if ( active == ACTIVE_BARRIER && client->barrierMode == 2 ) {
 		client->ps.weaponTime = 0;		// the laser's weapon lock goes with it
 	}
@@ -138,9 +142,30 @@ static void G_ShockZoneThink( gentity_t *zone ) {
 			|| Distance( other->r.currentOrigin, zone->r.currentOrigin ) > g_shockRadius.value ) {
 			continue;
 		}
-		// a new shock gets a fresh allowance of cooldown to run back
+		// in sight of the zone's centre (champion-audit.md)
+		{
+			trace_t	los;
+
+			trap_Trace( &los, zone->r.currentOrigin, NULL, NULL, other->r.currentOrigin, zone->s.number, MASK_SOLID );
+			if ( los.fraction < 1.0f ) {
+				continue;
+			}
+		}
+		// a new shock gets a fresh allowance of cooldown to run back; a
+		// ready ability is pushed back by it too
 		if ( other->client->ps.powerups[PW_SHELLSHOCK] <= level.time ) {
+			int	active = BG_Champion( other->client->ps.stats[STAT_CHAMPION] )->active;
+			int	charges = BG_AbilityCharges( &other->client->ps );
+
 			other->client->shockBudget = g_shockReverseCap.integer;
+			if ( active > ACTIVE_NONE && charges > 0 && charges >= BG_AbilityParam( active, AP_CHARGES )
+				&& BG_AbilityState( &other->client->ps ) == ABILITY_IDLE ) {
+				int	recharge = BG_AbilityParam( active, AP_RECHARGE );
+
+				BG_SetAbility( &other->client->ps, ABILITY_IDLE, charges - 1 );
+				other->client->abilityRecharge = recharge - other->client->shockBudget > 0 ? recharge - other->client->shockBudget : 0;
+				other->client->shockBudget = 0;
+			}
 		}
 		other->client->ps.powerups[PW_SHELLSHOCK] = level.time + g_shockTime.integer;
 		G_CancelAbility( other );
@@ -344,7 +369,8 @@ HUNTER: MARK PREY, RAINE: DOWNPOUR
 =================
 G_Slow
 
-Run speed times scale for msec; the stronger or longer slow wins
+Run speed times scale for msec; the slow that lasts longest wins, its
+strength with it (champion-audit.md)
 =================
 */
 void G_Slow( gentity_t *target, float scale, int msec ) {
@@ -353,10 +379,8 @@ void G_Slow( gentity_t *target, float scale, int msec ) {
 	if ( !cl ) {
 		return;
 	}
-	if ( cl->slowEndTime <= level.time || scale < cl->slowScale ) {
+	if ( cl->slowEndTime <= level.time || level.time + msec > cl->slowEndTime ) {
 		cl->slowScale = scale;
-	}
-	if ( cl->slowEndTime < level.time + msec ) {
 		cl->slowEndTime = level.time + msec;
 	}
 }
@@ -418,7 +442,11 @@ static void G_StormThink( gentity_t *storm ) {
 			continue;
 		}
 		G_Damage( other, storm, storm->parent, NULL, other->r.currentOrigin, 10, DAMAGE_NO_KNOCKBACK, MOD_STORM );
-		G_Mark( other, storm->parent, 600 );
+		// shown to Raine only, with no +15% mark (champion-audit.md)
+		if ( other->client ) {
+			other->client->revealEndTime = level.time + 600;
+			other->client->revealTeam = 1000 + storm->parent->s.number;
+		}
 	}
 }
 
@@ -615,6 +643,10 @@ void G_RecallAnchor( gentity_t *ent ) {
 
 	G_FreeEntity( client->anchorEnt );
 	client->anchorEnt = NULL;
+	// the lockout follows the recall, not an unused anchor fading
+	if ( client->ps.weaponTime < BG_AbilityParam( ACTIVE_RIFTANCHOR, AP_LOCKOUT ) ) {
+		client->ps.weaponTime = BG_AbilityParam( ACTIVE_RIFTANCHOR, AP_LOCKOUT );
+	}
 	G_AbilityDone( ent );
 }
 
@@ -907,8 +939,9 @@ void G_LeapingKick( gentity_t *ent ) {
 		return;
 	}
 	client->kickExpire[i] = 0;
+	// the leap adds to his momentum rather than replacing it (champion-audit.md)
 	AngleVectors( client->ps.viewangles, forward, NULL, NULL );
-	VectorScale( forward, 600, client->ps.velocity );
+	VectorMA( client->ps.velocity, 600, forward, client->ps.velocity );
 	if ( client->ps.velocity[2] < 150 ) {
 		client->ps.velocity[2] = 150;
 	}

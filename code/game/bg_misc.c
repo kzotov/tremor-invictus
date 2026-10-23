@@ -2342,13 +2342,13 @@ const abilityInfo_t bg_abilityInfo[ACTIVE_NUM_ABILITIES] = {
 	{ "drone",			STR_ABILITY_DRONE,			qtrue,	{ "1", "60000", "500", "45000", "400" } },	// 45 s: timed in 2 ms steps
 	{ "piercingsight",	STR_ABILITY_PIERCINGSIGHT,	qfalse,	{ "1", "60000", "0", "5000", "400" } },
 	{ "shellshock",		STR_ABILITY_SHELLSHOCK,		qfalse,	{ "1", "60000", "0", "0", "400" } },
-	{ "spinevolley",	STR_ABILITY_SPINEVOLLEY,	qfalse,	{ "1", "60000", "100", "0", "500" } },
+	{ "spinevolley",	STR_ABILITY_SPINEVOLLEY,	qfalse,	{ "1", "60000", "0", "0", "500" } },
 	{ "masterofdeath",	STR_ABILITY_MASTEROFDEATH,	qfalse,	{ "1", "60000", "0", "3500", "0" } },
 	{ "supplydrop",		STR_ABILITY_SUPPLYDROP,		qfalse,	{ "1", "60000", "0", "0", "500" } },
 	{ "markprey",		STR_ABILITY_MARKPREY,		qfalse,	{ "1", "60000", "0", "0", "250" } },
 	{ "downpour",		STR_ABILITY_DOWNPOUR,		qfalse,	{ "1", "60000", "0", "0", "500" } },
-	{ "hound",			STR_ABILITY_HOUND,			qfalse,	{ "1", "60000", "250", "0", "500" } },
-	{ "riftanchor",		STR_ABILITY_RIFTANCHOR,		qtrue,	{ "1", "60000", "0", "6000", "500" } }
+	{ "hound",			STR_ABILITY_HOUND,			qfalse,	{ "1", "60000", "0", "0", "500" } },
+	{ "riftanchor",		STR_ABILITY_RIFTANCHOR,		qfalse,	{ "1", "60000", "0", "6000", "500" } }	// lockout after a recall (game)
 };
 
 /*

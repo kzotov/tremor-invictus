@@ -5102,8 +5102,8 @@ static void CG_DrawAmmoWarning( void ) {
 		return;
 	}
 
-	if ( !cg.lowAmmoWarning ) {
-		return;
+	if ( !cg.lowAmmoWarning || ( cg.snap->ps.eFlags & EF_DRONE ) ) {
+		return;		// (the drone's gun uses no ammo)
 	}
 
 	if ( cg.lowAmmoWarning == 2 ) {
@@ -6346,10 +6346,15 @@ champion-audit.md: a light tint over the view while Anarki's Injection runs
 static void CG_DrawInjectionTint( void ) {
 	playerState_t	*ps = &cg.snap->ps;
 	vec4_t			tint = { 0.55f, 1, 0.3f, 0.08f };
+	int				active = BG_Champion( ps->stats[STAT_CHAMPION] )->active;
 
-	if ( BG_Champion( ps->stats[STAT_CHAMPION] )->active != ACTIVE_INJECTION || BG_AbilityState( ps ) != ABILITY_ACTIVE
+	// (also Visor's Piercing Sight, a cold blue)
+	if ( ( active != ACTIVE_INJECTION && active != ACTIVE_PIERCINGSIGHT ) || BG_AbilityState( ps ) != ABILITY_ACTIVE
 		|| ps->stats[STAT_HEALTH] <= 0 ) {
 		return;
+	}
+	if ( active == ACTIVE_PIERCINGSIGHT ) {
+		VectorSet( tint, 0.3f, 0.6f, 1 );
 	}
 	tint[3] = 0.06f + 0.03f * sin( cg.time * 0.006f );
 	CG_FillRect( -cgs.screenXBias / cgs.screenXScale, 0, 640 + 2 * cgs.screenXBias / cgs.screenXScale, 480, tint );

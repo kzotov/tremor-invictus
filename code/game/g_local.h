@@ -370,6 +370,7 @@ struct gclient_s {
 	int			slowEndTime;		// spines: run speed cut until then
 	int			markEndTime;		// marked prey / storm: shown through walls until then
 	int			trailBurnTime;		// Plasma Trail: no burn again before this
+	gentity_t	*lastTrailSeg;		// Plasma Trail: the last point dropped
 	float		slowScale;			// run speed while slowEndTime holds
 	int			hasteEndTime;		// Ranger: +10% run speed after a teleport
 	int			stunEndTime;		// no firing and no ability until then
@@ -398,7 +399,7 @@ struct gclient_s {
 	vec3_t		anchorOrigin;
 	struct gentity_s	*anchorEnt;
 	int			abilityPrevState;	// ability state after the last think
-	int			lastDamageTime;		// level.time this client last lost health
+	int			lastDamageTime;		// level.time this client was last hit (armour-only hits too; the regenerations wait on it)
 	int			regenResidual;		// msec of regeneration not yet turned into health
 
 	gentity_t	*abilityEnt;		// orb in flight

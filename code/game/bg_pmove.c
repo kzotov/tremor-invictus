@@ -141,7 +141,7 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_airAccelLight",		"1",	&bg_pmoveSettings.airAccelLight },	// 1.0 for every class
 	{ {0}, "pm_airAccelMedium",		"1",	&bg_pmoveSettings.airAccelMedium },
 	{ {0}, "pm_airAccelHeavy",		"1",	&bg_pmoveSettings.airAccelHeavy },
-	{ {0}, "pm_airAccelFullSprint",	"1.012",	&bg_pmoveSettings.airAccelFullSprint },
+	{ {0}, "pm_airAccelFullSprint",	"1",	&bg_pmoveSettings.airAccelFullSprint },	// 1.0 like everyone (champion-audit.md)
 
 	{ {0}, "pm_injectionSpeed",		"1.1",	&bg_pmoveSettings.injectionSpeed },
 	{ {0}, "pm_dualWieldRate",		"1.333",	&bg_pmoveSettings.dualWieldRate },
@@ -2417,7 +2417,7 @@ Milliseconds to lower or raise a weapon
 ===============
 */
 static int PM_SwitchTime( void ) {
-	return ( pml.champion->passives & PASSIVE_DRILLSERGEANT ) ? 100 : 150;	// 150 to lower, 150 to raise
+	return ( pml.champion->passives & PASSIVE_DRILLSERGEANT ) ? 112 : 150;	// 150 to lower, 150 to raise; Drill Sergeant 25% off
 }
 
 /*
@@ -2440,7 +2440,7 @@ static void PM_BeginWeaponChange( int weapon ) {
 
 	PM_AddEvent( EV_CHANGE_WEAPON );
 	pm->ps->weaponstate = WEAPON_DROPPING;
-	pm->ps->weaponTime += PM_SwitchTime() * PM_WeaponTimeScale();
+	pm->ps->weaponTime += (int)( PM_SwitchTime() * PM_WeaponTimeScale() + 0.5f );
 	PM_StartTorsoAnim( TORSO_DROP );
 }
 
@@ -2464,7 +2464,7 @@ static void PM_FinishWeaponChange( void ) {
 
 	pm->ps->weapon = weapon;
 	pm->ps->weaponstate = WEAPON_RAISING;
-	pm->ps->weaponTime += PM_SwitchTime() * PM_WeaponTimeScale();		// raise as long as the lower
+	pm->ps->weaponTime += (int)( PM_SwitchTime() * PM_WeaponTimeScale() + 0.5f );		// raise as long as the lower
 	PM_StartTorsoAnim( TORSO_RAISE );
 }
 
@@ -2745,7 +2745,7 @@ static void PM_Weapon( void ) {
 		addTime /= 1.3;
 	}
 
-	pm->ps->weaponTime += addTime * PM_WeaponTimeScale();
+	pm->ps->weaponTime += (int)( addTime * PM_WeaponTimeScale() + 0.5f );		// rounded (LG 50 -> 38 at x1.333)
 }
 
 /*
@@ -3274,7 +3274,7 @@ static void PM_Ability( void ) {
 			dist = VectorNormalize( dir );
 			// abilities.md, Athena: the hook lets go under 40 u or over
 			// 3000 u of rope, on landing, on a jump, when stuck (under 32 u
-			// in 0.2 s, as speed under 160 u/s) and when the rope is cut;
+			// in 0.2 s, as speed under about 133 u/s) and when the rope is cut;
 			// jump pads, teleporters and her impact hits free it in the game
 			{
 				int		hook = pm->ps->stats[STAT_HOOK] & 0xffff, blocked = HOOK_BLOCKED( pm->ps );
