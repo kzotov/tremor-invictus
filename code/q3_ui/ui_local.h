@@ -589,6 +589,8 @@ typedef struct {
 	int				realWeapon;
 	// the champion stage: standing on a pillar, framed by height
 	qboolean		onPillar;
+	qboolean		sharedScene;	// added to a scene the caller renders (the duel face-off),
+	vec3_t			stageTop;		// standing on its pillar's top here
 	float			rise;			// units above the pillar while champions swap
 	float			flash;			// 0-1, a light burst as a champion arrives
 	int				tintMode;		// 0 none, 1 bright, 2 sport (player colours preview)
@@ -607,6 +609,8 @@ typedef struct {
 } uiStage_t;
 
 void UI_Stage_Draw( uiStage_t *st, float x, float y, float w, float h, int champion, weapon_t weapon, float yaw );
+playerInfo_t *UI_Stage_Update( uiStage_t *st, int champion, weapon_t weapon, float yaw );
+void UI_DrawFaceoff( uiStage_t stages[2], const int champions[2], const weapon_t weapons[2], int startTime );
 void UI_Stage_Tint( uiStage_t *st, const char *side );
 weapon_t UI_StartWeapon( const char *code );
 void UI_PlayerInfo_Gesture( playerInfo_t *pi );

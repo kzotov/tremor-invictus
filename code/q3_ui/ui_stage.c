@@ -71,11 +71,28 @@ into the pillar and raises the new one
 =================
 */
 void UI_Stage_Draw( uiStage_t *st, float x, float y, float w, float h, int champion, weapon_t weapon, float yaw ) {
+	playerInfo_t	*pi = UI_Stage_Update( st, champion, weapon, yaw );
+
+	if ( pi ) {
+		pi->sharedScene = qfalse;
+		UI_DrawPlayer( x, y, w, h, pi, uis.realtime / 2 );
+	}
+}
+
+/*
+=================
+UI_Stage_Update
+
+The champion swap, gestures and turn of a stage; the player to draw (the
+old one while it lifts off), NULL for no champion
+=================
+*/
+playerInfo_t *UI_Stage_Update( uiStage_t *st, int champion, weapon_t weapon, float yaw ) {
 	int				t;
 	playerInfo_t	*pi;
 
 	if ( champion < 0 || champion >= bg_numChampions ) {
-		return;
+		return NULL;
 	}
 	if ( st->champion != champion || !st->pi.legsModel ) {
 		if ( st->pi.legsModel && st->champion >= 0 && st->champion != champion ) {
@@ -128,7 +145,89 @@ void UI_Stage_Draw( uiStage_t *st, float x, float y, float w, float h, int champ
 	pi->viewAngles[YAW] = AngleMod( 180 + yaw );
 	pi->legs.yawing = qtrue;
 	pi->torso.yawing = qtrue;
-	UI_DrawPlayer( x, y, w, h, pi, uis.realtime / 2 );
+	return pi;
+}
+
+/*
+=================
+UI_DrawFaceoff
+
+menu-style.md 4.1: the duel's two champions in one full-screen scene, you
+on the left and the opponent on the right, each turned 48 degrees toward
+the other on a pillar 183 u away and 59 u to the side, the pillar tops at
+70 % of the screen height. The vertical view is fixed at 40 degrees, so
+wider screens see more at the sides; the pillars run 400 u down out of the
+view. The page draws the names, the VS mark and the floor mist over it.
+=================
+*/
+#define FACEOFF_FOV_Y		40
+#define FACEOFF_DIST		183
+#define FACEOFF_SIDE		59
+#define FACEOFF_TURN		48
+#define FACEOFF_ARRIVE		500		// msec between the two champions' arrivals
+
+void UI_DrawFaceoff( uiStage_t stages[2], const int champions[2], const weapon_t weapons[2], int startTime ) {
+	refdef_t		refdef;
+	playerInfo_t	*pi;
+	vec3_t			light;
+	float			top = -tan( DEG2RAD( FACEOFF_FOV_Y * 0.5f ) ) * FACEOFF_DIST * 0.4f;	// 20 % of the height under the middle
+	int				i;
+
+	memset( &refdef, 0, sizeof( refdef ) );
+	refdef.rdflags = RDF_NOWORLDMODEL;
+	AxisClear( refdef.viewaxis );
+	refdef.x = 0;
+	refdef.y = 0;
+	refdef.width = uis.glconfig.vidWidth;
+	refdef.height = uis.glconfig.vidHeight;
+	refdef.fov_y = FACEOFF_FOV_Y;
+	refdef.fov_x = 2 * RAD2DEG( atan2( tan( DEG2RAD( FACEOFF_FOV_Y * 0.5f ) ) * refdef.width, refdef.height ) );
+	refdef.time = uis.realtime / 2;
+
+	trap_R_ClearScene();
+	for ( i = 0 ; i < 2 ; i++ ) {
+		// each arrives in turn, with its entrance sound: the stage's own swap
+		// drops it onto its pillar
+		if ( uis.realtime - startTime < i * FACEOFF_ARRIVE ) {
+			continue;
+		}
+		if ( stages[i].champion != champions[i] && champions[i] >= 0 && champions[i] < bg_numChampions ) {
+			char			model[MAX_QPATH], *slash;
+			sfxHandle_t		sfx;
+
+			BG_ChampionModel( champions[i], model, sizeof( model ) );
+			slash = strchr( model, '/' );
+			if ( slash ) {
+				*slash = 0;
+			}
+			sfx = trap_S_RegisterSound( va( "sound/player/%s/taunt.wav", model ), qfalse );
+			if ( sfx ) {
+				trap_S_StartLocalSound( sfx, CHAN_LOCAL_SOUND );
+			}
+		}
+		pi = UI_Stage_Update( &stages[i], champions[i], weapons[i], i ? -FACEOFF_TURN : FACEOFF_TURN );
+		if ( !pi ) {
+			continue;
+		}
+		pi->sharedScene = qtrue;
+		VectorSet( pi->stageTop, FACEOFF_DIST, i ? -FACEOFF_SIDE : FACEOFF_SIDE, top );
+		UI_DrawPlayer( 0, 0, 0, 0, pi, uis.realtime / 2 );
+	}
+	// a key light from above in front of each, a rim light behind in the
+	// side's colour
+	for ( i = 0 ; i < 2 ; i++ ) {
+		float	y = i ? -FACEOFF_SIDE : FACEOFF_SIDE;
+
+		VectorSet( light, FACEOFF_DIST - 120, y, top + 160 );
+		trap_R_AddLightToScene( light, 400, 1.0f, 0.95f, 0.9f );
+		VectorSet( light, FACEOFF_DIST + 60, y, top + 140 );
+		if ( i ) {
+			trap_R_AddLightToScene( light, 300, 1.0f, 0.27f, 0.27f );
+		} else {
+			trap_R_AddLightToScene( light, 300, 0.27f, 0.84f, 1.0f );
+		}
+	}
+	trap_R_RenderScene( &refdef );
 }
 
 /*

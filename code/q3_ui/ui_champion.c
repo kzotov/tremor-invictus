@@ -918,6 +918,88 @@ static void UI_DrawOneStage( uiStage_t *stage, const char *suffix, qboolean turn
 	trap_Cvar_VariableStringBuffer( va( "rml_stageTint%s", suffix ), cvar, sizeof( cvar ) );
 	UI_Stage_Tint( stage, UI_Cvar_VariableString( cvar ) );
 	UI_Stage_Draw( stage, x, y, w, h, i, UI_StartWeapon( UI_Cvar_VariableString( Champion_WeaponCvar( i ) ) ), yaw );
+
+	// a lineup's boxes end mid-page: their bottom 15 % fades to the page so
+	// no pillar shows a cut (menu-style.md 4.1)
+	{
+		char	which[64];
+
+		trap_Cvar_VariableStringBuffer( va( "rml_stageCvar%s", suffix ), which, sizeof( which ) );
+		if ( !Q_strncmp( which, "mm_p", 4 ) ) {
+			vec4_t	page = { 0.086f, 0.09f, 0.106f, 0 };
+			float	fade = h * 0.15f, band = fade / 12;
+			int		k;
+
+			for ( k = 0; k < 12; k++ ) {
+				page[3] = ( k + 1 ) / 12.0f;
+				UI_FillRect( x, y + h - fade + k * band, w, band + 0.5f, page );
+			}
+		}
+	}
+}
+
+/*
+=================
+UI_DrawDuelFaceoff
+
+A duel's match-found page (two mm_p stages): the two champions in one
+face-off scene instead of a box each, you on the left
+=================
+*/
+static qboolean UI_DrawDuelFaceoff( void ) {
+	static uiStage_t	stages[2];
+	static int			startTime, shownFor = -1;
+	char				cvar[64], name[MAX_QPATH], mine[MAX_QPATH];
+	int					champions[2], i, me = 0;
+	weapon_t			weapons[2];
+
+	trap_Cvar_VariableStringBuffer( "rml_doc", cvar, sizeof( cvar ) );
+	if ( ( Q_stricmp( cvar, "ui/matchfound.rml" ) && Q_stricmp( cvar, "ui/prelineup.rml" ) )
+		|| trap_Cvar_VariableValue( "mm_pcount" ) != 2 ) {
+		shownFor = -1;
+		return qfalse;
+	}
+	// a new face-off: the champions arrive again
+	if ( shownFor < 0 ) {
+		memset( stages, 0, sizeof( stages ) );
+		stages[0].champion = stages[0].oldChampion = stages[1].champion = stages[1].oldChampion = -1;
+		startTime = uis.realtime;
+		shownFor = 1;
+	}
+	// you on the left (by name; the list comes reds first)
+	trap_Cvar_VariableStringBuffer( "name", mine, sizeof( mine ) );
+	Q_CleanStr( mine );
+	trap_Cvar_VariableStringBuffer( "mm_p1_name", name, sizeof( name ) );
+	Q_CleanStr( name );
+	if ( !Q_stricmp( name, mine ) ) {
+		me = 1;
+	}
+	// the page's labels: left (you) and right
+	for ( i = 0; i < 2; i++ ) {
+		static const char	*fields[2] = { "name", "champName" };
+		int					f;
+
+		for ( f = 0; f < 2; f++ ) {
+			char	want[MAX_CVAR_VALUE_STRING], have[MAX_CVAR_VALUE_STRING];
+			char	*dest = va( "mm_fo_%s_%s", i ? "r" : "l", fields[f] );
+
+			trap_Cvar_VariableStringBuffer( va( "mm_p%i_%s", i ? 1 - me : me, fields[f] ), want, sizeof( want ) );
+			trap_Cvar_VariableStringBuffer( dest, have, sizeof( have ) );
+			if ( strcmp( want, have ) ) {
+				trap_Cvar_Set( dest, want );
+			}
+		}
+	}
+	for ( i = 0; i < 2; i++ ) {
+		trap_Cvar_VariableStringBuffer( va( "mm_p%i_champ", i ? 1 - me : me ), name, sizeof( name ) );
+		champions[i] = BG_ChampionForName( name );
+		if ( champions[i] < 0 ) {
+			champions[i] = 0;
+		}
+		weapons[i] = UI_StartWeapon( UI_Cvar_VariableString( Champion_WeaponCvar( champions[i] ) ) );
+	}
+	UI_DrawFaceoff( stages, champions, weapons, startTime );
+	return qtrue;
 }
 
 /*
@@ -940,6 +1022,9 @@ void UI_DrawRmlStage( void ) {
 		started = qtrue;
 	}
 	if ( !trap_Cvar_VariableValue( "rml_active" ) ) {
+		return;
+	}
+	if ( UI_DrawDuelFaceoff() ) {
 		return;
 	}
 	for ( i = 0; i < 8; i++ ) {

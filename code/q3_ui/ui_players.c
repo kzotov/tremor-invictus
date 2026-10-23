@@ -724,11 +724,10 @@ A hexagonal column under the champion, its top at `top`, `dist` in front of
 the camera, with the lineup pillars' textures
 ===============
 */
-static void UI_AddStagePillar( float dist, float top, float flash ) {
+static void UI_AddStagePillar( float dist, float y, float top, float bottom, float flash ) {
 	static qhandle_t	side, cap;
 	polyVert_t	v[4];
 	vec3_t		corner[6];
-	float		bottom = -STAGE_HALF_HEIGHT * 1.2f;	// just past the box's bottom edge
 	byte		glow[3];
 	int			i, j, k;
 
@@ -742,7 +741,7 @@ static void UI_AddStagePillar( float dist, float top, float flash ) {
 	for ( i = 0 ; i < 6 ; i++ ) {
 		float	a = DEG2RAD( 30 + i * 60 );
 
-		VectorSet( corner[i], dist + cos( a ) * STAGE_PILLAR_RADIUS, sin( a ) * STAGE_PILLAR_RADIUS, top );
+		VectorSet( corner[i], dist + cos( a ) * STAGE_PILLAR_RADIUS, y + sin( a ) * STAGE_PILLAR_RADIUS, top );
 	}
 	for ( k = 0 ; k < 4 ; k++ ) {
 		VectorCopy( glow, v[k].modulate );
@@ -768,7 +767,7 @@ static void UI_AddStagePillar( float dist, float top, float flash ) {
 		for ( k = 0 ; k < 4 ; k++ ) {
 			VectorCopy( corner[( i + k ) % 6], v[3 - k].xyz );
 			v[3 - k].st[0] = ( v[3 - k].xyz[0] - dist ) / 48 + 0.5f;
-			v[3 - k].st[1] = v[3 - k].xyz[1] / 48 + 0.5f;
+			v[3 - k].st[1] = ( v[3 - k].xyz[1] - y ) / 48 + 0.5f;
 		}
 		trap_R_AddPolyToScene( cap, 4, v );
 	}
@@ -845,6 +844,15 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 		}
 	}
 
+	// the duel face-off: into the caller's scene, on a pillar that runs 400 u
+	// down so its base always leaves the view (menu-style.md 4.1)
+	if ( pi->sharedScene ) {
+		VectorCopy( pi->stageTop, origin );
+		UI_AddStagePillar( origin[0], origin[1], origin[2], origin[2] - 400, pi->flash );
+		origin[2] += -mins[2] + pi->rise;
+		goto addBody;
+	}
+
 	UI_AdjustFrom640( &x, &y, &w, &h );
 
 	y -= jumpHeight;
@@ -889,10 +897,11 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 	trap_R_ClearScene();
 
 	if ( pi->onPillar ) {
-		UI_AddStagePillar( origin[0], STAGE_FEET, pi->flash );
+		UI_AddStagePillar( origin[0], 0, STAGE_FEET, -STAGE_HALF_HEIGHT * 1.2f, pi->flash );	// just past the box's bottom edge
 		origin[2] += pi->rise;
 	}
 
+addBody:
 	// get the rotation information
 	UI_PlayerAngles( pi, legs.axis, torso.axis, head.axis );
 	
@@ -1027,6 +1036,9 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 		UI_PlayerFloatSprite( pi, origin, trap_R_RegisterShaderNoMip( "sprites/balloon3" ) );
 	}
 
+	if ( pi->sharedScene ) {
+		return;		// the caller lights and renders
+	}
 	if ( pi->onPillar ) {
 		vec3_t	light;
 

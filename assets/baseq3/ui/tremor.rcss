@@ -1424,3 +1424,101 @@ scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc {
 	font-size: 18dp;
 	color: #ffffff;
 }
+
+/* the duel face-off (menu-style.md 4.1): pillar centres at the middle
+   +- 480 dp (0.444 of the height), their tops at 70 % of the height */
+.faceoff {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.fomist {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	width: 100%;
+	height: 12%;
+	decorator: vertical-gradient( #16171b00 #16171bff );
+}
+
+.fohead {
+	position: absolute;
+	left: 0;
+	top: 6dp;
+	width: 100%;
+	text-align: center;
+	font-size: 30dp;
+	animation: 0.3s linear-in fohead;
+}
+
+@keyframes fohead {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+.fohead .foblue { color: #46D6FF; }
+.fohead .fored { color: #FF4646; }
+.fohead .fovs { color: #e8e4dc; margin: 0 24dp; }
+
+.vsmark {
+	position: absolute;
+	left: 50%;
+	margin-left: -150dp;
+	top: 207dp;
+	width: 300dp;
+	height: 250dp;
+}
+
+.vsmark .vstext, .vsmark .vsglow {
+	position: absolute;
+	left: 0;
+	top: 50dp;
+	width: 300dp;
+	text-align: center;
+	font-family: "Arial Black";
+	font-size: 140dp;
+}
+
+.vsmark .vstext {
+	color: #ffffffb3;
+}
+
+.vsmark .vsglow {
+	color: #ff5a1e00;
+	font-effect: glow( 8dp 0dp 0dp #ff5a1e66 );
+	animation: 0.9s cubic-out vsglow;
+}
+
+@keyframes vsglow {
+	from { opacity: 0; transform: scale( 0.6 ) rotate( -25deg ); }
+	to { opacity: 1; transform: scale( 1 ) rotate( 0deg ); }
+}
+
+.folabel {
+	position: absolute;
+	top: 72%;
+	width: 400dp;
+	text-align: center;
+}
+
+.foleft { left: 50%; margin-left: -680dp; }
+.foright { left: 50%; margin-left: 280dp; }
+
+.folabel .foname, .folabel .fochamp {
+	display: inline-block;
+	padding: 2dp 10dp;
+	background-color: #0b0c0fcc;
+}
+
+.folabel .foname {
+	font-size: 20dp;
+	color: #ffffff;
+}
+
+.folabel .fochamp {
+	font-size: 16dp;
+	color: #FF764F;
+}

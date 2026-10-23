@@ -5323,6 +5323,51 @@ their own in front of the darkened screen
 #define PILLAR_RADIUS	24		// centre to corner; each face is this wide
 #define PILLAR_DIST		300		// how far in front of the camera the row stands
 #define PILLAR_GAP		56		// least distance between pillar centres
+#define PILLAR_FOV_Y	40		// the lineup camera's vertical view, fixed (menu-style.md 4.1)
+#define PILLAR_TOP		-44		// the pillar tops at PILLAR_DIST: 70 % of the height down
+
+/*
+=================
+CG_DrawFaceoff
+
+menu-style.md 4.1, the duel's face-off: the local player on the left (blue)
+and the other on the right (red), turned 48 degrees toward each other on
+pillars 183 u away and 59 u to the side, tops at 70 % of the height; the
+vertical view fixed at 40 degrees; the pillars run out of the bottom
+=================
+*/
+static void CG_AddPillar( const vec3_t base, const byte *glow, int rank );
+static void CG_AddPillarPlayerTurned( int clientNum, const vec3_t feet, float yaw );
+
+static void CG_DrawFaceoff( int left, int right ) {
+	static const byte	glows[2][4] = { { 40, 90, 220, 255 }, { 208, 26, 26, 255 } };
+	refdef_t	refdef;
+	vec3_t		base, light;
+	float		top = -tan( DEG2RAD( PILLAR_FOV_Y * 0.5f ) ) * 183 * 0.4f;
+	int			i, who[2];
+
+	who[0] = left;
+	who[1] = right;
+	memset( &refdef, 0, sizeof( refdef ) );
+	refdef.rdflags = RDF_NOWORLDMODEL;
+	AxisClear( refdef.viewaxis );
+	refdef.fov_y = PILLAR_FOV_Y;
+	refdef.fov_x = 2 * RAD2DEG( atan2( tan( DEG2RAD( PILLAR_FOV_Y * 0.5f ) ) * cgs.glconfig.vidWidth, cgs.glconfig.vidHeight ) );
+	refdef.width = cgs.glconfig.vidWidth;
+	refdef.height = cgs.glconfig.vidHeight;
+	refdef.time = cg.time;
+	trap_R_ClearScene();
+	for ( i = 0 ; i < 2 ; i++ ) {
+		VectorSet( base, 183, i ? -59 : 59, top );
+		CG_AddPillar( base, glows[i], 0 );
+		if ( who[i] >= 0 && who[i] < MAX_CLIENTS ) {
+			CG_AddPillarPlayerTurned( who[i], base, i ? -48 : 48 );
+		}
+		VectorSet( light, 63, base[1], top + 160 );
+		trap_R_AddLightToScene( light, 400, 1.0f, 0.95f, 0.9f );
+	}
+	trap_R_RenderScene( &refdef );
+}
 #define PILLAR_V_SCALE	128		// side texture: v runs over this many units down
 
 /*
@@ -5415,10 +5460,17 @@ static void CG_AddPillar( const vec3_t base, const byte *glow, int rank ) {
 =================
 CG_AddPillarPlayer
 
-The player's champion standing still on top of a pillar, facing the camera
+The player's champion standing still on top of a pillar, turned yaw
+degrees from facing the camera
 =================
 */
+static void CG_AddPillarPlayerTurned( int clientNum, const vec3_t feet, float yaw );
+
 static void CG_AddPillarPlayer( int clientNum, const vec3_t feet ) {
+	CG_AddPillarPlayerTurned( clientNum, feet, 0 );
+}
+
+static void CG_AddPillarPlayerTurned( int clientNum, const vec3_t feet, float yaw ) {
 	clientInfo_t	*ci = &cgs.clientinfo[clientNum];
 	refEntity_t		legs, torso, head;
 	vec3_t			angles;
@@ -5426,7 +5478,7 @@ static void CG_AddPillarPlayer( int clientNum, const vec3_t feet ) {
 	if ( !ci->infoValid || !ci->legsModel ) {
 		return;
 	}
-	VectorSet( angles, 0, 180, 0 );
+	VectorSet( angles, 0, 180 + yaw, 0 );
 
 	memset( &legs, 0, sizeof( legs ) );
 	AnglesToAxis( angles, legs.axis );
@@ -5475,7 +5527,7 @@ static void CG_DrawPillars( const int *clients, const int *heights, const int *t
 	float		dist;
 	refdef_t	refdef;
 	vec3_t		base;
-	float		spacing, y, sx;
+	float		spacing, y, sx, spread;
 	int			i;
 	clientInfo_t	*ci;
 
@@ -5485,27 +5537,30 @@ static void CG_DrawPillars( const int *clients, const int *heights, const int *t
 	memset( &refdef, 0, sizeof( refdef ) );
 	refdef.rdflags = RDF_NOWORLDMODEL;
 	AxisClear( refdef.viewaxis );
-	refdef.fov_x = 60;
-	refdef.fov_y = 60 * cgs.glconfig.vidHeight / (float)cgs.glconfig.vidWidth;
+	// menu-style.md 4.1: the vertical view fixed at 40 degrees, the
+	// horizontal from the aspect (wider screens see more at the sides)
+	refdef.fov_y = PILLAR_FOV_Y;
+	refdef.fov_x = 2 * RAD2DEG( atan2( tan( DEG2RAD( PILLAR_FOV_Y * 0.5f ) ) * cgs.glconfig.vidWidth, cgs.glconfig.vidHeight ) );
 	refdef.x = 0;
 	refdef.y = 0;
 	refdef.width = cgs.glconfig.vidWidth;
 	refdef.height = cgs.glconfig.vidHeight;
 	refdef.time = cg.time;
+	spread = tan( DEG2RAD( refdef.fov_x * 0.5f ) ) * 0.83f;		// the row's half width over its distance
 
 	trap_R_ClearScene();
 	// a long row stands further back, so the pillars never overlap
 	dist = PILLAR_DIST;
-	if ( count > 1 && ( count - 1 ) * PILLAR_GAP > 2 * dist * tan( DEG2RAD( 25 ) ) ) {
-		dist = ( count - 1 ) * PILLAR_GAP / ( 2 * tan( DEG2RAD( 25 ) ) );
+	if ( count > 1 && ( count - 1 ) * PILLAR_GAP > 2 * dist * spread ) {
+		dist = ( count - 1 ) * PILLAR_GAP / ( 2 * spread );
 	}
-	spacing = count > 1 ? 2 * dist * tan( DEG2RAD( 25 ) ) / ( count - 1 ) : 0;
+	spacing = count > 1 ? 2 * dist * spread / ( count - 1 ) : 0;
 	if ( spacing > 110 ) {
 		spacing = 110;
 	}
 	for ( i = 0 ; i < count ; i++ ) {
 		y = ( ( count - 1 ) / 2.0f - i ) * spacing;
-		VectorSet( base, dist, y, -60 + ( heights ? heights[i] : 0 ) );
+		VectorSet( base, dist, y, PILLAR_TOP * dist / PILLAR_DIST + ( heights ? heights[i] : 0 ) );
 		CG_AddPillar( base, glows[teams ? teams[i] : 0], ranks ? ranks[i] : 0 );
 		CG_AddPillarPlayer( clients[i], base );
 	}
@@ -5516,7 +5571,7 @@ static void CG_DrawPillars( const int *clients, const int *heights, const int *t
 	for ( i = 0 ; i < count ; i++ ) {
 		y = ( ( count - 1 ) / 2.0f - i ) * spacing;
 		// the pillar's place on screen, in 640x480 units (the scene spans the whole width)
-		sx = 320 - y / ( dist * tan( DEG2RAD( 30 ) ) ) * 0.5f * cgs.glconfig.vidWidth * 480 / cgs.glconfig.vidHeight;
+		sx = 320 - y / ( dist * tan( DEG2RAD( refdef.fov_x * 0.5f ) ) ) * 0.5f * cgs.glconfig.vidWidth * 480 / cgs.glconfig.vidHeight;
 		ci = &cgs.clientinfo[clients[i]];
 		CG_DrawStringExt( sx - CG_DrawStrlen( ci->name ) * SMALLCHAR_WIDTH / 2, 404, ci->name, colorWhite,
 			qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 16 );
@@ -5617,6 +5672,7 @@ static qboolean CG_DrawLobby( void ) {
 	char		maps[3][MAX_QPATH], text[MAX_CVAR_VALUE_STRING], doc[MAX_QPATH], active[8], hidden[8], mine[64];
 	int			phase, end, mode, winner, votes[3], i, n, client, champion, locked, players = 0, secs;
 	int			me = cg.clientNum;		// your own row, also while following
+	int			seen[LOBBY_PLAYERS];
 
 	trap_Cvar_VariableStringBuffer( "rml_doc", doc, sizeof( doc ) );
 	trap_Cvar_VariableStringBuffer( "rml_active", active, sizeof( active ) );
@@ -5691,7 +5747,7 @@ static qboolean CG_DrawLobby( void ) {
 			champion >= 0 && champion < bg_numChampions ? BG_String( BG_Champion( champion )->nameString ) : "?",
 			i ? "1" : "" );
 		CG_LobbyCvar( va( "lb_p%i", n ), text );
-		players++;
+		seen[players++] = client;
 	}
 	for ( ; n < LOBBY_PLAYERS ; n++ ) {
 		CG_LobbyCvar( va( "lb_p%i", n ), "" );
@@ -5739,6 +5795,13 @@ static qboolean CG_DrawLobby( void ) {
 		trap_SendConsoleCommand( "rml_show ui/lobby.rml\n" );
 	}
 	CG_FillRect( -1000, 0, 3000, 480, dim );
+	// a duel's two players face off behind the lobby (menu-style.md 4.1),
+	// you on the left
+	if ( cgs.gametype == GT_TOURNAMENT && players == 2 ) {
+		int		left = seen[1] == me ? 1 : 0;
+
+		CG_DrawFaceoff( seen[left], seen[1 - left] );
+	}
 	return qtrue;
 }
 

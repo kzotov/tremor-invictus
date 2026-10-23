@@ -4,10 +4,20 @@
 	<link type="text/rcss" href="tremor.rcss"/>
 </head>
 <body>
+	<!-- a duel: one face-off stage (menu-style.md 4.1); the menu module
+	     draws the two champions behind this page, you on the left -->
+	<div class="faceoff" data-when="mm_pcount=2">
+		<div class="fomist"></div>
+		<div class="fohead"><span class="foblue" data-text-cvar="mm_fo_l_name"></span><span class="fovs">VS</span><span class="fored" data-text-cvar="mm_fo_r_name"></span></div>
+		<div class="vsmark"><div class="vsglow">VS</div><div class="vstext">VS</div></div>
+		<div class="folabel foleft"><div class="foname" data-text-cvar="mm_fo_l_name"></div><div class="fochamp" data-text-cvar="mm_fo_l_champName"></div></div>
+		<div class="folabel foright"><div class="foname" data-text-cvar="mm_fo_r_name"></div><div class="fochamp" data-text-cvar="mm_fo_r_champName"></div></div>
+	</div>
 	<div class="found">
 		<h1>[ln_title]</h1>
 		<div class="sub"><span data-when="ui_lnMode=ffa">[mode_ffa]</span><span data-when="ui_lnMode=duel">[mode_duel]</span><span data-when="ui_lnMode=tdm">[mode_tdm]</span><span data-when="ui_lnMode=tdm2v2">[mode_tdm2v2]</span><span data-when="ui_lnMode=ctf">[mode_ctf]</span><span data-when="ui_lnMode=ca">[mode_ca]</span><span data-when="ui_lnMode=sacrifice">[mode_sacrifice]</span><span data-when="ui_lnMode=roundduel">[mode_roundduel]</span><span data-when="ui_lnMode=instagib">[mode_instagib]</span><span data-when="ui_lnMode=unholytrinity">[mode_unholytrinity]</span>  -  <span data-text-cvar="ui_lnMap"></span></div>
-		<div class="lineup">
+		<div class="lineup" data-when="mm_pcount=2"></div>
+		<div class="lineup" data-when="mm_pcount!=2">
 		<div class="slot" data-when="mm_pcount>=1" data-class="blue:mm_p0_team=blue">
 			<div class="stage slotstage" data-stage="mm_p0_champ"></div>
 			<div class="pname" data-text-cvar="mm_p0_name"></div>
