@@ -1113,11 +1113,7 @@ static void CG_DrawAreaChat(rectDef_t *rect, float scale, vec4_t color, qhandle_
 }
 
 const char *CG_GetKillerText(void) {
-	const char *s = "";
-	if ( cg.killerName[0] ) {
-		s = va("Fragged by %s", cg.killerName );
-	}
-	return s;
+	return "";		// the fragged-by panel (hud.md 7.5) names the killer
 }
 
 

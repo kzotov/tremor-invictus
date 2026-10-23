@@ -1116,6 +1116,9 @@ typedef enum {
 	STR_CHAT_TEAM,					// "(TEAM)"
 	STR_CHAT_SPEC,
 	STR_DEATH_BIND_HINT,				// "Bind the weapon keys in Controls"
+	STR_DEATH_SUICIDE,
+	STR_DEATH_FELL,
+	STR_DEATH_WORLD,
 	STR_BD_PLAYER,
 	STR_BD_SCORE,
 	STR_BD_DEATHS,
@@ -1585,8 +1588,9 @@ typedef enum {
 //   slide style		msec of slide charge left
 //   acceleration		run speed bonus in tenths of u/s (low 11 bits) and
 //						time held at the current step in ACCEL_HOLD_UNIT ms
-//   ramp jump			upward speed climbed on the last ground frame (u/s),
-//						or the locked rope length while swinging on the hook
+//   ramp jump			upward speed climbed on the last ground frame (u/s)
+//   Athena's hook		the hold ms, or the rope while swinging (bits 0-11),
+//						HOOK_SWINGING and HOOK_ON_PLAYER (bits 13, 14)
 
 #define	ACCEL_BONUS_MASK	0x07ff
 #define	ACCEL_HOLD_SHIFT	11

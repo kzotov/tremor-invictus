@@ -417,14 +417,13 @@ qboolean CG_DrawOldScoreboard( void ) {
 	}
 
 	// duel: the two players side by side
-	if ( cgs.gametype == GT_TOURNAMENT && ( cg.showScores || cg.predictedPlayerState.pm_type == PM_DEAD
-		|| cg.predictedPlayerState.pm_type == PM_INTERMISSION ) ) {
+	if ( cgs.gametype == GT_TOURNAMENT && ( cg.showScores || cg.predictedPlayerState.pm_type == PM_INTERMISSION ) ) {
 		CG_DrawDuelBoard();
 		return qtrue;
 	}
 
-	if ( cg.showScores || cg.predictedPlayerState.pm_type == PM_DEAD ||
-		 cg.predictedPlayerState.pm_type == PM_INTERMISSION ) {
+	// a death shows the fragged-by panel (hud.md 7.5), not the board
+	if ( cg.showScores || cg.predictedPlayerState.pm_type == PM_INTERMISSION ) {
 		fade = 1.0;
 		fadeColor = colorWhite;
 	} else {
@@ -439,15 +438,6 @@ qboolean CG_DrawOldScoreboard( void ) {
 		fade = *fadeColor;
 	}
 
-
-	// fragged by ... line
-	if ( cg.killerName[0] ) {
-		s = va("Fragged by %s", cg.killerName );
-		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
-		x = ( SCREEN_WIDTH - w ) / 2;
-		y = 40;
-		CG_DrawBigString( x, y, s, fade );
-	}
 
 	// current rank
 	if ( cgs.gametype < GT_TEAM) {

@@ -4389,62 +4389,116 @@ respawn (not where champions are fixed for the match)
 =================
 */
 static void CG_DrawDeathScreen( void ) {
+	static qhandle_t	skull;
 	char			line[128];
 	const char		*how = "";
 	clientInfo_t	*ci;
-	gitem_t			*item;
-	vec4_t			back = { 0, 0, 0, 0.6f }, grey = { 0.65f, 0.65f, 0.65f, 1 }, red = { 0.83f, 0.1f, 0.12f, 1 };
-	int				left, y = 300, w;
+	vec4_t			back = { 0, 0, 0, 0.6f }, band = { 0.42f, 0.04f, 0.05f, 0.85f }, grey = { 0.65f, 0.65f, 0.65f, 1 };
+	vec4_t			red = { 0.95f, 0.22f, 0.22f, 1 }, yellow = { 1, 0.8f, 0.2f, 1 }, stripe = { 0.85f, 0.1f, 0.12f, 1 };
+	int				left, y = 67, w, champ = -1;
+	qhandle_t		icon = 0;
 
 	if ( !cg.deathTime || cg.snap->ps.stats[STAT_HEALTH] > 0 || cg.time - cg.deathTime > 30000 ) {
 		return;
 	}
-	// the killer block (88), the respawn line, the starter line under it
-	// (+6), the bind hint when a weapon key is unbound, 6 above and below
-	w = ( !CG_BindName( va( "weapon %i", BG_WeaponSlot( WP_MACHINEGUN ) ) )[0]
-		|| !CG_BindName( va( "weapon %i", BG_WeaponSlot( WP_SHOTGUN ) ) )[0]
-		|| !CG_BindName( va( "weapon %i", BG_WeaponSlot( WP_NAILGUN ) ) )[0] ) ? TINYCHAR_HEIGHT + 2 : 0;
-	CG_FillRect( 140, y - 6, 360, ( cg.deathKiller >= 0 ? 88 : 0 ) + 2 * SMALLCHAR_HEIGHT + 6 + w + 12, back );
+	if ( !skull ) {
+		skull = trap_R_RegisterShaderNoMip( "gfx/tremor/skull.tga" );
+	}
 
-	if ( cg.deathKiller >= 0 && cg.deathKiller < MAX_CLIENTS ) {
-		int champ;
-
+	// hud.md 7.5 / 9.6: the fragged-by panel, centre, top + 150
+	if ( cg.deathKiller >= 0 && cg.deathKiller < MAX_CLIENTS && cg.deathKiller != cg.snap->ps.clientNum ) {
 		ci = &cgs.clientinfo[cg.deathKiller];
 		champ = BG_ChampionForModel( ci->modelName );
 		// a weapon, or the champion's ability for ability deaths
 		if ( cg.deathMod >= MOD_HEAVYWEIGHT && champ >= 0 && BG_Champion( champ )->active > ACTIVE_NONE ) {
 			how = BG_String( bg_abilityInfo[BG_Champion( champ )->active].nameString );
 		} else if ( cg.deathWeapon > WP_NONE && cg.deathWeapon < WP_NUM_WEAPONS && cg_weapons[cg.deathWeapon].item ) {
-			// (a killer already dead holds no weapon: a trade kill)
-			item = cg_weapons[cg.deathWeapon].item;
-			how = item->pickup_name;
+			how = cg_weapons[cg.deathWeapon].item->pickup_name;
+			icon = cg_weapons[cg.deathWeapon].weaponIcon;
 		}
-		Com_sprintf( line, sizeof( line ), BG_String( STR_DEATH_KILLEDBY ), ci->name );
-		w = CG_DrawStrlen( line ) * BIGCHAR_WIDTH;
-		CG_DrawBigString( 320 - w / 2, y, line, 1.0f );
-		y += BIGCHAR_HEIGHT + 4;
-		Com_sprintf( line, sizeof( line ), "%s  -  %s", champ >= 0 ? BG_String( BG_Champion( champ )->nameString ) : "", how );
-		w = CG_DrawStrlen( line ) * SMALLCHAR_WIDTH;
-		CG_DrawSmallStringColor( 320 - w / 2, y, line, grey );
-		y += SMALLCHAR_HEIGHT + 8;
-		Com_sprintf( line, sizeof( line ), BG_String( STR_DEATH_LEFT ), cg.deathHealth, cg.deathArmor );
-		w = CG_DrawStrlen( line ) * SMALLCHAR_WIDTH;
-		CG_DrawSmallStringColor( 320 - w / 2, y, line, red );
+
+		// "FRAGGED BY" over the card
+		Q_strncpyz( line, BG_String( STR_DEATH_KILLEDBY ), sizeof( line ) );
+		CG_DrawStringExt( 320 - CG_DrawStrlen( line ) * SMALLCHAR_WIDTH / 2, y, line, red, qtrue, qtrue,
+			SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
 		y += SMALLCHAR_HEIGHT + 4;
+
+		// the card: portrait, then the name band and the weapon or ability under it
+		CG_FillRect( 170, y, 300, 60, back );
+		CG_FillRect( 230, y + 6, 234, 28, band );
+		CG_FillRect( 170, y, 3, 60, stripe );
+		{
+			qhandle_t	pic = CG_ChampionPortrait( champ, qfalse );
+
+			if ( pic ) {
+				CG_DrawPic( 176, y + 4, 52, 52, pic );
+			}
+		}
+		Q_strncpyz( line, ci->name, sizeof( line ) );
+		Q_CleanStr( line );
+		line[18] = 0;
+		CG_DrawStringExt( 238, y + 8, line, colorWhite, qtrue, qtrue, 12, 24, 0 );
+		w = 238;
+		if ( icon ) {
+			CG_DrawPic( w, y + 38, 16, 16, icon );
+			w += 20;
+		}
+		Com_sprintf( line, sizeof( line ), "%s%s%s", champ >= 0 ? BG_String( BG_Champion( champ )->nameString ) : "",
+			champ >= 0 && how[0] ? "  -  " : "", how );
+		CG_DrawSmallStringColor( w, y + 39, line, grey );
+		y += 66;
+
+		// the killer's stack: not in duel, and not when the killer is dead or gone
+		if ( cgs.gametype != GT_TOURNAMENT && cg.deathHealth > 0 && ci->infoValid ) {
+			char	hp[16], ap[16];
+			int		x;
+
+			Com_sprintf( hp, sizeof( hp ), "%i", cg.deathHealth );
+			Com_sprintf( ap, sizeof( ap ), "%i", cg.deathArmor );
+			Q_strncpyz( line, BG_String( STR_DEATH_LEFT ), sizeof( line ) );
+			w = ( CG_DrawStrlen( line ) * TINYCHAR_WIDTH ) + 12 + ( (int)strlen( hp ) + (int)strlen( ap ) ) * SMALLCHAR_WIDTH + 12;
+			x = 320 - w / 2;
+			CG_DrawStringExt( x, y + 4, line, grey, qtrue, qfalse, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+			x += CG_DrawStrlen( line ) * TINYCHAR_WIDTH + 12;
+			CG_DrawSmallStringColor( x, y, hp, red );
+			x += (int)strlen( hp ) * SMALLCHAR_WIDTH + 12;
+			CG_DrawSmallStringColor( x, y, ap, yellow );
+			y += SMALLCHAR_HEIGHT + 6;
+		}
+
+		// the damage both ways this life
 		Com_sprintf( line, sizeof( line ), BG_String( STR_DEATH_DAMAGE ), cg.deathDealt, cg.deathTaken );
-		w = CG_DrawStrlen( line ) * SMALLCHAR_WIDTH;
-		CG_DrawSmallStringColor( 320 - w / 2, y, line, colorWhite );
+		CG_DrawSmallStringColor( 320 - CG_DrawStrlen( line ) * SMALLCHAR_WIDTH / 2, y, line, colorWhite );
 		y += SMALLCHAR_HEIGHT + 8;
+	} else {
+		// suicide or a world death: no portrait, a skull and the cause
+		int		mod = cg.deathMod;
+
+		if ( skull ) {
+			CG_DrawPic( 320 - 20, y, 40, 40, skull );
+		}
+		y += 44;
+		Q_strncpyz( line, BG_String( mod == MOD_FALLING || mod == MOD_TRIGGER_HURT ? STR_DEATH_FELL
+			: mod == MOD_SUICIDE || cg.deathKiller == cg.snap->ps.clientNum ? STR_DEATH_SUICIDE : STR_DEATH_WORLD ), sizeof( line ) );
+		CG_DrawBigString( 320 - CG_DrawStrlen( line ) * BIGCHAR_WIDTH / 2, y, line, 1.0f );
+		y += BIGCHAR_HEIGHT + 10;
 	}
 
+	// the respawn: "RESPAWN IN n" over a stripe running down, then the fire hint
 	left = cg.deathRespawn - ( cg.time - cg.deathTime );
 	if ( left > 0 ) {
 		Com_sprintf( line, sizeof( line ), BG_String( STR_DEATH_RESPAWN_IN ), ( left + 999 ) / 1000 );
+		CG_DrawStringExt( 320 - CG_DrawStrlen( line ) * SMALLCHAR_WIDTH / 2, y, line, grey, qtrue, qtrue,
+			SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+		if ( cg.deathRespawn > 0 ) {
+			CG_FillRect( 240, y + SMALLCHAR_HEIGHT + 3, 160, 3, back );
+			CG_FillRect( 240, y + SMALLCHAR_HEIGHT + 3, 160.0f * left / cg.deathRespawn, 3, stripe );
+		}
 	} else {
 		Q_strncpyz( line, BG_String( STR_DEATH_RESPAWN ), sizeof( line ) );
+		CG_DrawStringExt( 320 - CG_DrawStrlen( line ) * SMALLCHAR_WIDTH / 2, y, line, colorWhite, qtrue, qtrue,
+			SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
 	}
-	w = CG_DrawStrlen( line ) * SMALLCHAR_WIDTH;
-	CG_DrawSmallStringColor( 320 - w / 2, y, line, grey );
 
 	// WPN-10: the starting weapon for the next spawn, chosen here with the
 	// weapon keys (the slot number shown by each)
@@ -4767,7 +4821,7 @@ static qboolean CG_DrawScoreboard( void ) {
 		return qfalse;
 	}
 
-	if ( cg.showScores || cg.predictedPlayerState.pm_type == PM_DEAD || cg.predictedPlayerState.pm_type == PM_INTERMISSION ) {
+	if ( cg.showScores || cg.predictedPlayerState.pm_type == PM_INTERMISSION ) {
 	} else {
 		if ( !CG_FadeColor( cg.scoreFadeTime, FADE_TIME ) ) {
 			// next time scoreboard comes up, don't print killer
