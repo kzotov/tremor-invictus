@@ -1100,48 +1100,49 @@ line from the install when it has one, loaded the first time each is earned
 =================
 */
 // gaps.md GAP-17: the announcer's rarest-first order when several medals
-// come at once (the multi-kill steps the list leaves out sit by their count)
+// come at once (the multi-kill steps the list leaves out sit by their count),
+// in tens so later tiers fit between
 static const int cg_medalRank[MEDAL_NUM] = {
-	36,		// MEDAL_FIRSTBLOOD
-	22,		// MEDAL_MIDAIR
-	32,		// MEDAL_AIRBORNE
-	21,		// MEDAL_COMBOKILL
-	8,		// MEDAL_COLLATERAL
-	7,		// MEDAL_DOUBLEWHAMMY
-	20,		// MEDAL_DENIED
-	18,		// MEDAL_REVENGE
-	19,		// MEDAL_PARTYBREAKER
-	9,		// MEDAL_PERFORATED
-	31,		// MEDAL_POINTBLANK
-	23,		// MEDAL_PRECISE
-	10,		// MEDAL_RINGOUT
-	33,		// MEDAL_STOPWATCH
-	28,		// MEDAL_TANK
-	29,		// MEDAL_DIEHARD
-	6,		// MEDAL_FROMTHEGRAVE
-	5,		// MEDAL_KAMIKAZE
-	17,		// MEDAL_SHOWSTOPPER
-	25,		// MEDAL_TRIPLEKILL
-	24,		// MEDAL_OVERKILL (4 kills: between Fighter and Triple Kill)
-	15,		// MEDAL_FIGHTER
-	14,		// MEDAL_CRUSHER (6)
-	13,		// MEDAL_EXTERMINATOR (7)
-	12,		// MEDAL_DEMOLISHER (8)
-	11,		// MEDAL_GRIMREAPER (9)
-	1,		// MEDAL_AVATAR
-	26,		// MEDAL_SPREE
-	16,		// MEDAL_RAGE
-	3,		// MEDAL_FRENZY
-	2,		// MEDAL_RAMPAGE
-	27,		// MEDAL_DOMINATING
-	4,		// MEDAL_PUMASSACRE
+	360,		// MEDAL_FIRSTBLOOD
+	220,		// MEDAL_MIDAIR
+	320,		// MEDAL_AIRBORNE
+	210,		// MEDAL_COMBOKILL
+	80,		// MEDAL_COLLATERAL
+	70,		// MEDAL_DOUBLEWHAMMY
+	200,		// MEDAL_DENIED
+	180,		// MEDAL_REVENGE
+	190,		// MEDAL_PARTYBREAKER
+	90,		// MEDAL_PERFORATED
+	310,		// MEDAL_POINTBLANK
+	230,		// MEDAL_PRECISE
+	100,		// MEDAL_RINGOUT
+	330,		// MEDAL_STOPWATCH
+	280,		// MEDAL_TANK
+	290,		// MEDAL_DIEHARD
+	60,		// MEDAL_FROMTHEGRAVE
+	50,		// MEDAL_KAMIKAZE
+	170,		// MEDAL_SHOWSTOPPER
+	250,		// MEDAL_TRIPLEKILL
+	240,		// MEDAL_OVERKILL (4 kills: between Fighter and Triple Kill)
+	150,		// MEDAL_FIGHTER
+	140,		// MEDAL_CRUSHER (6)
+	130,		// MEDAL_EXTERMINATOR (7)
+	120,		// MEDAL_DEMOLISHER (8)
+	110,		// MEDAL_GRIMREAPER (9)
+	10,		// MEDAL_AVATAR
+	260,		// MEDAL_SPREE
+	160,		// MEDAL_RAGE
+	30,		// MEDAL_FRENZY
+	20,		// MEDAL_RAMPAGE
+	270,		// MEDAL_DOMINATING
+	40,		// MEDAL_PUMASSACRE
 	0, 0, 0, 0, 0, 0, 0, 0,		// the weapon gods
 	MEDAL_RANK_TOTALS,	// MEDAL_DAMAGEDEALER
 	MEDAL_RANK_TOTALS,	// MEDAL_NETMASTER
 	MEDAL_RANK_TOTALS,	// MEDAL_ASSISTANT
-	15,		// MEDAL_FURY (15 kills: by Rage)
-	3,		// MEDAL_RIOT (25: by Frenzy)
-	2, 2, 2, 2		// Merciless, Fanaticism, Sadism, Executioner (40-75: by Rampage)
+	155,		// MEDAL_FURY (15 kills: just rarer than Rage)
+	25,		// MEDAL_RIOT (25: between Rampage and Frenzy)
+	8, 6, 4, 2		// Merciless, Fanaticism, Sadism, Executioner: rarer than Avatar of Death (10), the longest first (d)
 };
 
 static void CG_Medal( int medal, int count ) {

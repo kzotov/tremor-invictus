@@ -1676,10 +1676,10 @@ void CG_TransitionPlayerState( playerState_t *ps, playerState_t *ops );
 qboolean CG_PlayerRevealed( int clientNum );
 void CG_RevealModel( const refEntity_t *ent, int clientNum );
 // gaps.md GAP-17 announcer order, rarest first: lower is rarer
-#define MEDAL_RANK_HUMILIATOR	30
-#define MEDAL_RANK_IMPRESSIVE	34
-#define MEDAL_RANK_EXCELLENT	35
-#define MEDAL_RANK_TOTALS		40
+#define MEDAL_RANK_HUMILIATOR	300
+#define MEDAL_RANK_IMPRESSIVE	340
+#define MEDAL_RANK_EXCELLENT	350
+#define MEDAL_RANK_TOTALS		400
 
 // the champion portraits' game paths, for the RmlUi scoreboard
 extern char	cg_portraitPath[32][MAX_QPATH];
