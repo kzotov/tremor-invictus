@@ -432,8 +432,8 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_enemyOutlineColor, "cg_enemyOutlineColor", "0xFF2020FF", CVAR_ARCHIVE },
 	{ &cg_colorBlind, "cg_colorBlind", "0", CVAR_ARCHIVE },
 	// 1: the champions HUD, 0: the classic status bar
-	{ &cg_hudLayout, "cg_hudLayout", "modern", CVAR_ARCHIVE},
-	{ &cg_rmlScoreboard, "cg_rmlScoreboard", "1", CVAR_ARCHIVE },		// the RmlUi Tab board (scoreboard.md)		// hud/<name>.hud: modern or classic
+	{ &cg_hudLayout, "cg_hudLayout", "modern", CVAR_ARCHIVE},		// hud/<name>.hud: modern or classic
+	{ &cg_rmlScoreboard, "cg_rmlScoreboard", "1", CVAR_ARCHIVE },		// the RmlUi Tab board (scoreboard.md)
 	// the ability arc by the crosshair: 0 off, 2 top, 3 bottom, 4 left, 5 right
 	{ &cg_drawCooldownArc, "cg_drawCooldownArc", "1", CVAR_ARCHIVE},	// 0 off, 1 layout (bottom), 2 top, 3 right, 4 bottom, 5 left
 	{ &cg_obituaryRowSize, "cg_obituaryRowSize", "5", CVAR_ARCHIVE},

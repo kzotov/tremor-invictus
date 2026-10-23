@@ -26,6 +26,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // After the podium, players pick the next map from three of the mode's
 // maps. CS_MAPVOTE carries "endTime map1 map2 map3 votes1 votes2 votes3";
 // "mapvote <1-3>" casts or changes a vote.
+//
+// With g_lobby 1 the vote moves to the pre-match lobby (lobby.md) instead,
+// which also holds the champion pick; see the end of this file.
 
 #include "g_local.h"
 
@@ -91,7 +94,31 @@ Picks up to three of the mode's maps, not the current one, from g_mapPool
 when it is set, otherwise from every arena that lists the mode
 =================
 */
+static void G_MapVoteChoose( void );
+
 void G_MapVoteStart( void ) {
+	mapVoteCount = 0;
+	mapVoteEnd = 0;
+	memset( mapVoteOf, 0, sizeof( mapVoteOf ) );
+	if ( !g_mapVote.integer || g_lobby.integer ) {
+		return;		// (the lobby votes before the next match instead)
+	}
+	G_MapVoteChoose();
+	if ( !mapVoteCount ) {
+		return;
+	}
+	mapVoteEnd = level.intermissiontime + g_mapVoteDelay.integer + g_mapVoteTime.integer * 1000;
+	G_MapVoteSend();
+}
+
+/*
+=================
+G_MapVoteChoose
+
+Three maps at random from the mode's pool, never the current one
+=================
+*/
+static void G_MapVoteChoose( void ) {
 	char		pool[64][MAX_QPATH];
 	char		current[MAX_QPATH];
 	char		list[MAX_CVAR_VALUE_STRING];
@@ -100,11 +127,6 @@ void G_MapVoteStart( void ) {
 	const char	*info;
 
 	mapVoteCount = 0;
-	mapVoteEnd = 0;
-	memset( mapVoteOf, 0, sizeof( mapVoteOf ) );
-	if ( !g_mapVote.integer ) {
-		return;
-	}
 	trap_Cvar_VariableStringBuffer( "mapname", current, sizeof( current ) );
 
 	trap_Cvar_VariableStringBuffer( "g_mapPool", list, sizeof( list ) );
@@ -154,8 +176,6 @@ void G_MapVoteStart( void ) {
 		Q_strncpyz( pool[j], pool[numPool - 1], MAX_QPATH );
 		numPool--;
 	}
-	mapVoteEnd = level.intermissiontime + g_mapVoteDelay.integer + g_mapVoteTime.integer * 1000;
-	G_MapVoteSend();
 }
 
 /*
@@ -183,10 +203,24 @@ qboolean G_MapVoteActive( void ) {
 Cmd_MapVote_f
 =================
 */
+static qboolean G_LobbyVoteOpen( void );
+static void G_LobbySend( void );
+
 void Cmd_MapVote_f( gentity_t *ent ) {
 	char	arg[8];
 	int		n, clientNum = ent - g_entities;
 
+	if ( G_LobbyVoteOpen() ) {
+		trap_Argv( 1, arg, sizeof( arg ) );
+		n = atoi( arg );
+		if ( n >= 1 && n <= mapVoteCount && n != mapVoteOf[clientNum]
+			&& ( !mapVoteOf[clientNum] || level.time - mapVoteTime[clientNum] >= MAPVOTE_CHANGE_GAP ) ) {
+			mapVoteOf[clientNum] = n;
+			mapVoteTime[clientNum] = level.time;
+			G_LobbySend();
+		}
+		return;
+	}
 	if ( !G_MapVoteOpen() || level.time < level.intermissiontime + g_mapVoteDelay.integer ) {
 		return;
 	}
@@ -240,4 +274,270 @@ const char *G_MapVoteWinner( void ) {
 		}
 	}
 	return mapVoteMaps[0];
+}
+
+/*
+================================================================================
+
+THE PRE-MATCH LOBBY (lobby.md), g_lobby 1
+
+Before each match the server holds warm-up for: "voting in" 5 s, the map
+vote (g_lobbyVoteTime), the reveal 3 s, then the champion phase and a 5 s
+countdown. A winning map other than the current one is loaded and the
+lobby goes on there with the champion phase (g_lobbyState "pick"); once the
+match is under way g_lobbyState is "done", and the intermission clears it
+for the next match. Champions are chosen as always (the champion userinfo);
+"lobbylock" locks the choice in. CS_LOBBY carries
+"phase endTime pickMode winner map1 map2 map3 votes1 votes2 votes3" and then
+"client:champion:locked" for each player (champion -1 while a blind pick
+is hidden).
+
+================================================================================
+*/
+
+typedef enum {
+	LOBBY_OFF,
+	LOBBY_WAIT,		// for the first player
+	LOBBY_SOON,		// "voting in"
+	LOBBY_VOTE,
+	LOBBY_REVEAL,
+	LOBBY_PICK,
+	LOBBY_START		// the countdown
+} lobbyPhase_t;
+
+#define LOBBY_SOON_MSEC		5000	// (d)
+#define LOBBY_REVEAL_MSEC	3000	// (d)
+#define LOBBY_START_MSEC	5000	// (d)
+#define LOBBY_DUEL_PICK		20000	// classic duel's blind pick (d)
+
+static int		lobbyPhase;
+static int		lobbyEnd;
+static int		lobbyWinner;		// 1-3, 0 before the reveal
+static qboolean	lobbyLocked[MAX_CLIENTS];
+
+/*
+=================
+G_LobbyPickMode
+
+0 free pick, 1 classic duel's blind pick, 2 none (round duel drafts in the
+match; a forced champion leaves nothing to pick)
+=================
+*/
+static int G_LobbyPickMode( void ) {
+	if ( g_roundDuel.integer || g_randomChampion.integer ) {
+		return 2;
+	}
+	return g_gametype.integer == GT_TOURNAMENT ? 1 : 0;
+}
+
+static qboolean G_LobbyVoteOpen( void ) {
+	return lobbyPhase == LOBBY_VOTE && mapVoteCount > 0;
+}
+
+/*
+=================
+G_LobbyActive
+
+True while the lobby holds the match back
+=================
+*/
+qboolean G_LobbyActive( void ) {
+	return lobbyPhase != LOBBY_OFF;
+}
+
+/*
+=================
+G_LobbySend
+=================
+*/
+static void G_LobbySend( void ) {
+	static char	last[MAX_STRING_CHARS];
+	char		text[MAX_STRING_CHARS];
+	int			votes[MAPVOTE_CHOICES], i, mode = G_LobbyPickMode();
+	gclient_t	*cl;
+
+	if ( lobbyPhase == LOBBY_OFF ) {
+		text[0] = 0;
+	} else {
+		memset( votes, 0, sizeof( votes ) );
+		for ( i = 0 ; i < level.maxclients ; i++ ) {
+			if ( level.clients[i].pers.connected == CON_CONNECTED && mapVoteOf[i] > 0 && mapVoteOf[i] <= mapVoteCount ) {
+				votes[mapVoteOf[i] - 1]++;
+			}
+		}
+		Com_sprintf( text, sizeof( text ), "%i %i %i %i %s %s %s %i %i %i", lobbyPhase, lobbyEnd, mode, lobbyWinner,
+			mapVoteCount > 0 ? mapVoteMaps[0] : "-", mapVoteCount > 1 ? mapVoteMaps[1] : "-",
+			mapVoteCount > 2 ? mapVoteMaps[2] : "-", votes[0], votes[1], votes[2] );
+		for ( i = 0 ; i < level.maxclients ; i++ ) {
+			cl = &level.clients[i];
+			if ( cl->pers.connected != CON_CONNECTED || cl->sess.sessionTeam == TEAM_SPECTATOR ) {
+				continue;
+			}
+			Q_strcat( text, sizeof( text ), va( " %i:%i:%i", i,
+				mode == 1 && lobbyPhase == LOBBY_PICK ? -1 : cl->pers.champion, lobbyLocked[i] ) );
+		}
+	}
+	if ( strcmp( text, last ) ) {
+		Q_strncpyz( last, text, sizeof( last ) );
+		trap_SetConfigstring( CS_LOBBY, text );
+	}
+}
+
+/*
+=================
+G_LobbyInit
+
+At every map load: a new lobby, the champion phase after a map change,
+or nothing once the match has begun
+=================
+*/
+void G_LobbyInit( void ) {
+	char	state[16];
+
+	lobbyPhase = LOBBY_OFF;
+	lobbyWinner = 0;
+	memset( lobbyLocked, 0, sizeof( lobbyLocked ) );
+	trap_SetConfigstring( CS_LOBBY, "" );
+	if ( !g_lobby.integer || g_gametype.integer == GT_SINGLE_PLAYER ) {
+		return;
+	}
+	trap_Cvar_VariableStringBuffer( "g_lobbyState", state, sizeof( state ) );
+	if ( !Q_stricmp( state, "done" ) ) {
+		return;
+	}
+	lobbyPhase = Q_stricmp( state, "pick" ) ? LOBBY_WAIT : LOBBY_PICK;
+	lobbyEnd = 0;		// the pick's clock starts with the first player
+	G_LobbySend();
+}
+
+/*
+=================
+G_LobbyEndMatch
+
+The intermission: the next match gets a lobby of its own
+=================
+*/
+void G_LobbyEndMatch( void ) {
+	if ( g_lobby.integer ) {
+		trap_Cvar_Set( "g_lobbyState", "" );
+	}
+}
+
+/*
+=================
+Cmd_LobbyLock_f
+=================
+*/
+void Cmd_LobbyLock_f( gentity_t *ent ) {
+	if ( lobbyPhase == LOBBY_PICK || lobbyPhase == LOBBY_REVEAL || lobbyPhase == LOBBY_VOTE || lobbyPhase == LOBBY_SOON ) {
+		lobbyLocked[ent - g_entities] = qtrue;
+		G_LobbySend();
+	}
+}
+
+/*
+=================
+G_LobbyThink
+=================
+*/
+void G_LobbyThink( void ) {
+	int			i, humans = 0, locked = 0;
+	gclient_t	*cl;
+	char		current[MAX_QPATH];
+
+	if ( lobbyPhase == LOBBY_OFF ) {
+		return;
+	}
+	for ( i = 0 ; i < level.maxclients ; i++ ) {
+		cl = &level.clients[i];
+		if ( cl->pers.connected != CON_CONNECTED || cl->sess.sessionTeam == TEAM_SPECTATOR ) {
+			continue;
+		}
+		if ( g_entities[i].r.svFlags & SVF_BOT ) {
+			lobbyLocked[i] = qtrue;		// bots pick at once
+			continue;
+		}
+		humans++;
+		locked += lobbyLocked[i];
+	}
+
+	switch ( lobbyPhase ) {
+	case LOBBY_WAIT:
+		if ( humans ) {
+			lobbyPhase = LOBBY_SOON;
+			lobbyEnd = level.time + LOBBY_SOON_MSEC;
+			memset( mapVoteOf, 0, sizeof( mapVoteOf ) );
+			G_MapVoteChoose();
+		}
+		break;
+	case LOBBY_SOON:
+		if ( level.time >= lobbyEnd ) {
+			lobbyPhase = mapVoteCount ? LOBBY_VOTE : LOBBY_PICK;
+			lobbyEnd = mapVoteCount ? level.time + g_lobbyVoteTime.integer * 1000 : 0;
+		}
+		break;
+	case LOBBY_VOTE:
+		if ( level.time >= lobbyEnd ) {
+			const char	*winner = G_MapVoteWinner();
+
+			lobbyWinner = 0;
+			for ( i = 0 ; i < mapVoteCount ; i++ ) {
+				if ( winner && !Q_stricmp( winner, mapVoteMaps[i] ) ) {
+					lobbyWinner = i + 1;
+				}
+			}
+			lobbyPhase = LOBBY_REVEAL;
+			lobbyEnd = level.time + LOBBY_REVEAL_MSEC;
+		}
+		break;
+	case LOBBY_REVEAL:
+		if ( level.time >= lobbyEnd ) {
+			trap_Cvar_VariableStringBuffer( "mapname", current, sizeof( current ) );
+			if ( lobbyWinner && Q_stricmp( mapVoteMaps[lobbyWinner - 1], current ) ) {
+				// the champion phase goes on on the winning map
+				trap_Cvar_Set( "g_lobbyState", "pick" );
+				trap_SendConsoleCommand( EXEC_APPEND, va( "map %s\n", mapVoteMaps[lobbyWinner - 1] ) );
+				lobbyPhase = LOBBY_OFF;		// (the map load starts it again)
+				return;
+			}
+			lobbyPhase = LOBBY_PICK;
+			lobbyEnd = 0;
+		}
+		break;
+	case LOBBY_PICK:
+		if ( !humans ) {
+			break;
+		}
+		if ( !lobbyEnd ) {
+			if ( G_LobbyPickMode() == 2 ) {
+				lobbyEnd = level.time;		// nothing to pick here
+			} else {
+				lobbyEnd = level.time + ( G_LobbyPickMode() == 1 ? LOBBY_DUEL_PICK : g_lobbyPickTime.integer * 1000 );
+			}
+		}
+		// the time runs out, or everyone has locked in
+		if ( level.time >= lobbyEnd || locked == humans ) {
+			for ( i = 0 ; i < level.maxclients ; i++ ) {
+				lobbyLocked[i] = qtrue;		// the current choice stays
+			}
+			lobbyPhase = LOBBY_START;
+			lobbyEnd = level.time + LOBBY_START_MSEC;
+			// a blind pick is shown to all now
+			if ( G_LobbyPickMode() == 1 ) {
+				for ( i = 0 ; i < level.maxclients ; i++ ) {
+					if ( level.clients[i].pers.connected == CON_CONNECTED ) {
+						ClientUserinfoChanged( i );
+					}
+				}
+			}
+		}
+		break;
+	case LOBBY_START:
+		if ( level.time >= lobbyEnd ) {
+			lobbyPhase = LOBBY_OFF;
+			trap_Cvar_Set( "g_lobbyState", "done" );
+		}
+		break;
+	}
+	G_LobbySend();
 }

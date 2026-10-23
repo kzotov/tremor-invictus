@@ -1684,6 +1684,8 @@ void CG_RevealModel( const refEntity_t *ent, int clientNum );
 // the champion portraits' game paths, for the RmlUi scoreboard
 extern char	cg_portraitPath[32][MAX_QPATH];
 qboolean CG_RmlScoreboard( void );
+void CG_RmlScoreboardEndFrame( void );
+void CG_LobbyPick_f( void );
 
 void CG_PushReward( sfxHandle_t sfx, qhandle_t shader, int rewardCount, int name, int rank );
 void CG_CheckChangedPredictableEvents( playerState_t *ps );

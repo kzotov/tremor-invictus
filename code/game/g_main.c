@@ -230,6 +230,9 @@ vmCvar_t	g_spawnProtectionScale;
 vmCvar_t	g_teamSize;
 vmCvar_t	g_voteTypes;
 vmCvar_t	g_mapVote;
+vmCvar_t	g_lobby;
+vmCvar_t	g_lobbyVoteTime;
+vmCvar_t	g_lobbyPickTime;
 vmCvar_t	g_mapVoteTime;
 vmCvar_t	g_mapVoteDelay;
 vmCvar_t	g_ffaFraglimit;
@@ -317,6 +320,9 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_teamSize, "g_teamSize", "0", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue },		// players per team, 0 = no limit
 	{ &g_voteTypes, "g_voteTypes", "map nextmap map_restart kick shuffle teamsize timelimit fraglimit capturelimit roundlimit mode cointoss", CVAR_ARCHIVE, 0, qfalse },
 	{ &g_mapVote, "g_mapVote", "1", CVAR_ARCHIVE, 0, qtrue },			// end-of-match map vote; 0 = the rotation decides
+	{ &g_lobby, "g_lobby", "0", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qfalse },	// 1: the pre-match lobby (lobby.md) before each match
+	{ &g_lobbyVoteTime, "g_lobbyVoteTime", "15", CVAR_ARCHIVE, 0, qfalse },
+	{ &g_lobbyPickTime, "g_lobbyPickTime", "30", CVAR_ARCHIVE, 0, qfalse },
 	{ &g_mapVoteTime, "g_mapVoteTime", "20", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_mapVoteDelay, "g_mapVoteDelay", "6000", 0, 0, qtrue },		// msec of podium before the vote
 	{ NULL, "g_mapPool", "", CVAR_ARCHIVE, 0, qfalse },
@@ -913,6 +919,7 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	trap_SetConfigstring( CS_INTERMISSION, "" );
 	trap_SetConfigstring( CS_MAPVOTE, "" );
 	G_LoadAccess();
+	G_LobbyInit();
 }
 
 
@@ -1433,6 +1440,7 @@ void BeginIntermission( void ) {
 	SendScoreboardMessageToAllClients();
 
 	G_SendAwards();
+	G_LobbyEndMatch();
 	G_MapVoteStart();
 }
 
@@ -1995,6 +2003,15 @@ Once a frame, check for changes in tournement player state
 =============
 */
 void CheckTournament( void ) {
+	// the pre-match lobby first: no warm-up countdown until it is done
+	if ( G_LobbyActive() ) {
+		if ( level.warmupTime != -1 ) {
+			level.warmupTime = -1;
+			trap_SetConfigstring( CS_WARMUP, va( "%i", level.warmupTime ) );
+		}
+		return;
+	}
+
 	// check because we run 3 game frames before calling Connect and/or ClientBegin
 	// for clients on a map_restart
 	if ( level.numPlayingClients == 0 ) {
@@ -2443,6 +2460,9 @@ void G_RunFrame( int levelTime ) {
 	G_UpdateRevealedPlayers();
 	G_RewindRecord();
 	G_SendDuelHud();
+
+	// the pre-match lobby holds the match back
+	G_LobbyThink();
 
 	// see if it is time to do a tournement restart
 	CheckTournament();

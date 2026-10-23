@@ -191,7 +191,9 @@ typedef enum {
 
 #define CS_READYUP				(CS_PARTICLES+MAX_LOCATIONS)	// warm-up: "readyUp share ready players needed startTime"
 
-#define CS_MAX					(CS_READYUP+1)
+#define CS_LOBBY				(CS_READYUP+1)	// the pre-match lobby (g_mapvote.c)
+
+#define CS_MAX					(CS_LOBBY+1)
 
 #if (CS_MAX) > MAX_CONFIGSTRINGS
 #error overflow: (CS_MAX) > MAX_CONFIGSTRINGS

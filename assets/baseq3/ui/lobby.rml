@@ -1,0 +1,94 @@
+<rml>
+<head>
+	<title>Lobby</title>
+	<link type="text/rcss" href="tremor.rcss"/>
+	<link type="text/rcss" href="lobby.rcss"/>
+</head>
+<!-- The pre-match lobby (lobby.md), shown by the game while the server's
+     lobby runs. Rows come from lb_* cvars, fields split by '|':
+     players    classes|portrait|name|champion|locked
+     champions  classes|portrait|name -->
+<body data-escape="set lb_hidden 1; rml_hide">
+	<div class="lobby">
+		<div class="lbhead">
+			<div class="lbphase">
+				<span data-when="lb_phase=wait">[lb_wait]</span>
+				<span data-when="lb_phase=soon">[lb_soon]</span>
+				<span data-when="lb_phase=vote">[lb_vote]</span>
+				<span data-when="lb_phase=reveal">[lb_reveal]</span>
+				<span data-when="lb_phase=pick&amp;lb_mode=free">[lb_pick]</span>
+				<span data-when="lb_phase=pick&amp;lb_mode=blind">[lb_blind]</span>
+				<span data-when="lb_phase=pick&amp;lb_mode=none">[lb_none]</span>
+				<span data-when="lb_phase=start">[lb_start]</span>
+			</div>
+			<div class="lbsecs" data-text-cvar="lb_secs"></div>
+		</div>
+
+		<!-- the map cards: greyed until the vote opens, the winner alone after it -->
+		<div class="cards" data-when="lb_phase!=pick&amp;lb_phase!=start&amp;lb_phase!=wait">
+			<div class="card" data-when="lb_map1!=" data-class="mine:lb_myvote=1" onclick="mapvote 1; set lb_myvote 1">
+				<div data-class="grey:lb_phase=soon"><div data-class="lost:lb_win=2"><div data-class="lost:lb_win=3">
+					<img data-src-cvar="lb_shot1"/><div class="cname" data-text-cvar="lb_map1"></div><div class="cvotes"><span data-text-cvar="lb_votes1"></span> [lb_votes]</div>
+				</div></div></div>
+			</div>
+			<div class="card" data-when="lb_map2!=" data-class="mine:lb_myvote=2" onclick="mapvote 2; set lb_myvote 2">
+				<div data-class="grey:lb_phase=soon"><div data-class="lost:lb_win=1"><div data-class="lost:lb_win=3">
+					<img data-src-cvar="lb_shot2"/><div class="cname" data-text-cvar="lb_map2"></div><div class="cvotes"><span data-text-cvar="lb_votes2"></span> [lb_votes]</div>
+				</div></div></div>
+			</div>
+			<div class="card" data-when="lb_map3!=" data-class="mine:lb_myvote=3" onclick="mapvote 3; set lb_myvote 3">
+				<div data-class="grey:lb_phase=soon"><div data-class="lost:lb_win=1"><div data-class="lost:lb_win=2">
+					<img data-src-cvar="lb_shot3"/><div class="cname" data-text-cvar="lb_map3"></div><div class="cvotes"><span data-text-cvar="lb_votes3"></span> [lb_votes]</div>
+				</div></div></div>
+			</div>
+		</div>
+
+		<div class="lbmid">
+			<!-- the players and their picks -->
+			<div class="players">
+				<div class="ptitle">[lb_players] <span data-text-cvar="lb_count"></span></div>
+				<div class="prow" data-row="lb_p#" data-repeat="16" data-cell-class="0">
+					<span class="ppor"><img data-cell-src="1"/></span>
+					<span class="pname" data-cell="2"></span>
+					<span class="pchamp" data-cell="3"></span>
+					<span class="pstate pin">[lb_locked_in]</span><span class="pstate pout">[lb_picking]</span>
+				</div>
+			</div>
+
+			<!-- chat -->
+			<div class="chat">
+				<div class="cline" data-text-cvar="lb_chat0"></div>
+				<div class="cline" data-text-cvar="lb_chat1"></div>
+				<div class="cline" data-text-cvar="lb_chat2"></div>
+				<div class="cline" data-text-cvar="lb_chat3"></div>
+				<div class="cline" data-text-cvar="lb_chat4"></div>
+				<div class="cline" data-text-cvar="lb_chat5"></div>
+				<div class="cline" data-text-cvar="lb_chat6"></div>
+				<div class="cline" data-text-cvar="lb_chat7"></div>
+				<form onsubmit="say {value}">
+					<input type="text" name="value" class="cinput" maxlength="150"/>
+				</form>
+				<div class="hint">[lb_chat_hint]</div>
+			</div>
+		</div>
+
+		<!-- the champion drawer, the loadout and lock-in -->
+		<div class="pickbar" data-when="lb_phase!=wait&amp;lb_mode!=none">
+			<div class="loadout">
+				[lb_loadout]
+				<button class="opt" data-class="on:cg_startWeapon=mg" onclick="ui_startWeapon mg">[ch_mg_short]</button>
+				<button class="opt" data-class="on:cg_startWeapon=sg" onclick="ui_startWeapon sg">[ch_sg_short]</button>
+				<button class="opt" data-class="on:cg_startWeapon=ng" onclick="ui_startWeapon ng">[ch_ng_short]</button>
+				<button class="lock" data-when="lb_locked!=1&amp;lb_phase!=start" onclick="lobbylock">[lb_lock]</button>
+				<span class="lockdone" data-when="lb_locked=1">[lb_locked_in]</span>
+			</div>
+			<div class="grid">
+				<div class="tile" data-row="lb_c#" data-repeat="32" data-cell-class="0" onclick="lobbypick #">
+					<img data-cell-src="1"/><div class="tname" data-cell="2"></div>
+				</div>
+			</div>
+		</div>
+		<div class="esc">[lb_esc]</div>
+	</div>
+</body>
+</rml>

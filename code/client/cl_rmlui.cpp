@@ -58,6 +58,8 @@ Rml::Context	*overlayContext;
 Rml::ElementDocument	*overlay;
 Rml::String		overlayPath;
 int				overlayShowTime, overlayHideTime;	// fade in 120 ms, out 80 ms
+float			overlayAlpha;
+Rml::String		overlayFailed;		// a path that would not load, not tried again
 #define OVERLAY_FADE_IN		120
 #define OVERLAY_FADE_OUT	80
 
@@ -384,8 +386,8 @@ class CommandListener : public Rml::EventListener {
 public:
 	explicit CommandListener( const Rml::String &command ) : command( command ) {}
 
-	// {value} becomes a form control's value, kept to letters, digits,
-	// spaces and a few marks so it can't add commands
+	// {value} becomes a form control's value, kept to printable text
+	// without the marks that could end or add a command (; " \ $)
 	void ProcessEvent( Rml::Event &event ) override {
 		Rml::String	text = command;
 		size_t		at = text.find( "{value}" );
@@ -394,7 +396,7 @@ public:
 			Rml::String	value = event.GetParameter<Rml::String>( "value", "" ), safe;
 
 			for ( char c : value ) {
-				if ( isalnum( (unsigned char)c ) || c == '-' || c == '_' || c == '.' || c == ':' || c == ' ' ) {
+				if ( c >= 32 && c < 127 && c != ';' && c != '"' && c != '\\' && c != '$' ) {
 					safe += c;
 				}
 			}
@@ -757,15 +759,15 @@ void FillValues( Rml::Element *element ) {
 Repeats
 
 data-repeat="N" on an element makes N copies of it in place; in each copy
-and its children, '#' in data- attributes becomes the copy's number (0 for
-the first), so one written row serves a whole list
+and its children, '#' in data- attributes and onclick becomes the copy's
+number (0 for the first), so one written row serves a whole list
 =================
 */
 void NumberCopy( Rml::Element *element, int n ) {
 	Rml::ElementAttributes	attributes = element->GetAttributes();
 
 	for ( auto &it : attributes ) {
-		if ( it.first.compare( 0, 5, "data-" ) || it.first == "data-repeat" ) {
+		if ( ( it.first.compare( 0, 5, "data-" ) && it.first != "onclick" ) || it.first == "data-repeat" ) {
 			continue;
 		}
 		Rml::String	value = it.second.Get<Rml::String>();
@@ -824,6 +826,9 @@ extern "C" void RML_OverlayFrame( void ) {
 	now = imp.Milliseconds();
 	imp.GetCvar( "rml_overlay", path, sizeof( path ) );
 	if ( path[0] && ( !overlay || overlayPath != path ) ) {
+		if ( overlayFailed == path ) {
+			return;
+		}
 		if ( overlay ) {
 			overlay->Close();
 		}
@@ -831,8 +836,10 @@ extern "C" void RML_OverlayFrame( void ) {
 		overlayPath = path;
 		if ( !overlay ) {
 			imp.Print( ( Rml::String( "RmlUi: could not load " ) + path + "\n" ).c_str() );
+			overlayFailed = path;
 			return;
 		}
+		overlayAlpha = 0;
 		ExpandRepeats( overlay );
 		overlayShowTime = now;
 		overlayHideTime = 0;
@@ -843,7 +850,10 @@ extern "C" void RML_OverlayFrame( void ) {
 	if ( path[0] ) {
 		if ( overlayHideTime || !overlay->IsVisible() ) {
 			// shown again: fade in from where it is
-			overlayShowTime = now;
+			if ( !overlay->IsVisible() ) {
+				overlayAlpha = 0;
+			}
+			overlayShowTime = now - (int)( overlayAlpha * OVERLAY_FADE_IN );
 			overlayHideTime = 0;
 		}
 		alpha = ( now - overlayShowTime ) / (float)OVERLAY_FADE_IN;
@@ -852,10 +862,11 @@ extern "C" void RML_OverlayFrame( void ) {
 			return;
 		}
 		if ( !overlayHideTime ) {
-			overlayHideTime = now;
+			overlayHideTime = now - (int)( ( 1 - overlayAlpha ) * OVERLAY_FADE_OUT );
 		}
 		alpha = 1 - ( now - overlayHideTime ) / (float)OVERLAY_FADE_OUT;
 		if ( alpha <= 0 ) {
+			overlayAlpha = 0;
 			overlay->Hide();
 			return;
 		}
@@ -863,6 +874,7 @@ extern "C" void RML_OverlayFrame( void ) {
 	if ( alpha > 1 ) {
 		alpha = 1;
 	}
+	overlayAlpha = alpha;
 	if ( !overlay->IsVisible() ) {
 		overlay->Show( Rml::ModalFlag::None, Rml::FocusFlag::None );
 	}
@@ -934,6 +946,7 @@ extern "C" void RML_Reload( void ) {
 		overlay = nullptr;
 		overlayPath.clear();
 	}
+	overlayFailed.clear();
 	RML_Show( path.c_str() );
 }
 

@@ -822,8 +822,13 @@ static int CG_BoardValues( const score_t *s, char values[6][16] ) {
 	if ( cgs.gametype < GT_TEAM ) {
 		Com_sprintf( values[n++], 16, "%i", s->score );
 		Com_sprintf( values[n++], 16, "%i", s->deaths );
-		Com_sprintf( values[n++], 16, "%i.%i", s->deaths ? s->score / s->deaths : s->score,
-			s->deaths ? ( s->score * 10 / s->deaths ) % 10 : 0 );
+		{
+			// kills / max(deaths, 1), one decimal; the frag score stands in
+			// for kills (suicides lower it), never below 0
+			int		kd = ( s->score > 0 ? s->score : 0 ) * 10 / ( s->deaths > 1 ? s->deaths : 1 );
+
+			Com_sprintf( values[n++], 16, "%i.%i", kd / 10, kd % 10 );
+		}
 		Com_sprintf( values[n++], 16, "%i", s->damage );
 		Com_sprintf( values[n++], 16, "%i%%", s->accuracy );
 	} else if ( mode == 1 ) {		// Sacrifice
@@ -1124,7 +1129,9 @@ static void CG_BoardDuel( void ) {
 			if ( idx >= cg.numDuelStats ) {
 				continue;
 			}
-			any |= cg.duelStats[idx].shots[w];
+			if ( open || cg.duelStats[idx].client == me ) {
+				any |= cg.duelStats[idx].shots[w];		// (the opponent's weapons stay hidden)
+			}
 			if ( !open && cg.duelStats[idx].client != me ) {
 				Q_strncpyz( cell[p], "-|-", sizeof( cell[p] ) );
 			} else if ( cg.duelStats[idx].shots[w] ) {
@@ -1164,6 +1171,23 @@ True when the RmlUi board takes the place of the drawn one; shows it while
 Tab is held or at intermission, hides it otherwise
 =================
 */
+static qboolean	boardShownThisFrame;
+
+/*
+=================
+CG_RmlScoreboardEndFrame
+
+After each frame's drawing: a board not drawn this frame (a menu, the
+podium, the draft, cg_draw2D 0) is put away
+=================
+*/
+void CG_RmlScoreboardEndFrame( void ) {
+	if ( !boardShownThisFrame ) {
+		CG_BoardCvar( "rml_overlay", "" );
+	}
+	boardShownThisFrame = qfalse;
+}
+
 qboolean CG_RmlScoreboard( void ) {
 	static int	lastFill;
 	char		ok[8];
@@ -1191,5 +1215,6 @@ qboolean CG_RmlScoreboard( void ) {
 		CG_BoardSpectators();
 	}
 	CG_BoardCvar( "rml_overlay", "ui/scoreboard.rml" );
+	boardShownThisFrame = qtrue;
 	return qtrue;
 }

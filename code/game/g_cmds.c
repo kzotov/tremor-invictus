@@ -113,24 +113,31 @@ void Cmd_Score_f( gentity_t *ent ) {
 Cmd_DuelStats_f
 
 For the duel board: per player "client score given taken mega heavy light
-shots hits ..." for the players in the match
+shots hits ..." for the players in the match. During the match a player
+gets the opponent's frags and pickups only (scoreboard.md 3.1: the detail
+shows -1); spectators and the end of the match get everything.
 ==================
 */
 void Cmd_DuelStats_f( gentity_t *ent ) {
 	char		string[1000];
 	gclient_t	*cl;
 	int			i, w;
+	qboolean	open = ent->client->sess.sessionTeam == TEAM_SPECTATOR || level.intermissiontime;
 
 	string[0] = 0;
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
+		qboolean	hide;
+
 		cl = &level.clients[i];
 		if ( cl->pers.connected != CON_CONNECTED || cl->sess.sessionTeam == TEAM_SPECTATOR ) {
 			continue;
 		}
+		hide = !open && cl != ent->client;
 		Q_strcat( string, sizeof( string ), va( " %i %i %i %i %i %i %i", i, cl->ps.persistant[PERS_SCORE],
-			cl->pers.damageGiven, cl->pers.damageTaken, cl->pers.pickups[0], cl->pers.pickups[1], cl->pers.pickups[2] ) );
+			hide ? -1 : cl->pers.damageGiven, hide ? -1 : cl->pers.damageTaken,
+			cl->pers.pickups[0], cl->pers.pickups[1], cl->pers.pickups[2] ) );
 		for ( w = WP_GAUNTLET + 1 ; w < WP_NUM_WEAPONS ; w++ ) {
-			Q_strcat( string, sizeof( string ), va( " %i %i", cl->pers.accShots[w], cl->pers.accHits[w] ) );
+			Q_strcat( string, sizeof( string ), va( " %i %i", hide ? 0 : cl->pers.accShots[w], hide ? 0 : cl->pers.accHits[w] ) );
 		}
 	}
 	trap_SendServerCommand( ent - g_entities, va( "dstats%s", string ) );
@@ -1999,6 +2006,11 @@ void ClientCommand( int clientNum ) {
 
 	if ( Q_stricmp( cmd, "mapvote" ) == 0 ) {
 		Cmd_MapVote_f( ent );
+		return;
+	}
+
+	if ( Q_stricmp( cmd, "lobbylock" ) == 0 ) {
+		Cmd_LobbyLock_f( ent );
 		return;
 	}
 

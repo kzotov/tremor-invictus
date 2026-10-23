@@ -4408,7 +4408,7 @@ static void CG_DrawVote( float y ) {
 CG_DrawTeamVote
 =================
 */
-static void CG_DrawTeamVote(void) {
+static void CG_DrawTeamVote( float y ) {
 	char	*s;
 	int		sec, cs_offset;
 
@@ -4454,7 +4454,7 @@ static void CG_DrawTeamVote(void) {
 		CG_DrawStringExt( 50 * DP, 110 * DP + ( cgs.voteTime ? 2.5f * h : 0 ), s, colorYellow, qfalse, qtrue, cw, h, 0 );
 	} else {
 		// under the main vote and its key line when both run
-		CG_DrawSmallStringColor( 8, cgs.voteTime ? 58 + 3 * ( SMALLCHAR_HEIGHT + 2 ) : 90, s, colorYellow );
+		CG_DrawSmallStringColor( 8, cgs.voteTime ? y + 2 * ( SMALLCHAR_HEIGHT + 2 ) : y, s, colorYellow );
 	}
 	cg_hudAnchor = ANCHOR_CENTER;
 }
@@ -4999,6 +4999,162 @@ static qboolean CG_DraftState( int players[2], int picks[2][3] ) {
 	for ( i = 0 ; i < 6 ; i++ ) {
 		picks[i / 3][i % 3] = atoi( COM_Parse( &p ) );
 	}
+	return qtrue;
+}
+
+/*
+================================================================================
+
+THE PRE-MATCH LOBBY (lobby.md)
+
+The server's CS_LOBBY (g_mapvote.c) mirrored in lb_* cvars for
+ui/lobby.rml, which shows over a dark screen while the lobby runs. Esc puts
+the document away until the next phase.
+
+================================================================================
+*/
+
+#define LOBBY_PLAYERS	16
+#define LOBBY_CHAMPIONS	32
+#define LOBBY_CHAT		8
+
+static void CG_LobbyCvar( const char *name, const char *value ) {
+	char	old[MAX_CVAR_VALUE_STRING];
+
+	trap_Cvar_VariableStringBuffer( name, old, sizeof( old ) );
+	if ( strcmp( old, value ) ) {
+		trap_Cvar_Set( name, value );
+	}
+}
+
+/*
+=================
+CG_LobbyPick_f
+
+"lobbypick <n>": the n-th champion of the grid
+=================
+*/
+void CG_LobbyPick_f( void ) {
+	int		n = atoi( CG_Argv( 1 ) );
+
+	if ( n >= 0 && n < bg_numChampions ) {
+		trap_Cvar_Set( "champion", BG_Champion( n )->name );
+	}
+}
+
+static qboolean CG_DrawLobby( void ) {
+	static const vec4_t	dim = { 0.05f, 0.05f, 0.06f, 0.92f };
+	static const char	*phases[] = { "off", "wait", "soon", "vote", "reveal", "pick", "start" };
+	static int			lastPhase = -1;
+	const char	*cs = CG_ConfigString( CS_LOBBY ), *token;
+	char		*p = (char *)cs;
+	char		maps[3][MAX_QPATH], text[MAX_CVAR_VALUE_STRING], doc[MAX_QPATH], active[8], hidden[8], mine[64];
+	int			phase, end, mode, winner, votes[3], i, n, client, champion, locked, players = 0, secs;
+	int			me = cg.snap->ps.clientNum;
+
+	trap_Cvar_VariableStringBuffer( "rml_doc", doc, sizeof( doc ) );
+	trap_Cvar_VariableStringBuffer( "rml_active", active, sizeof( active ) );
+	if ( !cs[0] ) {
+		if ( lastPhase >= 0 ) {
+			lastPhase = -1;
+			if ( !Q_stricmp( doc, "ui/lobby.rml" ) && atoi( active ) ) {
+				trap_SendConsoleCommand( "rml_hide\n" );
+			}
+		}
+		return qfalse;
+	}
+	phase = atoi( COM_Parse( &p ) );
+	end = atoi( COM_Parse( &p ) );
+	mode = atoi( COM_Parse( &p ) );
+	winner = atoi( COM_Parse( &p ) );
+	for ( i = 0 ; i < 3 ; i++ ) {
+		Q_strncpyz( maps[i], COM_Parse( &p ), sizeof( maps[i] ) );
+	}
+	for ( i = 0 ; i < 3 ; i++ ) {
+		votes[i] = atoi( COM_Parse( &p ) );
+	}
+	if ( phase < 1 || phase > 6 ) {
+		return qfalse;
+	}
+
+	CG_LobbyCvar( "lb_phase", phases[phase] );
+	CG_LobbyCvar( "lb_mode", mode == 1 ? "blind" : mode == 2 ? "none" : "free" );
+	secs = end ? ( end - cg.time + 999 ) / 1000 : 0;
+	CG_LobbyCvar( "lb_secs", secs > 0 ? va( "%i", secs ) : "" );
+	for ( i = 0 ; i < 3 ; i++ ) {
+		CG_LobbyCvar( va( "lb_map%i", i + 1 ), maps[i][0] == '-' ? "" : maps[i] );
+		CG_LobbyCvar( va( "lb_shot%i", i + 1 ), maps[i][0] == '-' ? "" : va( "levelshots/%s.tga", maps[i] ) );
+		CG_LobbyCvar( va( "lb_votes%i", i + 1 ), va( "%i", votes[i] ) );
+	}
+	CG_LobbyCvar( "lb_win", va( "%i", winner ) );
+
+	// the players: classes|portrait|name|champion|locked
+	locked = 0;
+	for ( n = 0 ; n < LOBBY_PLAYERS ; n++ ) {
+		token = COM_Parse( &p );
+		if ( !token[0] || sscanf( token, "%i:%i:%i", &client, &champion, &i ) != 3 || client < 0 || client >= MAX_CLIENTS ) {
+			break;
+		}
+		if ( client == me ) {
+			locked = i;
+		}
+		Com_sprintf( text, sizeof( text ), "%s%s%s|%s|%s|%s|%s",
+			i ? "locked" : "picking",
+			cgs.clientinfo[client].team == TEAM_RED ? " red" : cgs.clientinfo[client].team == TEAM_BLUE ? " blue" : "",
+			client == me ? " self" : "",
+			champion >= 0 && champion < 32 ? cg_portraitPath[champion] : "",
+			cgs.clientinfo[client].name,
+			champion >= 0 && champion < bg_numChampions ? BG_String( BG_Champion( champion )->nameString ) : "?",
+			i ? "1" : "" );
+		CG_LobbyCvar( va( "lb_p%i", n ), text );
+		players++;
+	}
+	for ( ; n < LOBBY_PLAYERS ; n++ ) {
+		CG_LobbyCvar( va( "lb_p%i", n ), "" );
+	}
+	CG_LobbyCvar( "lb_count", va( "%i", players ) );
+	CG_LobbyCvar( "lb_locked", locked ? "1" : "0" );
+
+	// the champion grid: classes|portrait|name; yours marked
+	trap_Cvar_VariableStringBuffer( "champion", mine, sizeof( mine ) );
+	for ( n = 0 ; n < LOBBY_CHAMPIONS ; n++ ) {
+		if ( n >= bg_numChampions ) {
+			CG_LobbyCvar( va( "lb_c%i", n ), "" );
+			continue;
+		}
+		Com_sprintf( text, sizeof( text ), "%s|%s|%s", !Q_stricmp( mine, BG_Champion( n )->name ) ? "sel" : "",
+			cg_portraitPath[n], BG_String( BG_Champion( n )->nameString ) );
+		CG_LobbyCvar( va( "lb_c%i", n ), text );
+	}
+
+	// the newest chat lines, oldest first (lobby.md 4)
+#ifndef MISSIONPACK
+	for ( n = 0 ; n < LOBBY_CHAT ; n++ ) {
+		chatLine_t	*c = &chatLines[( chatHead - LOBBY_CHAT + n + CHAT_HISTORY * 4 ) % CHAT_HISTORY];
+		char		clean[MAX_SAY_TEXT];
+
+		Q_strncpyz( clean, c->time ? c->text : "", sizeof( clean ) );
+		Q_CleanStr( clean );
+		CG_LobbyCvar( va( "lb_chat%i", n ), clean );
+	}
+#endif
+
+	// the document: again at each new phase, unless put away with Esc
+	if ( phase != lastPhase ) {
+		lastPhase = phase;
+		trap_Cvar_Set( "lb_hidden", "0" );
+		if ( phase == 3 ) {
+			trap_Cvar_Set( "lb_myvote", "0" );
+		}
+	}
+	trap_Cvar_VariableStringBuffer( "lb_hidden", hidden, sizeof( hidden ) );
+	if ( atoi( hidden ) ) {
+		return qfalse;
+	}
+	if ( Q_stricmp( doc, "ui/lobby.rml" ) || !atoi( active ) ) {
+		trap_SendConsoleCommand( "rml_show ui/lobby.rml\n" );
+	}
+	CG_FillRect( -1000, 0, 3000, 480, dim );
 	return qtrue;
 }
 
@@ -5676,6 +5832,11 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	}
 	cg.podiumTime = 0;
 
+	// the pre-match lobby: its own screen
+	if ( CG_DrawLobby() ) {
+		return;
+	}
+
 	// round duel's draft: its own screen
 	if ( CG_DrawDraft() ) {
 		return;
@@ -5769,8 +5930,6 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 #endif
 	}
 
-	CG_DrawTeamVote();
-
 	cg_hudAnchor = ANCHOR_RIGHT;
 	CG_DrawLagometer();
 	cg_hudAnchor = ANCHOR_CENTER;
@@ -5825,6 +5984,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	CG_DrawChat();
 	cg_hudAnchor = ANCHOR_CENTER;
 	CG_DrawVote( voteY > 58 ? voteY : 58 );
+	CG_DrawTeamVote( voteY > 58 ? voteY : 58 );
 	cg_hudAnchor = ANCHOR_LEFT;
 	CG_DrawSpecItemTimers();
 	cg_hudAnchor = ANCHOR_CENTER;

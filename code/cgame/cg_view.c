@@ -983,6 +983,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 
 	// actually issue the rendering calls
 	CG_DrawActive( stereoView );
+	CG_RmlScoreboardEndFrame();
 
 	// demos: recording on its own, and the playback controls
 	CG_DemoFrame();

@@ -1,0 +1,59 @@
+/* The pre-match lobby (lobby.md 3), on a 1080-high page */
+
+div { display: block; }
+
+.lobby { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+
+.lbhead { position: absolute; left: 82dp; top: 70dp; }
+.lbphase { font-family: "Arial Black"; font-size: 46dp; color: #e8e4dc; }
+.lbsecs { font-size: 68dp; color: #d3191f; }
+
+/* map cards across the top centre */
+.cards { position: absolute; left: 0; right: 0; top: 105dp; text-align: center; }
+.card { display: inline-block; text-align: left; width: 300dp; margin: 0 10dp; padding: 6dp; background-color: rgba(20, 20, 26, 230); border: 3dp transparent; cursor: pointer; }
+.card.mine { border-color: #ffb748; }
+.card img { width: 288dp; height: 162dp; }
+.cname { font-size: 24dp; margin-top: 4dp; }
+.cvotes { font-size: 18dp; color: #9a9aa0; }
+.grey { opacity: 0.45; }
+.lost { opacity: 0.15; }
+
+.lbmid { position: absolute; left: 50dp; right: 50dp; top: 420dp; height: 420dp; }
+
+/* the players, right */
+.players { position: absolute; right: 0; top: 0; width: 520dp; }
+.ptitle { font-size: 22dp; color: #9a9aa0; margin-bottom: 6dp; }
+.prow { display: flex; align-items: center; height: 34dp; margin-bottom: 3dp; padding-left: 6dp; border-left: 5dp transparent; background-color: rgba(255, 255, 255, 12); font-size: 18dp; }
+.prow.red { border-left-color: #ff3838; }
+.prow.blue { border-left-color: #2f8bff; }
+.prow.self { background-color: rgba(255, 183, 72, 40); }
+.prow span { display: block; }
+.ppor { width: 36dp; }
+.ppor img { width: 28dp; height: 28dp; }
+.pname { width: 220dp; color: #ffffff; }
+.pchamp { width: 150dp; color: #ff674a; font-size: 15dp; }
+.pstate { width: 100dp; font-size: 14dp; text-align: right; padding-right: 8dp; }
+.pin { color: #5bd75b; }
+.pout { color: #9a9aa0; }
+.locked .pout, .picking .pin { display: none; }
+
+/* chat, left */
+.chat { position: absolute; left: 0; top: 0; width: 560dp; padding: 8dp; background-color: rgba(10, 10, 14, 200); }
+.cline { height: 22dp; font-size: 16dp; color: #cccccc; white-space: nowrap; overflow: hidden; font-weight: normal; }
+.cinput { display: block; width: 512dp; height: 26dp; margin-top: 6dp; padding: 2dp 6dp; font-size: 16dp; color: #ffffff; background-color: rgba(255, 255, 255, 24); border: 1dp #555555; }
+.hint { font-size: 12dp; color: #77777c; margin-top: 3dp; }
+
+/* the champion drawer along the bottom */
+.pickbar { position: absolute; left: 0; right: 0; bottom: 0; height: 220dp; background-color: rgba(10, 10, 14, 230); }
+.loadout { position: absolute; left: 50dp; right: 50dp; top: 8dp; height: 40dp; font-size: 18dp; color: #9a9aa0; }
+.loadout .opt { display: inline-block; }
+.lock { display: inline-block; position: absolute; right: 0; top: -4dp; font-size: 26dp; color: #ffffff; background-color: #d3191f; padding: 6dp 28dp; margin: 0; border: 0; }
+.lockdone { position: absolute; right: 0; top: 0; font-size: 24dp; color: #5bd75b; }
+.grid { position: absolute; left: 30dp; right: 30dp; top: 56dp; height: 160dp; overflow-x: auto; overflow-y: hidden; white-space: nowrap; }
+.tile { display: inline-block; width: 88dp; margin-right: 6dp; text-align: center; cursor: pointer; border: 2dp transparent; }
+.tile.sel { border-color: #3a8bff; }
+.tile:hover { border-color: #e8e4dc; }
+.tile img { width: 84dp; height: 110dp; }
+.tname { font-size: 13dp; color: #e8e4dc; white-space: nowrap; overflow: hidden; }
+
+.esc { position: absolute; left: 82dp; bottom: 228dp; font-size: 13dp; color: #77777c; }
