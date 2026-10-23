@@ -1017,6 +1017,12 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		attacker = &g_entities[ENTITYNUM_WORLD];
 	}
 
+	// the start countdown: players and their abilities hurt nobody; lava,
+	// acid, falls and the void still do (warmup.md)
+	if ( level.warmupTime > 0 && targ->client && attacker->client ) {
+		return;
+	}
+
 	// shootable doors / buttons don't actually have any health
 	if ( targ->s.eType == ET_MOVER ) {
 		if ( targ->use && targ->moverState == MOVER_POS1 ) {

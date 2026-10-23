@@ -272,6 +272,14 @@ static void InGame_Draw( void ) {
 				}
 			}
 			trap_Cvar_Set( "ui_ingameMode", mode );
+			// warm-up with ready-up: the Ready button (warmup.md)
+			{
+				char	ready[64], warm[16];
+
+				trap_GetConfigString( CS_READYUP, ready, sizeof( ready ) );
+				trap_GetConfigString( CS_WARMUP, warm, sizeof( warm ) );
+				trap_Cvar_Set( "ui_ingameReady", atoi( ready ) && atoi( warm ) == -1 ? "1" : "0" );
+			}
 			trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/ingame.rml\n" );
 		}
 		return;

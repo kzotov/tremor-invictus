@@ -5926,7 +5926,8 @@ static void CG_DrawWarmup( void ) {
 		cg.warmup = 0;
 		sec = 0;
 	}
-	s = va( "Starts in: %i", sec + 1 );
+	// warmup.md: the big numbers through the whole countdown, then FIGHT
+	s = va( "%i", sec + 1 );
 	if ( sec != cg.warmupCount ) {
 		cg.warmupCount = sec;
 		switch ( sec ) {
@@ -5942,9 +5943,6 @@ static void CG_DrawWarmup( void ) {
 		default:
 			break;
 		}
-	}
-	if ( sec > 2 ) {
-		return;		// "Starts in N" only for the last 3 s
 	}
 
 #ifdef MISSIONPACK
@@ -5968,16 +5966,16 @@ static void CG_DrawWarmup( void ) {
 #else
 	switch ( cg.warmupCount ) {
 	case 0:
-		cw = 28;
+		cw = 40;
 		break;
 	case 1:
-		cw = 24;
+		cw = 36;
 		break;
 	case 2:
-		cw = 20;
+		cw = 32;
 		break;
 	default:
-		cw = 16;
+		cw = 28;
 		break;
 	}
 

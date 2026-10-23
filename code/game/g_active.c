@@ -1247,12 +1247,17 @@ void ClientThink_real( gentity_t *ent ) {
 		client->ps.pm_type = PM_DEAD;
 	} else if ( level.timeoutEnd ) {
 		client->ps.pm_type = PM_FREEZE;		// timeout: everyone holds still
-	} else if ( G_MatchMode() && ( ( level.warmupTime > 0 && level.warmupTime - level.time <= 3000 ) || level.halfTimeEnd
+	} else if ( G_MatchMode() && ( level.halfTimeEnd
 		|| ( G_ClanArena() && level.caState == CA_COUNTDOWN ) || G_RoundDuelHolds() ) ) {
-		// countdown or half time: held in place, no firing
+		// half time, round starts: held in place, no firing
 		client->ps.pm_type = PM_FREEZE;
 	} else {
 		client->ps.pm_type = PM_NORMAL;
+	}
+	// the start countdown: free to move but no firing (warmup.md; no
+	// damage between players either, in G_Damage)
+	if ( level.warmupTime > 0 && client->ps.weaponTime < 200 ) {
+		client->ps.weaponTime = 200;
 	}
 
 	client->ps.gravity = g_gravity.value;
