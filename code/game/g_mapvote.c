@@ -434,23 +434,66 @@ At every map load: a new lobby, the champion phase after a map change,
 or nothing once the match has begun
 =================
 */
-void G_LobbyInit( void ) {
+void G_LobbyInit( int restart ) {
 	char	state[16];
 
 	lobbyPhase = LOBBY_OFF;
 	lobbyWinner = 0;
 	memset( lobbyLocked, 0, sizeof( lobbyLocked ) );
 	trap_SetConfigstring( CS_LOBBY, "" );
+	trap_Cvar_VariableStringBuffer( "g_lobbyState", state, sizeof( state ) );
+	// a real map load (not the warm-up's restart) ends a finished lobby's
+	// hold, however the last match ended (vote, nextmap, map, abort); the
+	// lobby's own change of map comes with "pick"
+	if ( !restart && !Q_stricmp( state, "done" ) ) {
+		trap_Cvar_Set( "g_lobbyState", "" );
+		trap_Cvar_Set( "g_lobbyPicks", "" );
+		state[0] = 0;
+	}
 	if ( !g_lobby.integer || g_gametype.integer == GT_SINGLE_PLAYER ) {
 		return;
 	}
-	trap_Cvar_VariableStringBuffer( "g_lobbyState", state, sizeof( state ) );
 	if ( !Q_stricmp( state, "done" ) ) {
 		return;
 	}
 	lobbyPhase = Q_stricmp( state, "pick" ) ? LOBBY_WAIT : LOBBY_PICK;
 	lobbyEnd = 0;		// the pick's clock starts with the first player
 	G_LobbySend();
+}
+
+/*
+=================
+G_LobbyClientGone
+
+A slot that empties (or is taken by a new client) loses its lock and any
+held pick
+=================
+*/
+void G_LobbyClientGone( int clientNum ) {
+	char	picks[MAX_CVAR_VALUE_STRING], out[MAX_CVAR_VALUE_STRING], *p, *token;
+	int		client, champion;
+
+	if ( clientNum < 0 || clientNum >= MAX_CLIENTS ) {
+		return;
+	}
+	lobbyLocked[clientNum] = qfalse;
+	mapVoteOf[clientNum] = 0;
+	trap_Cvar_VariableStringBuffer( "g_lobbyPicks", picks, sizeof( picks ) );
+	if ( !picks[0] ) {
+		return;
+	}
+	out[0] = 0;
+	p = picks;
+	while ( 1 ) {
+		token = COM_Parse( &p );
+		if ( !token[0] ) {
+			break;
+		}
+		if ( sscanf( token, "%i:%i", &client, &champion ) == 2 && client != clientNum ) {
+			Q_strcat( out, sizeof( out ), va( "%i:%i ", client, champion ) );
+		}
+	}
+	trap_Cvar_Set( "g_lobbyPicks", out );
 }
 
 /*
@@ -488,6 +531,31 @@ void G_LobbyThink( void ) {
 	int			i, humans = 0, locked = 0;
 	gclient_t	*cl;
 	char		current[MAX_QPATH];
+
+	// classic duel: a duellist who came in after the reveal, before the
+	// match, has no held pick: both pick again, blind
+	if ( g_lobby.integer && G_LobbyPickMode() == 1 && ( lobbyPhase == LOBBY_START
+		|| ( lobbyPhase == LOBBY_OFF && level.warmupTime != 0 && !level.intermissiontime ) ) ) {
+		char	picks[MAX_CVAR_VALUE_STRING];
+
+		trap_Cvar_VariableStringBuffer( "g_lobbyPicks", picks, sizeof( picks ) );
+		if ( picks[0] ) {
+			for ( i = 0 ; i < level.maxclients ; i++ ) {
+				cl = &level.clients[i];
+				if ( cl->pers.connected == CON_CONNECTED && cl->sess.sessionTeam != TEAM_SPECTATOR
+					&& G_LobbyFrozenChampion( i ) < 0 ) {
+					break;
+				}
+			}
+			if ( i < level.maxclients ) {
+				trap_Cvar_Set( "g_lobbyPicks", "" );
+				trap_Cvar_Set( "g_lobbyState", "pick" );
+				memset( lobbyLocked, 0, sizeof( lobbyLocked ) );
+				lobbyPhase = LOBBY_PICK;
+				lobbyEnd = 0;
+			}
+		}
+	}
 
 	if ( lobbyPhase == LOBBY_OFF ) {
 		return;

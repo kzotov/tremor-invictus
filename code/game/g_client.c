@@ -1021,6 +1021,9 @@ char *ClientConnect( int clientNum, qboolean firstTime, qboolean isBot ) {
 
 	// get and distribute relevant parameters
 	G_LogPrintf( "ClientConnect: %i\n", clientNum );
+	if ( firstTime ) {
+		G_LobbyClientGone( clientNum );		// a reused slot holds nothing of the last one's
+	}
 	ClientUserinfoChanged( clientNum );
 
 	// don't do the "xxx connected" messages if they were caried over from previous level
@@ -1291,6 +1294,14 @@ void ClientSpawn(gentity_t *ent) {
 	client->ps.clientNum = index;
 
 	client->ps.stats[STAT_CHAMPION] = client->pers.champion;
+	// a blind lobby pick: spawn as the default champion until it is shown
+	if ( G_LobbyHidesPicks() ) {
+		int		hidden = BG_ChampionForName( DEFAULT_CHAMPION );
+
+		client->ps.stats[STAT_CHAMPION] = hidden >= 0 ? hidden : 0;
+		ent->r.mins[0] = ent->r.mins[1] = -bg_classInfo[BG_Champion( client->ps.stats[STAT_CHAMPION] )->bodyClass].halfWidth;
+		ent->r.maxs[0] = ent->r.maxs[1] = bg_classInfo[BG_Champion( client->ps.stats[STAT_CHAMPION] )->bodyClass].halfWidth;
+	}
 	G_RewindReset( ent );
 	ClientUserinfoChanged( index );		// show this champion's model
 	BG_SetAbility( &client->ps, ABILITY_IDLE,
@@ -1448,6 +1459,7 @@ void ClientDisconnect( int clientNum ) {
 	// cleanup if we are kicking a bot that
 	// hasn't spawned yet
 	G_RemoveQueuedBotBegin( clientNum );
+	G_LobbyClientGone( clientNum );
 
 	ent = g_entities + clientNum;
 	if (!ent->client || ent->client->pers.connected == CON_DISCONNECTED) {

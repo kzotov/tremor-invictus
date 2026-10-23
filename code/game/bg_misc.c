@@ -1861,6 +1861,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"YOUR OBELISK IS UNDER ATTACK",
 	"(TEAM)",
 	"(SPEC)",
+	"bind weapon %i",
 	"PLAYER",
 	"SCORE",
 	"DEATHS",

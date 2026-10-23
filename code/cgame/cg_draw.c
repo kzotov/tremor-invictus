@@ -4239,7 +4239,8 @@ static void CG_DrawDeathScreen( void ) {
 	if ( !cg.deathTime || cg.snap->ps.stats[STAT_HEALTH] > 0 || cg.time - cg.deathTime > 30000 ) {
 		return;
 	}
-	CG_FillRect( 140, y - 6, 360, cg.deathKiller >= 0 ? 104 + SMALLCHAR_HEIGHT + 6 : 46 + SMALLCHAR_HEIGHT + 6, back );		// (to the starter line)
+	// down to the starter line's bottom, 6 under it
+	CG_FillRect( 140, y - 6, 360, ( cg.deathKiller >= 0 ? 104 : 46 ) + 2 * SMALLCHAR_HEIGHT + 12, back );
 
 	if ( cg.deathKiller >= 0 && cg.deathKiller < MAX_CLIENTS ) {
 		int champ;
@@ -4295,7 +4296,8 @@ static void CG_DrawDeathScreen( void ) {
 			// the key bound to that weapon slot, or the command without one
 			const char	*key = CG_BindName( va( "weapon %i", BG_WeaponSlot( starters[i] ) ) );
 
-			Com_sprintf( part[i], sizeof( part[i] ), "%s [%s]", codes[i], key[0] ? key : va( "/ui_startWeapon %s", codes[i] ) );
+			Com_sprintf( part[i], sizeof( part[i] ), "%s [%s]", codes[i],
+				key[0] ? key : va( (char *)BG_String( STR_DEATH_BIND_HINT ), BG_WeaponSlot( starters[i] ) ) );
 			Q_strupr( part[i] );
 			total += CG_DrawStrlen( part[i] ) + 2;
 		}
@@ -4388,7 +4390,27 @@ static const char *CG_BindName( const char *binding ) {
 	if ( key > K_SPACE && key < 127 ) {
 		return va( "%c", toupper( key ) );
 	}
-	return "?";
+	if ( key >= K_MOUSE1 && key <= K_MOUSE5 ) {
+		return va( "MOUSE%i", key - K_MOUSE1 + 1 );
+	}
+	if ( key >= K_KP_HOME && key <= K_KP_EQUALS ) {
+		return "KP";
+	}
+	switch ( key ) {
+	case K_SPACE:		return "SPACE";
+	case K_TAB:			return "TAB";
+	case K_ENTER:		return "ENTER";
+	case K_SHIFT:		return "SHIFT";
+	case K_CTRL:		return "CTRL";
+	case K_ALT:			return "ALT";
+	case K_MWHEELUP:	return "MWHEELUP";
+	case K_MWHEELDOWN:	return "MWHEELDOWN";
+	case K_UPARROW:		return "UP";
+	case K_DOWNARROW:	return "DOWN";
+	case K_LEFTARROW:	return "LEFT";
+	case K_RIGHTARROW:	return "RIGHT";
+	}
+	return key > 0 ? "?" : "";		// "" when nothing is bound
 }
 
 static void CG_DrawVote( float y ) {
@@ -4414,7 +4436,13 @@ static void CG_DrawVote( float y ) {
 		char	yesKey[8], noKey[8];
 
 		Q_strncpyz( yesKey, CG_BindName( "vote yes" ), sizeof( yesKey ) );
+		if ( !yesKey[0] ) {
+			Q_strncpyz( yesKey, "?", sizeof( yesKey ) );
+		}
 		Q_strncpyz( noKey, CG_BindName( "vote no" ), sizeof( noKey ) );
+		if ( !noKey[0] ) {
+			Q_strncpyz( noKey, "?", sizeof( noKey ) );
+		}
 		s = va( (char *)BG_String( STR_VOTE_LINE ), sec, cgs.voteString, yesKey, cgs.voteYes, noKey, cgs.voteNo );
 	}
 	cg_hudAnchor = ANCHOR_LEFT;
@@ -4473,7 +4501,13 @@ static void CG_DrawTeamVote( float y ) {
 		char	yesKey[8], noKey[8];
 
 		Q_strncpyz( yesKey, CG_BindName( "teamvote yes" ), sizeof( yesKey ) );
+		if ( !yesKey[0] ) {
+			Q_strncpyz( yesKey, "?", sizeof( yesKey ) );
+		}
 		Q_strncpyz( noKey, CG_BindName( "teamvote no" ), sizeof( noKey ) );
+		if ( !noKey[0] ) {
+			Q_strncpyz( noKey, "?", sizeof( noKey ) );
+		}
 		s = va( (char *)BG_String( STR_VOTE_LINE ), sec, cgs.teamVoteString[cs_offset], yesKey,
 			cgs.teamVoteYes[cs_offset], noKey, cgs.teamVoteNo[cs_offset] );
 	}
@@ -5084,7 +5118,7 @@ static qboolean CG_DrawLobby( void ) {
 	char		*p = (char *)cs;
 	char		maps[3][MAX_QPATH], text[MAX_CVAR_VALUE_STRING], doc[MAX_QPATH], active[8], hidden[8], mine[64];
 	int			phase, end, mode, winner, votes[3], i, n, client, champion, locked, players = 0, secs;
-	int			me = cg.snap->ps.clientNum;
+	int			me = cg.clientNum;		// your own row, also while following
 
 	trap_Cvar_VariableStringBuffer( "rml_doc", doc, sizeof( doc ) );
 	trap_Cvar_VariableStringBuffer( "rml_active", active, sizeof( active ) );
@@ -5456,7 +5490,7 @@ static void CG_DrawWarmupLine( void ) {
 	} else {
 		const char *key = CG_BindName( "readyup" );
 
-		Com_sprintf( line, sizeof( line ), BG_String( STR_WARMUP_READY ), key[0] == '?' ? "readyup" : key, ready, players );
+		Com_sprintf( line, sizeof( line ), BG_String( STR_WARMUP_READY ), ( !key[0] || key[0] == '?' ) ? "readyup" : key, ready, players );
 		if ( startTime > cg.time ) {
 			Q_strcat( line, sizeof( line ), "  -  " );
 			Q_strcat( line, sizeof( line ), va( (char *)BG_String( STR_WARMUP_ANYWAY ), ( startTime - cg.time + 999 ) / 1000 ) );
@@ -5797,6 +5831,9 @@ static void CG_DrawModernHud( void ) {
 	if ( champ->active > ACTIVE_NONE ) {
 		CG_HudPlace( "abilitykey", &x, &y );
 		s = CG_BindName( "+button12" );
+		if ( !s[0] ) {
+			s = "?";		// nothing bound
+		}
 		CG_DrawStringExt( x - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH / 2, y - SMALLCHAR_HEIGHT / 2, s, colorWhite, qfalse, qtrue,
 			SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
 		CG_HudPlace( "abilityname", &x, &y );
