@@ -474,7 +474,7 @@ movement.md slide fixes: a slide runs only above the crouch-walk speed
 ==================
 */
 static float PM_SlideMinSpeed( void ) {
-	return pml.runSpeed * ( PM_IsSlash() ? bg_pmoveSettings.slideCrouchScale : bg_pmoveSettings.crouchWalkScale );
+	return pml.champion->runSpeed * ( PM_IsSlash() ? bg_pmoveSettings.slideCrouchScale : bg_pmoveSettings.crouchWalkScale );
 }
 
 /*
@@ -720,21 +720,19 @@ static float PM_CmdScale( usercmd_t *cmd ) {
 	float	total;
 	float	scale;
 
-	int		up = cmd->upmove > 0 ? cmd->upmove : 0;		// crouch never scales the wish speed
-
 	max = abs( cmd->forwardmove );
 	if ( abs( cmd->rightmove ) > max ) {
 		max = abs( cmd->rightmove );
 	}
-	if ( up > max ) {
-		max = up;
+	if ( abs( cmd->upmove ) > max ) {
+		max = abs( cmd->upmove );
 	}
 	if ( !max ) {
 		return 0;
 	}
 
 	total = sqrt( cmd->forwardmove * cmd->forwardmove
-		+ cmd->rightmove * cmd->rightmove + up * up );
+		+ cmd->rightmove * cmd->rightmove + cmd->upmove * cmd->upmove );
 	scale = pml.runSpeed * max / ( 127.0 * total );
 
 	return scale;
@@ -1376,6 +1374,9 @@ static void PM_AirMove( void ) {
 	smove = pm->cmd.rightmove;
 
 	cmd = pm->cmd;
+	if ( cmd.upmove < 0 ) {
+		cmd.upmove = 0;		// crouch never scales the wish speed (swimming and flying still go down)
+	}
 	scale = PM_CmdScale( &cmd );
 
 	// set the movementDir so clients can rotate the legs for strafing
@@ -1543,6 +1544,9 @@ static void PM_WalkMove( void ) {
 	smove = pm->cmd.rightmove;
 
 	cmd = pm->cmd;
+	if ( cmd.upmove < 0 ) {
+		cmd.upmove = 0;		// crouch never scales the wish speed (swimming and flying still go down)
+	}
 	scale = PM_CmdScale( &cmd );
 
 	// set the movementDir so clients can rotate the legs for strafing
@@ -2263,9 +2267,13 @@ static void PM_Footsteps( void ) {
 		return;
 	}
 
-	// if not trying to move
+	// if not trying to move (a slide coasting with the keys up still holds
+	// the crouch legs)
 	if ( !pm->cmd.forwardmove && !pm->cmd.rightmove ) {
-		if (  pm->xyspeed < 5 ) {
+		if ( PM_IsSliding() ) {
+			pm->ps->bobCycle = 0;
+			PM_ContinueLegsAnim( LEGS_IDLECR );
+		} else if (  pm->xyspeed < 5 ) {
 			pm->ps->bobCycle = 0;	// start at beginning of cycle again
 			if ( pm->ps->pm_flags & PMF_DUCKED ) {
 				PM_ContinueLegsAnim( LEGS_IDLECR );

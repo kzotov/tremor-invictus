@@ -572,6 +572,10 @@ void CL_CmdButtons( usercmd_t *cmd ) {
 	// less than a frame
 	//	
 	for (i = 0 ; i < 15 ; i++) {
+		if ( i == 14 ) {
+			in_buttons[i].wasPressed = qfalse;
+			continue;		// bit 14 is BUTTON_CROUCH, set from +movedown only
+		}
 		if ( in_buttons[i].active || in_buttons[i].wasPressed ) {
 			cmd->buttons |= 1 << i;
 		}
