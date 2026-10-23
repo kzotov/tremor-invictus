@@ -3958,6 +3958,36 @@ CROSSHAIR
 
 /*
 =================
+CG_DrawHitMarker
+
+hud.md corrections: a confirmed hit marks the crosshair for 0.25 s, four
+short diagonal strokes fading out (cg_hitMarker)
+=================
+*/
+#define HIT_MARKER_TIME		250
+static void CG_DrawHitMarker( void ) {
+	vec4_t	color = { 1, 1, 1, 1 };
+	int		t = cg.time - cg.hitMarkerTime, i, k;
+	float	cx = 320, cy = 240, d;
+
+	if ( !cg_hitMarker.integer || !cg.hitMarkerTime || t < 0 || t >= HIT_MARKER_TIME ) {
+		return;
+	}
+	color[3] = 1.0f - t / (float)HIT_MARKER_TIME;
+	cg_hudAnchor = ANCHOR_CENTER;
+	for ( i = 0 ; i < 4 ; i++ ) {
+		float	sx = ( i & 1 ) ? 1 : -1, sy = ( i & 2 ) ? 1 : -1;
+
+		// a stroke of dots from 7 to 13 units out along the diagonal
+		for ( k = 0 ; k < 7 ; k++ ) {
+			d = 7 + k;
+			CG_FillRect( cx + sx * d * 0.7071f - 1, cy + sy * d * 0.7071f - 1, 2, 2, color );
+		}
+	}
+}
+
+/*
+=================
 CG_DrawCrosshair
 =================
 */
@@ -6099,8 +6129,10 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	if ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR ) {
 		CG_DrawSpectator();
 
-		if(stereoFrame == STEREO_CENTER)
+		if(stereoFrame == STEREO_CENTER) {
 			CG_DrawCrosshair();
+			CG_DrawHitMarker();
+		}
 
 		CG_DrawCrosshairNames();
 #ifndef MISSIONPACK
@@ -6138,8 +6170,10 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 			CG_DrawProxWarning();
 #endif      
 			CG_DrawShellShock();
-			if(stereoFrame == STEREO_CENTER)
+			if(stereoFrame == STEREO_CENTER) {
 				CG_DrawCrosshair();
+				CG_DrawHitMarker();
+			}
 			CG_DrawCrosshairNames();
 			CG_DrawDamageArc();
 #ifndef MISSIONPACK

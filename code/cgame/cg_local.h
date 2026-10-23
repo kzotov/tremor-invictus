@@ -714,6 +714,7 @@ typedef struct {
 	int			followKiller;				// client to follow at followKillerTime, -1 for none
 	int			followKillerTime;
 	int			followKillerVictim;			// only while still following them
+	int			hitMarkerTime;				// the last confirmed hit, for the hit marker
 	int			deathKiller, deathMod, deathWeapon, deathHealth, deathArmor;
 	int			deathDealt, deathTaken, deathRespawn;	// respawn: msec after deathTime
 } cg_t;
@@ -1215,6 +1216,7 @@ extern	vmCvar_t		cg_drawItemPickups;
 extern	vmCvar_t		cg_hudLayout;
 extern	vmCvar_t		cg_rmlScoreboard;
 extern	vmCvar_t		cg_netWarnings;
+extern	vmCvar_t		cg_hitMarker;
 extern	vmCvar_t		cg_damagePlumScale;
 extern	vmCvar_t		cg_damagePlumSum;
 extern	vmCvar_t		cg_damagePlumHidden;
