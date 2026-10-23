@@ -1837,10 +1837,13 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 			// round duel (hud.md 9.7): the names 20 dp on 300 x 32 plates at
 			// the top, blue on the left (you) and red on the right
 			if ( atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_roundDuel" ) ) ) {
-				float	px = 320 + ( side ? 80 : -380 ) * DP;
+				// x 445-745 and 1174-1474, the left name right-aligned and the
+				// right one left-aligned (toward the middle)
+				float	px = 320 + ( side ? 214 : -515 ) * DP;
 
 				CG_FillRect( px, 6 * DP, 300 * DP, 32 * DP, box );
-				CG_TopText( side ? 230 : -230, 12, 20, CG_CapName( cgs.clientinfo[who].name, 20, 280 ), side ? theirRed : ourBlue, 0 );
+				CG_TopText( side ? 224 : -225, 12, 20, CG_CapName( cgs.clientinfo[who].name, 20, 280 ), side ? theirRed : ourBlue,
+					side ? -1 : 1 );
 				continue;
 			}
 			CG_TopText( ( inner + outer ) / 2, 92, 15, CG_CapName( cgs.clientinfo[who].name, 15, 200 ), darkGrey, 0 );
@@ -1878,8 +1881,10 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 			CG_FillRect( 320 + 66 * DP, 90 * DP, 221 * DP, 22 * DP, box );
 			CG_TopText( -277, 54, 32, va( "%i", leftScore == SCORE_NOT_PRESENT ? 0 : leftScore ), leftColor, -1 );
 			CG_TopText( 279, 54, 32, va( "%i", rightScore == SCORE_NOT_PRESENT ? 0 : rightScore ), rightColor, 1 );
-			CG_TopText( -174.5f, 92, 18, leftName[0] ? leftName : BG_String( blueLeft ? STR_HUD_BLUE : STR_HUD_RED ), leftNameColor, 0 );
-			CG_TopText( 176.5f, 92, 18, rightName[0] ? rightName : BG_String( blueLeft ? STR_HUD_RED : STR_HUD_BLUE ), rightNameColor, 0 );
+			CG_TopText( -174.5f, 92, 18, CG_CapName( leftName[0] ? leftName : BG_String( blueLeft ? STR_HUD_BLUE : STR_HUD_RED ), 18, 215 ),
+				leftNameColor, 0 );
+			CG_TopText( 176.5f, 92, 18, CG_CapName( rightName[0] ? rightName : BG_String( blueLeft ? STR_HUD_RED : STR_HUD_BLUE ), 18, 215 ),
+				rightNameColor, 0 );
 		}
 		return;
 	}
@@ -4910,16 +4915,27 @@ static void CG_DrawDeathScreenModern( void ) {
 		int		i;
 		float	x, total = 0, cw = 20 * DP * 0.62f;
 
+		char	labels[64], *label, *bar;
+
 		CG_HudText( 320, HY( 890 ), 17, BG_String( STR_DEATH_CHOOSE ), grey, 1, 1 );
 		trap_Cvar_VariableStringBuffer( "cg_startWeapon", current, sizeof( current ) );
+		Q_strncpyz( labels, BG_String( STR_DEATH_STARTERS ), sizeof( labels ) );		// "MG|SG|NG"
+		label = labels;
 		for ( i = 0 ; i < 3 ; i++ ) {
 			const char	*key = CG_BindName( va( "weapon %i", BG_WeaponSlot( starters[i] ) ) );
-			char		code[8];
 
-			Q_strncpyz( code, codes[i], sizeof( code ) );
-			Q_strupr( code );
-			Com_sprintf( part[i], sizeof( part[i] ), "%s [%s]", code, key[0] ? key : "-" );
-			total += ( CG_DrawStrlen( part[i] ) + 3 ) * cw;
+			bar = label ? strchr( label, '|' ) : NULL;
+			if ( bar ) {
+				*bar = 0;
+			}
+			// an unbound slot shows the command to bind
+			if ( key[0] ) {
+				Com_sprintf( part[i], sizeof( part[i] ), "%s [%s]", label ? label : codes[i], key );
+			} else {
+				Com_sprintf( part[i], sizeof( part[i] ), "%s [/weapon %i]", label ? label : codes[i], BG_WeaponSlot( starters[i] ) );
+			}
+			label = bar ? bar + 1 : NULL;
+			total += ( CG_DrawStrlen( part[i] ) + ( i < 2 ? 3 : 0 ) ) * cw;
 		}
 		x = 320 - total / 2;
 		for ( i = 0 ; i < 3 ; i++ ) {
@@ -5188,14 +5204,18 @@ static void CG_DrawSpectator(void) {
 	// hud.md 9.7: the bottom line, the name 36 dp at (42, 1025) in the team's
 	// colour (SPECTATOR in free camera)
 	if ( CG_HudModern() ) {
-		const char	*name = "SPECTATOR";
+		const char	*name = BG_String( STR_HUD_SPECTATOR );
 		vec4_t		color = { 1, 1, 1, 1 };
 		float		ch = 36 * DP;
 
 		if ( cg.snap->ps.pm_flags & PMF_FOLLOW ) {
 			clientInfo_t	*ci = &cgs.clientinfo[cg.snap->ps.clientNum];
 
+#ifndef MISSIONPACK
+			name = CG_CapName( ci->name, 36, 600 );
+#else
 			name = ci->name;
+#endif
 			if ( ci->team == TEAM_RED ) {
 				Vector4Set( color, 1, 0.22f, 0.22f, 1 );
 			} else if ( ci->team == TEAM_BLUE ) {
@@ -5203,7 +5223,19 @@ static void CG_DrawSpectator(void) {
 			}
 		}
 		cg_hudAnchor = ANCHOR_LEFT;
-		CG_DrawStringExt( 42 * DP, 1025 * DP - ch / 2, name, color, qfalse, qtrue, ch * 0.6f, ch, 0 );
+		CG_DrawStringExt( 42 * DP, 1025 * DP, name, color, qtrue, qtrue, ch * 0.6f, ch, 0 );		// (the team colour, not the name's own)
+		// the hints' toggle: 18 dp #AAAAAA at (1450, 1035), its key 16 dp
+		// #C97E4F at (1760, 1035)
+		{
+			static const vec4_t	hint = { 0.667f, 0.667f, 0.667f, 1 }, keyColor = { 0.79f, 0.49f, 0.31f, 1 };
+			const char	*key = CG_BindName( "togglespechints" );
+
+			cg_hudAnchor = ANCHOR_RIGHT;
+			CG_DrawStringExt( 640 - ( 1920 - 1450 ) * DP, 1035 * DP, BG_String( STR_HUD_SPEC_TOGGLE ), hint, qtrue, qfalse,
+				18 * DP * 0.6f, 18 * DP, 0 );
+			CG_DrawStringExt( 640 - ( 1920 - 1760 ) * DP, 1036 * DP, key[0] ? va( "[%s]", key ) : "[/togglespechints]", keyColor,
+				qtrue, qfalse, 16 * DP * 0.6f, 16 * DP, 0 );
+		}
 		cg_hudAnchor = ANCHOR_CENTER;
 	} else {
 		CG_DrawBigString(320 - 9 * 8, 440, "SPECTATOR", 1.0F);
@@ -5602,11 +5634,11 @@ static qboolean CG_DrawFollow( void ) {
 		CG_DrawStringExt( 62 * DP, 775 * DP, line, color, qfalse, qtrue, cw, ch, 0 );
 		// the name on a strip at the top centre (960, -1)
 		cg_hudAnchor = ANCHOR_CENTER;
-		ch = 20 * DP;
+		ch = 13 * DP;		// a strip ending above the clock's label (16)
 		cw = ch * 0.6f;
 		w = CG_DrawStrlen( name ) * cw;
-		CG_FillRect( 320 - w / 2 - 10 * DP, -1 * DP, w + 20 * DP, 26 * DP, strip );
-		CG_DrawStringExt( 320 - w / 2, 2 * DP, name, color, qfalse, qtrue, cw, ch, 0 );
+		CG_FillRect( 320 - w / 2 - 10 * DP, -1 * DP, w + 20 * DP, 16 * DP, strip );
+		CG_DrawStringExt( 320 - w / 2, 1 * DP, name, color, qfalse, qtrue, cw, ch, 0 );
 		return qtrue;
 	}
 
