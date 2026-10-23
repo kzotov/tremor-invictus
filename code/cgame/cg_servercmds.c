@@ -940,14 +940,14 @@ void CG_VoiceChatLocal( int mode, qboolean voiceOnly, int clientNum, int color, 
 		{
 			// messages.md 2.6, as typed chat: the name in the team colour
 			// (white in free-for-all and duel), "(TEAM)" for team lines,
-			// "(SPEC)" for spectators during a match
+			// "(SPEC)" for spectators
 			char	name[MAX_QPATH], who[MAX_QPATH + 16];
 			char	c = cgs.gametype >= GT_TEAM && ci->team == TEAM_RED ? COLOR_RED
 				: cgs.gametype >= GT_TEAM && ci->team == TEAM_BLUE ? COLOR_BLUE : COLOR_WHITE;
 
 			Q_strncpyz( name, ci->name, sizeof( name ) );
 			Q_CleanStr( name );
-			if ( ci->team == TEAM_SPECTATOR && !cg.warmup ) {
+			if ( ci->team == TEAM_SPECTATOR ) {
 				Com_sprintf( who, sizeof( who ), "%s %c%c%s", BG_String( STR_CHAT_SPEC ), Q_COLOR_ESCAPE, c, name );
 			} else {
 				Com_sprintf( who, sizeof( who ), "%c%c%s", Q_COLOR_ESCAPE, c, name );
