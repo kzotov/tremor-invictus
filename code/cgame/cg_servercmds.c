@@ -1357,6 +1357,8 @@ static void CG_ServerCommand( void ) {
 				}
 				if ( id == STR_SYS_CONNECTED || id == STR_SYS_ENTERED || id == STR_SYS_RENAMED ) {
 					CG_ConnectLine( text );
+				} else if ( id == STR_SYS_RED_CARRIER_FRAGGED || id == STR_SYS_BLUE_CARRIER_FRAGGED ) {
+					// (messages.md: no carrier-frag line in chat; the console has it)
 				} else {
 					CG_AddSystemLine( text );
 				}

@@ -1757,7 +1757,7 @@ void Cmd_CallTeamVote_f( gentity_t *ent ) {
 					}
 				}
 				if ( i >= level.maxclients ) {
-					trap_SendServerCommand( ent-g_entities, va("print \"%s is not a valid player on your team.\n\"", arg2) );
+					G_SysMsg( ent - g_entities, STR_SYS_NOT_TEAM_PLAYER, arg2, NULL );
 					return;
 				}
 			}

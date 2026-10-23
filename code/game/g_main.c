@@ -2214,15 +2214,25 @@ void PrintTeam(int team, char *message) {
 SetLeader
 ==================
 */
+static void G_TeamSysMsg( int team, int id, const char *a ) {
+	int		i;
+
+	for ( i = 0 ; i < level.maxclients ; i++ ) {
+		if ( level.clients[i].pers.connected == CON_CONNECTED && level.clients[i].sess.sessionTeam == team ) {
+			G_SysMsg( i, id, a, NULL );
+		}
+	}
+}
+
 void SetLeader(int team, int client) {
 	int i;
 
 	if ( level.clients[client].pers.connected == CON_DISCONNECTED ) {
-		PrintTeam(team, va("print \"%s is not connected\n\"", level.clients[client].pers.netname) );
+		G_TeamSysMsg( team, STR_SYS_LEADER_GONE, level.clients[client].pers.netname );
 		return;
 	}
 	if (level.clients[client].sess.sessionTeam != team) {
-		PrintTeam(team, va("print \"%s is not on the team anymore\n\"", level.clients[client].pers.netname) );
+		G_TeamSysMsg( team, STR_SYS_LEADER_LEFT, level.clients[client].pers.netname );
 		return;
 	}
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
@@ -2235,7 +2245,7 @@ void SetLeader(int team, int client) {
 	}
 	level.clients[client].sess.teamLeader = qtrue;
 	ClientUserinfoChanged( client );
-	PrintTeam(team, va("print \"%s is the new team leader\n\"", level.clients[client].pers.netname) );
+	G_TeamSysMsg( team, STR_SYS_NEW_LEADER, level.clients[client].pers.netname );
 }
 
 /*
