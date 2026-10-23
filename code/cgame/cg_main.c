@@ -2095,6 +2095,7 @@ void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum ) {
 	memset( &cgs, 0, sizeof( cgs ) );
 	memset( &cg, 0, sizeof( cg ) );
 	cg.impactShooter = -1;
+	trap_Cvar_Set( "cg_chatLabels", BG_String( STR_CHAT_LABELS ) );		// the engine's typed chat line (hud.md 9.7)
 	memset( cg_entities, 0, sizeof(cg_entities) );
 	memset( cg_weapons, 0, sizeof(cg_weapons) );
 	memset( cg_items, 0, sizeof(cg_items) );

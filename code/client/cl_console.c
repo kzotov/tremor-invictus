@@ -574,6 +574,8 @@ Con_DrawNotify
 Draws the last few lines of output transparently over the game top
 ================
 */
+static void Con_DrawChatLine( int labelIndex );
+
 void Con_DrawNotify (void)
 {
 	int		x, v;
@@ -632,21 +634,101 @@ void Con_DrawNotify (void)
 		return;
 	}
 
-	// draw the chat line: hud.md 9.7, at (94, 704) on the 1080 page, an
-	// ALL / TEAM label before the typed text, no wider than x 512
+	// draw the chat line
 	if ( Key_GetCatcher( ) & KEYCATCH_MESSAGE )
 	{
-		static vec4_t	labelColor = { 0.95f, 0.75f, 0.3f, 1 };
-		int		x = 94 * cls.glconfig.vidHeight / 1080, y = 704 * cls.glconfig.vidHeight / 1080;
-		int		right = 512 * cls.glconfig.vidHeight / 1080;
-		const char	*label = chat_team ? "TEAM" : "ALL";
+		// the game's reference layout (hud.md 9.7): at (94, 704) on the 1080
+		// page, 18 dp, the target's label (from the game's string table, in
+		// cg_chatLabels "all|team|tell") before the text, no wider than x 512
+		if ( Q_stricmp( Cvar_VariableString( "cg_hudLayout" ), "classic" ) ) {
+			Con_DrawChatLine( chat_team ? 1 : chat_playerNum >= 0 ? 2 : 0 );
+			return;
+		}
+		if (chat_team)
+		{
+			SCR_DrawBigString (8, v, "say_team:", 1.0f, qfalse );
+			skip = 10;
+		}
+		else
+		{
+			SCR_DrawBigString (8, v, "say:", 1.0f, qfalse );
+			skip = 5;
+		}
 
-		skip = strlen( label ) + 1;
-		SCR_DrawSmallStringExt( x, y, label, labelColor, qtrue, qfalse );
-		Field_Draw( &chatField, x + skip * SMALLCHAR_WIDTH, y, ( right - x ) / SMALLCHAR_WIDTH - skip, qtrue, qtrue );
-		(void)v;
+		Field_BigDraw( &chatField, skip * BIGCHAR_WIDTH, v,
+			SCREEN_WIDTH - ( skip + 1 ) * BIGCHAR_WIDTH, qtrue, qtrue );
 	}
 
+}
+
+/*
+================
+Con_DrawChatChar
+================
+*/
+static void Con_DrawChatChar( float x, float y, float w, float h, int ch ) {
+	float	frow, fcol;
+
+	ch &= 255;
+	if ( ch == ' ' ) {
+		return;
+	}
+	frow = ( ch >> 4 ) * 0.0625f;
+	fcol = ( ch & 15 ) * 0.0625f;
+	re.DrawStretchPic( x, y, w, h, fcol, frow, fcol + 0.0625f, frow + 0.0625f, cls.charSetShader );
+}
+
+/*
+================
+Con_DrawChatLine
+
+The typed chat line in the reference layout: label 0 all, 1 team, 2 a
+player (messagemode3 / 4), sized from the screen height
+================
+*/
+static void Con_DrawChatLine( int labelIndex ) {
+	static vec4_t	labelColor = { 0.95f, 0.75f, 0.3f, 1 };
+	float	scale = cls.glconfig.vidHeight / 1080.0f, h = 18 * scale, w = h * 0.6f;
+	float	x = 94 * scale, y = 704 * scale, right = 512 * scale;
+	char	labels[MAX_CVAR_VALUE_STRING], *label, *bar;
+	int		i, chars, start, len = strlen( chatField.buffer );
+
+	// the label: the n-th of "all|team|tell"
+	Q_strncpyz( labels, Cvar_VariableString( "cg_chatLabels" ), sizeof( labels ) );
+	label = labels[0] ? labels : "ALL";
+	for ( i = 0 ; i < labelIndex && label ; i++ ) {
+		label = strchr( label, '|' );
+		if ( label ) {
+			label++;
+		}
+	}
+	if ( !label ) {
+		label = "";
+	}
+	bar = strchr( label, '|' );
+	if ( bar ) {
+		*bar = 0;
+	}
+	re.SetColor( labelColor );
+	for ( i = 0 ; label[i] ; i++ ) {
+		Con_DrawChatChar( x + i * w, y, w, h, label[i] );
+	}
+	x += ( i + 1 ) * w;
+
+	// the text, scrolled so the cursor stays in view, and the cursor
+	chars = (int)( ( right - x ) / w ) - 1;
+	if ( chars < 1 ) {
+		chars = 1;
+	}
+	start = chatField.cursor > chars ? chatField.cursor - chars : 0;
+	re.SetColor( g_color_table[ColorIndex( COLOR_WHITE )] );
+	for ( i = start ; i < len && i - start < chars ; i++ ) {
+		Con_DrawChatChar( x + ( i - start ) * w, y, w, h, chatField.buffer[i] );
+	}
+	if ( ( cls.realtime >> 8 ) & 1 ) {
+		Con_DrawChatChar( x + ( chatField.cursor - start ) * w, y, w, h, key_overstrikeMode ? 11 : 10 );
+	}
+	re.SetColor( NULL );
 }
 
 /*

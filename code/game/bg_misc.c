@@ -1909,6 +1909,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"OUT OF AMMO",
 	"MAX",
 	"UNAVAILABLE",
+	"FOLLOWING",
+	"ALL|TEAM|TELL",
 	"One beep",
 	"By damage",
 	"By damage, reversed",

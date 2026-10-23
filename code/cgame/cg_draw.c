@@ -1847,12 +1847,22 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 		if ( myTeam == TEAM_SPECTATOR ) {
 			leftColor = blueLeft ? ourBlue : theirRed;
 		}
-		CG_FillRect( 320 - 280 * DP, 23 * DP, 215 * DP, 48 * DP, box );
-		CG_FillRect( 320 + 48 * DP, 23 * DP, 236 * DP, 48 * DP, box );
-		CG_TopText( -272, 30, 32, va( "%i", leftScore == SCORE_NOT_PRESENT ? 0 : leftScore ), leftColor, -1 );
-		CG_TopText( 276, 30, 32, va( "%i", rightScore == SCORE_NOT_PRESENT ? 0 : rightScore ), rightColor, 1 );
-		CG_TopText( -290, 8, 20, leftName[0] ? leftName : BG_String( blueLeft ? STR_HUD_BLUE : STR_HUD_RED ), leftColor, 1 );
-		CG_TopText( 294, 8, 20, rightName[0] ? rightName : BG_String( blueLeft ? STR_HUD_RED : STR_HUD_BLUE ), rightColor, -1 );
+		// hud.md 9.7: boxes 221 x 39 at x 675-896 and 1026-1247, the scores
+		// 32 dp in them in the side's colour, the team names 18 dp under the
+		// boxes (top 87): grey, or blue / red in the objective modes
+		{
+			static vec4_t	nameGrey = { 0.76f, 0.76f, 0.76f, 1 }, objBlue = { 0.38f, 0.57f, 0.73f, 1 }, objRed = { 0.71f, 0.26f, 0.26f, 1 };
+			qboolean		objective = cgs.gametype == GT_CTF;
+			const float		*leftNameColor = objective ? ( blueLeft ? objBlue : objRed ) : nameGrey;
+			const float		*rightNameColor = objective ? ( blueLeft ? objRed : objBlue ) : nameGrey;
+
+			CG_FillRect( 320 - 285 * DP, 23 * DP, 221 * DP, 39 * DP, box );
+			CG_FillRect( 320 + 66 * DP, 23 * DP, 221 * DP, 39 * DP, box );
+			CG_TopText( -174.5f, 26, 32, va( "%i", leftScore == SCORE_NOT_PRESENT ? 0 : leftScore ), leftColor, 0 );
+			CG_TopText( 176.5f, 26, 32, va( "%i", rightScore == SCORE_NOT_PRESENT ? 0 : rightScore ), rightColor, 0 );
+			CG_TopText( -174.5f, 87, 18, leftName[0] ? leftName : BG_String( blueLeft ? STR_HUD_BLUE : STR_HUD_RED ), leftNameColor, 0 );
+			CG_TopText( 176.5f, 87, 18, rightName[0] ? rightName : BG_String( blueLeft ? STR_HUD_RED : STR_HUD_BLUE ), rightNameColor, 0 );
+		}
 		return;
 	}
 
@@ -2185,7 +2195,7 @@ static void CG_DrawPickupFeed( void ) {
 		}
 		// hud.md 9.7: 22 dp rows on a 320 x 33 strip, in from a white flash
 		// over 0.23 s, 4.6 s with the fades; health and armour show the amount
-		c[3] = t < 230 ? t / 230.0f : t > PICKUP_TIME - 300 ? ( PICKUP_TIME - t ) / 300.0f : 1;
+		c[3] = t < 230 ? t / 230.0f : t > 3500 ? ( PICKUP_TIME - t ) / (float)( PICKUP_TIME - 3500 ) : 1;
 		it = &bg_itemlist[pickupFeed[i].item];
 		if ( ( it->giType == IT_HEALTH || it->giType == IT_ARMOR ) && it->quantity > 0 ) {
 			s = pickupFeed[i].count > 1 ? va( "+%i %s x%i", it->quantity, it->pickup_name, pickupFeed[i].count )
@@ -2194,19 +2204,23 @@ static void CG_DrawPickupFeed( void ) {
 			s = pickupFeed[i].count > 1 ? va( "%s x%i", it->pickup_name, pickupFeed[i].count ) : it->pickup_name;
 		}
 		strip[3] = 0.5f * c[3];
-		CG_FillRect( x - 320 * DP, y, 320 * DP, row - 2 * DP, strip );
 		f = t < 230 ? 1 - t / 230.0f : 0;
-		if ( f > 0 ) {
-			flash[3] = 0.6f * f;
-			CG_FillRect( x - 320 * DP, y, 320 * DP, row - 2 * DP, flash );
+		{
+			float	sx = x + 10 * DP * f;		// comes in with a 10 dp slide
+
+			CG_FillRect( sx - 320 * DP, y, 320 * DP, row, strip );
+			if ( f > 0 ) {
+				flash[3] = 0.6f * f;
+				CG_FillRect( sx - 320 * DP, y, 320 * DP, row, flash );
+			}
+			CG_RegisterItemVisuals( pickupFeed[i].item );
+			trap_R_SetColor( c );
+			CG_DrawPic( sx - icon - 4 * DP, y + ( row - icon ) / 2, icon, icon, cg_items[pickupFeed[i].item].icon );
+			trap_R_SetColor( NULL );
+			CG_DrawStringExt( sx - icon - 12 * DP - CG_DrawStrlen( s ) * cw, y + ( row - ch ) / 2, s, c, qfalse, qtrue,
+				cw, ch, 0 );
 		}
-		CG_RegisterItemVisuals( pickupFeed[i].item );
-		trap_R_SetColor( c );
-		CG_DrawPic( x - icon - 4 * DP, y + ( row - 2 * DP - icon ) / 2, icon, icon, cg_items[pickupFeed[i].item].icon );
-		trap_R_SetColor( NULL );
-		CG_DrawStringExt( x - icon - 12 * DP - CG_DrawStrlen( s ) * cw, y + ( row - 2 * DP - ch ) / 2, s, c, qfalse, qtrue,
-			cw, ch, 0 );
-		y += row;
+		y += row + 2 * DP;
 	}
 	cg_hudAnchor = ANCHOR_CENTER;
 }
@@ -4378,6 +4392,20 @@ static void CG_DrawCrosshairNames( void ) {
 	w = CG_Text_Width(name, 0.3f, 0);
 	CG_Text_Paint( 320 - w / 2, 190, 0.3f, color, name, 0, 0, ITEM_TEXTSTYLE_SHADOWED);
 #else
+	// the classic layout: as it was
+	if ( !CG_HudModern() ) {
+		w = CG_DrawStrlen( name ) * BIGCHAR_WIDTH;
+		CG_DrawBigString( 320 - w / 2, 170, name, color[3] * 0.5f );
+		if ( cgs.gametype >= GT_TEAM && cgs.clientinfo[cg.crosshairClientNum].team == cg.snap->ps.persistant[PERS_TEAM]
+			&& cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
+			const char	*s = va( "%i / %i", cgs.clientinfo[cg.crosshairClientNum].health,
+				cgs.clientinfo[cg.crosshairClientNum].armor );
+
+			CG_DrawSmallStringColor( 320 - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH / 2, 170 + BIGCHAR_HEIGHT + 2, s, color );
+		}
+		trap_R_SetColor( NULL );
+		return;
+	}
 	// hud.md 9.7: 18 dp white at 80 %, centred, top 456 (under the frag
 	// line), no wider than x 757-1158
 	{
@@ -4415,8 +4443,8 @@ A red arc around the crosshair toward where damage came from, one for
 each of the last four hits, fading over 1.2 s, brighter for bigger hits
 =================
 */
-#define DAMAGE_ARC_TIME		1170		// hud.md 9.7: in to pure red, held to 0.54 s, out over 0.6 s
-#define DAMAGE_ARC_RADIUS	( 277 * DP )
+#define DAMAGE_ARC_TIME		( CG_HudModern() ? 1170 : 1200 )		// hud.md 9.7: in to pure red, held to 0.54 s, out over 0.6 s
+#define DAMAGE_ARC_RADIUS	( CG_HudModern() ? 277 * DP : 56 )
 #define DAMAGE_ARC_SPAN		40		// degrees
 static void CG_DrawDamageArc( void ) {
 	vec4_t	color = { 0.9f, 0.08f, 0.05f, 1 };
@@ -4436,6 +4464,20 @@ static void CG_DrawDamageArc( void ) {
 		}
 		value = cg.damageArcValue[n];
 		dot = value >= 50 ? 6 : 4;		// a hit of 50 or more draws the big arc
+		// the classic layout: as it was
+		if ( !CG_HudModern() ) {
+			color[0] = 0.9f;
+			color[1] = color[2] = 0.08f;
+			color[3] = ( 1.0f - t / DAMAGE_ARC_TIME ) * ( 0.4f + 0.6f * ( value > 50 ? 1.0f : value / 50.0f ) );
+			for ( i = 0 ; i <= 10 ; i++ ) {
+				a = cg.damageArcYaw[n] + DAMAGE_ARC_SPAN * ( i / 10.0f - 0.5f );
+				rad = DEG2RAD( a );
+				x = 320 - sin( rad ) * DAMAGE_ARC_RADIUS;
+				y = 240 - cos( rad ) * DAMAGE_ARC_RADIUS;
+				CG_FillRect( x - dot / 2, y - dot / 2, dot, dot, color );
+			}
+			continue;
+		}
 		// growing 0.65 -> 0.70 while going to pure red (0.11 s), held, then
 		// fading and shrinking over the last 0.6 s
 		{
@@ -5371,6 +5413,20 @@ static qboolean CG_DrawFollow( void ) {
 	color[2] = 1;
 	color[3] = 1;
 
+	// hud.md 9.7, the modern layout: "FOLLOWING <name>" 30 dp over the
+	// followed player's vitals at the bottom left (62, 775), never over
+	// the clock
+	if ( CG_HudModern() ) {
+		float	ch = 30 * DP, cw = ch * 0.6f;
+		char	line[MAX_STRING_CHARS];
+
+		name = cgs.clientinfo[ cg.snap->ps.clientNum ].name;
+		Com_sprintf( line, sizeof( line ), "%s %s", BG_String( STR_HUD_FOLLOWING ), name );
+		cg_hudAnchor = ANCHOR_LEFT;
+		CG_DrawStringExt( 62 * DP, 775 * DP, line, color, qfalse, qtrue, cw, ch, 0 );
+		cg_hudAnchor = ANCHOR_CENTER;
+		return qtrue;
+	}
 
 	CG_DrawBigString( 320 - 9 * 8, 24, "following", 1.0F );
 
@@ -6886,7 +6942,13 @@ static void CG_DrawWeaponColumn( void ) {
 		if ( !icons[w] ) {
 			gitem_t	*item = BG_FindItemForWeapon( w );
 
-			icons[w] = item && item->icon ? trap_R_RegisterShaderNoMip( item->icon ) : cg_weapons[w].weaponIcon;
+			// tremor-hud.shader: tremor/hudw_<name> for icons/iconw_<name>
+			if ( item && item->icon && !Q_strncmp( item->icon, "icons/iconw_", 12 ) ) {
+				icons[w] = trap_R_RegisterShaderNoMip( va( "tremor/hudw_%s", item->icon + 12 ) );
+			}
+			if ( !icons[w] ) {
+				icons[w] = cg_weapons[w].weaponIcon;
+			}
 		}
 		trap_R_SetColor( iconColor );
 		CG_DrawPic( x, y + 24 * DP - size / 2, size, size, icons[w] );
@@ -7038,6 +7100,10 @@ static void CG_DrawAbilityBlock( void ) {
 		chargeIconsY = 470;
 	}
 
+	if ( ( champ->passives & PASSIVE_LEAPINGKICK ) && KICK_COUNT( ps ) > 0 ) {
+		CG_HudText( cx + r + 10 * DP, cy - 10 * DP, 20, va( "KICK x%i", KICK_COUNT( ps ) ), colorYellow, 0, 1 );
+	}
+
 	// the key: a light cap with the key in black, 18 dp (not under UNAVAILABLE)
 	if ( off ) {
 		return;
@@ -7055,9 +7121,6 @@ static void CG_DrawAbilityBlock( void ) {
 		}
 		CG_FillRect( HX_C( 961 ) - w / 2, HY( 982 ), w, 24 * DP, cap );
 		CG_HudText( HX_C( 961 ), HY( 985 ), 18, s, colorBlack, 1, 1 );
-	}
-	if ( ( champ->passives & PASSIVE_LEAPINGKICK ) && KICK_COUNT( ps ) > 0 ) {
-		CG_HudText( cx + r + 10 * DP, cy - 10 * DP, 20, va( "KICK x%i", KICK_COUNT( ps ) ), colorYellow, 0, 1 );
 	}
 }
 
@@ -7175,7 +7238,7 @@ static void CG_DrawModernHud( void ) {
 		}
 		if ( icon ) {
 			cg_hudAnchor = ANCHOR_LEFT;
-			CG_DrawPic( 34 * DP, 80 * DP, 44 * DP, 44 * DP, icon );
+			CG_DrawPic( 34 * DP, 80 * DP, 82 * DP, 82 * DP, icon );
 		}
 	}
 
