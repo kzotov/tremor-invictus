@@ -1490,7 +1490,7 @@ static void CG_DrawChargeIcons( int active, int charges, int maxCharges ) {
 	static qhandle_t	lit[ACTIVE_NUM_ABILITIES], shadow[ACTIVE_NUM_ABILITIES];
 	static qboolean		loaded[ACTIVE_NUM_ABILITIES];
 	static const vec4_t	dim = { 0.3f, 0.3f, 0.3f, 0.8f };
-	float				size = 12;
+	float				size = 16;		// large enough to count at a glance
 	int					i;
 
 	if ( active <= ACTIVE_NONE || active >= ACTIVE_NUM_ABILITIES ) {
@@ -1563,6 +1563,37 @@ static void CG_DrawAbilityRing( float cx, float cy, float radius, float startDeg
 		CG_FillRect( cx + cos( a ) * radius - dotSize / 2, cy + sin( a ) * radius - dotSize / 2, dotSize, dotSize,
 			( i + 0.5f ) / dots <= frac ? on : off );
 	}
+}
+
+/*
+=================
+CG_DrawAbilityIcon
+
+hud.md: the ability's icon inside its ring, lit when a charge is ready,
+dimmed while it recharges
+=================
+*/
+static void CG_DrawAbilityIcon( float cx, float cy, float size ) {
+	static qhandle_t	icons[ACTIVE_NUM_ABILITIES];
+	static qboolean		loaded[ACTIVE_NUM_ABILITIES];
+	static const vec4_t	dim = { 0.45f, 0.45f, 0.45f, 0.7f };
+	int					active = BG_Champion( cg.snap->ps.stats[STAT_CHAMPION] )->active;
+
+	if ( active <= ACTIVE_NONE || active >= ACTIVE_NUM_ABILITIES ) {
+		return;
+	}
+	if ( !loaded[active] ) {
+		icons[active] = trap_R_RegisterShaderNoMip( va( "gfx/tremor/abilities/%s", bg_abilityInfo[active].cvarName ) );
+		loaded[active] = qtrue;
+	}
+	if ( !icons[active] ) {
+		return;
+	}
+	if ( BG_AbilityCharges( &cg.snap->ps ) <= 0 ) {
+		trap_R_SetColor( dim );
+	}
+	CG_DrawPic( cx - size / 2, cy - size / 2, size, size, icons[active] );
+	trap_R_SetColor( NULL );
 }
 
 /*
@@ -2224,6 +2255,7 @@ static void CG_DrawHud( void ) {
 	if ( cg_drawCooldown.integer ) {
 		CG_DrawAbilityRing( 320, 452, 32, 0, 360, 24, 3 );
 	}
+	CG_DrawAbilityIcon( 320, 452, 34 );
 	maxCharges = BG_AbilityParam( BG_Champion( ps->stats[STAT_CHAMPION] )->active, AP_CHARGES );
 	charges = BG_AbilityCharges( ps );
 	if ( maxCharges > 1 ) {
@@ -6106,9 +6138,10 @@ static void CG_DrawModernHud( void ) {
 	if ( cg_drawCooldown.integer ) {
 		CG_DrawAbilityRing( x, y, 30, 0, 360, 24, 3 );
 	}
+	CG_DrawAbilityIcon( x, y, 32 );
 	maxCharges = BG_AbilityParam( champ->active, AP_CHARGES );
 	if ( maxCharges > 1 ) {
-		chargeIconsY = y - 30 - 14;		// on top of the ring, clear of the name
+		chargeIconsY = y - 30 - 20;		// on top of the ring, clear of the name
 		CG_DrawChargeIcons( champ->active, BG_AbilityCharges( ps ), maxCharges );
 		chargeIconsY = 470;
 	}
