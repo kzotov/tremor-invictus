@@ -1417,6 +1417,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Fanaticism",
 	"Sadism",
 	"Executioner",
+	"Offense",
 	"PAUSED",
 	"Space play   Up/Down speed   Left/Right 10 s   PgUp/PgDn 1 min   Home restart   H hide HUD   Esc leave",
 	"REC",
@@ -2203,7 +2204,8 @@ const medalInfo_t bg_medalInfo[MEDAL_NUM] = {
 	{ STR_MEDAL_MERCILESS,		"merciless" },
 	{ STR_MEDAL_FANATICISM,		"fanaticism" },
 	{ STR_MEDAL_SADISM,		"sadism" },
-	{ STR_MEDAL_EXECUTIONER,		"executioner" }
+	{ STR_MEDAL_EXECUTIONER,		"executioner" },
+	{ STR_MEDAL_OFFENSE,		"offense" }
 };
 
 /*

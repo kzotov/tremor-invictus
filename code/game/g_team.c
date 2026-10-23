@@ -416,8 +416,10 @@ void Team_FragBonuses(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker
 			break;
 	}
 
-	if (!flag)
+	if (!flag) {
+		G_MedalOffense( attacker, targ );
 		return; // can't find attacker's flag
+	}
 
 	// ok we have the attackers flag and a pointer to the carrier
 
@@ -465,6 +467,8 @@ void Team_FragBonuses(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker
 			return;
 		}
 	}
+	// no defence bonus: an attack on the enemy base earns Offense
+	G_MedalOffense( attacker, targ );
 }
 
 /*

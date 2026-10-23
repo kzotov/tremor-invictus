@@ -270,6 +270,11 @@ def p_netmaster():
     return net & circle(0.5, 0.5, 0.22), circle(0.5, 0.5, 0.05)
 
 
+def p_offense():
+    pole = line(0.6, 0.25, 0.6, 0.77, 0.04) | line(0.53, 0.77, 0.67, 0.77, 0.04)
+    return pole | arrow(0.2, 0.55, 0.5, 0.55, 0.05), polygon([(0.62, 0.27), (0.82, 0.34), (0.62, 0.43)])
+
+
 def p_assistant():
     return arrow(0.24, 0.32, 0.43, 0.46, 0.05) | arrow(0.24, 0.68, 0.43, 0.54, 0.05), circle(0.62, 0.5, 0.08)
 
@@ -326,7 +331,7 @@ MEDALS = [
     "grimreaper", "avatarofdeath", "killingspree",
     "rage", "frenzy", "rampage", "dominating", "powerupmassacre", "gauntletgod", "machinegungod",
     "shotgungod", "nailgungod", "triboltgod", "rocketgod", "lightninggod", "railgod", "damagedealer",
-    "netmaster", "assistant", "fury", "riot", "merciless", "fanaticism", "sadism", "executioner",
+    "netmaster", "assistant", "fury", "riot", "merciless", "fanaticism", "sadism", "executioner", "offense",
     "impressive", "excellent", "gauntlet", "defend", "capture", "assist", "accuracy", "frags", "victory",
 ]
 MASTERS = {"gauntletgod", "machinegungod", "shotgungod", "nailgungod", "triboltgod", "rocketgod",

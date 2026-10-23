@@ -196,6 +196,48 @@ static qboolean G_HasPowerup( gentity_t *ent ) {
 
 /*
 =================
+G_MedalOffense
+
+gaps.md GAP-17 Offense (team objectives); the rule is ours (d): a kill
+of an enemy within the flag-defence radius of that enemy's flag base,
+with the base in sight of either player
+=================
+*/
+void G_MedalOffense( gentity_t *attacker, gentity_t *targ ) {
+	gentity_t	*flag = NULL;
+	const char	*c;
+	vec3_t		v;
+
+	if ( g_gametype.integer != GT_CTF || !attacker->client || !targ->client
+		|| attacker->client->sess.sessionTeam == targ->client->sess.sessionTeam ) {
+		return;
+	}
+	switch ( targ->client->sess.sessionTeam ) {
+	case TEAM_RED:	c = "team_CTF_redflag"; break;
+	case TEAM_BLUE:	c = "team_CTF_blueflag"; break;
+	default:		return;
+	}
+	while ( ( flag = G_Find( flag, FOFS( classname ), c ) ) != NULL ) {
+		if ( !( flag->flags & FL_DROPPED_ITEM ) ) {
+			break;
+		}
+	}
+	if ( !flag ) {
+		return;
+	}
+	VectorSubtract( targ->r.currentOrigin, flag->r.currentOrigin, v );
+	if ( VectorLength( v ) < CTF_TARGET_PROTECT_RADIUS && trap_InPVS( flag->r.currentOrigin, targ->r.currentOrigin ) ) {
+		G_Medal( attacker, MEDAL_OFFENSE );
+		return;
+	}
+	VectorSubtract( attacker->r.currentOrigin, flag->r.currentOrigin, v );
+	if ( VectorLength( v ) < CTF_TARGET_PROTECT_RADIUS && trap_InPVS( flag->r.currentOrigin, attacker->r.currentOrigin ) ) {
+		G_Medal( attacker, MEDAL_OFFENSE );
+	}
+}
+
+/*
+=================
 G_MedalsSpawn
 
 A new life

@@ -1156,7 +1156,8 @@ static const int cg_medalRank[MEDAL_NUM] = {
 	MEDAL_RANK_TOTALS,	// MEDAL_ASSISTANT
 	155,		// MEDAL_FURY (15 kills: just rarer than Rage)
 	25,		// MEDAL_RIOT (25: between Rampage and Frenzy)
-	8, 6, 4, 2		// Merciless, Fanaticism, Sadism, Executioner: rarer than Avatar of Death (10), the longest first (d)
+	8, 6, 4, 2,		// Merciless, Fanaticism, Sadism, Executioner: rarer than Avatar of Death (10), the longest first (d)
+	MEDAL_RANK_TOTALS	// MEDAL_OFFENSE (team objectives, with Defense and Capture)
 };
 
 static void CG_Medal( int medal, int count ) {

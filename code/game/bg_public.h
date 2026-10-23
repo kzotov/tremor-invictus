@@ -149,6 +149,7 @@ typedef enum {
 	MEDAL_FANATICISM,
 	MEDAL_SADISM,
 	MEDAL_EXECUTIONER,
+	MEDAL_OFFENSE,			// team objectives: a kill at the enemy's flag base
 	MEDAL_NUM
 } medal_t;
 
@@ -662,6 +663,7 @@ typedef enum {
 	STR_MEDAL_FANATICISM,
 	STR_MEDAL_SADISM,
 	STR_MEDAL_EXECUTIONER,
+	STR_MEDAL_OFFENSE,
 	STR_DEMO_PAUSED,
 	STR_DEMO_HELP,
 	STR_DEMO_REC,
