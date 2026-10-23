@@ -1202,6 +1202,10 @@ typedef enum {
 	STR_HUD_ROUND,					// "ROUND %i": the top bar label in round modes
 	STR_HUD_OVERTIME,				// "OVERTIME %i"
 	STR_HUD_SUDDEN_DEATH,
+	STR_NET_PING,					// network warnings (cg_netWarnings)
+	STR_NET_LOSS,
+	STR_NET_SPIKE,
+	STR_NET_FPS,
 	STR_EV_RED_FLAG_TAKEN,			// event line, priority 2: first of the objectives
 	STR_EV_BLUE_FLAG_TAKEN,
 	STR_EV_RED_FLAG_DROPPED,

@@ -1214,6 +1214,7 @@ extern	vmCvar_t		cg_drawCrosshairNames;
 extern	vmCvar_t		cg_drawItemPickups;
 extern	vmCvar_t		cg_hudLayout;
 extern	vmCvar_t		cg_rmlScoreboard;
+extern	vmCvar_t		cg_netWarnings;
 extern	vmCvar_t		cg_damagePlumScale;
 extern	vmCvar_t		cg_damagePlumSum;
 extern	vmCvar_t		cg_damagePlumHidden;

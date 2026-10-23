@@ -3355,6 +3355,85 @@ void CG_AddLagometerSnapshotInfo( snapshot_t *snap ) {
 
 /*
 ==============
+CG_DrawNetWarnings
+
+hud.md corrections, off by default (cg_netWarnings): packet loss 5% / 10%,
+ping 180 / 250 ms, spikes +30 / +60 ms over the moving average (weight
+0.1), the client below 45 / 25 fps; a minor (yellow) and a major (red)
+look, each shown at least 1 s. Top right, above the pickups (d).
+==============
+*/
+enum { NETW_LOSS, NETW_PING, NETW_SPIKE, NETW_FPS, NETW_NUM };
+
+static void CG_DrawNetWarnings( void ) {
+	static float	avgPing = -1;
+	static int		seen, shownUntil[NETW_NUM], shownLevel[NETW_NUM], shownValue[NETW_NUM];
+	static int		frameMsec[32], frames;
+	static const int	labels[NETW_NUM] = { STR_NET_LOSS, STR_NET_PING, STR_NET_SPIKE, STR_NET_FPS };
+	vec4_t	minor = { 1, 0.85f, 0.2f, 1 }, major = { 1, 0.25f, 0.2f, 1 };
+	int		i, n, lost = 0, total = 0, level[NETW_NUM], value[NETW_NUM], latest = -1, sum = 0;
+	float	x, y;
+
+	if ( !cg_netWarnings.integer || cg.demoPlayback ) {
+		return;
+	}
+	// the moving average of the ping, one step per new snapshot
+	for ( ; seen < lagometer.snapshotCount ; seen++ ) {
+		int		p = lagometer.snapshotSamples[seen & ( LAG_SAMPLES - 1 )];
+
+		if ( p >= 0 ) {
+			latest = p;
+			avgPing = avgPing < 0 ? p : avgPing + 0.1f * ( p - avgPing );
+		}
+	}
+	if ( latest < 0 && cg.snap ) {
+		latest = cg.snap->ping;
+	}
+	// loss over the last 100 snapshots
+	n = lagometer.snapshotCount < 100 ? lagometer.snapshotCount : 100;
+	for ( i = 0 ; i < n ; i++ ) {
+		total++;
+		if ( lagometer.snapshotSamples[( lagometer.snapshotCount - 1 - i ) & ( LAG_SAMPLES - 1 )] < 0 ) {
+			lost++;
+		}
+	}
+	// frame rate over the last 32 frames
+	frameMsec[frames++ & 31] = cg.frametime;
+	for ( i = 0 ; i < 32 ; i++ ) {
+		sum += frameMsec[i];
+	}
+
+	value[NETW_LOSS] = total ? lost * 100 / total : 0;
+	level[NETW_LOSS] = value[NETW_LOSS] >= 10 ? 2 : value[NETW_LOSS] >= 5 ? 1 : 0;
+	value[NETW_PING] = latest;
+	level[NETW_PING] = latest >= 250 ? 2 : latest >= 180 ? 1 : 0;
+	value[NETW_SPIKE] = avgPing >= 0 && latest >= 0 ? (int)( latest - avgPing ) : 0;
+	level[NETW_SPIKE] = value[NETW_SPIKE] >= 60 ? 2 : value[NETW_SPIKE] >= 30 ? 1 : 0;
+	value[NETW_FPS] = sum > 0 && frames >= 32 ? 32000 / sum : 999;
+	level[NETW_FPS] = value[NETW_FPS] < 25 ? 2 : value[NETW_FPS] < 45 ? 1 : 0;
+
+	cg_hudAnchor = ANCHOR_RIGHT;
+	x = SCREEN_WIDTH - 10 - 12 * TINYCHAR_WIDTH;
+	y = 100 * DP;		// over the pickups (top 150) and the weapon column
+	for ( i = 0 ; i < NETW_NUM ; i++ ) {
+		// a warning stays at least 1 s, at its worst level meanwhile
+		if ( level[i] && ( cg.time >= shownUntil[i] || level[i] >= shownLevel[i] ) ) {
+			shownUntil[i] = cg.time + 1000;
+			shownLevel[i] = level[i];
+			shownValue[i] = value[i];
+		}
+		if ( cg.time >= shownUntil[i] ) {
+			continue;
+		}
+		CG_DrawStringExt( x, y, va( (char *)BG_String( labels[i] ), shownValue[i] ), shownLevel[i] >= 2 ? major : minor,
+			qtrue, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
+		y += TINYCHAR_HEIGHT + 2;
+	}
+	cg_hudAnchor = ANCHOR_CENTER;
+}
+
+/*
+==============
 CG_DrawDisconnect
 
 Should we draw something differnet for long lag vs no packets?
@@ -6064,6 +6143,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 
 	cg_hudAnchor = ANCHOR_RIGHT;
 	CG_DrawLagometer();
+	CG_DrawNetWarnings();
 	cg_hudAnchor = ANCHOR_CENTER;
 
 #ifdef MISSIONPACK
