@@ -165,7 +165,9 @@ static void G_RDUpdateHud( void ) {
 		trap_SetConfigstring( CS_SACRIFICE, va( "rd|%s|%s|#%i %i %i %i %i %i %i %i %i %i %i %i %i", line[0], line[1],
 			rd.state == RD_DRAFT, rd.player[0], rd.player[1], pick[0][0], pick[0][1], pick[0][2],
 			pick[1][0], pick[1][1], pick[1][2], rd.dead[0], rd.dead[1],
-			rd.state == RD_DRAFT ? -1 : rd.current[0], rd.state == RD_DRAFT ? -1 : rd.current[1] ) );
+			// round-duel.md 3: the first champion stays hidden through the countdown
+			rd.state == RD_FIGHTING || rd.state == RD_RESULT ? rd.current[0] : -1,
+			rd.state == RD_FIGHTING || rd.state == RD_RESULT ? rd.current[1] : -1 ) );
 	}
 }
 

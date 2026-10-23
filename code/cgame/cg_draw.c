@@ -116,14 +116,14 @@ pick in play (-1 none)
 =================
 */
 static qboolean CG_RoundDuelRoster( int players[2], int picks[2][3], int dead[2], int current[2] ) {
-	const char	*cs = strchr( CG_ConfigString( CS_SACRIFICE ), '#' );
+	const char	*cs = strstr( CG_ConfigString( CS_SACRIFICE ), "|#" );		// (a name may hold a '#')
 	char		*p;
 	int			i;
 
 	if ( !cs || Q_strncmp( CG_ConfigString( CS_SACRIFICE ), "rd|", 3 ) ) {
 		return qfalse;
 	}
-	p = (char *)cs + 1;
+	p = (char *)cs + 2;
 	COM_Parse( &p );		// drafting
 	players[0] = atoi( COM_Parse( &p ) );
 	players[1] = atoi( COM_Parse( &p ) );
@@ -1881,7 +1881,7 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 				CG_FillRect( px, 6 * DP, 300 * DP, 32 * DP, box );
 				CG_TopText( side ? 254 : -255, 12, 20, CG_CapName( cgs.clientinfo[who].name, 20, 220 ), side ? theirRed : ourBlue,
 					side ? -1 : 1 );
-				CG_TopText( side ? 222 : -223, 6, 32, va( "%i", CG_ClientScore( who ) ), colorWhite, side ? 1 : -1 );
+				CG_TopText( side ? 218 : -219, 6, 32, va( "%i", CG_ClientScore( who ) ), colorWhite, side ? -1 : 1 );
 				if ( !CG_RoundDuelRoster( players, picks, dead, current ) ) {
 					if ( portrait ) {
 						CG_DrawPic( 320 + ( side ? 1040.5f : 819.5f ) * DP - 960 * DP, 49.5f * DP, 61 * DP, 61 * DP, portrait );
@@ -1891,6 +1891,8 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 				row = players[1] == who ? 1 : 0;
 				if ( current[row] >= 0 && current[row] < 3 && picks[row][current[row]] >= 0 ) {
 					portrait = CG_ChampionPortrait( picks[row][current[row]], qtrue );
+				} else if ( who != me ) {
+					portrait = 0;		// the opponent's first champion stays hidden until the fight
 				}
 				if ( portrait ) {
 					float	ax = 320 + ( ( side ? 1040.5f : 819.5f ) - 960 ) * DP;
@@ -1911,10 +1913,17 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 						CG_DrawPic( lx, 54 * DP, 52 * DP, 52 * DP, pic );
 					}
 					if ( dead[row] & ( 1 << k ) ) {
-						static const vec4_t	cross = { 1, 0.2f, 0.2f, 0.85f }, dim = { 0, 0, 0, 0.55f };
+						static const vec4_t	cross = { 1, 0.2f, 0.2f, 0.9f }, dim = { 0, 0, 0, 0.55f };
+						int		d;
 
+						// dimmed and crossed out: two diagonals of small squares
 						CG_FillRect( lx, 54 * DP, 52 * DP, 52 * DP, dim );
-						CG_DrawStringExt( lx + 14 * DP, 58 * DP, "X", cross, qtrue, qfalse, 24 * DP, 44 * DP, 0 );
+						for ( d = 0 ; d < 16 ; d++ ) {
+							float	t = ( d + 0.5f ) / 16 * 46 * DP;
+
+							CG_FillRect( lx + 3 * DP + t - 2 * DP, 57 * DP + t - 2 * DP, 4 * DP, 4 * DP, cross );
+							CG_FillRect( lx + 49 * DP - t - 2 * DP, 57 * DP + t - 2 * DP, 4 * DP, 4 * DP, cross );
+						}
 					}
 					n++;
 				}
@@ -6198,14 +6207,14 @@ players and their picks (-1 not yet)
 =================
 */
 static qboolean CG_DraftState( int players[2], int picks[2][3] ) {
-	const char	*cs = strchr( CG_ConfigString( CS_SACRIFICE ), '#' );
+	const char	*cs = strstr( CG_ConfigString( CS_SACRIFICE ), "|#" );		// (a name may hold a '#')
 	char		*p;
 	int			i;
 
 	if ( !cs || Q_strncmp( CG_ConfigString( CS_SACRIFICE ), "rd|", 3 ) ) {
 		return qfalse;
 	}
-	p = (char *)cs + 1;
+	p = (char *)cs + 2;
 	if ( !atoi( COM_Parse( &p ) ) ) {
 		return qfalse;
 	}
