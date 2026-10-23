@@ -674,7 +674,8 @@ ABILITY_SOUNDS = {
     "hook": (lambda: mix((env(osc(glide(900, 1400, 0.1), 0.5, "tri"), decay=7), 0.6, 0),
                          (env(osc(2650, 0.5), decay=9), 0.25, 0),
                          (env(noise(0.35, glide(3000, 800, 0.35), 3), decay=6), 0.5, 0.02)),
-             lambda: mix((env(osc(1300, 0.25, "tri"), decay=16), 0.5, 0), (env(noise(0.2, 2500, 4), decay=20), 0.4, 0))),
+             lambda: mix(*[(env(osc(2300 + k * 170, 0.05, "tri"), decay=60), 0.45, k * 0.045) for k in range(5)]
+                         + [(env(noise(0.25, 2500, 4), decay=14), 0.3, 0)])),		# the chain rattling back
     # Scalebearer's bull rush: a low rumble surging forward
     "bullrush": (lambda: mix((env(noise(1.0, glide(200, 900, 0.8), 5), attack=0.08, decay=1.6), 1.0, 0),
                              (env(osc(glide(55, 90, 0.8), 1.0, "saw"), attack=0.06, decay=1.8), 0.35, 0)),
