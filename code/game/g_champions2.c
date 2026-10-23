@@ -643,7 +643,8 @@ void G_ChampionClientThink( gentity_t *ent ) {
 	// and sees them through walls
 	// champion-audit.md: shown only to the player or team that marked them;
 	// s.time2 carries which clients may see it (0-31)
-	if ( ( client->markEndTime > level.time || client->revealEndTime > level.time ) && ent->health > 0 ) {
+	if ( ( client->markEndTime > level.time || client->revealEndTime > level.time ) && ent->health > 0
+		&& client->undetectedUntil <= level.time ) {
 		int		i, seers = 0;
 
 		for ( i = 0 ; i < level.maxclients && i < 32 ; i++ ) {

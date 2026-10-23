@@ -239,6 +239,18 @@ float BG_WeaponParam( int weapon, int param ) {
 static char		*abilityParamNames[AP_NUM_PARAMS] = { "charges", "recharge", "delay", "duration", "lockout" };
 
 /*
+================
+BG_AbilityTimeUnit
+
+Msec per step of STAT_ABILITY_TIME while an ability runs: 1, or 2 for
+Strogg's 45 s drone (a 16-bit stat holds 30 s of single msec)
+================
+*/
+int BG_AbilityTimeUnit( int active ) {
+	return active == ACTIVE_DRONE ? 2 : 1;
+}
+
+/*
 ===============
 BG_AbilityParam
 ===============
@@ -247,9 +259,10 @@ float BG_AbilityParam( int active, int param ) {
 	if ( active <= ACTIVE_NONE || active >= ACTIVE_NUM_ABILITIES || param < 0 || param >= AP_NUM_PARAMS ) {
 		return 0;
 	}
-	// a duration rides in a 16-bit stat: longer would break prediction
-	if ( param == AP_DURATION && abilityCvars[active][param].value > STAT_TIME_CAP ) {
-		return STAT_TIME_CAP;
+	// a duration rides in a 16-bit stat: longer would break prediction (the
+	// drone's runs in 2 ms steps, BG_AbilityTimeUnit)
+	if ( param == AP_DURATION && abilityCvars[active][param].value > STAT_TIME_CAP * BG_AbilityTimeUnit( active ) ) {
+		return STAT_TIME_CAP * BG_AbilityTimeUnit( active );
 	}
 	return abilityCvars[active][param].value;
 }
@@ -3144,7 +3157,7 @@ static void PM_StartAbility( int *state, int *time ) {
 		break;
 	default:
 		PM_AddEvent( EV_USE_ABILITY );
-		*time = BG_AbilityParam( active, AP_DURATION );
+		*time = BG_AbilityParam( active, AP_DURATION ) / BG_AbilityTimeUnit( active );
 		*state = *time > 0 ? ABILITY_ACTIVE : ABILITY_IDLE;
 		if ( active == ACTIVE_BERSERK && pm->ps->weaponTime < BERSERK_RAISE ) {
 			pm->ps->weaponTime = BERSERK_RAISE;		// the fists come up over 0.8 s
@@ -3327,11 +3340,17 @@ static void PM_Ability( void ) {
 				return;
 			}
 			// a second press works once the ability has run its gate time
-			if ( BG_AbilityParam( active, AP_DURATION ) - time >= BG_AbilityParam( active, AP_DELAY ) ) {
+			if ( ( BG_AbilityParam( active, AP_DURATION ) / BG_AbilityTimeUnit( active ) - time ) * BG_AbilityTimeUnit( active )
+				>= BG_AbilityParam( active, AP_DELAY ) ) {
 				PM_AddEvent( EV_ABILITY_REPRESS );
 			}
 		}
-		time -= pml.msec;
+		if ( BG_AbilityTimeUnit( active ) > 1 ) {
+			// whole steps of command time, so prediction and server agree
+			time -= pm->cmd.serverTime / BG_AbilityTimeUnit( active ) - pml.oldCommandTime / BG_AbilityTimeUnit( active );
+		} else {
+			time -= pml.msec;
+		}
 		if ( time <= 0 ) {
 			BG_SetAbility( pm->ps, ABILITY_IDLE, charges );
 			PM_EndAbility();

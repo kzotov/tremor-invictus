@@ -1307,7 +1307,16 @@ void FireWeapon( gentity_t *ent ) {
 #endif
 	case WP_MACHINEGUN:
 		if ( ent->client->ps.eFlags & EF_DRONE ) {
-			Bullet_Fire( ent, BG_WeaponParam( WP_MACHINEGUN, WPP_SPREAD ), g_droneDamage.integer, MOD_DRONE );
+			// champion-audit.md: the drone's gun shoots bolts at 2000 u/s, 15
+			// damage and impulse 15, no splash
+			gentity_t	*bolt = fire_plasma( ent, muzzle, forward );
+
+			bolt->classname = "drone_shot";
+			bolt->damage = g_droneDamage.integer;
+			bolt->splashDamage = 0;
+			bolt->splashRadius = 0;
+			bolt->methodOfDeath = MOD_DRONE;
+			bolt->splashMethodOfDeath = MOD_DRONE;
 		} else if ( BG_WeaponTuned( WP_MACHINEGUN ) ) {
 			Bullet_Fire( ent, BG_WeaponParam( WP_MACHINEGUN, WPP_SPREAD ), BG_WeaponParam( WP_MACHINEGUN, WPP_DAMAGE ), MOD_MACHINEGUN );
 		} else if ( g_gametype.integer != GT_TEAM ) {

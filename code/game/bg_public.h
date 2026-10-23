@@ -1326,6 +1326,7 @@ typedef struct {
 extern	const abilityInfo_t	bg_abilityInfo[ACTIVE_NUM_ABILITIES];
 
 float	BG_AbilityParam( int active, int param );
+int		BG_AbilityTimeUnit( int active );
 
 // weapon numbers, all cvars named wp_<name>_<param>; the ones prediction
 // needs (refire, pellets, spread) are sent to clients

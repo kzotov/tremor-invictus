@@ -606,6 +606,10 @@ static int CG_CalcFov( void ) {
 			} else if ( fov_x > 130 ) {
 				fov_x = 130;
 			}
+			// Strogg's drone sees 115 degrees (champion-audit.md)
+			if ( cg.predictedPlayerState.eFlags & EF_DRONE ) {
+				fov_x = 115;
+			}
 		}
 
 		// account for zooms

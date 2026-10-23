@@ -622,6 +622,7 @@ patch per player)
 #define GROUNDFIRE_LIFE		3000
 #define GROUNDFIRE_RADIUS	32
 #define GROUNDFIRE_DAMAGE	6
+#define GROUNDFIRE_MAX		24		// patches alive per Death Knight
 
 static void G_GroundFireThink( gentity_t *fire ) {
 	int			touch[MAX_GENTITIES], num, i;
@@ -671,6 +672,23 @@ static void G_FireballThink( gentity_t *ball ) {
 	}
 	if ( !ball->parent || !ball->parent->client ) {
 		return;
+	}
+	// at most GROUNDFIRE_MAX patches per Death Knight: the oldest goes
+	{
+		gentity_t	*other, *oldest = NULL;
+		int			i, count = 0;
+
+		for ( i = MAX_CLIENTS, other = &g_entities[MAX_CLIENTS] ; i < level.num_entities ; i++, other++ ) {
+			if ( other->inuse && other->parent == ball->parent && other->classname && !strcmp( other->classname, "ground_fire" ) ) {
+				count++;
+				if ( !oldest || other->abilityTime < oldest->abilityTime ) {
+					oldest = other;
+				}
+			}
+		}
+		if ( count >= GROUNDFIRE_MAX && oldest ) {
+			G_FreeEntity( oldest );
+		}
 	}
 	// a stationary ability missile, drawn by its visual (as the plasma trail)
 	VectorSet( down, 0, 0, 1 );
@@ -1378,6 +1396,8 @@ falls again
 ================
 */
 #define DRONE_TAKEOFF		88		// the drone starts this far above the body
+#define DRONE_UNDETECTED	1000	// msec not revealed after the drone
+#define DRONE_VIEW			115		// degrees the drone sees enemies in
 #define DRONE_BODY_SINK		60		// u/s, an idle player sinking in water
 #define DRONE_BODY_SINK_ACCEL	400		// u/s/s toward that sink
 #define DRONE_BODY_AIR		12000	// msec under water before drowning, as a player
@@ -1646,6 +1666,7 @@ static void G_StartDrone( gentity_t *ent ) {
 
 	client->droneBody = body;
 	client->droneStartTime = level.time;
+	client->droneMGAmmo = client->ps.ammo[WP_MACHINEGUN];
 	client->droneArmor = client->ps.stats[STAT_ARMOR];
 	VectorCopy( client->ps.viewangles, client->droneBodyAngles );
 
@@ -1664,21 +1685,23 @@ Back to the body; launch fires the drone off as a rocket first
 void G_DroneEnd( gentity_t *ent, qboolean launch ) {
 	gclient_t	*client = ent->client;
 	gentity_t	*body = client->droneBody;
-	gentity_t	*rocket;
-	vec3_t		forward;
+	gentity_t	*tent;
 
 	if ( !body ) {
 		return;
 	}
 	if ( launch ) {
-		AngleVectors( client->ps.viewangles, forward, NULL, NULL );
-		rocket = fire_rocket( ent, client->ps.origin, forward );
-		rocket->damage = g_droneRocketDamage.integer;
-		rocket->splashDamage = g_droneRocketDamage.integer;
-		rocket->splashRadius = g_droneRocketRadius.integer;
-		rocket->methodOfDeath = MOD_DRONE;
-		rocket->splashMethodOfDeath = MOD_DRONE;
+		// champion-audit.md: the second press detonates the drone where it is
+		// (75 within 120 u)
+		tent = G_TempEntity( client->ps.origin, EV_MISSILE_MISS );
+		tent->s.weapon = WP_ROCKET_LAUNCHER;
+		tent->s.eventParm = DirToByte( vec3_origin );
+		G_RadiusDamage( client->ps.origin, ent, g_droneRocketDamage.integer, g_droneRocketRadius.integer, ent, MOD_DRONE );
 	}
+	// no machinegun bullet left from the drone's gun
+	client->ps.ammo[WP_MACHINEGUN] = client->droneMGAmmo;
+	// detection effects pass him by for a second after he is back
+	client->undetectedUntil = level.time + DRONE_UNDETECTED;
 
 	client->droneBody = NULL;
 	client->droneEndTime = level.time;		// input waits a moment (g_active)
@@ -1777,7 +1800,12 @@ static void G_CellThink( gentity_t *cell ) {
 			other->health = max;
 		}
 		other->client->ps.stats[STAT_HEALTH] = other->health;
-		G_AddEvent( other, EV_ITEM_PICKUP, 0 );
+		// the small health's pickup: its sound and a pickup feed line
+		{
+			gitem_t	*item = BG_FindItem( "5 Health" );
+
+			G_AddEvent( other, EV_ITEM_PICKUP, item ? item - bg_itemlist : 0 );
+		}
 		G_FreeEntity( cell );
 		return;
 	}
@@ -1800,7 +1828,16 @@ void G_DropStroyentCell( gentity_t *victim, gentity_t *attacker ) {
 	cell->abilityTime = level.time + g_stroyentLife.integer;
 	cell->think = G_CellThink;
 	cell->nextthink = level.time + ABILITY_FRAME;
-	G_SetOrigin( cell, victim->r.currentOrigin );
+	// on the floor under the victim (champion-audit.md)
+	{
+		trace_t	tr;
+		vec3_t	down;
+
+		VectorCopy( victim->r.currentOrigin, down );
+		down[2] -= 4096;
+		trap_Trace( &tr, victim->r.currentOrigin, NULL, NULL, down, victim->s.number, MASK_SOLID );
+		G_SetOrigin( cell, tr.fraction < 1 ? tr.endpos : victim->r.currentOrigin );
+	}
 	trap_LinkEntity( cell );
 }
 
@@ -1957,8 +1994,19 @@ void G_AbilityClientThink( gentity_t *ent ) {
 				|| Distance( other->r.currentOrigin, client->ps.origin ) > 2000 ) {
 				continue;
 			}
+			// inside the drone's 115 degree view
+			{
+				vec3_t	fwd, to;
+
+				AngleVectors( client->ps.viewangles, fwd, NULL, NULL );
+				VectorSubtract( other->r.currentOrigin, client->ps.origin, to );
+				VectorNormalize( to );
+				if ( DotProduct( fwd, to ) < cos( DEG2RAD( DRONE_VIEW * 0.5f ) ) ) {
+					continue;
+				}
+			}
 			trap_Trace( &tr, client->ps.origin, NULL, NULL, other->r.currentOrigin, ent->s.number, MASK_SOLID );
-			if ( tr.fraction == 1.0f ) {
+			if ( tr.fraction == 1.0f && other->client->undetectedUntil <= level.time ) {
 				other->client->revealEndTime = level.time + 300;
 				other->client->revealTeam = g_gametype.integer >= GT_TEAM ? client->sess.sessionTeam : 1000 + ent->s.number;
 			}

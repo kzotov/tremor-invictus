@@ -418,6 +418,8 @@ struct gclient_s {
 	int			droneEndTime;		// input waits 0.25 s after the drone ends
 	vec3_t		droneBodyAngles;
 	int			droneArmor;
+	int			droneMGAmmo;		// machinegun ammo before the drone (its gun forces one)
+	int			undetectedUntil;	// detection effects pass him by until then
 
 	int			triboltShots;		// bolts still to come from this trigger pull
 	int			triboltTime;		// level.time of the next bolt
