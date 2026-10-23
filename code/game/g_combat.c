@@ -1330,6 +1330,8 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 				plum->s.pos.trBase[2] += 40;
 				plum->s.time = dealt;
 				plum->s.otherEntityNum = attacker->s.number;
+				plum->s.otherEntityNum2 = targ->s.number;	// for summing (cg_damagePlumSum)
+				plum->s.generic1 = mod;
 				plum->r.svFlags |= SVF_SINGLECLIENT;
 				plum->r.singleClient = attacker->s.number;
 			}

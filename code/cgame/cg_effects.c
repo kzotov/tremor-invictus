@@ -514,15 +514,45 @@ void CG_ScorePlum( int client, vec3_t org, int score ) {
 CG_DamagePlum
 
 The damage just dealt, floating up from the target for a second
-(cg_damagePlum)
+(cg_damagePlum). Settings (settings.md 9.5): cg_damagePlumScale 1.0-2.0
+sizes it; cg_damagePlumSum 1 adds hits of one damage type on one target
+within 0.5 s into one number, 2 adds all of them; cg_damagePlumHidden 0
+skips targets out of sight
 ==================
 */
-void CG_DamagePlum( int client, vec3_t org, int damage ) {
+#define PLUM_SUM_MSEC	500
+
+extern localEntity_t	cg_activeLocalEntities;		// (cg_localents.c)
+
+void CG_DamagePlum( int client, int target, int mod, vec3_t org, int damage ) {
 	localEntity_t	*le;
 	vec3_t			angles;
+	float			scale;
 
 	if ( client != cg.predictedPlayerState.clientNum || !cg_damagePlum.integer ) {
 		return;
+	}
+	if ( !cg_damagePlumHidden.integer ) {
+		trace_t	tr;
+
+		CG_Trace( &tr, cg.refdef.vieworg, NULL, NULL, org, cg.predictedPlayerState.clientNum, CONTENTS_SOLID );
+		if ( tr.fraction < 1 ) {
+			return;		// behind a wall
+		}
+	}
+	// a running number for the same target (and type) takes the new damage
+	if ( cg_damagePlumSum.integer ) {
+		for ( le = cg_activeLocalEntities.prev ; le != &cg_activeLocalEntities ; le = le->prev ) {
+			if ( le->leType == LE_SCOREPLUM && le->refEntity.frame == target + 1
+				&& ( cg_damagePlumSum.integer == 2 || le->refEntity.oldframe == mod )
+				&& cg.time - le->startTime < PLUM_SUM_MSEC ) {
+				le->radius += damage;
+				le->startTime = cg.time;
+				le->endTime = cg.time + 1000;
+				VectorCopy( org, le->pos.trBase );
+				return;
+			}
+		}
 	}
 	le = CG_AllocLocalEntity();
 	le->leFlags = 0;
@@ -538,6 +568,10 @@ void CG_DamagePlum( int client, vec3_t org, int damage ) {
 	VectorCopy( org, le->pos.trBase );
 	le->refEntity.reType = RT_SPRITE;
 	le->refEntity.radius = 12;
+	le->refEntity.frame = target + 1;		// (the target and type, for summing)
+	le->refEntity.oldframe = mod;
+	scale = cg_damagePlumScale.value;
+	le->light = scale < 1 ? 1 : scale > 2 ? 2 : scale;		// the number's size
 	VectorClear( angles );
 	AnglesToAxis( angles, le->refEntity.axis );
 }

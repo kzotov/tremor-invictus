@@ -247,6 +247,9 @@ vmCvar_t	cg_damageArc;
 vmCvar_t	cg_zoomToggle;
 vmCvar_t	cg_joinScreen;
 vmCvar_t	cg_damagePlum;
+vmCvar_t	cg_damagePlumScale;
+vmCvar_t	cg_damagePlumSum;
+vmCvar_t	cg_damagePlumHidden;
 vmCvar_t	cg_hitBeep;
 vmCvar_t	cg_killBeep;
 vmCvar_t	cg_worldItemTimers;
@@ -457,6 +460,9 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_zoomToggle, "cg_zoomToggle", "0", CVAR_ARCHIVE},		// 1: +zoom toggles instead of holding
 	{ &cg_joinScreen, "cg_joinScreen", "1", CVAR_ARCHIVE},		// the join screen for spectators on a new map
 	{ &cg_damagePlum, "cg_damagePlum", "1", CVAR_ARCHIVE},		// damage numbers over hit enemies
+	{ &cg_damagePlumScale, "cg_damagePlumScale", "1", CVAR_ARCHIVE },	// their size, 1.0-2.0
+	{ &cg_damagePlumSum, "cg_damagePlumSum", "2", CVAR_ARCHIVE },		// 0 each hit, 1 per damage type, 2 all hits on a target
+	{ &cg_damagePlumHidden, "cg_damagePlumHidden", "0", CVAR_ARCHIVE },	// numbers for targets out of sight
 	{ &cg_hitBeep, "cg_hitBeep", "1", CVAR_ARCHIVE},
 	{ &cg_killBeep, "cg_killBeep", "1", CVAR_ARCHIVE},
 	{ &cg_worldItemTimers, "cg_worldItemTimers", "1", CVAR_ARCHIVE},	// markers and countdowns on away items

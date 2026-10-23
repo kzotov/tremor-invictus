@@ -785,7 +785,7 @@ void CG_AddScorePlum( localEntity_t *le ) {
 	else
 		re->shaderRGBA[3] = 0xff;
 
-	re->radius = NUMBER_SIZE / 2;
+	re->radius = NUMBER_SIZE / 2 * ( le->light >= 1 ? le->light : 1 );	// damage numbers: cg_damagePlumScale
 
 	VectorCopy(le->pos.trBase, origin);
 	origin[2] += 110 - c * 100;

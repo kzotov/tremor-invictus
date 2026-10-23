@@ -1212,6 +1212,9 @@ extern	vmCvar_t		cg_drawCrosshairNames;
 extern	vmCvar_t		cg_drawItemPickups;
 extern	vmCvar_t		cg_hudLayout;
 extern	vmCvar_t		cg_rmlScoreboard;
+extern	vmCvar_t		cg_damagePlumScale;
+extern	vmCvar_t		cg_damagePlumSum;
+extern	vmCvar_t		cg_damagePlumHidden;
 extern	vmCvar_t		cg_fragBanner;
 extern	vmCvar_t		cg_medals;
 extern	vmCvar_t		cg_eventBanner;
@@ -1617,7 +1620,7 @@ void CG_InvulnerabilityImpact( vec3_t org, vec3_t angles );
 void CG_InvulnerabilityJuiced( vec3_t org );
 void CG_LightningBoltBeam( vec3_t start, vec3_t end );
 #endif
-void CG_DamagePlum( int client, vec3_t org, int damage );
+void CG_DamagePlum( int client, int target, int mod, vec3_t org, int damage );
 void CG_ScorePlum( int client, vec3_t org, int score );
 
 void CG_GibPlayer( vec3_t playerOrigin );

@@ -1168,7 +1168,8 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 #endif
 	case EV_DAMAGEPLUM:
 		DEBUGNAME("EV_DAMAGEPLUM");
-		CG_DamagePlum( cent->currentState.otherEntityNum, cent->lerpOrigin, cent->currentState.time );
+		CG_DamagePlum( cent->currentState.otherEntityNum, cent->currentState.otherEntityNum2, cent->currentState.generic1,
+			cent->lerpOrigin, cent->currentState.time );
 		break;
 
 	case EV_SCOREPLUM:
