@@ -2967,6 +2967,7 @@ static void PM_EndAbility( void ) {
 #define HOOK_MAX_ROPE			3000	// let go beyond this much rope
 #define HOOK_STUCK_MSEC			200		// stuck: under HOOK_STUCK_DIST in this time
 #define HOOK_STUCK_DIST			32
+#define HOOK_CUT_MSEC			600		// a rope blocked this long is cut
 
 /*
 ================
@@ -3074,6 +3075,7 @@ static void PM_Ability( void ) {
 			state = ABILITY_HOOK_PULL;
 			time = 0;
 			pm->ps->stats[STAT_MOVE_STATE] = 0;
+			pm->ps->stats[STAT_HOOK] = pm->cmd.upmove >= 10 ? HOOK_JUMP_DOWN : 0;
 			VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
 			VectorNormalize( dir );
 			VectorMA( pm->ps->velocity, bg_pmoveSettings.hookImpulse, dir, pm->ps->velocity );
@@ -3106,21 +3108,50 @@ static void PM_Ability( void ) {
 			// 3000 u of rope, on landing, on a jump, when stuck (under 32 u
 			// in 0.2 s, as speed under 160 u/s) and when the rope is cut;
 			// jump pads, teleporters and her impact hits free it in the game
-			if ( dist <= bg_pmoveSettings.hookDeadZone || dist > HOOK_MAX_ROPE ) {
-				arrived = qtrue;
-			}
-			if ( time >= 100 && pm->ps->groundEntityNum != ENTITYNUM_NONE ) {
-				arrived = qtrue;		// landed
-			}
-			if ( pm->cmd.upmove >= 10 && !( pm->ps->pm_flags & PMF_JUMP_HELD ) ) {
-				arrived = qtrue;		// a jump
-			}
-			if ( time >= HOOK_STUCK_MSEC && VectorLength( pm->ps->velocity ) * HOOK_STUCK_MSEC * 0.001f < HOOK_STUCK_DIST ) {
-				arrived = qtrue;		// stuck
-			}
-			pm->trace( &tr, pm->ps->origin, NULL, NULL, pm->ps->grapplePoint, pm->ps->clientNum, MASK_SOLID );
-			if ( tr.fraction < 1 && Distance( tr.endpos, pm->ps->grapplePoint ) > 8 ) {
-				arrived = qtrue;		// something cut the rope
+			{
+				int		hook = pm->ps->stats[STAT_HOOK] & 0xffff, blocked = HOOK_BLOCKED( pm->ps );
+				int		moved = HOOK_MOVED( pm->ps );
+				qboolean	jumpDown = pm->cmd.upmove >= 10;
+
+				if ( dist <= bg_pmoveSettings.hookDeadZone || dist > HOOK_MAX_ROPE ) {
+					arrived = qtrue;
+				}
+				// a landing from the air (a hook thrown from the ground stays)
+				if ( pm->ps->groundEntityNum == ENTITYNUM_NONE ) {
+					hook |= HOOK_AIRBORNE;
+				} else if ( hook & HOOK_AIRBORNE ) {
+					arrived = qtrue;
+				}
+				// a new press of jump
+				if ( jumpDown && !( hook & HOOK_JUMP_DOWN ) && time > 0 ) {
+					arrived = qtrue;
+				}
+				// stuck: under 32 u moved in a 0.2 s window
+				moved += (int)Distance( pm->ps->origin, pml.previous_origin );
+				if ( moved > 127 ) {
+					moved = 127;
+				}
+				if ( time / HOOK_STUCK_MSEC != ( time + pml.msec ) / HOOK_STUCK_MSEC ) {
+					if ( time >= HOOK_STUCK_MSEC && moved < HOOK_STUCK_DIST ) {
+						arrived = qtrue;
+					}
+					moved = 0;
+				}
+				// the rope cut: the line blocked for 0.6 s
+				pm->trace( &tr, pm->ps->origin, NULL, NULL, pm->ps->grapplePoint, pm->ps->clientNum, MASK_SOLID );
+				if ( tr.fraction < 1 && Distance( tr.endpos, pm->ps->grapplePoint ) > 8 ) {
+					blocked += pml.msec / 10 > 0 ? pml.msec / 10 : 1;
+					if ( blocked * 10 >= HOOK_CUT_MSEC ) {
+						arrived = qtrue;
+					}
+					if ( blocked > 127 ) {
+						blocked = 127;
+					}
+				} else {
+					blocked = 0;
+				}
+				hook = ( hook & HOOK_AIRBORNE ) | blocked | ( moved << 8 ) | ( jumpDown ? HOOK_JUMP_DOWN : 0 );
+				pm->ps->stats[STAT_HOOK] = hook;
 			}
 		}
 		if ( ( pressed && time >= BG_AbilityParam( active, AP_DELAY ) ) || arrived

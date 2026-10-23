@@ -1476,7 +1476,21 @@ typedef enum {
 	STAT_ABILITY,					// active ability: charges | state << ABILITY_STATE_SHIFT
 	STAT_ABILITY_TIME,				// msec, meaning depends on the ability state
 	STAT_ABILITY_RECHARGE			// tenths of a second until the next charge, 0 when full
+#ifndef MISSIONPACK
+	, STAT_HOOK						// Athena's hook while attached: HOOK_* fields (the 16th stat)
+#endif
 } statIndex_t;
+#ifdef MISSIONPACK
+#define	STAT_HOOK				STAT_TAPS	// (no stat left with the persistant power-up)
+#endif
+
+// the hook's release tracking in STAT_HOOK (16 bits): time the rope has been
+// blocked in 10 ms units, whether she has been off the ground since it
+// caught, the distance moved in the current 0.2 s, and the jump button
+#define	HOOK_BLOCKED( ps )		( (ps)->stats[STAT_HOOK] & 127 )
+#define	HOOK_AIRBORNE			128
+#define	HOOK_MOVED( ps )		( ( (ps)->stats[STAT_HOOK] >> 8 ) & 127 )
+#define	HOOK_JUMP_DOWN			0x8000
 
 // Xaero's Leaping Kick in STAT_TAPS (free for champions without air-dodge):
 // kicks banked in bits 0-1, air control left in 100 ms units in bits 2-7,

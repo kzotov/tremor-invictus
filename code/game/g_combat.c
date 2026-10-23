@@ -983,7 +983,9 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	vec3_t		bouncedir, impactpoint;
 #endif
 	float		tilt = nextTilt;		// (one call only)
+	float		knockNext = nextKnockback;
 	nextTilt = -1;
+	nextKnockback = -1;
 
 	if (!targ->takedamage) {
 		return;
@@ -1050,9 +1052,8 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	}
 
 	knockback = damage;
-	if ( nextKnockback >= 0 ) {
-		knockback = nextKnockback;
-		nextKnockback = -1;
+	if ( knockNext >= 0 ) {
+		knockback = knockNext;
 	}
 	// the attacker's damage multiplier pushes too, at most double (Quad)
 	if ( attacker->client && attacker->client->ps.powerups[PW_QUAD] ) {
@@ -1078,7 +1079,6 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		if ( targ != attacker ) {
 			return;
 		}
-		nextKnockback = -1;
 	}
 
 	// figure momentum add, even if the damage won't be taken

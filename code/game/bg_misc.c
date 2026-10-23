@@ -3003,6 +3003,12 @@ void BG_TouchJumpPad( playerState_t *ps, entityState_t *jumppad ) {
 	if ( BG_Champion( ps->stats[STAT_CHAMPION] )->moveStyle == MOVE_SLIDE ) {
 		ps->stats[STAT_MOVE_STATE] = 0;
 	}
+	// and lets go of Athena's hook (predicted; the game frees the hook)
+	if ( BG_AbilityState( ps ) == ABILITY_HOOK_PULL || BG_AbilityState( ps ) == ABILITY_HOOK_FLYING ) {
+		BG_SetAbility( ps, ABILITY_IDLE, BG_AbilityCharges( ps ) );
+		ps->pm_flags &= ~PMF_GRAPPLE_PULL;
+		ps->stats[STAT_HOOK] = 0;
+	}
 
 	// flying characters don't hit bounce pads
 	if ( ps->powerups[PW_FLIGHT] ) {
