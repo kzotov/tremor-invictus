@@ -530,6 +530,7 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 	if ( client->abilityPrevState != ABILITY_ACTIVE && state == ABILITY_ACTIVE ) {
 		G_AbilityStarted( ent );
 		state = BG_AbilityState( &client->ps );		// (a refused start, as Master of Death's, is idle again)
+		charges = BG_AbilityCharges( &client->ps );	// (with its charge given back)
 	}
 	// champion-audit.md: the end sound on every end (natural, second press,
 	// cancel), not on a second press that doesn't end it

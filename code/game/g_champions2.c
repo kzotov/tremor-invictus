@@ -116,6 +116,9 @@ static void G_CancelAbility( gentity_t *ent ) {
 		G_FreeEntity( client->anchorEnt );
 		client->anchorEnt = NULL;
 	}
+	if ( active == ACTIVE_BERSERK ) {
+		client->ps.stats[STAT_MOVE_STATE] &= ~1023;	// a lunge in progress ends too
+	}
 	if ( active == ACTIVE_BARRIER && client->barrierMode == 2 ) {
 		client->ps.weaponTime = 0;		// the laser's weapon lock goes with it
 	}
