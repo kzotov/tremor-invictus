@@ -2780,6 +2780,11 @@ void BG_EvaluateTrajectory( const trajectory_t *tr, int atTime, vec3_t result ) 
 		VectorMA( tr->trBase, deltaTime, tr->trDelta, result );
 		result[2] -= 0.5 * ( DEFAULT_GRAVITY * 0.5f ) * deltaTime * deltaTime;
 		break;
+	case TR_GRAVITY_KEEL:
+		deltaTime = ( atTime - tr->trTime ) * 0.001;
+		VectorMA( tr->trBase, deltaTime, tr->trDelta, result );
+		result[2] -= 0.5 * 560 * deltaTime * deltaTime;
+		break;
 	default:
 		Com_Error( ERR_DROP, "BG_EvaluateTrajectory: unknown trType: %i", tr->trType );
 		break;
@@ -2827,6 +2832,11 @@ void BG_EvaluateTrajectoryDelta( const trajectory_t *tr, int atTime, vec3_t resu
 		deltaTime = ( atTime - tr->trTime ) * 0.001;
 		VectorCopy( tr->trDelta, result );
 		result[2] -= ( DEFAULT_GRAVITY * 0.5f ) * deltaTime;
+		break;
+	case TR_GRAVITY_KEEL:
+		deltaTime = ( atTime - tr->trTime ) * 0.001;
+		VectorCopy( tr->trDelta, result );
+		result[2] -= 560 * deltaTime;
 		break;
 	default:
 		Com_Error( ERR_DROP, "BG_EvaluateTrajectoryDelta: unknown trType: %i", tr->trType );

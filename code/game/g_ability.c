@@ -505,6 +505,7 @@ static void G_ThrowGrenade( gentity_t *ent ) {
 	gren = fire_grenade( ent, start, forward );
 	gren->classname = "swarm";		// bursts on its second bounce (G_BounceMissile)
 	gren->count = 0;
+	gren->s.pos.trType = TR_GRAVITY_KEEL;	// retune.md: gravity 560
 	VectorScale( forward, g_swarmSpeed.value, gren->s.pos.trDelta );
 	SnapVector( gren->s.pos.trDelta );
 	gren->nextthink = level.time + g_swarmFuse.integer;

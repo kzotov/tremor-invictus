@@ -677,9 +677,19 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed ) 
 			}
 			if ( BG_AbilityState( &client->ps ) == ABILITY_RUSH ) {
 				// mechanics.md: Bull Rush knocks x1.5, its push tilted up 0.2 m
+				float	push = g_hwKnockback.value * 1.5f;
+
+				if ( client->ps.powerups[PW_QUAD] ) {
+					push *= g_quadfactor.value;		// Quad doubles knockback (weapons.md)
+				}
 				dir[2] += 0.2f;
 				VectorNormalize( dir );
-				VectorMA( other->client->ps.velocity, g_hwKnockback.value * 1.5f, dir, other->client->ps.velocity );
+				VectorMA( other->client->ps.velocity, push, dir, other->client->ps.velocity );
+				// the knockback state, at most 132 ms (as G_Damage)
+				if ( !other->client->ps.pm_time ) {
+					other->client->ps.pm_time = 132;
+					other->client->ps.pm_flags |= PMF_TIME_KNOCKBACK;
+				}
 			} else {
 				VectorMA( other->client->ps.velocity, ( champ->abilities & MOVEABIL_HEAVYWEIGHT )
 					? g_hwKnockback.value : g_hookKnockback.value, dir, other->client->ps.velocity );

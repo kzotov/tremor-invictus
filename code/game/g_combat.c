@@ -1429,12 +1429,17 @@ qboolean CanDamage (gentity_t *targ, vec3_t origin) {
 G_RadiusDamage
 ============
 */
+#define SPLASH_MAX_VICTIMS	100
+
 qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, float radius,
 					 gentity_t *ignore, int mod) {
 	float		points, dist;
 	gentity_t	*ent;
 	int			entityList[MAX_GENTITIES];
 	int			numListedEntities;
+	int			victims[MAX_GENTITIES];		// (on the stack: a death can splash again)
+	float		victimDist[MAX_GENTITIES];
+	int			numVictims;
 	vec3_t		mins, maxs;
 	vec3_t		v;
 	vec3_t		dir;
@@ -1463,6 +1468,9 @@ qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, floa
 
 	numListedEntities = trap_EntitiesInBox( mins, maxs, entityList, MAX_GENTITIES );
 
+	// weapons.md splash rules: the victims in reach, nearest first, at most
+	// SPLASH_MAX_VICTIMS
+	numVictims = 0;
 	for ( e = 0 ; e < numListedEntities ; e++ ) {
 		ent = &g_entities[entityList[ e ]];
 
@@ -1489,6 +1497,22 @@ qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, floa
 		if ( dist >= radius ) {
 			continue;
 		}
+		// insert in distance order
+		for ( i = numVictims ; i > 0 && victimDist[i - 1] > dist ; i-- ) {
+			victims[i] = victims[i - 1];
+			victimDist[i] = victimDist[i - 1];
+		}
+		victims[i] = entityList[e];
+		victimDist[i] = dist;
+		numVictims++;
+	}
+	if ( numVictims > SPLASH_MAX_VICTIMS ) {
+		numVictims = SPLASH_MAX_VICTIMS;
+	}
+
+	for ( e = 0 ; e < numVictims ; e++ ) {
+		ent = &g_entities[victims[e]];
+		dist = victimDist[e];
 
 		// full out to "full", then linear to the minimum at the edge
 		if ( dist <= full ) {

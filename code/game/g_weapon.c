@@ -185,11 +185,13 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 
 	CalcMuzzlePoint ( ent, forward, right, up, muzzle );
 
-	// reach 30, 34 for the big four; the hit is a small box, not a line
+	// reach 30, 34 for the big four; the hit is a sphere of radius 16
+	// (weapons.md): a 16 u box swept, then the target's box must lie within
+	// 16 u of the sphere's centre where it stopped
 	{
 		const char	*name = BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->name;
 		float		reach = BG_WeaponParam( WP_GAUNTLET, WPP_RANGE ) > 0 ? BG_WeaponParam( WP_GAUNTLET, WPP_RANGE ) : 30;
-		vec3_t		hitMins = { -8, -8, -8 }, hitMaxs = { 8, 8, 8 };
+		vec3_t		hitMins = { -16, -16, -16 }, hitMaxs = { 16, 16, 16 };
 
 		if ( !Q_stricmp( name, "sorlag" ) || !Q_stricmp( name, "clutch" ) || !Q_stricmp( name, "keel" )
 			|| !Q_stricmp( name, "scalebearer" ) ) {
@@ -198,6 +200,19 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 		VectorMA( muzzle, reach, forward, end );
 		if ( !G_AbilityActive( ent, ACTIVE_BERSERK ) || !G_BerserkTarget( ent, muzzle, forward, &tr ) ) {
 			trap_Trace( &tr, muzzle, hitMins, hitMaxs, end, ent->s.number, MASK_SHOT );
+			if ( tr.entityNum < ENTITYNUM_MAX_NORMAL && g_entities[tr.entityNum].takedamage ) {
+				gentity_t	*t = &g_entities[tr.entityNum];
+				vec3_t		v;
+				int			i;
+
+				for ( i = 0 ; i < 3 ; i++ ) {
+					v[i] = tr.endpos[i] < t->r.absmin[i] ? t->r.absmin[i] - tr.endpos[i]
+						: tr.endpos[i] > t->r.absmax[i] ? tr.endpos[i] - t->r.absmax[i] : 0;
+				}
+				if ( VectorLength( v ) > 16 ) {
+					return qfalse;		// the box's corner touched, the sphere didn't
+				}
+			}
 		}
 	}
 	if ( tr.surfaceFlags & SURF_NOIMPACT ) {
@@ -543,10 +558,15 @@ void ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, gentity_t *ent, in
 		// the pellet starts off the aim line by its ring's muzzle spacing
 		VectorCopy( origin, start );
 		if ( m > 0 ) {
+			trace_t		tr;
+
 			VectorScale( localRight, r, side );
 			VectorMA( side, u, localUp, side );
 			VectorNormalize( side );
 			VectorMA( origin, m, side, start );
+			// never past a wall or ceiling next to the muzzle
+			trap_Trace( &tr, origin, NULL, NULL, start, ENTITYNUM_NONE, MASK_SOLID );
+			VectorCopy( tr.endpos, start );
 		}
 		VectorMA( start, range, localForward, end);
 		VectorMA (end, r * range, localRight, end);

@@ -2261,10 +2261,15 @@ static void CG_ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, int othe
 		// the pellet starts off the aim line by its ring's muzzle spacing
 		VectorCopy( origin, start );
 		if ( m > 0 ) {
+			trace_t		tr;
+
 			VectorScale( right, r, side );
 			VectorMA( side, u, up, side );
 			VectorNormalize( side );
 			VectorMA( origin, m, side, start );
+			// never past a wall or ceiling next to the muzzle
+			CG_Trace( &tr, origin, NULL, NULL, start, ENTITYNUM_NONE, MASK_SOLID );
+			VectorCopy( tr.endpos, start );
 		}
 		VectorMA( start, range, forward, end);
 		VectorMA (end, r * range, right, end);
