@@ -1244,6 +1244,11 @@ void FireWeapon( gentity_t *ent ) {
 #endif
 
 	// track shots taken for accuracy tracking.  Grapple is not a weapon and gauntet is just not tracked
+	if ( ent->s.weapon == WP_GAUNTLET ) {
+		// the gauntlet fires only on a hit: a shot and a hit (duel board)
+		ent->client->pers.accShots[WP_GAUNTLET]++;
+		ent->client->pers.accHits[WP_GAUNTLET]++;
+	}
 	if( ent->s.weapon != WP_GRAPPLING_HOOK && ent->s.weapon != WP_GAUNTLET ) {
 #ifdef MISSIONPACK
 		if( ent->s.weapon == WP_NAILGUN ) {

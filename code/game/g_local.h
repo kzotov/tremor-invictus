@@ -272,7 +272,9 @@ typedef struct {
 	short		lifeDealt[MAX_CLIENTS];	// this life: damage to each player, for the death screen
 	short		lifeTaken[MAX_CLIENTS];	// and from each
 	int			damageTaken;
-	int			pickups[4];			// mega health, heavy armour, light armour, power-ups
+	int			pickups[6];			// mega health, heavy armour, light armour, armour shards, quad, protection
+	int			weaponDamage[WP_NUM_WEAPONS];	// this match: damage to enemies with each weapon
+	int			weaponFrags[WP_NUM_WEAPONS];	// and kills
 	int			enterTime;			// level.time the client entered the game
 	playerTeamState_t teamState;	// status in teamplay games
 	int			voteCount;			// to prevent people from constantly calling votes

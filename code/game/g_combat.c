@@ -564,6 +564,14 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 			AddScore( attacker, self->r.currentOrigin, -1 );
 		} else {
 			AddScore( attacker, self->r.currentOrigin, 1 );
+			// the kill's weapon, for the duel board (abilities aren't weapons)
+			if ( !( meansOfDeath >= MOD_HEAVYWEIGHT && meansOfDeath <= MOD_LEAPINGKICK ) ) {
+				int	w = inflictor && inflictor != attacker && inflictor->s.eType == ET_MISSILE ? inflictor->s.weapon : attacker->s.weapon;
+
+				if ( w > WP_NONE && w < WP_NUM_WEAPONS ) {
+					attacker->client->pers.weaponFrags[w]++;
+				}
+			}
 
 			if( meansOfDeath == MOD_GAUNTLET ) {
 				
@@ -1358,6 +1366,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			}
 			attacker->client->pers.damageGiven += dealt;
 			client->pers.damageTaken += dealt;
+			// and per weapon, for the duel board (abilities aren't weapons)
+			if ( !( mod >= MOD_HEAVYWEIGHT && mod <= MOD_LEAPINGKICK ) ) {
+				int	w = inflictor != attacker && inflictor->s.eType == ET_MISSILE ? inflictor->s.weapon : attacker->s.weapon;
+
+				if ( w > WP_NONE && w < WP_NUM_WEAPONS ) {
+					attacker->client->pers.weaponDamage[w] += dealt;
+				}
+			}
 			if ( attacker->s.number < MAX_CLIENTS && targ->s.number < MAX_CLIENTS ) {
 				attacker->client->pers.lifeDealt[targ->s.number] += dealt;
 				client->pers.lifeTaken[attacker->s.number] += dealt;

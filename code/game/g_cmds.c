@@ -127,7 +127,7 @@ shows -1); spectators and the end of the match get everything.
 ==================
 */
 void Cmd_DuelStats_f( gentity_t *ent ) {
-	char		string[1000];
+	char		string[MAX_STRING_CHARS];
 	gclient_t	*cl;
 	int			i, w;
 	qboolean	open = ent->client->sess.sessionTeam == TEAM_SPECTATOR || level.intermissiontime;
@@ -141,11 +141,14 @@ void Cmd_DuelStats_f( gentity_t *ent ) {
 			continue;
 		}
 		hide = !open && cl != ent->client;
-		Q_strcat( string, sizeof( string ), va( " %i %i %i %i %i %i %i", i, cl->ps.persistant[PERS_SCORE],
+		Q_strcat( string, sizeof( string ), va( " %i %i %i %i %i %i %i %i %i %i", i, cl->ps.persistant[PERS_SCORE],
 			hide ? -1 : cl->pers.damageGiven, hide ? -1 : cl->pers.damageTaken,
-			cl->pers.pickups[0], cl->pers.pickups[1], cl->pers.pickups[2] ) );
-		for ( w = WP_GAUNTLET + 1 ; w < WP_NUM_WEAPONS ; w++ ) {
-			Q_strcat( string, sizeof( string ), va( " %i %i", hide ? 0 : cl->pers.accShots[w], hide ? 0 : cl->pers.accHits[w] ) );
+			cl->pers.pickups[0], cl->pers.pickups[1], cl->pers.pickups[2],
+			cl->pers.pickups[3], cl->pers.pickups[4], cl->pers.pickups[5] ) );
+		// per weapon from the Gauntlet: shots hits damage frags (-1 hidden)
+		for ( w = WP_GAUNTLET ; w < WP_NUM_WEAPONS ; w++ ) {
+			Q_strcat( string, sizeof( string ), va( " %i %i %i %i", hide ? -1 : cl->pers.accShots[w], hide ? -1 : cl->pers.accHits[w],
+				hide ? -1 : cl->pers.weaponDamage[w], hide ? -1 : cl->pers.weaponFrags[w] ) );
 		}
 	}
 	trap_SendServerCommand( ent - g_entities, va( "dstats%s", string ) );

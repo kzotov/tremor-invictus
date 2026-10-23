@@ -98,21 +98,34 @@ div { display: block; }
 .teamscore { font-size: 48dp; }
 .teamtotal { font-size: 15dp; color: #9a9aa0; }
 
-/* duel: two players side by side */
-.duel { display: flex; justify-content: space-between; }
-.duelist { width: 40%; text-align: center; padding: 8dp; border: 2dp transparent; }
-.duelist.self { border-color: #ffb748; }
-.duelist img { width: 64dp; height: 64dp; }
-.duelist .portrait { height: 64dp; }
-.duelname { font-size: 26dp; height: 36dp; line-height: 36dp; }
-.duelfrags { font-size: 56dp; height: 66dp; line-height: 66dp; }
-.labels { width: 20%; text-align: center; color: #9a9aa0; font-size: 15dp; padding-top: 176dp; }
-.stat { height: 30dp; line-height: 30dp; font-size: 22dp; }
-.labels .stat { font-size: 15dp; }
-.weapons { margin-top: 10dp; }
-.wrow { display: flex; justify-content: space-between; align-items: center; height: 30dp; font-size: 20dp; }
-.wrow span { display: block; width: 18%; text-align: center; }
-.wrow img { width: 24dp; height: 24dp; }
-.wicon { width: 28%; text-align: center; }
+/* duel (scoreboard.md 3.1): blue against red, mirrored */
+.dtop { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14dp; }
+.dtitle { font-size: 26dp; }
+.dmap { font-size: 18dp; color: #9a9aa0; }
+.dclock { font-size: 26dp; text-align: right; }
+.dlimits { font-size: 15dp; color: #9a9aa0; text-align: right; }
+.dbands { display: flex; justify-content: space-between; margin-bottom: 12dp; }
+.dband { display: flex; align-items: center; width: 49.5%; height: 72dp; }
+.dband.blue { background-color: rgba(47, 139, 255, 150); }
+.dband.red { background-color: rgba(255, 56, 56, 150); }
+.dband.right { justify-content: flex-end; }
+.dpor { width: 56dp; height: 56dp; margin: 0dp 10dp; }
+.dwho { flex: 1; }
+.dband.right .dwho { text-align: right; }
+.dname { font-size: 24dp; }
+.dping { font-size: 15dp; color: #e8e4dc; }
+.dscore { font-size: 64dp; width: 110dp; text-align: center; }
+.dbody { display: flex; }
+.dpickups { width: 110dp; padding-top: 34dp; }
+.dpk { display: flex; align-items: center; height: 36dp; font-size: 22dp; }
+.dpk img { width: 28dp; height: 28dp; margin-right: 8dp; }
+.dtable { flex: 1; }
+.drow { display: flex; justify-content: center; align-items: center; height: 30dp; font-size: 20dp; }
+.drow:nth-child(even) { background-color: rgba(255, 255, 255, 10); }
+.drow span { display: block; width: 90dp; text-align: center; font-family: "Arial Narrow"; }
+.drow .dicon { width: 64dp; }
+.drow img { width: 24dp; height: 24dp; }
+.dhead { font-size: 15dp; color: #9a9aa0; height: 24dp; }
+.dtotal { border-top: 1dp #5a5a60; font-size: 22dp; }
 
 .specs { margin-top: 12dp; font-size: 15dp; color: #9a9aa0; }

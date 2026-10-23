@@ -1521,9 +1521,14 @@ static void CG_ServerCommand( void ) {
 			cg.duelStats[p].mega = atoi( CG_Argv( a++ ) );
 			cg.duelStats[p].heavy = atoi( CG_Argv( a++ ) );
 			cg.duelStats[p].light = atoi( CG_Argv( a++ ) );
-			for ( w = WP_GAUNTLET + 1 ; w < WP_NUM_WEAPONS ; w++ ) {
+			cg.duelStats[p].shards = atoi( CG_Argv( a++ ) );
+			cg.duelStats[p].quad = atoi( CG_Argv( a++ ) );
+			cg.duelStats[p].prot = atoi( CG_Argv( a++ ) );
+			for ( w = WP_GAUNTLET ; w < WP_NUM_WEAPONS ; w++ ) {
 				cg.duelStats[p].shots[w] = atoi( CG_Argv( a++ ) );
 				cg.duelStats[p].hits[w] = atoi( CG_Argv( a++ ) );
+				cg.duelStats[p].dmg[w] = atoi( CG_Argv( a++ ) );
+				cg.duelStats[p].frags[w] = atoi( CG_Argv( a++ ) );
 			}
 			cg.numDuelStats++;
 		}

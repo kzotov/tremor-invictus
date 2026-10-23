@@ -731,7 +731,7 @@ char	cg_portraitPath[32][MAX_QPATH];
 
 #define SB_ROWS			24		// free-for-all rows
 #define SB_TEAM_ROWS	12		// rows per team
-#define SB_WEAPON_ROWS	8		// duel weapon lines
+#define SB_WEAPON_ROWS	16		// duel weapon lines (every weapon)
 
 static void CG_BoardCvar( const char *name, const char *value ) {
 	char	old[MAX_CVAR_VALUE_STRING];
@@ -976,7 +976,6 @@ static void CG_BoardList( void ) {
 	const char	*titles[6] = { "", "", "", "", "", "" }, *v[6];
 	char		values[6][16], rank[8], head[MAX_CVAR_VALUE_STRING], cols[16], cvar[16];
 	int			i, j, n, row, side, team, rows[2] = { 0, 0 }, total[2] = { 0, 0 }, shownRank = 1;
-	int			left = TEAM_RED;
 	score_t		*s;
 
 	n = CG_BoardTitles( titles );
@@ -1011,13 +1010,10 @@ static void CG_BoardList( void ) {
 		return;
 	}
 
-	// teams: yours on the left when you play, red on the left otherwise;
-	// the viewed player first in their team
-	if ( cg.snap && cg.snap->ps.persistant[PERS_TEAM] == TEAM_BLUE ) {
-		left = TEAM_BLUE;
-	}
+	// teams: blue always on the left, red on the right, as on the duel
+	// board; the viewed player first in their team
 	for ( side = 0 ; side < 2 ; side++ ) {
-		team = side ? ( left == TEAM_RED ? TEAM_BLUE : TEAM_RED ) : left;
+		team = side ? TEAM_RED : TEAM_BLUE;
 		for ( j = 0 ; j < 2 ; j++ ) {		// pass 0: the viewed player, pass 1: the rest
 			for ( i = 0 ; i < cg.numScores && rows[side] < SB_TEAM_ROWS ; i++ ) {
 				s = &cg.scores[i];
@@ -1053,30 +1049,56 @@ the match (shown to spectators and at the end)
 =================
 */
 static void CG_BoardDuel( void ) {
-	char	row[MAX_CVAR_VALUE_STRING], ping[16], acc[16], hs[24];
-	int		p, w, line = 0, shots, hits, pingValue, i;
-	int		me = CG_BoardViewed();
-	qboolean	open = cg.snap && ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR
-		|| cg.predictedPlayerState.pm_type == PM_INTERMISSION );
-	const char	*pingClass;
+	char		row[MAX_CVAR_VALUE_STRING], ping[16], text[MAX_CVAR_VALUE_STRING], map[MAX_QPATH];
+	char		cell[2][4][16];
+	int			p, w, i, line = 0, side[2], pingValue, sec;
+	int			tot[2][4];
+	int			me = CG_BoardViewed();
+	const char	*pingClass, *items = CG_ConfigString( CS_ITEMS );
 
 	if ( cg.time - cg.duelStatsTime > 1000 || cg.duelStatsTime > cg.time ) {
 		cg.duelStatsTime = cg.time;
 		trap_SendClientCommand( "dstats" );
 	}
-	// you on the left (the board's left column is p 0)
-	for ( p = 0 ; p < 2 ; p++ ) {
-		int		idx = p;
-		qboolean	hidden;
 
-		if ( cg.numDuelStats == 2 && cg.duelStats[1].client == me ) {
-			idx = !p;
-		}
+	// scoreboard.md 3.1: "DUEL - STANDARD", the map under it; the clock and
+	// the limits that are set on the right
+	CG_BoardCvar( "sb_dtitle", BG_String( STR_BD_DUEL_TITLE ) );
+	COM_StripExtension( COM_SkipPath( cgs.mapname ), map, sizeof( map ) );
+	Q_strupr( map );
+	CG_BoardCvar( "sb_dmap", map );
+	sec = ( cg.time - cgs.levelStartTime ) / 1000;
+	if ( sec < 0 || cg.warmup ) {
+		sec = 0;
+	}
+	CG_BoardCvar( "sb_dclock", va( "%i:%02i", sec / 60, sec % 60 ) );
+	text[0] = 0;
+	if ( cgs.timelimit > 0 ) {
+		Q_strcat( text, sizeof( text ), va( (char *)BG_String( STR_BD_TIMELIMIT ), cgs.timelimit ) );
+	}
+	if ( cgs.fraglimit > 0 ) {
+		Q_strcat( text, sizeof( text ), va( "%s%s", text[0] ? "  \xc2\xb7  " : "", va( (char *)BG_String( STR_BD_FRAGLIMIT ), cgs.fraglimit ) ) );
+	}
+	CG_BoardCvar( "sb_dlimits", text );
+	CG_BoardCvar( "sb_dh", va( "%s|%s|%s|%s", BG_String( STR_BD_HITS ), BG_String( STR_BD_ACC ), BG_String( STR_BD_DMG ), BG_String( STR_BD_SCORE ) ) );
+
+	// blue on the left: you when you play, else slot order
+	side[0] = 0;
+	side[1] = 1;
+	if ( cg.numDuelStats == 2 && cg.duelStats[1].client == me && cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
+		side[0] = 1;
+		side[1] = 0;
+	}
+
+	// the bands: classes|portrait|name|ping|ping class|score
+	for ( p = 0 ; p < 2 ; p++ ) {
+		int		idx = side[p];
+		char	name[64];
+
 		if ( idx >= cg.numDuelStats ) {
 			CG_BoardCvar( va( "sb_d%i", p ), "" );
 			continue;
 		}
-		hidden = !open && cg.duelStats[idx].client != me;
 		pingValue = 0;
 		for ( i = 0 ; i < cg.numScores ; i++ ) {
 			if ( cg.scores[i].client == cg.duelStats[idx].client ) {
@@ -1084,73 +1106,107 @@ static void CG_BoardDuel( void ) {
 			}
 		}
 		CG_BoardPing( cg.duelStats[idx].client, pingValue, ping, sizeof( ping ), &pingClass );
-		shots = hits = 0;
-		for ( w = WP_GAUNTLET + 1 ; w < WP_NUM_WEAPONS ; w++ ) {
-			shots += cg.duelStats[idx].shots[w];
-			hits += cg.duelStats[idx].hits[w];
-		}
-		Com_sprintf( acc, sizeof( acc ), shots ? "%i%%" : "-", shots ? hits * 100 / shots : 0 );
-		Com_sprintf( hs, sizeof( hs ), "%i / %i", hits, shots );
-		// classes|portrait|name|ping|ping class|frags|given|taken|accuracy|hits/shots|mega|heavy|light
-		Com_sprintf( row, sizeof( row ), "%s|%s|%s|%s|%s|%i|%s|%s|%s|%s|%i|%i|%i",
-			cg.duelStats[idx].client == me ? "self" : "",
-			CG_BoardPortrait( cg.duelStats[idx].client ), CG_BoardName( cg.duelStats[idx].client ),
-			ping, pingClass, cg.duelStats[idx].score,
-			hidden ? "-" : va( "%i", cg.duelStats[idx].given ),
-			hidden ? "-" : va( "%i", cg.duelStats[idx].taken ),
-			hidden ? "-" : acc, hidden ? "-" : hs,
-			cg.duelStats[idx].mega, cg.duelStats[idx].heavy, cg.duelStats[idx].light );
+		Q_strncpyz( name, CG_BoardName( cg.duelStats[idx].client ), sizeof( name ) );
+		Q_strupr( name );
+		Com_sprintf( row, sizeof( row ), "%s|%s|%s|%s|%s|%i", p ? "red" : "blue",
+			CG_BoardPortrait( cg.duelStats[idx].client ), name, va( (char *)BG_String( STR_BD_PING_MS ), pingValue ),
+			pingClass, cg.duelStats[idx].score );
 		CG_BoardCvar( va( "sb_d%i", p ), row );
 	}
 
-	// the weapons either player used: icon|acc|hits/shots|acc|hits/shots
-	for ( w = WP_GAUNTLET + 1 ; w < WP_NUM_WEAPONS && line < SB_WEAPON_ROWS ; w++ ) {
-		char	cell[2][32];
-		gitem_t	*item;
-		int		any = 0;
+	// the pickups column: the player you are or follow (blue's in free view)
+	{
+		static const char	*names[6] = { "Mega Health", "Heavy Armor", "Armor", "Armor Shard", "Quad Damage", "Battle Suit" };
+		int		idx = side[0], n = 0, k, counts[6];
 
-		for ( p = 0 ; p < 2 ; p++ ) {
-			int		idx = p;
-
-			if ( cg.numDuelStats == 2 && cg.duelStats[1].client == me ) {
-				idx = !p;
-			}
-			cell[p][0] = 0;
-			if ( idx >= cg.numDuelStats ) {
-				continue;
-			}
-			if ( open || cg.duelStats[idx].client == me ) {
-				any |= cg.duelStats[idx].shots[w];		// (the opponent's weapons stay hidden)
-			}
-			if ( !open && cg.duelStats[idx].client != me ) {
-				Q_strncpyz( cell[p], "-|-", sizeof( cell[p] ) );
-			} else if ( cg.duelStats[idx].shots[w] ) {
-				Com_sprintf( cell[p], sizeof( cell[p] ), "%i%%|%i / %i", cg.duelStats[idx].hits[w] * 100 / cg.duelStats[idx].shots[w],
-					cg.duelStats[idx].hits[w], cg.duelStats[idx].shots[w] );
-			} else {
-				Q_strncpyz( cell[p], "-|-", sizeof( cell[p] ) );
+		for ( i = 0 ; i < cg.numDuelStats ; i++ ) {
+			if ( cg.duelStats[i].client == me ) {
+				idx = i;
 			}
 		}
-		if ( !any ) {
+		if ( idx < cg.numDuelStats ) {
+			counts[0] = cg.duelStats[idx].mega;
+			counts[1] = cg.duelStats[idx].heavy;
+			counts[2] = cg.duelStats[idx].light;
+			counts[3] = cg.duelStats[idx].shards;
+			counts[4] = cg.duelStats[idx].quad;
+			counts[5] = cg.duelStats[idx].prot;
+			for ( k = 0 ; k < 6 ; k++ ) {
+				gitem_t	*item = BG_FindItem( names[k] );
+
+				// Quad and Protection only on maps that have them
+				if ( !item || ( k >= 4 && items[item - bg_itemlist] != '1' ) ) {
+					continue;
+				}
+				CG_BoardCvar( va( "sb_pk%i", n++ ), va( "%s.tga|%i", item->icon, counts[k] ) );
+			}
+		}
+		for ( ; n < 6 ; n++ ) {
+			CG_BoardCvar( va( "sb_pk%i", n ), "" );
+		}
+	}
+
+	// the weapon table: every weapon from the Gauntlet, hits x/y, acc, dmg
+	// and score per side, mirrored; the opponent's shows "-" in the match
+	memset( tot, 0, sizeof( tot ) );
+	for ( w = WP_GAUNTLET ; w < WP_NUM_WEAPONS && line < SB_WEAPON_ROWS ; w++ ) {
+		gitem_t	*item = BG_FindItemForWeapon( w );
+
+		if ( !item || w == WP_GRAPPLING_HOOK || !item->icon || !item->icon[0] ) {
 			continue;
 		}
-		item = BG_FindItemForWeapon( w );
-		Com_sprintf( row, sizeof( row ), "%s.tga|%s|%s", item && item->icon ? item->icon : "", cell[0], cell[1] );
+		for ( p = 0 ; p < 2 ; p++ ) {
+			int		idx = side[p];
+
+			if ( idx >= cg.numDuelStats || cg.duelStats[idx].shots[w] < 0 ) {
+				for ( i = 0 ; i < 4 ; i++ ) {
+					Q_strncpyz( cell[p][i], "\xe2\x80\x93", sizeof( cell[p][i] ) );
+				}
+				tot[p][0] = -1;
+				continue;
+			}
+			Com_sprintf( cell[p][0], sizeof( cell[p][0] ), "%i/%i", cg.duelStats[idx].hits[w], cg.duelStats[idx].shots[w] );
+			if ( cg.duelStats[idx].shots[w] ) {
+				Com_sprintf( cell[p][1], sizeof( cell[p][1] ), "%i%%", cg.duelStats[idx].hits[w] * 100 / cg.duelStats[idx].shots[w] );
+			} else {
+				Q_strncpyz( cell[p][1], "-", sizeof( cell[p][1] ) );
+			}
+			Com_sprintf( cell[p][2], sizeof( cell[p][2] ), "%i", cg.duelStats[idx].dmg[w] );
+			Com_sprintf( cell[p][3], sizeof( cell[p][3] ), "%i", cg.duelStats[idx].frags[w] );
+			if ( tot[p][0] >= 0 ) {
+				tot[p][0] += cg.duelStats[idx].hits[w];
+				tot[p][1] += cg.duelStats[idx].shots[w];
+				tot[p][2] += cg.duelStats[idx].dmg[w];
+				tot[p][3] += cg.duelStats[idx].frags[w];
+			}
+		}
+		// icon|L hits|L acc|L dmg|L score|R score|R dmg|R acc|R hits
+		Com_sprintf( row, sizeof( row ), "%s.tga|%s|%s|%s|%s|%s|%s|%s|%s", item->icon,
+			cell[0][0], cell[0][1], cell[0][2], cell[0][3], cell[1][3], cell[1][2], cell[1][1], cell[1][0] );
 		CG_BoardCvar( va( "sb_w%i", line++ ), row );
 	}
 	for ( ; line < SB_WEAPON_ROWS ; line++ ) {
 		CG_BoardCvar( va( "sb_w%i", line ), "" );
 	}
-	// the banner
-	if ( cg.numDuelStats == 2 ) {
-		int		mine = cg.duelStats[0].client == me ? cg.duelStats[0].score : cg.duelStats[1].score;
-		int		theirs = cg.duelStats[0].client == me ? cg.duelStats[1].score : cg.duelStats[0].score;
-
-		if ( !open ) {
-			CG_BoardCvar( "sb_line", va( (char *)BG_String( mine > theirs ? STR_BD_LEAD : mine < theirs ? STR_BD_TRAIL : STR_BD_TIED ),
-				mine > theirs ? mine - theirs : mine < theirs ? theirs - mine : mine ) );
+	// the total row
+	for ( p = 0 ; p < 2 ; p++ ) {
+		if ( tot[p][0] < 0 || side[p] >= cg.numDuelStats ) {
+			for ( i = 0 ; i < 4 ; i++ ) {
+				Q_strncpyz( cell[p][i], "\xe2\x80\x93", sizeof( cell[p][i] ) );
+			}
+			continue;
 		}
+		Com_sprintf( cell[p][0], sizeof( cell[p][0] ), "%i/%i", tot[p][0], tot[p][1] );
+		if ( tot[p][1] ) {
+			Com_sprintf( cell[p][1], sizeof( cell[p][1] ), "%i%%", tot[p][0] * 100 / tot[p][1] );
+		} else {
+			Q_strncpyz( cell[p][1], "-", sizeof( cell[p][1] ) );
+		}
+		Com_sprintf( cell[p][2], sizeof( cell[p][2] ), "%i", tot[p][2] );
+		Com_sprintf( cell[p][3], sizeof( cell[p][3] ), "%i", tot[p][3] );
 	}
+	CG_BoardCvar( "sb_wt", va( "%s|%s|%s|%s|%s|%s|%s|%s|%s", BG_String( STR_BD_TOTAL ),
+		cell[0][0], cell[0][1], cell[0][2], cell[0][3], cell[1][3], cell[1][2], cell[1][1], cell[1][0] ) );
 }
 
 /*

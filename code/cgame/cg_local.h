@@ -583,8 +583,8 @@ typedef struct {
 	int			duelStatsTime;		// when they were last asked for
 	int			numDuelStats;
 	struct {
-		int		client, score, given, taken, mega, heavy, light;
-		int		shots[WP_NUM_WEAPONS], hits[WP_NUM_WEAPONS];
+		int		client, score, given, taken, mega, heavy, light, shards, quad, prot;
+		int		shots[WP_NUM_WEAPONS], hits[WP_NUM_WEAPONS], dmg[WP_NUM_WEAPONS], frags[WP_NUM_WEAPONS];	// -1 hidden
 	} duelStats[2];
 	qboolean	scoreBoardShowing;
 	int			scoreFadeTime;

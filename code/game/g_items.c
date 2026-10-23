@@ -612,7 +612,13 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
 	case 2:	other->client->pers.pickups[0]++; break;
 	case 4:	other->client->pers.pickups[1]++; break;
 	case 8:	other->client->pers.pickups[2]++; break;
-	case 1:	other->client->pers.pickups[3]++; break;
+	}
+	if ( ent->item->giType == IT_ARMOR && ent->item->quantity <= 5 ) {
+		other->client->pers.pickups[3]++;		// a shard
+	} else if ( ent->item->giType == IT_POWERUP && ent->item->giTag == PW_QUAD ) {
+		other->client->pers.pickups[4]++;
+	} else if ( ent->item->giType == IT_POWERUP && ent->item->giTag == PW_BATTLESUIT ) {
+		other->client->pers.pickups[5]++;
 	}
 
 	predict = other->client->pers.predictItemPickup;
