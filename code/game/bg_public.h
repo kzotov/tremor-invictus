@@ -684,6 +684,7 @@ typedef enum {
 	STR_OBIT_SPINES,
 	STR_OBIT_STORM,
 	STR_OBIT_HOUND,
+	STR_OBIT_HOOKIMPACT,
 	STR_SET_TAB_VIDEO,
 	STR_SET_TAB_MOUSE,
 	STR_SET_TAB_CONTROLS,
@@ -2030,7 +2031,8 @@ typedef enum {
 	MOD_DRONE,
 	MOD_SPINES,
 	MOD_STORM,
-	MOD_HOUND
+	MOD_HOUND,
+	MOD_HOOKIMPACT			// Athena flying into an enemy on her hook (an ability kill)
 } meansOfDeath_t;
 
 

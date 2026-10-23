@@ -342,7 +342,8 @@ char	*modNames[] = {
 	"MOD_DRONE",
 	"MOD_SPINES",
 	"MOD_STORM",
-	"MOD_HOUND"
+	"MOD_HOUND",
+	"MOD_HOOKIMPACT"
 };
 
 #ifdef MISSIONPACK

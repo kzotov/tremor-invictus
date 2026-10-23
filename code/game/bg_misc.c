@@ -1439,6 +1439,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"was pierced by the spines of",
 	"was caught in the storm of",
 	"was mauled by the hound of",
+	"was rammed by",
 	"VIDEO",
 	"MOUSE",
 	"CONTROLS",
@@ -3054,6 +3055,7 @@ void BG_TouchJumpPad( playerState_t *ps, entityState_t *jumppad ) {
 	if ( BG_AbilityState( ps ) == ABILITY_HOOK_PULL || BG_AbilityState( ps ) == ABILITY_HOOK_FLYING ) {
 		BG_SetAbility( ps, ABILITY_IDLE, BG_AbilityCharges( ps ) );
 		ps->stats[STAT_ABILITY_TIME] = 0;		// as any end of the ability
+		ps->stats[STAT_MOVE_STATE] = 0;
 		ps->pm_flags &= ~PMF_GRAPPLE_PULL;
 		ps->stats[STAT_HOOK] = 0;
 	}

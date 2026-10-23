@@ -521,6 +521,7 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 		if ( !client->hook && ( state == ABILITY_HOOK_FLYING || state == ABILITY_HOOK_PULL ) ) {
 			state = ABILITY_IDLE;
 			client->ps.stats[STAT_ABILITY_TIME] = 0;
+			client->ps.stats[STAT_MOVE_STATE] = 0;		// (the swing's rope)
 			client->ps.pm_flags &= ~PMF_GRAPPLE_PULL;
 		}
 	}
@@ -642,6 +643,9 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed ) 
 		if ( other == ent || !other->client || other->health <= 0 || !other->takedamage ) {
 			continue;
 		}
+		if ( swinging && !( champ->abilities & MOVEABIL_HEAVYWEIGHT ) && OnSameTeam( ent, other ) ) {
+			continue;		// Athena's impact hits enemies only
+		}
 		if ( level.time - client->collisionTime[other->s.number]
 			< ( swinging ? g_hookSwingRepeat.integer : g_collisionRepeat.integer ) ) {
 			continue;
@@ -659,7 +663,7 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed ) 
 			damage = G_HeavyweightDamage( impactSpeed );
 		} else {
 			// the swing hurts only when fast enough
-			damage = impactSpeed > g_hookSwingSpeed.value ? g_hookSwingDamage.integer : 0;
+			damage = impactSpeed >= g_hookSwingSpeed.value ? g_hookSwingDamage.integer : 0;
 		}
 		if ( damage <= 0 ) {
 			continue;
@@ -684,7 +688,7 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed ) 
 			// abilities.md: Athena's impact, impulse 80 tilted up 12 u (0.3 m)
 			G_NextKnockback( 80 );
 			G_NextTilt( 0.3f );
-			G_Damage( other, ent, ent, dir, other->r.currentOrigin, damage, 0, MOD_HEAVYWEIGHT );
+			G_Damage( other, ent, ent, dir, other->r.currentOrigin, damage, 0, MOD_HOOKIMPACT );
 		}
 		if ( other->health > 0 ) {
 			if ( G_AbilityActive( ent, ACTIVE_BULLRUSH ) ) {
