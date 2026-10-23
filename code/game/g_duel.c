@@ -709,6 +709,7 @@ void G_TimeoutFrame( int msec ) {
 		G_TimeoutShift( &cl->burnNextTime, msec );
 		G_TimeoutShift( &cl->poisonEndTime, msec );
 		G_TimeoutShift( &cl->poisonNextTime, msec );
+		G_TimeoutShift( &cl->pers.keptTime, msec );
 	}
 
 	level.startTime += msec;

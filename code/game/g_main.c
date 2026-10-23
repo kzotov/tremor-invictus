@@ -1994,6 +1994,33 @@ FUNCTIONS CALLED EVERY FRAME
 */
 
 
+
+/*
+=============
+G_MatchStartAbilities
+
+A match that starts without a map_restart: every ability full again and
+the warm-up's kept state forgotten (duel.md 1: ready at match start)
+=============
+*/
+static void G_MatchStartAbilities( void ) {
+	int			i;
+	gclient_t	*cl;
+
+	for ( i = 0 ; i < level.maxclients ; i++ ) {
+		cl = &level.clients[i];
+		if ( cl->pers.connected == CON_DISCONNECTED ) {
+			continue;
+		}
+		cl->pers.keptTime = 0;
+		if ( cl->sess.sessionTeam != TEAM_SPECTATOR ) {
+			BG_SetAbility( &cl->ps, BG_AbilityState( &cl->ps ),
+				BG_AbilityParam( BG_Champion( cl->ps.stats[STAT_CHAMPION] )->active, AP_CHARGES ) );
+			cl->abilityRecharge = 0;
+		}
+	}
+}
+
 /*
 =============
 CheckTournament
@@ -2064,6 +2091,7 @@ void CheckTournament( void ) {
 					level.warmupTime = level.time + ( g_warmup.integer - 1 ) * 1000;
 				} else {
 					level.warmupTime = 0;
+					G_MatchStartAbilities();	// (no map_restart to do it)
 				}
 
 				trap_SetConfigstring( CS_WARMUP, va("%i", level.warmupTime) );
@@ -2134,6 +2162,7 @@ void CheckTournament( void ) {
 				level.warmupTime = level.time + ( g_warmup.integer - 1 ) * 1000;
 			} else {
 				level.warmupTime = 0;
+				G_MatchStartAbilities();	// (no map_restart to do it)
 			}
 
 			trap_SetConfigstring( CS_WARMUP, va("%i", level.warmupTime) );
