@@ -260,7 +260,10 @@ typedef struct {
 	qboolean	ready;				// duel warmup: readyup typed
 	qboolean	championLocked;		// duel: the match's champion is fixed
 	int			lockedChampion;
-	qboolean	abilityKept;		// died since the last spawn: the ability carries over (duel.md 1)
+	int			keptChampion;		// the ability as of keptTime (0: none yet this match), kept
+	int			keptCharges;		// here so death, a team change or ClientBegin can't
+	int			keptRecharge;		// refill it (duel.md 1)
+	int			keptTime;
 	int			caDamage;			// clan arena: damage to enemies not yet turned into points
 	int			startWeapon;		// weapon_t chosen to spawn with
 	qboolean	autoHop;			// userinfo cg_autoHop

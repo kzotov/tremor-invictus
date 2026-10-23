@@ -1168,7 +1168,6 @@ void ClientSpawn(gentity_t *ent) {
 //	char	*savedAreaBits;
 	int		accuracy_hits, accuracy_shots;
 	int		eventSequence;
-	int		keptChampion, keptCharges, keptRecharge;
 	qboolean	kept;
 	char	userinfo[MAX_INFO_STRING];
 
@@ -1239,13 +1238,11 @@ void ClientSpawn(gentity_t *ent) {
 		persistant[i] = client->ps.persistant[i];
 	}
 	eventSequence = client->ps.eventSequence;
-	// duel.md 1: the ability's cooldown keeps running through death; a full
-	// ability only in warm-up, at a round start and for a new champion
-	kept = client->pers.abilityKept && !level.warmupTime && !level.abilityRefill;
-	keptChampion = client->ps.stats[STAT_CHAMPION];
-	keptCharges = BG_AbilityCharges( &client->ps );
-	keptRecharge = client->abilityRecharge;
-	client->pers.abilityKept = qfalse;
+	// duel.md 1: the ability's cooldown keeps running through death, a team
+	// change and spectating; a full ability only in warm-up, at match start
+	// and on a reconnect (pers is new then), at a round start and for a new
+	// champion
+	kept = client->pers.keptTime > 0 && !level.warmupTime && !level.abilityRefill;
 
 	Com_Memset (client, 0, sizeof(*client));
 
@@ -1313,9 +1310,22 @@ void ClientSpawn(gentity_t *ent) {
 	}
 	G_RewindReset( ent );
 	ClientUserinfoChanged( index );		// show this champion's model
-	if ( kept && keptChampion == client->ps.stats[STAT_CHAMPION] ) {
-		BG_SetAbility( &client->ps, ABILITY_IDLE, keptCharges );
-		client->abilityRecharge = keptRecharge;
+	if ( kept && client->pers.keptChampion == client->ps.stats[STAT_CHAMPION] ) {
+		int		active = BG_Champion( client->ps.stats[STAT_CHAMPION] )->active;
+		int		charges = client->pers.keptCharges, maxCharges = BG_AbilityParam( active, AP_CHARGES );
+		int		recharge = BG_AbilityParam( active, AP_RECHARGE );
+
+		// the time since, dead or spectating, counts toward the next charges
+		client->abilityRecharge = client->pers.keptRecharge + level.time - client->pers.keptTime;
+		while ( recharge > 0 && charges < maxCharges && client->abilityRecharge >= recharge ) {
+			client->abilityRecharge -= recharge;
+			charges++;
+		}
+		if ( charges >= maxCharges ) {
+			charges = maxCharges;
+			client->abilityRecharge = 0;
+		}
+		BG_SetAbility( &client->ps, ABILITY_IDLE, charges );
 	} else {
 		BG_SetAbility( &client->ps, ABILITY_IDLE,
 			BG_AbilityParam( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active, AP_CHARGES ) );

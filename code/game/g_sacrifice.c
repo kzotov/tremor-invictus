@@ -567,6 +567,7 @@ static void G_SacrificeStartRound( void ) {
 
 	if ( sac.round > 1 ) {
 		G_ResetMapItems();
+		level.abilityRefill = qtrue;		// each round starts with the ability ready
 		for ( i = 0 ; i < level.maxclients ; i++ ) {
 			ent = &g_entities[i];
 			if ( ent->inuse && level.clients[i].pers.connected == CON_CONNECTED
@@ -574,6 +575,7 @@ static void G_SacrificeStartRound( void ) {
 				ClientSpawn( ent );
 			}
 		}
+		level.abilityRefill = qfalse;
 	}
 	G_SacrificeUpdateHud();
 }

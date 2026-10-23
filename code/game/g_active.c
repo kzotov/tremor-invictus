@@ -503,6 +503,12 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 	G_AbilityClientThink( ent );
 	G_WeaponThink( ent );
 
+	// the ability as it stands, for the next spawn (duel.md 1)
+	client->pers.keptChampion = client->ps.stats[STAT_CHAMPION];
+	client->pers.keptCharges = BG_AbilityCharges( &client->ps );
+	client->pers.keptRecharge = client->abilityRecharge;
+	client->pers.keptTime = level.time;
+
 	if ( champ->active == ACTIVE_NONE ) {
 		return;
 	}
