@@ -1834,6 +1834,15 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 			CG_FillRect( 320 + ( side ? inner : outer ) * DP, 23 * DP, 129 * DP, 69 * DP, box );
 			score = va( "%i", CG_ClientScore( who ) );
 			CG_TopText( ( inner + outer ) / 2, 23, 70 * 0.9f, score, colorWhite, 0 );
+			// round duel (hud.md 9.7): the names 20 dp on 300 x 32 plates at
+			// the top, blue on the left (you) and red on the right
+			if ( atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_roundDuel" ) ) ) {
+				float	px = 320 + ( side ? 80 : -380 ) * DP;
+
+				CG_FillRect( px, 6 * DP, 300 * DP, 32 * DP, box );
+				CG_TopText( side ? 230 : -230, 12, 20, CG_CapName( cgs.clientinfo[who].name, 20, 280 ), side ? theirRed : ourBlue, 0 );
+				continue;
+			}
 			CG_TopText( ( inner + outer ) / 2, 92, 15, CG_CapName( cgs.clientinfo[who].name, 15, 200 ), darkGrey, 0 );
 		}
 		return;
@@ -5171,7 +5180,29 @@ static void CG_DrawSpectator(void) {
 	if ( !( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
 		CG_DrawSpectatorAbilities();
 	}
-	CG_DrawBigString(320 - 9 * 8, 440, "SPECTATOR", 1.0F);
+	// hud.md 9.7: the bottom line, the name 36 dp at (42, 1025) in the team's
+	// colour (SPECTATOR in free camera)
+	if ( CG_HudModern() ) {
+		const char	*name = "SPECTATOR";
+		vec4_t		color = { 1, 1, 1, 1 };
+		float		ch = 36 * DP;
+
+		if ( cg.snap->ps.pm_flags & PMF_FOLLOW ) {
+			clientInfo_t	*ci = &cgs.clientinfo[cg.snap->ps.clientNum];
+
+			name = ci->name;
+			if ( ci->team == TEAM_RED ) {
+				Vector4Set( color, 1, 0.22f, 0.22f, 1 );
+			} else if ( ci->team == TEAM_BLUE ) {
+				Vector4Set( color, 0, 0.6f, 1, 1 );
+			}
+		}
+		cg_hudAnchor = ANCHOR_LEFT;
+		CG_DrawStringExt( 42 * DP, 1025 * DP - ch / 2, name, color, qfalse, qtrue, ch * 0.6f, ch, 0 );
+		cg_hudAnchor = ANCHOR_CENTER;
+	} else {
+		CG_DrawBigString(320 - 9 * 8, 440, "SPECTATOR", 1.0F);
+	}
 	if ( CG_DrawSpecHints() ) {
 		return;
 	}
