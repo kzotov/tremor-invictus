@@ -1861,12 +1861,16 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 			const float		*leftNameColor = objective ? ( blueLeft ? objBlue : objRed ) : nameGrey;
 			const float		*rightNameColor = objective ? ( blueLeft ? objRed : objBlue ) : nameGrey;
 
-			CG_FillRect( 320 - 285 * DP, 23 * DP, 221 * DP, 39 * DP, box );
-			CG_FillRect( 320 + 66 * DP, 23 * DP, 221 * DP, 39 * DP, box );
-			CG_TopText( -174.5f, 26, 32, va( "%i", leftScore == SCORE_NOT_PRESENT ? 0 : leftScore ), leftColor, 0 );
-			CG_TopText( 176.5f, 26, 32, va( "%i", rightScore == SCORE_NOT_PRESENT ? 0 : rightScore ), rightColor, 0 );
-			CG_TopText( -174.5f, 87, 18, leftName[0] ? leftName : BG_String( blueLeft ? STR_HUD_BLUE : STR_HUD_RED ), leftNameColor, 0 );
-			CG_TopText( 176.5f, 87, 18, rightName[0] ? rightName : BG_String( blueLeft ? STR_HUD_RED : STR_HUD_BLUE ), rightNameColor, 0 );
+			// (rulings 2026-10-24: boxes at top 51, scores at the outer ends,
+			// the names on 221 x 22 strips under the boxes)
+			CG_FillRect( 320 - 285 * DP, 51 * DP, 221 * DP, 39 * DP, box );
+			CG_FillRect( 320 + 66 * DP, 51 * DP, 221 * DP, 39 * DP, box );
+			CG_FillRect( 320 - 285 * DP, 90 * DP, 221 * DP, 22 * DP, box );
+			CG_FillRect( 320 + 66 * DP, 90 * DP, 221 * DP, 22 * DP, box );
+			CG_TopText( -277, 54, 32, va( "%i", leftScore == SCORE_NOT_PRESENT ? 0 : leftScore ), leftColor, -1 );
+			CG_TopText( 279, 54, 32, va( "%i", rightScore == SCORE_NOT_PRESENT ? 0 : rightScore ), rightColor, 1 );
+			CG_TopText( -174.5f, 92, 18, leftName[0] ? leftName : BG_String( blueLeft ? STR_HUD_BLUE : STR_HUD_RED ), leftNameColor, 0 );
+			CG_TopText( 176.5f, 92, 18, rightName[0] ? rightName : BG_String( blueLeft ? STR_HUD_RED : STR_HUD_BLUE ), rightNameColor, 0 );
 		}
 		return;
 	}
@@ -2211,7 +2215,7 @@ static void CG_DrawPickupFeed( void ) {
 		strip[3] = 0.5f * c[3];
 		f = t < 230 ? 1 - t / 230.0f : 0;
 		{
-			float	sx = x + 10 * DP * f;		// comes in with a 10 dp slide
+			float	sx = x - 10 * DP * f;		// comes in from 10 dp left, sliding into place
 
 			CG_FillRect( sx - 320 * DP, y, 320 * DP, row, strip );
 			if ( f > 0 ) {
@@ -4472,7 +4476,8 @@ static void CG_DrawDamageArc( void ) {
 		// the classic layout: as it was
 		if ( !CG_HudModern() ) {
 			color[0] = 0.9f;
-			color[1] = color[2] = 0.08f;
+			color[1] = 0.08f;
+			color[2] = 0.05f;
 			color[3] = ( 1.0f - t / DAMAGE_ARC_TIME ) * ( 0.4f + 0.6f * ( value > 50 ? 1.0f : value / 50.0f ) );
 			for ( i = 0 ; i <= 10 ; i++ ) {
 				a = cg.damageArcYaw[n] + DAMAGE_ARC_SPAN * ( i / 10.0f - 0.5f );
@@ -4675,7 +4680,7 @@ static void CG_DrawLowHealth( void ) {
 			k = t < 1700 ? 1 - t / 1700.0f : 0;
 			zoom = 1 + 0.04f * ( 1 - k );
 			color[0] = color[1] = color[2] = 1;
-			color[3] = cg.lowHealthStep == LH_CRITICAL ? 0.6f + 0.1f * k : k;
+			color[3] = cg.lowHealthStep == LH_CRITICAL ? 0.6f + 0.1f * k : 0.67f * k;		// each beat from 0.67
 			trap_R_SetColor( color );
 			trap_R_DrawStretchPic( -w * ( zoom - 1 ) / 2, -h * ( zoom - 1 ) / 2, w * zoom, h * zoom, 0, 0, 1, 1, blood );
 		}
@@ -4851,10 +4856,8 @@ static void CG_DrawDeathScreenModern( void ) {
 		if ( pic ) {
 			CG_DrawPic( HX_C( 960 - 70 ), HY( 79 ), 140 * DP, 140 * DP, pic );
 		}
-		// FRAGGED BY <name>
-		Q_strncpyz( name, ci->name, sizeof( name ) );
-		Q_CleanStr( name );
-		name[20] = 0;
+		// FRAGGED BY <name>, the name at most 160 dp (hud.md 8.2)
+		Q_strncpyz( name, CG_CapName( ci->name, 30, 160 ), sizeof( name ) );
 		Com_sprintf( line, sizeof( line ), "%s %s", BG_String( STR_DEATH_KILLEDBY ), name );
 		CG_HudText( 320, HY( 230 ), 30, line, red, 1, 1 );
 		// the champion and what killed you
@@ -4884,18 +4887,47 @@ static void CG_DrawDeathScreenModern( void ) {
 		CG_HudText( 320, HY( 226 ), 50, line, colorWhite, 1, 1 );
 	}
 
+	// WPN-10: the starting weapon for the next spawn, chosen with the weapon
+	// keys, over the respawn button
+	{
+		static const int	starters[3] = { WP_MACHINEGUN, WP_SHOTGUN, WP_NAILGUN };
+		static const char	*codes[3] = { "mg", "sg", "ng" };
+		char	current[8], part[3][32];
+		int		i;
+		float	x, total = 0, cw = 20 * DP * 0.62f;
+
+		CG_HudText( 320, HY( 890 ), 17, BG_String( STR_DEATH_CHOOSE ), grey, 1, 1 );
+		trap_Cvar_VariableStringBuffer( "cg_startWeapon", current, sizeof( current ) );
+		for ( i = 0 ; i < 3 ; i++ ) {
+			const char	*key = CG_BindName( va( "weapon %i", BG_WeaponSlot( starters[i] ) ) );
+			char		code[8];
+
+			Q_strncpyz( code, codes[i], sizeof( code ) );
+			Q_strupr( code );
+			Com_sprintf( part[i], sizeof( part[i] ), "%s [%s]", code, key[0] ? key : "-" );
+			total += ( CG_DrawStrlen( part[i] ) + 3 ) * cw;
+		}
+		x = 320 - total / 2;
+		for ( i = 0 ; i < 3 ; i++ ) {
+			qboolean	on = !Q_stricmp( current, codes[i] ) || ( !current[0] && i == 0 );
+
+			CG_HudText( x, HY( 920 ), 20, part[i], on ? colorWhite : grey, 0, 1 );
+			x += ( CG_DrawStrlen( part[i] ) + 3 ) * cw;
+		}
+	}
+
 	// the respawn button: the time left in it, then RESPAWN
 	left = cg.deathRespawn - ( cg.time - cg.deathTime );
-	CG_FillRect( HX_C( 772 ), HY( 974 ) - 6 * DP, 376 * DP, 62 * DP, button );
+	CG_FillRect( HX_C( 772 ), HY( 974 ), 376 * DP, 62 * DP, button );
 	if ( left > 0 ) {
-		CG_HudText( 320, HY( 989 ) - 6 * DP, 38, va( "%i", ( left + 999 ) / 1000 ), colorWhite, 1, 1 );
+		CG_HudText( HX_C( 910 ), HY( 989 ), 38, va( "%i", ( left + 999 ) / 1000 ), colorWhite, 0, 1 );
 		if ( cg.deathRespawn > 0 ) {
 			static const vec4_t	stripe = { 1, 1, 1, 0.5f };
 
-			CG_FillRect( HX_C( 772 ), HY( 974 ) + 52 * DP, 376 * DP * left / cg.deathRespawn, 4 * DP, stripe );
+			CG_FillRect( HX_C( 772 ), HY( 974 ) + 58 * DP, 376 * DP * left / cg.deathRespawn, 4 * DP, stripe );
 		}
 	} else {
-		CG_HudText( 320, HY( 980 ), 35, BG_String( STR_DEATH_RESPAWN_BUTTON ), colorWhite, 1, 1 );
+		CG_HudText( 320, HY( 987 ), 35, BG_String( STR_DEATH_RESPAWN_BUTTON ), colorWhite, 1, 1 );
 	}
 }
 #endif
@@ -5520,14 +5552,25 @@ static qboolean CG_DrawFollow( void ) {
 	// followed player's vitals at the bottom left (62, 775), never over
 	// the clock
 	if ( CG_HudModern() ) {
-		float	ch = 30 * DP, cw = ch * 0.6f;
+		static const vec4_t	strip = { 0.04f, 0.04f, 0.05f, 0.6f };
+		float	ch = 30 * DP, cw = ch * 0.6f, w;
 		char	line[MAX_STRING_CHARS];
 
+#ifndef MISSIONPACK
+		name = CG_CapName( cgs.clientinfo[ cg.snap->ps.clientNum ].name, 30, 200 );		// at most 200 dp of name
+#else
 		name = cgs.clientinfo[ cg.snap->ps.clientNum ].name;
+#endif
 		Com_sprintf( line, sizeof( line ), "%s %s", BG_String( STR_HUD_FOLLOWING ), name );
 		cg_hudAnchor = ANCHOR_LEFT;
 		CG_DrawStringExt( 62 * DP, 775 * DP, line, color, qfalse, qtrue, cw, ch, 0 );
+		// the name on a strip at the top centre (960, -1)
 		cg_hudAnchor = ANCHOR_CENTER;
+		ch = 20 * DP;
+		cw = ch * 0.6f;
+		w = CG_DrawStrlen( name ) * cw;
+		CG_FillRect( 320 - w / 2 - 10 * DP, -1 * DP, w + 20 * DP, 26 * DP, strip );
+		CG_DrawStringExt( 320 - w / 2, 2 * DP, name, color, qfalse, qtrue, cw, ch, 0 );
 		return qtrue;
 	}
 
@@ -7318,11 +7361,31 @@ static void CG_DrawModernHud( void ) {
 		return;
 	}
 
-	// portrait under the numbers
-	size = 150 * DP * CG_HudPlace( "portrait", &x, &y );
-	pic = CG_ChampionPortrait( ps->stats[STAT_CHAMPION], qfalse );
-	if ( pic ) {
-		CG_DrawPic( x - size, y - size, size, size, pic );
+	// following (hud.md 9.7): the followed player's portrait at (52, 859)
+	// and health and armour 55 dp at (322, 862) / (322, 931), under the
+	// FOLLOWING line
+	if ( ps->pm_flags & PMF_FOLLOW ) {
+		static const vec4_t	armorGreen = { 0.35f, 0.95f, 0.45f, 1 };
+		vec4_t				hc;
+
+		cg_hudAnchor = ANCHOR_LEFT;
+		pic = CG_ChampionPortrait( ps->stats[STAT_CHAMPION], qfalse );
+		if ( pic ) {
+			CG_DrawPic( HX_L( 52 ), HY( 859 ), 130 * DP, 130 * DP, pic );
+		}
+		Vector4Copy( colorWhite, hc );
+		if ( ps->stats[STAT_HEALTH] <= 25 ) {
+			CG_HealthPalette( 0, hc );
+		}
+		CG_HudText( HX_L( 322 ), HY( 862 ), 55, va( "%i", ps->stats[STAT_HEALTH] ), hc, 0, 1 );
+		CG_HudText( HX_L( 322 ), HY( 931 ), 55, va( "%i", ps->stats[STAT_ARMOR] ), armorGreen, 0, 1 );
+	} else {
+		// portrait under the numbers
+		size = 150 * DP * CG_HudPlace( "portrait", &x, &y );
+		pic = CG_ChampionPortrait( ps->stats[STAT_CHAMPION], qfalse );
+		if ( pic ) {
+			CG_DrawPic( x - size, y - size, size, size, pic );
+		}
 	}
 
 	// the mode icon top left (hud.md 9.7, 34, 80)
@@ -7342,7 +7405,9 @@ static void CG_DrawModernHud( void ) {
 
 	// hud.md 9.7: the reference's vitals, ability, ammo, weapon column and
 	// status-effect row
-	CG_DrawVitals();
+	if ( !( ps->pm_flags & PMF_FOLLOW ) ) {
+		CG_DrawVitals();
+	}
 	CG_DrawAbilityBlock();
 	CG_DrawAmmoCounter();
 

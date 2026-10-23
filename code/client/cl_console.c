@@ -709,11 +709,12 @@ static void Con_DrawChatLine( int labelIndex ) {
 	if ( bar ) {
 		*bar = 0;
 	}
+	// the label 16 dp, its baseline with the text's
 	re.SetColor( labelColor );
 	for ( i = 0 ; label[i] ; i++ ) {
-		Con_DrawChatChar( x + i * w, y, w, h, label[i] );
+		Con_DrawChatChar( x + i * w * 16 / 18, y + 2 * scale, w * 16 / 18, h * 16 / 18, label[i] );
 	}
-	x += ( i + 1 ) * w;
+	x += ( i + 1 ) * w * 16 / 18;
 
 	// the text, scrolled so the cursor stays in view, and the cursor
 	chars = (int)( ( right - x ) / w ) - 1;

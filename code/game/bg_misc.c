@@ -1912,6 +1912,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"FOLLOWING",
 	"ALL|TEAM|TELL",
 	"RESPAWN",
+	"CHOOSE YOUR CHAMPION AND WEAPON",
 	"One beep",
 	"By damage",
 	"By damage, reversed",
