@@ -593,10 +593,196 @@ ABILITIES = ["hook", "bullrush", "injection", "dualwield", "barrier", "flamestri
              "riftanchor"]
 
 
+# ---------------------------------------------------------------- ability sounds
+
+RATE = 22050
+
+
+def _f(v, t):
+    return v(t) if callable(v) else v
+
+
+def osc(freq, seconds, wave="sine", amp=1.0):
+    """A tone; freq a number or a function of time. sine, saw, square or tri."""
+    out, phase = [], 0.0
+    for i in range(int(seconds * RATE)):
+        t = i / RATE
+        phase += 2 * math.pi * _f(freq, t) / RATE
+        x = (phase / (2 * math.pi)) % 1.0
+        if wave == "saw":
+            v = 2 * x - 1
+        elif wave == "square":
+            v = 1.0 if x < 0.5 else -1.0
+        elif wave == "tri":
+            v = 4 * abs(x - 0.5) - 1
+        else:
+            v = math.sin(phase)
+        out.append(v * _f(amp, t))
+    return out
+
+
+def noise(seconds, cutoff, seed=1, amp=1.0):
+    """Noise through a one-pole low-pass; cutoff a number or a function of time."""
+    rnd = random.Random(seed)
+    out, lp = [], 0.0
+    for i in range(int(seconds * RATE)):
+        t = i / RATE
+        k = 1.0 - math.exp(-2 * math.pi * _f(cutoff, t) / RATE)
+        lp += k * ((rnd.random() * 2 - 1) - lp)
+        out.append(lp * _f(amp, t))
+    return out
+
+
+def env(samples, attack=0.005, decay=6.0, release=0.04):
+    """A fast attack, an exponential fall, and a faded tail (never cut)."""
+    n = len(samples)
+    out = []
+    for i, v in enumerate(samples):
+        t = i / RATE
+        g = min(1.0, t / attack) * math.exp(-t * decay)
+        tail = (n - i) / RATE
+        if tail < release:
+            g *= tail / release
+        out.append(v * g)
+    return out
+
+
+def mix(*parts):
+    """(samples, gain, start seconds) parts summed."""
+    n = max(int(start * RATE) + len(s) for s, g, start in parts)
+    out = [0.0] * n
+    for s, g, start in parts:
+        o = int(start * RATE)
+        for i, v in enumerate(s):
+            out[o + i] += v * g
+    return out
+
+
+def lfo(rate, depth, base):
+    return lambda t: base * (1 + depth * math.sin(2 * math.pi * rate * t))
+
+
+def glide(f0, f1, seconds):
+    return lambda t: f0 + (f1 - f0) * min(1.0, t / seconds)
+
+
+# sound-clarity.md 4 / SND-13: every ability its own recognisable cast (at
+# most 1.5 s) and end (at most 1.0 s), mono, peak -1 dBFS, tails faded
+ABILITY_SOUNDS = {
+    # Athena's hook: a metallic twang and the chain whipping out
+    "hook": (lambda: mix((env(osc(glide(900, 1400, 0.1), 0.5, "tri"), decay=7), 0.6, 0),
+                         (env(osc(2650, 0.5), decay=9), 0.25, 0),
+                         (env(noise(0.35, glide(3000, 800, 0.35), 3), decay=6), 0.5, 0.02)),
+             lambda: mix((env(osc(1300, 0.25, "tri"), decay=16), 0.5, 0), (env(noise(0.2, 2500, 4), decay=20), 0.4, 0))),
+    # Scalebearer's bull rush: a low rumble surging forward
+    "bullrush": (lambda: mix((env(noise(1.0, glide(200, 900, 0.8), 5), attack=0.08, decay=1.6), 1.0, 0),
+                             (env(osc(glide(55, 90, 0.8), 1.0, "saw"), attack=0.06, decay=1.8), 0.35, 0)),
+                 lambda: mix((env(noise(0.5, 400, 6), decay=7), 0.9, 0), (env(osc(70, 0.5, "sine"), decay=8), 0.6, 0))),
+    # the injection: a syringe hiss and a rising blip
+    "injection": (lambda: mix((env(noise(0.45, 6000, 7), attack=0.02, decay=5), 0.45, 0),
+                              (env(osc(glide(600, 1500, 0.25), 0.3), decay=8), 0.6, 0.12)),
+                  lambda: mix((env(osc(glide(1400, 700, 0.2), 0.25), decay=12), 0.6, 0))),
+    # B.J.'s dual wield: two clicks and a cocking slide
+    "dualwield": (lambda: mix((env(noise(0.06, 5000, 8), decay=60), 0.9, 0), (env(noise(0.06, 5000, 9), decay=60), 0.9, 0.12),
+                              (env(noise(0.25, glide(1200, 3500, 0.2), 10), attack=0.02, decay=10), 0.6, 0.22),
+                              (env(osc(1900, 0.2, "square"), decay=25), 0.12, 0.24)),
+                  lambda: mix((env(noise(0.08, 4000, 11), decay=50), 0.9, 0), (env(noise(0.08, 3000, 12), decay=50), 0.8, 0.1))),
+    # the barrier: a shimmering chord settling into place
+    "barrier": (lambda: mix((env(osc(lfo(6, 0.01, 440), 1.2), attack=0.1, decay=2.2), 0.4, 0),
+                            (env(osc(lfo(6.5, 0.01, 554), 1.2), attack=0.12, decay=2.2), 0.35, 0),
+                            (env(osc(lfo(7, 0.01, 659), 1.2), attack=0.14, decay=2.2), 0.3, 0),
+                            (env(noise(1.0, 7000, 13), attack=0.05, decay=4), 0.12, 0)),
+                lambda: mix((env(osc(glide(659, 330, 0.5), 0.6), decay=6), 0.5, 0), (env(noise(0.5, 5000, 14), decay=8), 0.2, 0))),
+    # Death Knight's flame strike: a crackling roar
+    "flamestrike": (lambda: mix((env(noise(1.2, lfo(13, 0.6, 1500), 15), attack=0.04, decay=2.2), 1.0, 0),
+                                (env(noise(1.2, 300, 16), attack=0.08, decay=2.0), 0.9, 0)),
+                    lambda: mix((env(noise(0.6, glide(1200, 300, 0.5), 17), decay=5), 0.9, 0))),
+    # Doom Slayer's berserk: a vibrating growl
+    "berserk": (lambda: mix((env(osc(lfo(18, 0.12, 82), 1.1, "saw"), attack=0.05, decay=2.2), 0.6, 0),
+                            (env(noise(1.1, lfo(18, 0.5, 600), 18), attack=0.05, decay=2.4), 0.6, 0)),
+                lambda: mix((env(osc(glide(110, 55, 0.6), 0.7, "saw"), decay=5), 0.5, 0))),
+    # the turret: a mechanical clack and a servo whine
+    "turret": (lambda: mix((env(noise(0.08, 3000, 19), decay=45), 1.0, 0),
+                           (env(osc(glide(300, 900, 0.5), 0.7, "square"), attack=0.04, decay=3.5), 0.18, 0.08),
+                           (env(noise(0.08, 2500, 20), decay=45), 0.9, 0.6)),
+               lambda: mix((env(osc(glide(800, 250, 0.4), 0.5, "square"), decay=6), 0.18, 0), (env(noise(0.1, 2000, 21), decay=40), 0.8, 0.35))),
+    # Galena's totem: a hollow knock and an eerie tone
+    "totem": (lambda: mix((env(osc(180, 0.25), decay=25), 1.0, 0), (env(noise(0.06, 1200, 22), decay=50), 0.6, 0),
+                          (env(osc(lfo(5, 0.03, 740), 1.0, "tri"), attack=0.15, decay=3), 0.25, 0.05)),
+              lambda: mix((env(osc(lfo(5, 0.03, 520), 0.6, "tri"), decay=6), 0.3, 0), (env(osc(150, 0.2), decay=30), 0.8, 0))),
+    # Keel's grenades: the pins and a throw
+    "grenades": (lambda: mix((env(osc(3200, 0.05), decay=60), 0.6, 0), (env(osc(3500, 0.05), decay=60), 0.6, 0.06),
+                             (env(noise(0.4, glide(600, 2500, 0.3), 23), attack=0.05, decay=6), 0.8, 0.12)),
+                 lambda: mix((env(osc(2900, 0.06), decay=60), 0.6, 0), (env(noise(0.1, 1500, 24), decay=40), 0.5, 0))),
+    # Nyx's ghost walk: an airy reversed breath and a high shimmer
+    "ghostwalk": (lambda: mix((env(noise(0.9, glide(500, 4000, 0.8), 25), attack=0.6, decay=0.3, release=0.2), 0.8, 0),
+                              (env(osc(lfo(9, 0.02, 1760), 0.9), attack=0.5, decay=0.5, release=0.2), 0.12, 0)),
+                  lambda: mix((env(noise(0.6, glide(4000, 400, 0.5), 26), decay=6), 0.8, 0))),
+    # Ranger's dire orb: a deep wobbling hum
+    "orb": (lambda: mix((env(osc(lfo(7, 0.25, 110), 1.2), attack=0.05, decay=1.5), 0.8, 0),
+                        (env(osc(lfo(7, 0.25, 220), 1.2, "tri"), attack=0.05, decay=1.8), 0.3, 0),
+                        (env(noise(0.3, 2000, 27), decay=10), 0.3, 0)),
+            lambda: mix((env(osc(glide(220, 60, 0.3), 0.4), decay=8), 0.8, 0), (env(noise(0.4, 900, 28), decay=8), 0.5, 0))),
+    # Slash's plasma trail: an electric buzz rising
+    "plasmatrail": (lambda: mix((env(osc(glide(120, 240, 0.8), 1.0, "saw"), attack=0.03, decay=1.5), 0.4, 0),
+                                (env(noise(1.0, lfo(60, 0.7, 3000), 29), attack=0.03, decay=1.8), 0.4, 0)),
+                    lambda: mix((env(osc(glide(240, 90, 0.4), 0.5, "saw"), decay=6), 0.4, 0))),
+    # Sorlag's acid spit: a wet splat and a bubble
+    "acidspit": (lambda: mix((env(noise(0.25, 900, 30), decay=14), 1.0, 0),
+                             (env(osc(glide(300, 900, 0.1), 0.15), decay=20), 0.5, 0.05),
+                             (env(osc(glide(400, 1100, 0.08), 0.12), decay=25), 0.4, 0.2)),
+                 lambda: mix((env(noise(0.3, 700, 31), decay=12), 0.9, 0), (env(osc(glide(500, 900, 0.1), 0.12), decay=25), 0.4, 0.1))),
+    # Strogg's drone: a servo spinning up
+    "drone": (lambda: mix((env(osc(glide(200, 1200, 0.9), 1.1, "square"), attack=0.05, decay=1.5), 0.15, 0),
+                          (env(noise(1.1, glide(400, 3000, 0.9), 32), attack=0.05, decay=1.8), 0.6, 0)),
+              lambda: mix((env(osc(glide(1200, 200, 0.6), 0.7, "square"), decay=4), 0.15, 0), (env(noise(0.7, 1200, 33), decay=5), 0.5, 0))),
+    # Visor's piercing sight: a high ping and a sonar sweep
+    "piercingsight": (lambda: mix((env(osc(2093, 0.4), decay=10), 0.6, 0), (env(osc(glide(500, 2500, 0.8), 1.0), attack=0.2, decay=2), 0.3, 0.1)),
+                      lambda: mix((env(osc(1568, 0.3), decay=14), 0.5, 0))),
+    # Wrack's shell shock: a deep thud and a ringing
+    "shellshock": (lambda: mix((env(osc(glide(90, 40, 0.3), 0.6), decay=6), 1.0, 0), (env(noise(0.2, 600, 34), decay=18), 0.6, 0),
+                               (env(osc(3100, 1.2), attack=0.05, decay=2.5), 0.12, 0.05)),
+                   lambda: mix((env(osc(2800, 0.6), decay=6), 0.15, 0), (env(noise(0.3, 500, 35), decay=10), 0.5, 0))),
+    # Klesk's spine volley: three quick whistles
+    "spinevolley": (lambda: mix(*[(env(osc(glide(2200 - k * 200, 1200 - k * 100, 0.15), 0.2), decay=10), 0.5, k * 0.09) for k in range(3)]),
+                    lambda: mix((env(noise(0.15, 3000, 36), decay=25), 0.5, 0))),
+    # master of death: an ominous low chord
+    "masterofdeath": (lambda: mix((env(osc(lfo(4, 0.01, 65), 1.4, "saw"), attack=0.2, decay=1.3), 0.35, 0),
+                                  (env(osc(lfo(4.5, 0.01, 98), 1.4, "saw"), attack=0.25, decay=1.3), 0.25, 0),
+                                  (env(osc(lfo(5, 0.01, 155), 1.4, "tri"), attack=0.3, decay=1.3), 0.3, 0),
+                                  (env(noise(1.4, 400, 37), attack=0.3, decay=1.5), 0.4, 0)),
+                      lambda: mix((env(osc(glide(155, 65, 0.6), 0.8, "tri"), decay=4), 0.4, 0))),
+    # Sarge's supply drop: two radio beeps and a whoosh from above
+    "supplydrop": (lambda: mix((env(osc(1200, 0.1, "square"), decay=8), 0.2, 0), (env(osc(1600, 0.1, "square"), decay=8), 0.2, 0.15),
+                               (env(noise(0.7, glide(3000, 500, 0.6), 38), attack=0.1, decay=3), 0.7, 0.3)),
+                   lambda: mix((env(osc(1600, 0.1, "square"), decay=8), 0.2, 0), (env(noise(0.25, 300, 39), decay=12), 0.9, 0.08))),
+    # Hunter's mark prey: a sharp rising whistle, a hunting cry
+    "markprey": (lambda: mix((env(osc(glide(900, 2600, 0.35), 0.6, "tri"), attack=0.02, decay=4), 0.5, 0),
+                             (env(osc(glide(1800, 3400, 0.35), 0.5), attack=0.02, decay=5), 0.2, 0)),
+                 lambda: mix((env(osc(glide(2600, 900, 0.3), 0.4, "tri"), decay=8), 0.4, 0))),
+    # Raine's downpour: a rain swell
+    "downpour": (lambda: mix((env(noise(1.4, lfo(25, 0.4, 5000), 40), attack=0.35, decay=1.0), 0.8, 0),
+                             (env(noise(1.4, 400, 41), attack=0.35, decay=1.0), 0.5, 0)),
+                 lambda: mix((env(noise(0.8, 4500, 42), decay=4), 0.7, 0))),
+    # Beastmaster's hound: a snarl
+    "hound": (lambda: mix((env(noise(0.8, lfo(22, 0.6, 700), 43), attack=0.05, decay=3), 1.0, 0),
+                          (env(osc(lfo(22, 0.15, 140), 0.8, "saw"), attack=0.05, decay=3.2), 0.3, 0)),
+              lambda: mix((env(noise(0.4, lfo(16, 0.5, 900), 44), decay=8), 0.9, 0))),
+    # Unumrey's rift anchor: a warp falling into place
+    "riftanchor": (lambda: mix((env(osc(glide(1600, 120, 1.0), 1.2, "tri"), attack=0.03, decay=1.8), 0.5, 0),
+                               (env(noise(1.2, glide(5000, 300, 1.0), 45), attack=0.03, decay=2.0), 0.5, 0)),
+                   lambda: mix((env(osc(glide(120, 1600, 0.4), 0.5, "tri"), decay=6), 0.5, 0), (env(noise(0.5, 3000, 46), decay=8), 0.4, 0))),
+}
+
+
 def sounds(out):
-    write_wav(os.path.join(out, "sound/tremor/hit_armor.wav"), tone([(2400, 0.6), (3600, 0.3), (5100, 0.15)], 0.12, 38))
-    write_wav(os.path.join(out, "sound/tremor/hit_health.wav"), tone([(520, 0.7), (780, 0.25)], 0.12, 45, noise=0.15))
-    write_wav(os.path.join(out, "sound/tremor/armor_break.wav"), tone([(1800, 0.4), (2700, 0.3), (900, 0.3)], 0.35, 14, noise=0.5))
+    def put(path, samples):
+        # sound-clarity.md 4: every one peaks at -1 dBFS, never clipped
+        write_wav(path, level(samples))
+
+    put(os.path.join(out, "sound/tremor/hit_armor.wav"), tone([(2400, 0.6), (3600, 0.3), (5100, 0.15)], 0.12, 38))
+    put(os.path.join(out, "sound/tremor/hit_health.wav"), tone([(520, 0.7), (780, 0.25)], 0.12, 45, noise=0.15))
+    put(os.path.join(out, "sound/tremor/armor_break.wav"), tone([(1800, 0.4), (2700, 0.3), (900, 0.3)], 0.35, 14, noise=0.5))
     # a bell (fundamental and inharmonic partials) on A, C sharp and E, 0.16 s apart
     call = [0.0] * int(1.2 * 22050)
     for n, f in enumerate((880, 1109, 1319)):
@@ -604,33 +790,32 @@ def sounds(out):
         start = int(n * 0.16 * 22050)
         for i, v in enumerate(bell):
             call[start + i] += v * 0.6
-    write_wav(os.path.join(out, "sound/tremor/match_found.wav"), call)
+    put(os.path.join(out, "sound/tremor/match_found.wav"), call)
     # the crouch slide: a scrape starting, a steady loop, a short stop
-    write_wav(os.path.join(out, "sound/tremor/slide_start.wav"), scrape(0.25, 600, 9, seed=41))
-    write_wav(os.path.join(out, "sound/tremor/slide_loop.wav"), scrape(1.0, 420, 0, seed=43, loop=True))
-    write_wav(os.path.join(out, "sound/tremor/slide_stop.wav"), scrape(0.18, 300, 22, seed=47))
+    put(os.path.join(out, "sound/tremor/slide_start.wav"), scrape(0.25, 600, 9, seed=41))
+    put(os.path.join(out, "sound/tremor/slide_loop.wav"), scrape(1.0, 420, 0, seed=43, loop=True))
+    put(os.path.join(out, "sound/tremor/slide_stop.wav"), scrape(0.18, 300, 22, seed=47))
     # Clutch's dodge: a short airy whoosh
-    write_wav(os.path.join(out, "sound/tremor/dodge.wav"), level(whoosh(0.28, seed=53)))
+    put(os.path.join(out, "sound/tremor/dodge.wav"), level(whoosh(0.28, seed=53)))
     # Athena's hook biting: a short metallic clank
-    write_wav(os.path.join(out, "sound/tremor/hook_attach.wav"), tone([(1400, 0.5), (2300, 0.35), (3700, 0.2)], 0.22, 22, noise=0.35, seed=59))
+    put(os.path.join(out, "sound/tremor/hook_attach.wav"), tone([(1400, 0.5), (2300, 0.35), (3700, 0.2)], 0.22, 22, noise=0.35, seed=59))
     # the hit beeps, 0.12 s each, falling in pitch with the damage tier
     for n, f in enumerate((1560, 1240, 960, 740)):
-        write_wav(os.path.join(out, "sound/tremor/hitbeep%i.wav" % (n + 1)),
+        put(os.path.join(out, "sound/tremor/hitbeep%i.wav" % (n + 1)),
                   tone([(f, 0.8), (f * 2, 0.15)], 0.12, 30, seed=71 + n))
     # the kill beep: a short bell
-    write_wav(os.path.join(out, "sound/tremor/killbeep.wav"),
+    put(os.path.join(out, "sound/tremor/killbeep.wav"),
               tone([(1760, 0.6), (1760 * 2.76, 0.18), (1760 * 5.4, 0.06)], 0.35, 11, seed=79))
     # a Tri-bolt bolt bursting: a short crack over a low thump
     crack = scrape(0.55, 1800, 9, seed=61)
     thump = tone([(95, 0.9), (62, 0.6)], 0.55, 8, seed=67)
-    write_wav(os.path.join(out, "sound/tremor/tribolt_exp.wav"),
+    put(os.path.join(out, "sound/tremor/tribolt_exp.wav"),
               level([0.75 * a + 0.9 * b for a, b in zip(crack, thump)]))
-    # each ability: a rising sweep on casting, a falling blip at the end,
-    # pitched by the name so they differ
+    # each ability: its own cast and end (ABILITY_SOUNDS), levelled to -1 dBFS
     for name in ABILITIES:
-        base = 300 + (sum(ord(c) * (i + 1) for i, c in enumerate(name)) % 500)
-        write_wav(os.path.join(out, "sound/abilities/%s_cast.wav" % name), sweep(base, base * 2.2, 0.32, 9, seed=len(name)))
-        write_wav(os.path.join(out, "sound/abilities/%s_end.wav" % name), sweep(base * 1.8, base * 0.9, 0.18, 18, seed=len(name) + 1))
+        cast, end = ABILITY_SOUNDS[name]
+        put(os.path.join(out, "sound/abilities/%s_cast.wav" % name), level(cast()))
+        put(os.path.join(out, "sound/abilities/%s_end.wav" % name), level(end()))
 
 
 SHADERS = """// tremor-invictus generated assets (misc/art/make-models.py)
