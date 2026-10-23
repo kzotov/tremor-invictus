@@ -430,6 +430,11 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace ) {
 
 		ent->parent->client->ps.pm_flags |= PMF_GRAPPLE_PULL;
 		VectorCopy( ent->r.currentOrigin, ent->parent->client->ps.grapplePoint);
+		// Athena's hook can't swing on a player (movement.md); the move code
+		// keeps this bit when the pull starts
+		if ( BG_AbilityState( &ent->parent->client->ps ) == ABILITY_HOOK_FLYING ) {
+			ent->parent->client->ps.stats[STAT_MOVE_STATE] = ent->enemy ? HOOK_ON_PLAYER : 0;
+		}
 
 		trap_LinkEntity( ent );
 		trap_LinkEntity( nent );

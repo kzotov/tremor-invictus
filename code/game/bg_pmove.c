@@ -1744,10 +1744,13 @@ static void PM_CrashLand( void ) {
 	if ( den < 0 ) {
 		return;
 	}
-	t = (-b - sqrt( den ) ) / ( 2 * a );
-
-	delta = vel + t * acc;
-	delta = delta*delta * 0.0001;
+	if ( a == 0 ) {
+		delta = vel * vel * 0.0001;		// no gravity (the hook's pull): the speed doesn't change
+	} else {
+		t = (-b - sqrt( den ) ) / ( 2 * a );
+		delta = vel + t * acc;
+		delta = delta*delta * 0.0001;
+	}
 
 	// ducking while falling doubles damage
 	if ( pm->ps->pm_flags & PMF_DUCKED ) {
@@ -3084,7 +3087,7 @@ static void PM_Ability( void ) {
 			// just attached: initial impulse toward the hook
 			state = ABILITY_HOOK_PULL;
 			time = 0;
-			pm->ps->stats[STAT_MOVE_STATE] = 0;
+			pm->ps->stats[STAT_MOVE_STATE] &= HOOK_ON_PLAYER;		// (set by the game on the bite)
 			pm->ps->stats[STAT_HOOK] = pm->cmd.upmove >= 10 ? HOOK_JUMP_DOWN : 0;
 			VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
 			VectorNormalize( dir );
@@ -3127,7 +3130,7 @@ static void PM_Ability( void ) {
 					arrived = qtrue;
 				}
 				// a swing ends after 3 s
-				if ( pm->ps->stats[STAT_MOVE_STATE] > 0 && time >= HOOK_SWING_TIME ) {
+				if ( ( pm->ps->stats[STAT_MOVE_STATE] & HOOK_SWINGING ) && time >= HOOK_SWING_TIME ) {
 					arrived = qtrue;
 				}
 				// a landing from the air (a hook thrown from the ground stays)
@@ -3400,20 +3403,6 @@ static void PM_CheckRushBlocked( void ) {
 
 /*
 ================
-PM_HookOnPlayer
-
-Whether the hook holds a player: the line to the point ends on a body
-================
-*/
-static qboolean PM_HookOnPlayer( void ) {
-	trace_t	tr;
-
-	pm->trace( &tr, pm->ps->origin, NULL, NULL, pm->ps->grapplePoint, pm->ps->clientNum, CONTENTS_BODY );
-	return tr.fraction < 1 && tr.entityNum < MAX_CLIENTS && Distance( tr.endpos, pm->ps->grapplePoint ) < 64;
-}
-
-/*
-================
 PM_HookMove
 
 Athena's hook. Holding the ability button locks the rope and swings;
@@ -3429,26 +3418,31 @@ static void PM_HookMove( void ) {
 	dist = VectorNormalize( dir );
 	radial = DotProduct( pm->ps->velocity, dir );
 
-	// movement.md hook swing: STAT_MOVE_STATE counts the button's hold below
-	// 0 until the swing starts (held 0.05 s, from 0.1 s into the pull), then
-	// holds the rope length; the ability timer restarts with the swing (it
-	// ends at 3 s, in the ability code)
-	if ( pml.abilityHeld && state <= 0 ) {
-		state -= pml.msec;
-		if ( -state >= HOOK_SWING_HOLD && time >= HOOK_SWING_AFTER ) {
-			if ( PM_HookOnPlayer() ) {
-				state = -HOOK_SWING_HOLD;		// no swing on a player: keep pulling
-			} else if ( pm->ps->groundEntityNum != ENTITYNUM_NONE ) {
+	// movement.md hook swing: STAT_MOVE_STATE counts the button's hold in
+	// its low bits until the swing starts (held 0.05 s, from 0.1 s into the
+	// pull), then holds the rope length beside HOOK_SWINGING; the ability
+	// timer restarts with the swing (it ends at 3 s, in the ability code).
+	// HOOK_ON_PLAYER comes from the game when the hook bites a player
+	if ( pml.abilityHeld && !( state & HOOK_SWINGING ) ) {
+		int		held = ( state & HOOK_ROPE_MASK ) + pml.msec;
+
+		if ( held > HOOK_ROPE_MASK ) {
+			held = HOOK_ROPE_MASK;
+		}
+		state = ( state & HOOK_ON_PLAYER ) | held;
+		if ( held >= HOOK_SWING_HOLD && time >= HOOK_SWING_AFTER ) {
+			if ( pm->ps->groundEntityNum != ENTITYNUM_NONE ) {
 				PM_EndAbility();		// on the ground the hold lets go instead
 				return;
-			} else {
-				state = (int)( dist < 1 ? 1 : dist > HOOK_ROPE_MASK ? HOOK_ROPE_MASK : dist );
+			}
+			if ( !( state & HOOK_ON_PLAYER ) ) {		// no swing on a player: keep pulling
+				state = HOOK_SWINGING | (int)( dist < 1 ? 1 : dist > HOOK_ROPE_MASK ? HOOK_ROPE_MASK : dist );
 				pm->ps->stats[STAT_ABILITY_TIME] = time = 0;
 			}
 		}
 		pm->ps->stats[STAT_MOVE_STATE] = state;
 	}
-	if ( pml.abilityHeld && state > 0 ) {
+	if ( pml.abilityHeld && ( state & HOOK_SWINGING ) ) {
 		trace_t	tr;
 		vec3_t	down, side;
 		float	gap, turn;
@@ -3467,7 +3461,7 @@ static void PM_HookMove( void ) {
 				}
 			}
 		}
-		pm->ps->stats[STAT_MOVE_STATE] = (int)rope;
+		pm->ps->stats[STAT_MOVE_STATE] = HOOK_SWINGING | (int)rope;
 		// the entry speed toward the point turns sideways, evenly over the
 		// swing's first 0.25 s (4x its size each second)
 		if ( time < HOOK_SWING_TURN && radial > 0 ) {
@@ -3508,7 +3502,7 @@ static void PM_HookMove( void ) {
 		}
 	} else {
 		if ( !pml.abilityHeld ) {
-			pm->ps->stats[STAT_MOVE_STATE] = 0;
+			pm->ps->stats[STAT_MOVE_STATE] &= HOOK_ON_PLAYER;
 		}
 		if ( dist > bg_pmoveSettings.hookDeadZone ) {
 			// straight at the hook, at least the start speed, gaining each frame
@@ -3939,7 +3933,7 @@ void Pmove (pmove_t *pmove) {
 			// abilities.md, Athena: no gravity on the pull, 800 u/s/s on the swing
 			int		gravity = pmove->ps->gravity;
 
-			pmove->ps->gravity = pmove->ps->stats[STAT_MOVE_STATE] > 0 ? (int)bg_pmoveSettings.hookSwingGravity : 0;
+			pmove->ps->gravity = ( pmove->ps->stats[STAT_MOVE_STATE] & HOOK_SWINGING ) ? (int)bg_pmoveSettings.hookSwingGravity : 0;
 			PmoveSingle( pmove );
 			pmove->ps->gravity = gravity;
 		} else if ( BG_AbilityState( pmove->ps ) == ABILITY_RUSH ) {
