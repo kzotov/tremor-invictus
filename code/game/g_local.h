@@ -720,6 +720,7 @@ void G_Poison( gentity_t *target, gentity_t *attacker );
 void G_ClearDamageOverTime( gentity_t *ent );
 void G_ExplodeMissile( gentity_t *ent );
 void G_NextKnockback( float knock );
+void G_NextTilt( float tilt );
 void G_WeaponTuneMissile( gentity_t *m, int weapon );
 void G_WeaponThink( gentity_t *ent );
 void G_SchedulePowerup( gentity_t *ent, int seconds );

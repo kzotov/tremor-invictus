@@ -146,6 +146,9 @@ void trigger_push_touch (gentity_t *self, gentity_t *other, trace_t *trace ) {
 		return;
 	}
 
+	if ( other->client->hook ) {
+		Weapon_HookFree( other->client->hook );		// a jump pad frees Athena's hook
+	}
 	BG_TouchJumpPad( &other->client->ps, &self->s );
 }
 

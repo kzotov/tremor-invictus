@@ -170,6 +170,76 @@ static gentity_t *G_BerserkTarget( gentity_t *ent, vec3_t org, vec3_t dir, trace
 
 /*
 ===============
+G_GauntletSweep
+
+The Gauntlet's 16 u sphere from start to end: the first target (by how far
+along the line) whose box comes within 16 u of the line and that the muzzle
+can see; otherwise a plain trace, so walls still stop it
+===============
+*/
+#define GAUNTLET_RADIUS		16
+#define GAUNTLET_STEPS		8
+
+static void G_GauntletSweep( gentity_t *ent, vec3_t start, vec3_t end, trace_t *tr ) {
+	int			list[64], num, i, j, k, best = -1;		// (a 32 u reach holds few entities)
+	float		bestAlong = 2;
+	vec3_t		mins, maxs, p, v, centre;
+	gentity_t	*t;
+	trace_t		sight;
+
+	trap_Trace( tr, start, NULL, NULL, end, ent->s.number, MASK_SHOT );
+	for ( i = 0 ; i < 3 ; i++ ) {
+		mins[i] = ( start[i] < end[i] ? start[i] : end[i] ) - GAUNTLET_RADIUS;
+		maxs[i] = ( start[i] > end[i] ? start[i] : end[i] ) + GAUNTLET_RADIUS;
+	}
+	num = trap_EntitiesInBox( mins, maxs, list, 64 );
+	for ( i = 0 ; i < num ; i++ ) {
+		t = &g_entities[list[i]];
+		if ( t == ent || !t->takedamage || !t->r.linked ) {
+			continue;
+		}
+		// the first point along the line within reach of the box
+		for ( k = 0 ; k <= GAUNTLET_STEPS ; k++ ) {
+			float	along = k / (float)GAUNTLET_STEPS;
+
+			for ( j = 0 ; j < 3 ; j++ ) {
+				p[j] = start[j] + ( end[j] - start[j] ) * along;
+				v[j] = p[j] < t->r.absmin[j] ? t->r.absmin[j] - p[j] : p[j] > t->r.absmax[j] ? p[j] - t->r.absmax[j] : 0;
+			}
+			if ( VectorLength( v ) <= GAUNTLET_RADIUS ) {
+				break;
+			}
+		}
+		if ( k > GAUNTLET_STEPS || k / (float)GAUNTLET_STEPS >= bestAlong ) {
+			continue;
+		}
+		// in sight of the muzzle
+		VectorAdd( t->r.absmin, t->r.absmax, centre );
+		VectorScale( centre, 0.5f, centre );
+		trap_Trace( &sight, start, NULL, NULL, centre, ent->s.number, MASK_SOLID );
+		if ( sight.fraction < 1 && sight.entityNum != t->s.number ) {
+			continue;
+		}
+		best = list[i];
+		bestAlong = k / (float)GAUNTLET_STEPS;
+	}
+	if ( best >= 0 ) {
+		t = &g_entities[best];
+		memset( tr, 0, sizeof( *tr ) );
+		tr->entityNum = best;
+		tr->fraction = bestAlong;
+		for ( j = 0 ; j < 3 ; j++ ) {
+			p[j] = start[j] + ( end[j] - start[j] ) * bestAlong;
+			// the hit point on the target's box nearest the sphere
+			tr->endpos[j] = p[j] < t->r.absmin[j] ? t->r.absmin[j] : p[j] > t->r.absmax[j] ? t->r.absmax[j] : p[j];
+			tr->plane.normal[j] = start[j] - end[j];
+		}
+		VectorNormalize( tr->plane.normal );
+	}
+}
+
+/*
+===============
 CheckGauntletAttack
 ===============
 */
@@ -186,34 +256,23 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 	CalcMuzzlePoint ( ent, forward, right, up, muzzle );
 
 	// reach 30, 34 for the big four; the hit is a sphere of radius 16
-	// (weapons.md): a 16 u box swept, then the target's box must lie within
-	// 16 u of the sphere's centre where it stopped
+	// (weapons.md) swept along the reach: the nearest player-sized target
+	// whose box comes within 16 u of the line, in sight of the muzzle
+	// (players rewound like other instant hits, netcode.md)
 	{
 		const char	*name = BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->name;
 		float		reach = BG_WeaponParam( WP_GAUNTLET, WPP_RANGE ) > 0 ? BG_WeaponParam( WP_GAUNTLET, WPP_RANGE ) : 30;
-		vec3_t		hitMins = { -16, -16, -16 }, hitMaxs = { 16, 16, 16 };
 
 		if ( !Q_stricmp( name, "sorlag" ) || !Q_stricmp( name, "clutch" ) || !Q_stricmp( name, "keel" )
 			|| !Q_stricmp( name, "scalebearer" ) ) {
 			reach += 4;
 		}
 		VectorMA( muzzle, reach, forward, end );
+		G_RewindPlayers( ent );
 		if ( !G_AbilityActive( ent, ACTIVE_BERSERK ) || !G_BerserkTarget( ent, muzzle, forward, &tr ) ) {
-			trap_Trace( &tr, muzzle, hitMins, hitMaxs, end, ent->s.number, MASK_SHOT );
-			if ( tr.entityNum < ENTITYNUM_MAX_NORMAL && g_entities[tr.entityNum].takedamage ) {
-				gentity_t	*t = &g_entities[tr.entityNum];
-				vec3_t		v;
-				int			i;
-
-				for ( i = 0 ; i < 3 ; i++ ) {
-					v[i] = tr.endpos[i] < t->r.absmin[i] ? t->r.absmin[i] - tr.endpos[i]
-						: tr.endpos[i] > t->r.absmax[i] ? tr.endpos[i] - t->r.absmax[i] : 0;
-				}
-				if ( VectorLength( v ) > 16 ) {
-					return qfalse;		// the box's corner touched, the sphere didn't
-				}
-			}
+			G_GauntletSweep( ent, muzzle, end, &tr );
 		}
+		G_RestorePlayers();
 	}
 	if ( tr.surfaceFlags & SURF_NOIMPACT ) {
 		return qfalse;

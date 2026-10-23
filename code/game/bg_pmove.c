@@ -2965,6 +2965,8 @@ static void PM_EndAbility( void ) {
 #define HOOK_BLOCKED_RANGE		128
 #define HOOK_BLOCKED_SPEED		50
 #define HOOK_MAX_ROPE			3000	// let go beyond this much rope
+#define HOOK_STUCK_MSEC			200		// stuck: under HOOK_STUCK_DIST in this time
+#define HOOK_STUCK_DIST			32
 
 /*
 ================
@@ -3088,17 +3090,37 @@ static void PM_Ability( void ) {
 	} else if ( state == ABILITY_HOOK_PULL ) {
 		qboolean	arrived = qfalse;
 
-		// pulled in (not swinging): let go at the dead zone, or when a surface
-		// near the point stops the pull, so no second press is needed
-		if ( !pml.abilityHeld ) {
+		// pulled in (not swinging): let go when a surface near the point
+		// stops the pull, so no second press is needed
+		{
 			float	dist, radial;
+			trace_t	tr;
 
 			VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
 			dist = VectorNormalize( dir );
 			radial = DotProduct( pm->ps->velocity, dir );
-			if ( dist <= bg_pmoveSettings.hookDeadZone || dist > HOOK_MAX_ROPE
-				|| ( time > HOOK_BLOCKED_MSEC && dist < HOOK_BLOCKED_RANGE && radial < HOOK_BLOCKED_SPEED ) ) {
+			if ( !pml.abilityHeld && time > HOOK_BLOCKED_MSEC && dist < HOOK_BLOCKED_RANGE && radial < HOOK_BLOCKED_SPEED ) {
 				arrived = qtrue;
+			}
+			// abilities.md, Athena: the hook lets go under 40 u or over
+			// 3000 u of rope, on landing, on a jump, when stuck (under 32 u
+			// in 0.2 s, as speed under 160 u/s) and when the rope is cut;
+			// jump pads, teleporters and her impact hits free it in the game
+			if ( dist <= bg_pmoveSettings.hookDeadZone || dist > HOOK_MAX_ROPE ) {
+				arrived = qtrue;
+			}
+			if ( time >= 100 && pm->ps->groundEntityNum != ENTITYNUM_NONE ) {
+				arrived = qtrue;		// landed
+			}
+			if ( pm->cmd.upmove >= 10 && !( pm->ps->pm_flags & PMF_JUMP_HELD ) ) {
+				arrived = qtrue;		// a jump
+			}
+			if ( time >= HOOK_STUCK_MSEC && VectorLength( pm->ps->velocity ) * HOOK_STUCK_MSEC * 0.001f < HOOK_STUCK_DIST ) {
+				arrived = qtrue;		// stuck
+			}
+			pm->trace( &tr, pm->ps->origin, NULL, NULL, pm->ps->grapplePoint, pm->ps->clientNum, MASK_SOLID );
+			if ( tr.fraction < 1 && Distance( tr.endpos, pm->ps->grapplePoint ) > 8 ) {
+				arrived = qtrue;		// something cut the rope
 			}
 		}
 		if ( ( pressed && time >= BG_AbilityParam( active, AP_DELAY ) ) || arrived

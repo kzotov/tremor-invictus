@@ -882,6 +882,7 @@ dflags		these flags are used to control how T_Damage works
 */
 
 static float	nextKnockback = -1;		// set by G_NextKnockback for the next G_Damage
+static float	nextTilt = -1;			// set by G_NextTilt: the push's tilt for the next G_Damage
 static float	splashMin;				// set by G_SplashParams for the next G_RadiusDamage
 static float	splashKnock = -1, splashKnockSelf = -1;
 static float	splashFull;				// set by G_SplashShape for the next G_RadiusDamage
@@ -933,6 +934,17 @@ void G_NextKnockback( float knock ) {
 
 /*
 ============
+G_NextTilt
+
+The next G_Damage's push tilt in metres, in place of the means of death's
+============
+*/
+void G_NextTilt( float tilt ) {
+	nextTilt = tilt;
+}
+
+/*
+============
 G_SplashParams
 
 Minimum splash damage at the edge and knockback for the next radius damage
@@ -970,6 +982,8 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 #ifdef MISSIONPACK
 	vec3_t		bouncedir, impactpoint;
 #endif
+	float		tilt = nextTilt;		// (one call only)
+	nextTilt = -1;
 
 	if (!targ->takedamage) {
 		return;
@@ -1078,7 +1092,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
 		// the push goes along the hit, tilted up for the weapon
 		VectorCopy( dir, push );
-		push[2] += G_PushTilt( mod );
+		push[2] += tilt >= 0 ? tilt : G_PushTilt( mod );
 		VectorNormalize( push );
 		VectorScale (push, g_knockback.value * (float)knockback / mass, kvel);
 		VectorAdd (targ->client->ps.velocity, kvel, targ->client->ps.velocity);
@@ -1437,8 +1451,8 @@ qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, floa
 	gentity_t	*ent;
 	int			entityList[MAX_GENTITIES];
 	int			numListedEntities;
-	int			victims[MAX_GENTITIES];		// (on the stack: a death can splash again)
-	float		victimDist[MAX_GENTITIES];
+	int			victims[SPLASH_MAX_VICTIMS + 1];		// nearest first; one spare slot
+	float		victimDist[SPLASH_MAX_VICTIMS + 1];
 	int			numVictims;
 	vec3_t		mins, maxs;
 	vec3_t		v;
@@ -1497,14 +1511,16 @@ qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, floa
 		if ( dist >= radius ) {
 			continue;
 		}
-		// insert in distance order
+		// insert in distance order, keeping the nearest SPLASH_MAX_VICTIMS
 		for ( i = numVictims ; i > 0 && victimDist[i - 1] > dist ; i-- ) {
 			victims[i] = victims[i - 1];
 			victimDist[i] = victimDist[i - 1];
 		}
 		victims[i] = entityList[e];
 		victimDist[i] = dist;
-		numVictims++;
+		if ( numVictims < SPLASH_MAX_VICTIMS ) {
+			numVictims++;
+		}
 	}
 	if ( numVictims > SPLASH_MAX_VICTIMS ) {
 		numVictims = SPLASH_MAX_VICTIMS;

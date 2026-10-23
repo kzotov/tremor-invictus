@@ -669,33 +669,32 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed ) 
 		if ( VectorNormalize( dir ) == 0 ) {
 			VectorSet( dir, 0, 0, 1 );
 		}
-		G_Damage( other, ent, ent, dir, other->r.currentOrigin, damage,
-			DAMAGE_NO_KNOCKBACK, MOD_HEAVYWEIGHT );
+		if ( champ->abilities & MOVEABIL_HEAVYWEIGHT ) {
+			// mechanics.md: the push comes from the damage through the normal
+			// knockback (Quad, the 132 cap, the knockback state): a Bull Rush
+			// hit x1.5 tilted up 0.2 m, the Heavyweight stomp x0.5 flat
+			qboolean	rush = BG_AbilityState( &client->ps ) == ABILITY_RUSH;
+
+			G_NextKnockback( damage * ( rush ? 1.5f : 0.5f ) );
+			G_NextTilt( rush ? 0.2f : 0 );
+			G_Damage( other, ent, ent, dir, other->r.currentOrigin, damage, 0, MOD_HEAVYWEIGHT );
+		} else {
+			G_Damage( other, ent, ent, dir, other->r.currentOrigin, damage,
+				DAMAGE_NO_KNOCKBACK, MOD_HEAVYWEIGHT );
+		}
 		if ( other->health > 0 ) {
 			if ( G_AbilityActive( ent, ACTIVE_BULLRUSH ) ) {
 				G_Slow( other, 0.7f, 1000 );		// spirit slow
 			}
-			if ( BG_AbilityState( &client->ps ) == ABILITY_RUSH ) {
-				// mechanics.md: Bull Rush knocks x1.5, its push tilted up 0.2 m
-				float	push = g_hwKnockback.value * 1.5f;
-
-				if ( client->ps.powerups[PW_QUAD] ) {
-					push *= g_quadfactor.value;		// Quad doubles knockback (weapons.md)
-				}
-				dir[2] += 0.2f;
-				VectorNormalize( dir );
-				VectorMA( other->client->ps.velocity, push, dir, other->client->ps.velocity );
-				// the knockback state, at most 132 ms (as G_Damage)
-				if ( !other->client->ps.pm_time ) {
-					other->client->ps.pm_time = 132;
-					other->client->ps.pm_flags |= PMF_TIME_KNOCKBACK;
-				}
-			} else {
-				VectorMA( other->client->ps.velocity, ( champ->abilities & MOVEABIL_HEAVYWEIGHT )
-					? g_hwKnockback.value : g_hookKnockback.value, dir, other->client->ps.velocity );
+			if ( !( champ->abilities & MOVEABIL_HEAVYWEIGHT ) ) {
+				VectorMA( other->client->ps.velocity, g_hookKnockback.value, dir, other->client->ps.velocity );
 			}
 			// a survivor stops the bull rush; a kill does not
 			G_EndRush( ent );
+		}
+		// abilities.md: Athena's hook lets go after her impact hits
+		if ( !( champ->abilities & MOVEABIL_HEAVYWEIGHT ) && client->hook ) {
+			Weapon_HookFree( client->hook );
 		}
 	}
 }

@@ -81,6 +81,9 @@ void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles ) {
 	qboolean noAngles;
 
 	noAngles = (angles[0] > 999999.0);
+	if ( player->client && player->client->hook ) {
+		Weapon_HookFree( player->client->hook );		// a teleporter frees Athena's hook
+	}
 	// use temp events at source and destination to prevent the effect
 	// from getting dropped by a second player event
 	if ( player->client->sess.sessionTeam != TEAM_SPECTATOR ) {
