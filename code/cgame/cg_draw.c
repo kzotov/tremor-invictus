@@ -1654,6 +1654,19 @@ static const char *CG_CapName( const char *name, float size, float maxDp ) {
 
 /*
 =================
+CG_DeathPanelShown
+
+Whether the fragged-by panel is up (dead, playing, not following)
+=================
+*/
+static qboolean CG_DeathPanelShown( void ) {
+	return cg.deathTime && cg.snap->ps.stats[STAT_HEALTH] <= 0 && cg.time - cg.deathTime <= 30000
+		&& cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR && !( cg.snap->ps.pm_flags & PMF_FOLLOW )
+		&& !cg.scoreBoardShowing;
+}
+
+/*
+=================
 CG_DrawTopBar
 
 The modern layout's top centre (hud.md 9.1): the phase label, the clock
@@ -1784,7 +1797,8 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 		return;
 	}
 
-	if ( cgs.gametype == GT_FFA && !cg.scoreBoardShowing ) {
+	// hud.md 7.5: hidden while the fragged-by panel shows
+	if ( cgs.gametype == GT_FFA && !cg.scoreBoardShowing && !CG_DeathPanelShown() ) {
 		// two rows right of centre: the leader, then you (the runner-up when
 		// you lead; first and second in free camera); spectators skipped;
 		// equal scores share a rank and read TIED
@@ -4388,6 +4402,8 @@ CG_DrawNextSpawn
 respawn (not where champions are fixed for the match)
 =================
 */
+#define DEATH_HINT_DELAY	2100	// hud.md 8.5: "Press fire to respawn" from 2.1 s
+
 static void CG_DrawDeathScreen( void ) {
 	static qhandle_t	skull;
 	char			line[128];
@@ -4494,7 +4510,7 @@ static void CG_DrawDeathScreen( void ) {
 			CG_FillRect( 240, y + SMALLCHAR_HEIGHT + 3, 160, 3, back );
 			CG_FillRect( 240, y + SMALLCHAR_HEIGHT + 3, 160.0f * left / cg.deathRespawn, 3, stripe );
 		}
-	} else {
+	} else if ( cg.time - cg.deathTime >= DEATH_HINT_DELAY ) {
 		Q_strncpyz( line, BG_String( STR_DEATH_RESPAWN ), sizeof( line ) );
 		CG_DrawStringExt( 320 - CG_DrawStrlen( line ) * SMALLCHAR_WIDTH / 2, y, line, colorWhite, qtrue, qtrue,
 			SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
