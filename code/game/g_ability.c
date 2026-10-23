@@ -535,7 +535,7 @@ they land pulls them together into one bigger explosion.
 
 #define FIREBALL_IMPULSE	30
 
-static void G_FireballBurst( gentity_t *ball, vec3_t origin, int damage, int radius ) {
+static void G_FireballBurst( gentity_t *ball, vec3_t origin, int damage, int radius, gentity_t *ignore ) {
 	int			touch[MAX_GENTITIES];
 	vec3_t		mins, maxs;
 	gentity_t	*other;
@@ -544,7 +544,7 @@ static void G_FireballBurst( gentity_t *ball, vec3_t origin, int damage, int rad
 	// 100% at the centre to 40% at the edge; the push from an impulse of 30,
 	// Death Knight pushed x1.467 by his own
 	G_SplashParams( damage * 0.4f, FIREBALL_IMPULSE, FIREBALL_IMPULSE * 1.467f );
-	G_RadiusDamage( origin, ball->parent, damage, radius, NULL, MOD_FIREBALL );
+	G_RadiusDamage( origin, ball->parent, damage, radius, ignore, MOD_FIREBALL );		// (not the one hit directly)
 
 	// set everything in the blast burning
 	VectorSet( mins, -radius, -radius, -radius );
@@ -595,7 +595,8 @@ static void G_FireballImpact( gentity_t *ball, trace_t *trace ) {
 			G_Ignite( other, ball->parent );
 		}
 	}
-	G_FireballBurst( ball, trace->endpos, g_fireballSplash.integer, g_fireballRadius.integer );
+	G_FireballBurst( ball, trace->endpos, g_fireballSplash.integer, g_fireballRadius.integer,
+		other->takedamage ? other : NULL );
 	G_FireballFinish( ball, trace->endpos );
 }
 
@@ -603,8 +604,83 @@ static void G_FireballExpire( gentity_t *ball ) {
 	vec3_t	origin;
 
 	BG_EvaluateTrajectory( &ball->s.pos, level.time, origin );
-	G_FireballBurst( ball, origin, g_fireballSplash.integer, g_fireballRadius.integer );
+	G_FireballBurst( ball, origin, g_fireballSplash.integer, g_fireballRadius.integer, NULL );
 	G_FireballFinish( ball, origin );
+}
+
+/*
+================
+G_GroundFire
+
+champion-audit.md: fireballs leave a fire trail on the floor, laid only
+within 200 u of it; each touch burns an enemy for 6, as a burn (once per
+patch per player)
+================
+*/
+#define GROUNDFIRE_REACH	200
+#define GROUNDFIRE_STEP		100		// msec between patches along the flight
+#define GROUNDFIRE_LIFE		3000
+#define GROUNDFIRE_RADIUS	32
+#define GROUNDFIRE_DAMAGE	6
+
+static void G_GroundFireThink( gentity_t *fire ) {
+	int			touch[MAX_GENTITIES], num, i;
+	vec3_t		mins, maxs;
+	gentity_t	*other;
+
+	if ( level.time >= fire->abilityTime || !fire->parent || !fire->parent->client ) {
+		G_FreeEntity( fire );
+		return;
+	}
+	fire->nextthink = level.time + ABILITY_FRAME;
+	VectorSet( mins, -GROUNDFIRE_RADIUS, -GROUNDFIRE_RADIUS, 0 );
+	VectorSet( maxs, GROUNDFIRE_RADIUS, GROUNDFIRE_RADIUS, 48 );
+	VectorAdd( fire->r.currentOrigin, mins, mins );
+	VectorAdd( fire->r.currentOrigin, maxs, maxs );
+	num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
+	for ( i = 0 ; i < num ; i++ ) {
+		other = &g_entities[touch[i]];
+		if ( !other->client || other->health <= 0 || !G_AbilityEnemy( fire->parent, other )
+			|| G_AbilityMarked( fire, other->s.number ) ) {
+			continue;
+		}
+		if ( BG_Champion( other->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_FIREPROOF ) {
+			continue;
+		}
+		G_AbilityMark( fire, other->s.number );
+		G_Damage( other, fire, fire->parent, NULL, NULL, GROUNDFIRE_DAMAGE, DAMAGE_NO_KNOCKBACK, MOD_BURN );
+	}
+}
+
+static void G_FireballThink( gentity_t *ball ) {
+	vec3_t		origin, down;
+	trace_t		tr;
+	gentity_t	*fire;
+
+	if ( level.time >= ball->abilityTime ) {
+		G_FireballExpire( ball );
+		return;
+	}
+	ball->nextthink = level.time + GROUNDFIRE_STEP;
+	BG_EvaluateTrajectory( &ball->s.pos, level.time, origin );
+	VectorCopy( origin, down );
+	down[2] -= GROUNDFIRE_REACH;
+	trap_Trace( &tr, origin, NULL, NULL, down, ball->s.number, MASK_SOLID );
+	if ( tr.fraction >= 1 || tr.startsolid || tr.plane.normal[2] < 0.7f ) {
+		return;		// too high above the floor, or no floor
+	}
+	if ( !ball->parent || !ball->parent->client ) {
+		return;
+	}
+	// a stationary ability missile, drawn by its visual (as the plasma trail)
+	VectorSet( down, 0, 0, 1 );
+	fire = G_AbilityMissile( ball->parent, "ground_fire", tr.endpos, down, 0, TR_STATIONARY, WP_ROCKET_LAUNCHER );
+	fire->s.generic1 = AV_GROUNDFIRE;
+	fire->clipmask = 0;
+	fire->abilityImpact = NULL;
+	fire->abilityTime = level.time + GROUNDFIRE_LIFE;
+	fire->think = G_GroundFireThink;
+	fire->nextthink = level.time + ABILITY_FRAME;
 }
 
 static void G_FireFlameStrike( gentity_t *ent ) {
@@ -621,8 +697,9 @@ static void G_FireFlameStrike( gentity_t *ent ) {
 		ball = G_AbilityMissile( ent, "fireball", start, dir, g_fireballSpeed.value, TR_LINEAR, WP_ROCKET_LAUNCHER );
 		ball->s.generic1 = AV_FIREBALL;
 		ball->abilityImpact = G_FireballImpact;
-		ball->think = G_FireballExpire;
-		ball->nextthink = level.time + 10000;
+		ball->think = G_FireballThink;		// lays fire on the floor below as it flies
+		ball->nextthink = level.time + GROUNDFIRE_STEP;
+		ball->abilityTime = level.time + 10000;
 		ent->client->fireballs[i] = ball;
 	}
 }
@@ -666,7 +743,7 @@ static void G_FlameConverge( gentity_t *ent ) {
 			}
 		}
 	}
-	G_FireballBurst( ball, point, g_flameConvergeDamage.integer, g_flameConvergeRadius.integer );
+	G_FireballBurst( ball, point, g_flameConvergeDamage.integer, g_flameConvergeRadius.integer, NULL );
 	G_FireballFinish( ball, point );
 }
 

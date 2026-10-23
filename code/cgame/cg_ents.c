@@ -771,6 +771,20 @@ static void CG_AbilityVisual( centity_t *cent ) {
 		}
 		break;
 
+	case AV_GROUNDFIRE:
+		// low flames on the floor, flickering
+		{
+			vec3_t	p;
+
+			VectorCopy( cent->lerpOrigin, p );
+			p[2] += 10;
+			CG_VfxSprite( p, 16 + 4 * sin( cg.time * 0.02f + s1->number ), cgs.media.glowBallShader, 255, 110, 20, cg.time * 0.1f );
+			p[2] += 10;
+			CG_VfxSprite( p, 10, cgs.media.glowBallShader, 255, 200, 80, 0 );
+			CG_AbilityLight( p, 90, 1.0f, 0.45f, 0.1f );
+		}
+		break;
+
 	case AV_FIREBALL:
 		CG_VfxSprite( cent->lerpOrigin, 14, cgs.media.glowBallShader, 255, 140, 40, 0 );
 		CG_VfxSprite( cent->lerpOrigin, 28, cgs.media.glowBallShader, 160, 50, 10, cg.time * 0.2f );

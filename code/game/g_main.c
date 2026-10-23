@@ -412,7 +412,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_swarmDamage, "g_swarmDamage", "50", 0, 0, qtrue },
 	{ &g_swarmRadius, "g_swarmRadius", "120", 0, 0, qtrue },
 	{ &g_fireballSpeed, "g_fireballSpeed", "666", 0, 0, qtrue },
-	{ &g_fireballSpread, "g_fireballSpread", "15", 0, 0, qtrue },
+	{ &g_fireballSpread, "g_fireballSpread", "22.5", 0, 0, qtrue },
 	{ &g_fireballDamage, "g_fireballDamage", "20", 0, 0, qtrue },
 	{ &g_fireballSplash, "g_fireballSplash", "20", 0, 0, qtrue },
 	{ &g_fireballRadius, "g_fireballRadius", "128", 0, 0, qtrue },

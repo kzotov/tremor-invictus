@@ -3061,6 +3061,11 @@ static void PM_WeaponLockout( int active ) {
 	if ( pm->ps->weaponTime < lockout ) {
 		pm->ps->weaponTime = lockout;
 	}
+	// Death Knight's and Anarki's lockout also locks weapon switch
+	// (a weapon can't change while it counts as firing)
+	if ( active == ACTIVE_FLAMESTRIKE || active == ACTIVE_INJECTION ) {
+		pm->ps->weaponstate = WEAPON_FIRING;
+	}
 }
 
 /*
