@@ -1728,8 +1728,7 @@ static void G_StartDrone( gentity_t *ent ) {
 	body->r.contents = CONTENTS_CORPSE;
 	VectorCopy( ent->r.mins, body->r.mins );
 	VectorCopy( ent->r.maxs, body->r.maxs );
-	// hit up to its drawn crouched top (champion-audit.md HIT-01)
-	body->r.maxs[2] = BG_ShotTop( client->ps.stats[STAT_CHAMPION], qtrue );
+	body->r.maxs[2] = CROUCH_HEIGHT;		// the crouched box (shots: G_PlaceShotVolumes)
 	body->takedamage = qtrue;
 	body->health = ent->health;
 	body->die = G_DroneBodyDie;

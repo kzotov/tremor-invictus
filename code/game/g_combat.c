@@ -1585,12 +1585,18 @@ qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, floa
 			continue;
 		}
 
-		// find the distance from the edge of the bounding box
+		// find the distance from the edge of the bounding box; a player's
+		// reaches up to their shot volume's top (champion-audit.md HIT-01)
 		for ( i = 0 ; i < 3 ; i++ ) {
+			float	top = ent->r.absmax[i];
+
+			if ( i == 2 && ent->client && ( ent->r.maxs[2] == DEFAULT_HEIGHT || ent->r.maxs[2] == CROUCH_HEIGHT ) ) {
+				top = ent->r.currentOrigin[2] + BG_ShotTop( ent->client->ps.stats[STAT_CHAMPION], ent->r.maxs[2] == CROUCH_HEIGHT );
+			}
 			if ( origin[i] < ent->r.absmin[i] ) {
 				v[i] = ent->r.absmin[i] - origin[i];
-			} else if ( origin[i] > ent->r.absmax[i] ) {
-				v[i] = origin[i] - ent->r.absmax[i];
+			} else if ( origin[i] > top ) {
+				v[i] = origin[i] - top;
 			} else {
 				v[i] = 0;
 			}

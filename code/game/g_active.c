@@ -239,7 +239,9 @@ void	G_TouchTriggers( gentity_t *ent ) {
 	gentity_t	*hit;
 	trace_t		trace;
 	vec3_t		mins, maxs;
-	static vec3_t	range = { 40, 40, 52 };
+	// wide enough for an item's whole pickup shape (70 u from the origin or
+	// the feet, BG_PlayerTouchesItem) around a +-15 u item box
+	static vec3_t	range = { 85, 85, 110 };
 
 	if ( !ent->client ) {
 		return;
@@ -286,8 +288,18 @@ void	G_TouchTriggers( gentity_t *ent ) {
 			if ( G_AbilityActive( ent, ACTIVE_DRONE ) ) {
 				continue;
 			}
-			if ( !BG_PlayerTouchesItem( &ent->client->ps, &hit->s, level.time ) ) {
-				continue;
+			{
+				vec3_t	itemOrigin, reach;
+				trace_t	los;
+
+				if ( !BG_PlayerTouchesItem( &ent->client->ps, &hit->s, level.time, itemOrigin, reach ) ) {
+					continue;
+				}
+				// never through a floor or a wall
+				trap_Trace( &los, itemOrigin, NULL, NULL, reach, ENTITYNUM_NONE, MASK_SOLID );
+				if ( los.fraction < 1.0f || los.startsolid ) {
+					continue;
+				}
 			}
 		} else {
 			if ( !trap_EntityContact( mins, maxs, hit ) ) {

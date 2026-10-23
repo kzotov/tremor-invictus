@@ -2604,7 +2604,7 @@ Items can be picked up without actually touching their physical bounds to make
 grabbing them easier
 ============
 */
-qboolean	BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int atTime ) {
+qboolean	BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int atTime, vec3_t itemOrigin, vec3_t reach ) {
 	vec3_t		origin;
 
 	vec3_t		feet;
@@ -2613,11 +2613,26 @@ qboolean	BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int atTim
 
 	// br-champions.md, item pickup shape: within ITEM_PICKUP_RADIUS of the
 	// player's origin or of their feet, so a hop over an item still takes
-	// it (the server's touch boxes only pre-filter, g_items.c)
+	// it, for every item alike. The caller then checks that no solid lies
+	// between the item (itemOrigin) and the point that reached it (reach).
 	VectorCopy( ps->origin, feet );
-	feet[2] += MINS_Z;
-	return DistanceSquared( ps->origin, origin ) <= ITEM_PICKUP_RADIUS * ITEM_PICKUP_RADIUS
-		|| DistanceSquared( feet, origin ) <= ITEM_PICKUP_RADIUS * ITEM_PICKUP_RADIUS;
+	feet[2] += MINS_Z + 1;		// (just off the floor, so the sight test doesn't end in it)
+	if ( itemOrigin ) {
+		VectorCopy( origin, itemOrigin );
+	}
+	if ( DistanceSquared( ps->origin, origin ) <= ITEM_PICKUP_RADIUS * ITEM_PICKUP_RADIUS ) {
+		if ( reach ) {
+			VectorCopy( ps->origin, reach );
+		}
+		return qtrue;
+	}
+	if ( DistanceSquared( feet, origin ) <= ITEM_PICKUP_RADIUS * ITEM_PICKUP_RADIUS ) {
+		if ( reach ) {
+			VectorCopy( feet, reach );
+		}
+		return qtrue;
+	}
+	return qfalse;
 }
 
 

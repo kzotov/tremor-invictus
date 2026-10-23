@@ -1493,8 +1493,8 @@ scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc {
 }
 
 @keyframes vsglow {
-	from { opacity: 0; transform: scale( 0.6 ) rotate( -25deg ); }
-	to { opacity: 1; transform: scale( 1 ) rotate( 0deg ); }
+	from { opacity: 0; transform: scale(0.6) rotate(-25deg); }
+	to { opacity: 1; transform: scale(1) rotate(0deg); }
 }
 
 .folabel {

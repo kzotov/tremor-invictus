@@ -267,8 +267,18 @@ static void CG_TouchItem( centity_t *cent ) {
 	if ( cg.predictedPlayerState.eFlags & EF_DRONE ) {
 		return;		// Strogg's drone picks nothing up
 	}
-	if ( !BG_PlayerTouchesItem( &cg.predictedPlayerState, &cent->currentState, cg.time ) ) {
-		return;
+	{
+		vec3_t	itemOrigin, reach;
+		trace_t	los;
+
+		if ( !BG_PlayerTouchesItem( &cg.predictedPlayerState, &cent->currentState, cg.time, itemOrigin, reach ) ) {
+			return;
+		}
+		// never through a floor or a wall (as the server)
+		CG_Trace( &los, itemOrigin, NULL, NULL, reach, ENTITYNUM_NONE, MASK_SOLID );
+		if ( los.fraction < 1.0f || los.startsolid ) {
+			return;
+		}
 	}
 
 	// never pick an item up twice in a prediction

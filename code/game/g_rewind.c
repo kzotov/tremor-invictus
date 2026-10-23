@@ -56,7 +56,15 @@ typedef struct {
 	int				savedContents;
 } rewindHistory_t;
 
-static rewindHistory_t	rewindHistory[MAX_CLIENTS];
+// players, then the Beastmaster's hounds (champion-audit.md HIT-01)
+#define	REWIND_EXTRA		16
+static rewindHistory_t	rewindHistory[MAX_CLIENTS + REWIND_EXTRA];
+static int				rewindExtraEnt[REWIND_EXTRA];		// entity number per extra slot, 0 when free
+// Strogg's drone bodies, hit up to his crouched top during a shot
+#define	REWIND_BODIES		8
+static int				rewindBodyEnt[REWIND_BODIES];
+static float			rewindBodyTop[REWIND_BODIES];
+static int				rewindBodies;
 static qboolean			rewindActive;
 static int				rewindLimit;		// g_lagHaxMs, latched at map start
 
@@ -69,6 +77,7 @@ The rewind limit takes effect on the next map
 */
 void G_RewindInit( void ) {
 	memset( rewindHistory, 0, sizeof( rewindHistory ) );
+	memset( rewindExtraEnt, 0, sizeof( rewindExtraEnt ) );
 	rewindLimit = g_lagHaxMs.integer;
 	if ( rewindLimit < 0 ) {
 		rewindLimit = 0;
@@ -88,6 +97,65 @@ Forget a player's history (respawn, teleport)
 void G_RewindReset( gentity_t *ent ) {
 	if ( ent->s.number >= 0 && ent->s.number < MAX_CLIENTS ) {
 		rewindHistory[ent->s.number].count = 0;
+	}
+}
+
+/*
+================
+G_RewindRecordHounds
+
+The hounds' histories, in the extra slots: a slot follows its entity while
+it stays a hound
+================
+*/
+static void G_RewindRecordHounds( void ) {
+	gentity_t		*ent;
+	rewindHistory_t	*h;
+	rewindRecord_t	*rec;
+	int				i, k, slot;
+
+	for ( k = 0 ; k < REWIND_EXTRA ; k++ ) {
+		ent = &g_entities[rewindExtraEnt[k]];
+		if ( rewindExtraEnt[k] && ( !ent->inuse || !ent->classname || strcmp( ent->classname, "hound" ) ) ) {
+			rewindExtraEnt[k] = 0;
+			rewindHistory[MAX_CLIENTS + k].count = 0;
+		}
+	}
+	for ( i = MAX_CLIENTS, ent = &g_entities[MAX_CLIENTS] ; i < level.num_entities ; i++, ent++ ) {
+		if ( !ent->inuse || !ent->classname || strcmp( ent->classname, "hound" ) ) {
+			continue;
+		}
+		slot = -1;
+		for ( k = 0 ; k < REWIND_EXTRA ; k++ ) {
+			if ( rewindExtraEnt[k] == i ) {
+				slot = k;
+				break;
+			}
+			if ( slot < 0 && !rewindExtraEnt[k] ) {
+				slot = k;
+			}
+		}
+		if ( slot < 0 ) {
+			continue;
+		}
+		if ( rewindExtraEnt[slot] != i ) {
+			rewindExtraEnt[slot] = i;
+			rewindHistory[MAX_CLIENTS + slot].count = 0;
+		}
+		h = &rewindHistory[MAX_CLIENTS + slot];
+		if ( h->count && Distance( h->records[h->head].origin, ent->r.currentOrigin ) > REWIND_TELEPORT ) {
+			h->count = 0;
+		}
+		h->head = ( h->head + 1 ) % REWIND_RECORDS;
+		rec = &h->records[h->head];
+		rec->time = level.time;
+		VectorCopy( ent->r.currentOrigin, rec->origin );
+		VectorCopy( ent->r.mins, rec->mins );
+		VectorCopy( ent->r.maxs, rec->maxs );
+		rec->contents = ent->r.contents;
+		if ( h->count < REWIND_RECORDS ) {
+			h->count++;
+		}
 	}
 }
 
@@ -133,6 +201,7 @@ void G_RewindRecord( void ) {
 			h->count++;
 		}
 	}
+	G_RewindRecordHounds();
 }
 
 /*
@@ -265,6 +334,37 @@ static void G_PlaceShotVolumes( gentity_t *shooter, int time, qboolean compensat
 		ent->r.contents = contents;
 		trap_LinkEntity( ent );
 	}
+
+	// drone bodies: the hit volume reaches his crouched top (champion-audit.md
+	// HIT-01); the movement box stays the crouched hull
+	rewindBodies = 0;
+	for ( i = MAX_CLIENTS, ent = &g_entities[MAX_CLIENTS] ; i < level.num_entities && rewindBodies < REWIND_BODIES ; i++, ent++ ) {
+		if ( !ent->inuse || !ent->classname || strcmp( ent->classname, "drone_body" ) || !ent->parent || !ent->parent->client ) {
+			continue;
+		}
+		rewindBodyEnt[rewindBodies] = i;
+		rewindBodyTop[rewindBodies++] = ent->r.maxs[2];
+		ent->r.maxs[2] = BG_ShotTop( ent->parent->client->ps.stats[STAT_CHAMPION], qtrue );
+		trap_LinkEntity( ent );
+	}
+
+	// the hounds go back too (their box unchanged)
+	for ( i = 0 ; i < REWIND_EXTRA ; i++ ) {
+		h = &rewindHistory[MAX_CLIENTS + i];
+		h->moved = qfalse;
+		if ( !rewindExtraEnt[i] || !compensate || !h->count ) {
+			continue;
+		}
+		ent = &g_entities[rewindExtraEnt[i]];
+		VectorCopy( ent->r.currentOrigin, h->savedOrigin );
+		VectorCopy( ent->r.mins, h->savedMins );
+		VectorCopy( ent->r.maxs, h->savedMaxs );
+		h->savedContents = ent->r.contents;
+		h->moved = qtrue;
+		G_RewindPosition( h, time, origin, mins, maxs, &contents );
+		VectorCopy( origin, ent->r.currentOrigin );
+		trap_LinkEntity( ent );
+	}
 }
 
 /*
@@ -284,7 +384,20 @@ void G_RestorePlayers( void ) {
 	}
 	rewindActive = qfalse;
 
-	for ( i = 0, ent = g_entities ; i < level.maxclients ; i++, ent++ ) {
+	for ( i = 0 ; i < rewindBodies ; i++ ) {
+		ent = &g_entities[rewindBodyEnt[i]];
+		if ( ent->inuse ) {
+			ent->r.maxs[2] = rewindBodyTop[i];
+			trap_LinkEntity( ent );
+		}
+	}
+	rewindBodies = 0;
+
+	for ( i = 0 ; i < MAX_CLIENTS + REWIND_EXTRA ; i++ ) {
+		if ( i >= level.maxclients && i < MAX_CLIENTS ) {
+			continue;
+		}
+		ent = i < MAX_CLIENTS ? &g_entities[i] : &g_entities[rewindExtraEnt[i - MAX_CLIENTS]];
 		h = &rewindHistory[i];
 		if ( !h->moved ) {
 			continue;

@@ -2206,7 +2206,7 @@ void	BG_PlayerStateToEntityState( playerState_t *ps, entityState_t *s, qboolean 
 void	BG_PlayerStateToEntityStateExtraPolate( playerState_t *ps, entityState_t *s, int time, qboolean snap );
 
 #define	ITEM_PICKUP_RADIUS	70		// how far across an item is picked up from (centre to centre)
-qboolean	BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int atTime );
+qboolean	BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int atTime, vec3_t itemOrigin, vec3_t reach );
 
 
 #define ARENAS_PER_TIER		4
