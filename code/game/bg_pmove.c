@@ -3076,6 +3076,7 @@ static void PM_Ability( void ) {
 			time = 0;
 			pm->ps->stats[STAT_MOVE_STATE] = 0;
 			pm->ps->stats[STAT_HOOK] = pm->cmd.upmove >= 10 ? HOOK_JUMP_DOWN : 0;
+			pm->ps->stats[STAT_HOOK_MOVED] = 0;
 			VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
 			VectorNormalize( dir );
 			VectorMA( pm->ps->velocity, bg_pmoveSettings.hookImpulse, dir, pm->ps->velocity );
@@ -3110,7 +3111,7 @@ static void PM_Ability( void ) {
 			// jump pads, teleporters and her impact hits free it in the game
 			{
 				int		hook = pm->ps->stats[STAT_HOOK] & 0xffff, blocked = HOOK_BLOCKED( pm->ps );
-				int		moved = HOOK_MOVED( pm->ps );
+				float	moved = HOOK_MOVED( pm->ps );		// (added after each move, PmoveSingle)
 				qboolean	jumpDown = pm->cmd.upmove >= 10;
 
 				if ( dist <= bg_pmoveSettings.hookDeadZone || dist > HOOK_MAX_ROPE ) {
@@ -3127,30 +3128,26 @@ static void PM_Ability( void ) {
 					arrived = qtrue;
 				}
 				// stuck: under 32 u moved in a 0.2 s window
-				moved += (int)Distance( pm->ps->origin, pml.previous_origin );
-				if ( moved > 127 ) {
-					moved = 127;
-				}
 				if ( time / HOOK_STUCK_MSEC != ( time + pml.msec ) / HOOK_STUCK_MSEC ) {
 					if ( time >= HOOK_STUCK_MSEC && moved < HOOK_STUCK_DIST ) {
 						arrived = qtrue;
 					}
-					moved = 0;
+					pm->ps->stats[STAT_HOOK_MOVED] = 0;		// a new window
 				}
 				// the rope cut: the line blocked for 0.6 s
 				pm->trace( &tr, pm->ps->origin, NULL, NULL, pm->ps->grapplePoint, pm->ps->clientNum, MASK_SOLID );
 				if ( tr.fraction < 1 && Distance( tr.endpos, pm->ps->grapplePoint ) > 8 ) {
-					blocked += pml.msec / 10 > 0 ? pml.msec / 10 : 1;
-					if ( blocked * 10 >= HOOK_CUT_MSEC ) {
+					blocked += pml.msec;
+					if ( blocked >= HOOK_CUT_MSEC ) {
 						arrived = qtrue;
 					}
-					if ( blocked > 127 ) {
-						blocked = 127;
+					if ( blocked > 1023 ) {
+						blocked = 1023;
 					}
 				} else {
 					blocked = 0;
 				}
-				hook = ( hook & HOOK_AIRBORNE ) | blocked | ( moved << 8 ) | ( jumpDown ? HOOK_JUMP_DOWN : 0 );
+				hook = ( hook & HOOK_AIRBORNE ) | blocked | ( jumpDown ? HOOK_JUMP_DOWN : 0 );
 				pm->ps->stats[STAT_HOOK] = hook;
 			}
 		}
@@ -3777,6 +3774,16 @@ void PmoveSingle (pmove_t *pmove) {
 
 	PM_CheckRushBlocked();
 	PM_TrackClimb( wasWalking );
+
+	// the hook's stuck check: how far this frame's move took her
+	if ( BG_AbilityState( pm->ps ) == ABILITY_HOOK_PULL ) {
+		float	moved = HOOK_MOVED( pm->ps ) + Distance( pm->ps->origin, pml.previous_origin );
+
+		if ( moved > 2000 ) {
+			moved = 2000;
+		}
+		pm->ps->stats[STAT_HOOK_MOVED] = (int)( moved * 16 );
+	}
 
 	// weapons
 	PM_Weapon();
