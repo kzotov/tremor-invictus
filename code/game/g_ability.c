@@ -1039,6 +1039,7 @@ static void G_PlaceTurret( gentity_t *ent ) {
 	turret->s.modelindex = G_ModelIndex( "models/abilities/turret/turret.md3" );
 	turret->parent = ent;
 	turret->r.ownerNum = ent->s.number;
+	turret->s.otherEntityNum = ent->s.number;		// drawn in its owner's colours
 	turret->r.contents = CONTENTS_CORPSE;
 	VectorSet( turret->r.mins, -12, -12, 0 );
 	VectorSet( turret->r.maxs, 12, 12, 24 );

@@ -1506,6 +1506,7 @@ void CG_Player( centity_t *cent );
 // cg_colors.c
 //
 void CG_PlayerColors( centity_t *cent, clientInfo_t *ci );
+void CG_OwnerColors( int owner );
 void CG_PlayerColorPart( int part );
 void CG_ColorReset( void );
 void CG_ColorBeforeDraw( refEntity_t *ent );

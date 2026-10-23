@@ -2282,7 +2282,11 @@ void CG_Player( centity_t *cent ) {
 		VectorCopy( cent->lerpOrigin, legs.origin );
 		VectorCopy( cent->lerpOrigin, legs.oldorigin );
 		AnglesToAxis( cent->lerpAngles, legs.axis );
+		CG_OwnerColors( clientNum );		// painted like the player flying it
+		CG_ColorBeforeDraw( &legs );
 		trap_R_AddRefEntityToScene( &legs );
+		CG_ColorAfterDraw( &legs );
+		CG_ColorReset();
 		return;
 	}
 

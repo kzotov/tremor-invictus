@@ -183,6 +183,25 @@ void CG_PlayerColors( centity_t *cent, clientInfo_t *ci ) {
 
 /*
 ================
+CG_OwnerColors
+
+A deployable (Eisen's turret, the Peeker drone) drawn like its owner's
+body: the owner's enemy or team colours and forced skin, without the
+enemy outline
+================
+*/
+void CG_OwnerColors( int owner ) {
+	if ( owner < 0 || owner >= MAX_CLIENTS || !cgs.clientinfo[owner].infoValid ) {
+		CG_ColorReset();
+		return;
+	}
+	CG_PlayerColors( &cg_entities[owner], &cgs.clientinfo[owner] );
+	outlineOn = qfalse;
+	tintPart = 1;		// the upper body's colour
+}
+
+/*
+================
 CG_ColorReset
 
 Nothing forced for whatever is drawn next

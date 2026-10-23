@@ -192,6 +192,16 @@ static void CG_General( centity_t *cent ) {
 	// convert angles to axis
 	AnglesToAxis( cent->lerpAngles, ent.axis );
 
+	// Eisen's turret is painted like its owner (otherEntityNum)
+	if ( !strcmp( CG_ConfigString( CS_MODELS + s1->modelindex ), "models/abilities/turret/turret.md3" ) ) {
+		CG_OwnerColors( s1->otherEntityNum );
+		CG_ColorBeforeDraw( &ent );
+		trap_R_AddRefEntityToScene( &ent );
+		CG_ColorAfterDraw( &ent );
+		CG_ColorReset();
+		return;
+	}
+
 	// add to refresh list
 	trap_R_AddRefEntityToScene (&ent);
 }
