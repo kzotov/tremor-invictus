@@ -523,8 +523,8 @@ qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent, int weapon ) {
 void ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, gentity_t *ent, int weapon ) {
 	int			i, count;
 	float		range;
-	float		r, u;
-	vec3_t		end;
+	float		r, u, m;
+	vec3_t		end, start, side;
 	vec3_t		localForward, localRight, localUp;
 	qboolean	hitClient = qfalse;
 
@@ -539,11 +539,19 @@ void ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, gentity_t *ent, in
 	count = BG_WeaponParam( weapon, WPP_PELLETS );
 	range = BG_WeaponParam( weapon, WPP_RANGE );
 	for ( i = 0 ; i < count ; i++ ) {
-		BG_ShotgunPelletOffset( weapon, i, count, &seed, &r, &u );
-		VectorMA( origin, range, localForward, end);
+		BG_ShotgunPelletOffset( weapon, i, count, &seed, &r, &u, &m );
+		// the pellet starts off the aim line by its ring's muzzle spacing
+		VectorCopy( origin, start );
+		if ( m > 0 ) {
+			VectorScale( localRight, r, side );
+			VectorMA( side, u, localUp, side );
+			VectorNormalize( side );
+			VectorMA( origin, m, side, start );
+		}
+		VectorMA( start, range, localForward, end);
 		VectorMA (end, r * range, localRight, end);
 		VectorMA (end, u * range, localUp, end);
-		if( ShotgunPellet( origin, end, ent, weapon ) && !hitClient ) {
+		if( ShotgunPellet( start, end, ent, weapon ) && !hitClient ) {
 			hitClient = qtrue;
 			G_LogAccuracyHit( ent->client, ent->s.weapon );
 		}

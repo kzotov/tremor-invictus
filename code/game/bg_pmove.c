@@ -166,12 +166,13 @@ BG_ShotgunPelletOffset
 
 Where a shotgun pellet goes, as offsets per unit of distance along the
 right and up directions: evenly spaced around a ring at the full spread,
-with a little seeded jitter so the server and clients agree
+with a little seeded jitter so the server and clients agree; muzzle is
+how far from the aim line the pellet starts (ring k: 5 k units)
 ===============
 */
 #define PELLET_RING_DEGREES		1.97f
 
-void BG_ShotgunPelletOffset( int weapon, int index, int count, int *seed, float *right, float *up ) {
+void BG_ShotgunPelletOffset( int weapon, int index, int count, int *seed, float *right, float *up, float *muzzle ) {
 	// a pellet in the middle, then rings of 3, 5 and 7, ring k about
 	// k x 1.97 degrees off the aim line, each ring turned by the shot's seed
 	static const int	ringStart[] = { 0, 1, 4, 9, 16 };
@@ -185,6 +186,7 @@ void BG_ShotgunPelletOffset( int weapon, int index, int count, int *seed, float 
 	}
 	ringSeed = *seed + ring * 7919;		// the same turn for every pellet of a ring
 	turn = Q_random( &ringSeed ) * 2 * M_PI;
+	*muzzle = ring * 5;		// weapons.md: the rings 5 u apart at the muzzle
 	if ( ring == 0 ) {
 		*right = *up = 0;
 		return;
@@ -1579,6 +1581,10 @@ static void PM_WalkMove( void ) {
 		// don't decrease velocity when going up or down a slope
 		VectorNormalize(pm->ps->velocity);
 		VectorScale(pm->ps->velocity, vel, pm->ps->velocity);
+	} else if ( pm->ps->velocity[2] < 0 ) {
+		// (no downward speed builds on the ground meanwhile: slick floors and
+		// knockback add gravity here)
+		pm->ps->velocity[2] = 0;
 	}
 
 	// don't do anything if standing still

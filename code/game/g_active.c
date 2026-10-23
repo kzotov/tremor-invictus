@@ -675,8 +675,15 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed ) 
 			if ( G_AbilityActive( ent, ACTIVE_BULLRUSH ) ) {
 				G_Slow( other, 0.7f, 1000 );		// spirit slow
 			}
-			VectorMA( other->client->ps.velocity, ( champ->abilities & MOVEABIL_HEAVYWEIGHT )
-				? g_hwKnockback.value : g_hookKnockback.value, dir, other->client->ps.velocity );
+			if ( BG_AbilityState( &client->ps ) == ABILITY_RUSH ) {
+				// mechanics.md: Bull Rush knocks x1.5, its push tilted up 0.2 m
+				dir[2] += 0.2f;
+				VectorNormalize( dir );
+				VectorMA( other->client->ps.velocity, g_hwKnockback.value * 1.5f, dir, other->client->ps.velocity );
+			} else {
+				VectorMA( other->client->ps.velocity, ( champ->abilities & MOVEABIL_HEAVYWEIGHT )
+					? g_hwKnockback.value : g_hookKnockback.value, dir, other->client->ps.velocity );
+			}
 			// a survivor stops the bull rush; a kill does not
 			G_EndRush( ent );
 		}
@@ -924,7 +931,6 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 	int		i, j;
 	int		event;
 	gclient_t *client;
-	int		damage;
 	vec3_t	origin, angles;
 //	qboolean	fired;
 	gitem_t *item;
@@ -949,20 +955,7 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 
 		case EV_FALL_MEDIUM:
 		case EV_FALL_FAR:
-			if ( ent->s.eType != ET_PLAYER ) {
-				break;		// not in the player model
-			}
-			if ( g_dmflags.integer & DF_NO_FALLING ) {
-				break;
-			}
-			if ( event == EV_FALL_FAR ) {
-				damage = 10;
-			} else {
-				damage = 5;
-			}
-			ent->pain_debounce_time = level.time + 200;	// no normal pain sound
-			G_Damage (ent, NULL, NULL, NULL, NULL, damage, 0, MOD_FALLING);
-			break;
+			break;		// movement.md: no fall damage; the events are only sounds
 
 		case EV_FIRE_WEAPON:
 			FireWeapon( ent );

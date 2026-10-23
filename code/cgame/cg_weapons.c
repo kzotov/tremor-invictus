@@ -2243,8 +2243,8 @@ hit splashes
 static void CG_ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, int otherEntNum, int weapon, int which ) {
 	int			i, count;
 	float		range;
-	float		r, u;
-	vec3_t		end;
+	float		r, u, m;
+	vec3_t		end, start, side;
 	vec3_t		forward, right, up;
 
 	// derive the right and up vectors from the forward vector, because
@@ -2257,12 +2257,20 @@ static void CG_ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, int othe
 	count = BG_WeaponParam( weapon, WPP_PELLETS );
 	range = BG_WeaponParam( weapon, WPP_RANGE );
 	for ( i = 0 ; i < count ; i++ ) {
-		BG_ShotgunPelletOffset( weapon, i, count, &seed, &r, &u );
-		VectorMA( origin, range, forward, end);
+		BG_ShotgunPelletOffset( weapon, i, count, &seed, &r, &u, &m );
+		// the pellet starts off the aim line by its ring's muzzle spacing
+		VectorCopy( origin, start );
+		if ( m > 0 ) {
+			VectorScale( right, r, side );
+			VectorMA( side, u, up, side );
+			VectorNormalize( side );
+			VectorMA( origin, m, side, start );
+		}
+		VectorMA( start, range, forward, end);
 		VectorMA (end, r * range, right, end);
 		VectorMA (end, u * range, up, end);
 
-		CG_ShotgunPellet( origin, end, otherEntNum, which );
+		CG_ShotgunPellet( start, end, otherEntNum, which );
 	}
 }
 

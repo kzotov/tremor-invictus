@@ -1288,7 +1288,7 @@ extern	const int			bg_numWeaponInfo;
 
 float	BG_WeaponParam( int weapon, int param );
 qboolean BG_WeaponTuned( int weapon );
-void	BG_ShotgunPelletOffset( int weapon, int index, int count, int *seed, float *right, float *up );
+void	BG_ShotgunPelletOffset( int weapon, int index, int count, int *seed, float *right, float *up, float *muzzle );
 
 // passive champion traits, champion_t.passives bits
 #define	PASSIVE_REGENERATION	1		// refill to the top of the 25 HP block
