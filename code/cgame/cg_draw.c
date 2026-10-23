@@ -97,6 +97,7 @@ static char	hudLayoutLoaded[MAX_CVAR_VALUE_STRING];	// the whole name, so a reje
 static qboolean	hudLayoutTried;		// hudLayoutLoaded holds the name last tried (it may be empty)
 
 #define DP	( 480.0f / 1080.0f )	// design pixels to the 640 x 480 frame
+#define Vector4Set( v, a, b, c, d )	( (v)[0] = (a), (v)[1] = (b), (v)[2] = (c), (v)[3] = (d) )
 
 /*
 =================
@@ -3814,6 +3815,13 @@ static void CG_DrawFragBanner( void ) {
 		grey[3] = red[3] = color[3];
 		CG_HudPlace( "fragline", &fx, &fy );
 		cg_hudAnchor = ANCHOR_CENTER;
+		// hud.md 9.7: a dark 793 x 162 plate behind it at 49 %
+		{
+			vec4_t	plate = { 0.03f, 0.03f, 0.04f, 0 };
+
+			plate[3] = 0.49f * color[3];
+			CG_FillRect( fx - 396 * DP, fy - 50 * DP, 793 * DP, 162 * DP, plate );
+		}
 		if ( fragBanner.fragger[0] ) {
 			Com_sprintf( line, sizeof( line ), "%s^7 %s %s", fragBanner.fragger, BG_String( STR_MSG_FRAGGED ), fragBanner.victim );
 		} else {
@@ -4047,6 +4055,25 @@ static void CG_DrawCenterString( void ) {
 		y = by;
 		lineH = 45 * DP;
 		lineW = lineH * 0.8f;
+	}
+	// hud.md 9.7: a soft plate behind, red in the alarm look, coming in
+	// over 0.51 s from 1.57x
+	if ( CG_HudModern() ) {
+		int		up = cg.time - bannerShown.time;
+		float	k = up < 510 ? 1.57f - 0.57f * up / 510.0f : 1, a = up < 510 ? up / 510.0f : 1;
+		vec4_t	plate;
+		int		b;
+
+		for ( b = 0 ; b < 4 ; b++ ) {
+			float	pw = ( 900 - b * 150 ) * DP * k, ph = ( 90 - b * 12 ) * DP * k;
+
+			if ( bannerShown.alarm ) {
+				Vector4Set( plate, 0.55f, 0.04f, 0.04f, 0.12f * a * color[3] );
+			} else {
+				Vector4Set( plate, 0.02f, 0.02f, 0.03f, 0.15f * a * color[3] );
+			}
+			CG_FillRect( centre - pw / 2, y + lineH / 2 - ph / 2, pw, ph, plate );
+		}
 	}
 	if ( bannerShown.alarm ) {
 		// the alarm look (d): red, blinking three times as it comes up
@@ -6226,6 +6253,14 @@ static void CG_DrawWarmupLine( void ) {
 		cg_hudAnchor = ANCHOR_CENTER;
 		top = wy;
 		warmX = wx;
+		// hud.md 9.7: a 935 x 80 plate at 35 % with an orange glow
+		{
+			static const vec4_t	plate = { 0.03f, 0.03f, 0.04f, 0.35f }, glow = { 1, 0.6f, 0.2f, 0.12f };
+
+			CG_FillRect( wx - 467 * DP, wy - 29 * DP, 935 * DP, 80 * DP, plate );
+			CG_FillRect( wx - 467 * DP, wy - 29 * DP, 935 * DP, 3 * DP, glow );
+			CG_FillRect( wx - 467 * DP, wy + 48 * DP, 935 * DP, 3 * DP, glow );
+		}
 	} else {
 		w = CG_DrawStrlen( BG_String( STR_WARMUP ) ) * BIGCHAR_WIDTH;
 		CG_DrawBigString( 320 - w / 2, top, BG_String( STR_WARMUP ), 1.0F );
@@ -6447,45 +6482,6 @@ void CG_DrawTimedMenus( void ) {
 }
 #endif
 #ifndef MISSIONPACK
-/*
-=================
-CG_DrawStackBar
-
-A value against its class base: a block per 25 points, lit up to the
-value, the blocks over base brighter; then "value / base"
-=================
-*/
-static void CG_DrawStackBar( float x, float y, int value, int base, const vec4_t barTint, const vec4_t tint, qboolean lowRed, float pulse ) {
-	static vec4_t	overBlue = { 0.35f, 0.6f, 1, 1 };
-	vec4_t	off = { 0.2f, 0.2f, 0.22f, 0.8f }, lit, over, lowColor;
-	int		blocks = ( base + 75 ) / 25, i;
-	float	bw = 22 * DP, gap = 3 * DP, cw = BIGCHAR_WIDTH * pulse, ch = BIGCHAR_HEIGHT * pulse;
-	const float	*numColor = tint;
-	char	*s;
-
-	Vector4Copy( barTint, lit );
-	lit[0] *= 0.7f; lit[1] *= 0.7f; lit[2] *= 0.7f;
-	Vector4Copy( barTint, over );
-	for ( i = 0 ; i < blocks ; i++ ) {
-		CG_FillRect( x + i * ( bw + gap ), y, bw, 10 * DP, value > i * 25 ? ( i * 25 >= base ? over : lit ) : off );
-	}
-	// the number: red when low (not for armour on a class that starts
-	// without it), blue over the base, else the given tint
-	if ( pulse > 1 && !( lowRed && value <= 25 && tint[0] == 1 && tint[1] == 1 ) ) {
-		// rising: the tint stays (white armour, green health); the low-health
-		// beat pulses the red number
-	} else if ( lowRed && value <= 25 && tint[0] == 1 && tint[1] == 1 ) {
-		CG_HealthPalette( 0, lowColor );		// red, or the colour-blind palette's low
-		numColor = lowColor;
-	} else if ( value > base && tint[0] == 1 && tint[1] == 1 ) {
-		numColor = overBlue;
-	}
-	s = va( "%i", value );
-	CG_DrawStringExt( x - ( cw - BIGCHAR_WIDTH ) * CG_DrawStrlen( s ) / 2, y - 34 * DP - ch * 0.5f, s, numColor, qtrue, qtrue,
-		cw, ch, 0 );
-	CG_DrawStringExt( x + CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 4, y - 34 * DP, va( "/ %i", base ), colorMdGrey, qtrue, qtrue,
-		SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
-}
 
 /*
 ================================================================================
@@ -6503,7 +6499,6 @@ ring and status-effect row, placed in the 1920 x 1080 design page
 #define HY( y )		( (y) * DP )
 
 #define HUD_GLYPH_W		0.62f		// glyph width over its height
-#define Vector4Set( v, a, b, c, d )	( (v)[0] = (a), (v)[1] = (b), (v)[2] = (c), (v)[3] = (d) )
 
 /*
 =================
@@ -6581,8 +6576,8 @@ typedef struct {
 	int		maxTime;
 } vitalsAnim_t;
 
-static void CG_DrawVitalsSide( vitalsAnim_t *va_, const playerState_t *ps, int value, int base, int maxValue, float ix, float vx,
-	float vy, float bx, float by, float mx, float my, qhandle_t icon, qboolean lowRed, qboolean isArmor ) {
+static void CG_DrawVitalsSide( vitalsAnim_t *va_, const playerState_t *ps, int value, int base, int maxValue, float ix, float iy,
+	float vx, float vy, float bx, float by, float mx, float my, qhandle_t icon, qboolean lowRed, qboolean isArmor ) {
 	static const vec4_t	popTints[3] = { { 1, 0.25f, 0.2f, 1 }, { 0.62f, 0.85f, 1, 1 }, { 0.45f, 1, 0.55f, 1 } };
 	static const vec4_t	frameColor = { 0.04f, 0.04f, 0.05f, 0.75f }, empty = { 0.2f, 0.2f, 0.2f, 0.4f };
 	vec4_t		numColor, cell, plate;
@@ -6620,7 +6615,7 @@ static void CG_DrawVitalsSide( vitalsAnim_t *va_, const playerState_t *ps, int v
 	}
 
 	if ( icon ) {
-		CG_DrawPic( ix, vy + 62 * DP - 24 * DP, 30 * DP, 30 * DP, icon );
+		CG_DrawPic( ix, iy, 30 * DP, 30 * DP, icon );
 	}
 
 	// the number: white, red when low; a change pops it to 1.8x in the
@@ -6685,7 +6680,7 @@ static void CG_DrawVitalsSide( vitalsAnim_t *va_, const playerState_t *ps, int v
 		plate[3] = a;
 		CG_FillRect( mx, my, 60 * DP, 25 * DP, plate );
 		VectorSet( plate, 0.08f, 0.08f, 0.09f );
-		CG_HudText( mx + 30 * DP, my + 3 * DP, 19, "MAX", plate, 1, 1 );
+		CG_HudText( mx + 30 * DP, my + 3 * DP, 19, BG_String( STR_HUD_MAX ), plate, 1, 1 );
 	}
 }
 
@@ -6712,9 +6707,9 @@ static void CG_DrawVitals( void ) {
 	}
 	cg_hudAnchor = ANCHOR_LEFT;
 	CG_DrawVitalsSide( &health, ps, ps->stats[STAT_HEALTH], 100, 100 + ci->maxHealthBonus,
-		HX_L( 249 ), HX_L( 278 ), HY( 829 ), HX_L( 278 ), HY( 895 ), HX_L( 528 ), HY( 846 ), healthIcon, qtrue, qfalse );
+		HX_L( 249 ), HY( 891 ), HX_L( 278 ), HY( 829 ), HX_L( 278 ), HY( 895 ), HX_L( 528 ), HY( 846 ), healthIcon, qtrue, qfalse );
 	CG_DrawVitalsSide( &armor, ps, ps->stats[STAT_ARMOR], ci->baseArmor, ci->maxArmor,
-		HX_L( 221 ), HX_L( 250 ), HY( 919 ), HX_L( 250 ), HY( 985 ), HX_L( 500 ), HY( 935 ), armorIcon, spawnArmor > 0, qtrue );
+		HX_L( 221 ), HY( 981 ), HX_L( 250 ), HY( 919 ), HX_L( 250 ), HY( 985 ), HX_L( 500 ), HY( 935 ), armorIcon, spawnArmor > 0, qtrue );
 }
 
 /*
@@ -6776,6 +6771,7 @@ weapon up flashes it 1.56x for 0.54 s.
 */
 static void CG_DrawWeaponColumn( void ) {
 	static int		lastWeapons, lastClient = -1, pickupTime[WP_NUM_WEAPONS], selectTime, lastHeld;
+	static qhandle_t	icons[WP_NUM_WEAPONS];		// 2D copies: the item icons' own shaders ignore the colour
 	playerState_t	*ps = &cg.snap->ps;
 	vec4_t			iconColor, text, dot;
 	static const vec4_t	plate = { 0.1f, 0.1f, 0.12f, 0.7f };
@@ -6844,8 +6840,13 @@ static void CG_DrawWeaponColumn( void ) {
 		}
 		size = 48 * DP * s;
 		x = HX_R( 1722 ) + 24 * DP - size / 2;
+		if ( !icons[w] ) {
+			gitem_t	*item = BG_FindItemForWeapon( w );
+
+			icons[w] = item && item->icon ? trap_R_RegisterShaderNoMip( item->icon ) : cg_weapons[w].weaponIcon;
+		}
 		trap_R_SetColor( iconColor );
-		CG_DrawPic( x, y + 24 * DP - size / 2, size, size, cg_weapons[w].weaponIcon );
+		CG_DrawPic( x, y + 24 * DP - size / 2, size, size, icons[w] );
 		trap_R_SetColor( NULL );
 
 		if ( !have || ps->ammo[w] < 0 ) {
@@ -6863,7 +6864,7 @@ static void CG_DrawWeaponColumn( void ) {
 			} else {
 				Vector4Set( dot, 1, 1, 1, d < dots ? ( held ? 0.9f : 0.45f ) : 0.15f );
 			}
-			CG_FillRect( HX_R( 1847 ), y + ( 44 - d * 12 ) * DP, 13 * DP, 6 * DP, dot );
+			CG_FillRect( HX_R( 1847 ), y + ( 48 - d * 12 ) * DP, 13 * DP, 2 * DP, dot );		// 50 dp tall, 12 pitch
 		}
 	}
 }
@@ -6979,7 +6980,7 @@ static void CG_DrawAbilityBlock( void ) {
 	if ( off ) {
 		vec4_t	grey = { 0.667f, 0.667f, 0.667f, 1 };
 
-		CG_HudText( cx, cy + r + 6 * DP, 16.5f, "UNAVAILABLE", grey, 1, 1 );
+		CG_HudText( cx, cy + r + 6 * DP, 16.5f, BG_String( STR_HUD_UNAVAILABLE ), grey, 1, 1 );
 	}
 
 	// charges above the ring
@@ -6994,7 +6995,10 @@ static void CG_DrawAbilityBlock( void ) {
 		chargeIconsY = 470;
 	}
 
-	// the key: a light cap with the key in black, 18 dp
+	// the key: a light cap with the key in black, 18 dp (not under UNAVAILABLE)
+	if ( off ) {
+		return;
+	}
 	s = CG_BindName( "+button12" );
 	if ( !s[0] ) {
 		s = "?";
