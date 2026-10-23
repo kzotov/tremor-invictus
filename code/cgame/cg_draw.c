@@ -4278,6 +4278,35 @@ static void CG_DrawDeathScreen( void ) {
 	}
 	w = CG_DrawStrlen( line ) * SMALLCHAR_WIDTH;
 	CG_DrawSmallStringColor( 320 - w / 2, y, line, grey );
+
+	// WPN-10: the starting weapon for the next spawn, chosen here with the
+	// weapon keys (the slot number shown by each)
+	{
+		static const int	starters[3] = { WP_MACHINEGUN, WP_SHOTGUN, WP_NAILGUN };
+		static const char	*codes[3] = { "mg", "sg", "ng" };
+		char	current[8], part[3][32];
+		int		i, total = 0;
+		float	x;
+
+		trap_Cvar_VariableStringBuffer( "cg_startWeapon", current, sizeof( current ) );
+		for ( i = 0 ; i < 3 ; i++ ) {
+			Com_sprintf( part[i], sizeof( part[i] ), "%s [%i]", codes[i], BG_WeaponSlot( starters[i] ) );
+			Q_strupr( part[i] );
+			total += CG_DrawStrlen( part[i] ) + 2;
+		}
+		Com_sprintf( line, sizeof( line ), BG_String( STR_MENU_START_WEAPON ), "" );
+		total += CG_DrawStrlen( line );
+		x = 320 - total * SMALLCHAR_WIDTH / 2;
+		y += SMALLCHAR_HEIGHT + 6;
+		CG_DrawSmallStringColor( x, y, line, grey );
+		x += CG_DrawStrlen( line ) * SMALLCHAR_WIDTH;
+		for ( i = 0 ; i < 3 ; i++ ) {
+			qboolean	on = !Q_stricmp( current, codes[i] ) || ( !current[0] && i == 0 );
+
+			CG_DrawSmallStringColor( x, y, part[i], on ? colorWhite : grey );
+			x += ( CG_DrawStrlen( part[i] ) + 2 ) * SMALLCHAR_WIDTH;
+		}
+	}
 }
 
 static void CG_DrawNextSpawn( void ) {

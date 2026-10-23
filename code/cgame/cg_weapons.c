@@ -1775,6 +1775,19 @@ void CG_Weapon_f( void ) {
 		return;
 	}
 
+	// dead: the weapon keys choose the starting weapon for the next spawn
+	// (the death screen shows them; WPN-10)
+	if ( cg.snap->ps.stats[STAT_HEALTH] <= 0 && cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
+		if ( num == BG_WeaponSlot( WP_MACHINEGUN ) ) {
+			trap_SendConsoleCommand( "ui_startWeapon mg\n" );
+		} else if ( num == BG_WeaponSlot( WP_SHOTGUN ) ) {
+			trap_SendConsoleCommand( "ui_startWeapon sg\n" );
+		} else if ( num == BG_WeaponSlot( WP_NAILGUN ) ) {
+			trap_SendConsoleCommand( "ui_startWeapon ng\n" );
+		}
+		return;
+	}
+
 	cg.weaponSelectTime = cg.time;
 
 	// Xaero: the key of the weapon in hand, with a kick banked, leaps
