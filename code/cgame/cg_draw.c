@@ -98,6 +98,11 @@ static qboolean	hudLayoutTried;		// hudLayoutLoaded holds the name last tried (i
 
 #define DP	( 480.0f / 1080.0f )	// design pixels to the 640 x 480 frame
 #define Vector4Set( v, a, b, c, d )	( (v)[0] = (a), (v)[1] = (b), (v)[2] = (c), (v)[3] = (d) )
+// design page x to the 640 frame from a side or the centre, and y
+#define HX_L( x )	( (x) * DP )
+#define HX_R( x )	( 640 - ( 1920 - (x) ) * DP )
+#define HX_C( x )	( 320 + ( (x) - 960 ) * DP )
+#define HY( y )		( (y) * DP )
 
 /*
 =================
@@ -4803,6 +4808,98 @@ respawn (not where champions are fixed for the match)
 */
 #define DEATH_HINT_DELAY	2100	// hud.md 8.5: "Press fire to respawn" from 2.1 s
 
+#ifndef MISSIONPACK
+static void CG_HudText( float x, float y, float size, const char *s, const vec4_t color, int align, float scale );
+
+/*
+=================
+CG_DrawDeathScreenModern
+
+hud.md 9.7: the killer's portrait at (853, 74), "FRAGGED BY" 30 dp at top
+230 with the name, the champion and weapon under it, "STACK LEFT" 18 dp at
+top 295 with the stack 24 dp at (917, 330) / (1009, 330); a suicide line
+50 dp at top 226; the respawn button at (772, 974) with "RESPAWN" 35 dp, its
+timer 38 dp; all within +-230 of the centre
+=================
+*/
+static void CG_DrawDeathScreenModern( void ) {
+	static qhandle_t	skull;
+	static const vec4_t	back = { 0.04f, 0.04f, 0.05f, 0.7f }, button = { 0.55f, 0.06f, 0.07f, 0.9f };
+	static const vec4_t	grey = { 0.67f, 0.67f, 0.67f, 1 }, red = { 0.95f, 0.22f, 0.22f, 1 }, yellow = { 1, 0.8f, 0.2f, 1 };
+	char			line[128], name[64];
+	const char		*how = "";
+	clientInfo_t	*ci;
+	int				left, champ = -1;
+	qhandle_t		icon = 0, pic;
+
+	if ( !skull ) {
+		skull = trap_R_RegisterShaderNoMip( "gfx/tremor/skull.tga" );
+	}
+	cg_hudAnchor = ANCHOR_CENTER;
+	if ( cg.deathKiller >= 0 && cg.deathKiller < MAX_CLIENTS && cg.deathKiller != cg.snap->ps.clientNum ) {
+		ci = &cgs.clientinfo[cg.deathKiller];
+		champ = BG_ChampionForModel( ci->modelName );
+		if ( cg.deathMod >= MOD_HEAVYWEIGHT && champ >= 0 && BG_Champion( champ )->active > ACTIVE_NONE ) {
+			how = BG_String( bg_abilityInfo[BG_Champion( champ )->active].nameString );
+		} else if ( cg.deathWeapon > WP_NONE && cg.deathWeapon < WP_NUM_WEAPONS && cg_weapons[cg.deathWeapon].item ) {
+			how = cg_weapons[cg.deathWeapon].item->pickup_name;
+			icon = cg_weapons[cg.deathWeapon].weaponIcon;
+		}
+		// the portrait over the card
+		CG_FillRect( HX_C( 853 ), HY( 74 ), 214 * DP, 150 * DP, back );
+		pic = CG_ChampionPortrait( champ, qfalse );
+		if ( pic ) {
+			CG_DrawPic( HX_C( 960 - 70 ), HY( 79 ), 140 * DP, 140 * DP, pic );
+		}
+		// FRAGGED BY <name>
+		Q_strncpyz( name, ci->name, sizeof( name ) );
+		Q_CleanStr( name );
+		name[20] = 0;
+		Com_sprintf( line, sizeof( line ), "%s %s", BG_String( STR_DEATH_KILLEDBY ), name );
+		CG_HudText( 320, HY( 230 ), 30, line, red, 1, 1 );
+		// the champion and what killed you
+		Com_sprintf( line, sizeof( line ), "%s%s%s", champ >= 0 ? BG_String( BG_Champion( champ )->nameString ) : "",
+			champ >= 0 && how[0] ? "  -  " : "", how );
+		CG_HudText( 320, HY( 266 ), 18, line, grey, 1, 1 );
+		if ( icon ) {
+			CG_DrawPic( 320 - ( CG_DrawStrlen( line ) * 18 * 0.62f / 2 + 26 ) * DP, HY( 264 ), 22 * DP, 22 * DP, icon );
+		}
+		// the killer's stack: not in duel, and not when the killer is dead or gone
+		if ( cgs.gametype != GT_TOURNAMENT && cg.deathHealth > 0 && ci->infoValid ) {
+			CG_HudText( 320, HY( 295 ), 18, BG_String( STR_DEATH_LEFT ), grey, 1, 1 );
+			CG_HudText( HX_C( 917 ), HY( 330 ), 24, va( "%i", cg.deathHealth ), red, 1, 1 );
+			CG_HudText( HX_C( 1009 ), HY( 330 ), 24, va( "%i", cg.deathArmor ), yellow, 1, 1 );
+		}
+		// the damage both ways this life
+		Com_sprintf( line, sizeof( line ), BG_String( STR_DEATH_DAMAGE ), cg.deathDealt, cg.deathTaken );
+		CG_HudText( 320, HY( 372 ), 18, line, colorWhite, 1, 1 );
+	} else {
+		int		mod = cg.deathMod;
+
+		if ( skull ) {
+			CG_DrawPic( 320 - 30 * DP, HY( 150 ), 60 * DP, 60 * DP, skull );
+		}
+		Q_strncpyz( line, BG_String( mod == MOD_FALLING || mod == MOD_TRIGGER_HURT ? STR_DEATH_FELL
+			: mod == MOD_SUICIDE || cg.deathKiller == cg.snap->ps.clientNum ? STR_DEATH_SUICIDE : STR_DEATH_WORLD ), sizeof( line ) );
+		CG_HudText( 320, HY( 226 ), 50, line, colorWhite, 1, 1 );
+	}
+
+	// the respawn button: the time left in it, then RESPAWN
+	left = cg.deathRespawn - ( cg.time - cg.deathTime );
+	CG_FillRect( HX_C( 772 ), HY( 974 ) - 6 * DP, 376 * DP, 62 * DP, button );
+	if ( left > 0 ) {
+		CG_HudText( 320, HY( 989 ) - 6 * DP, 38, va( "%i", ( left + 999 ) / 1000 ), colorWhite, 1, 1 );
+		if ( cg.deathRespawn > 0 ) {
+			static const vec4_t	stripe = { 1, 1, 1, 0.5f };
+
+			CG_FillRect( HX_C( 772 ), HY( 974 ) + 52 * DP, 376 * DP * left / cg.deathRespawn, 4 * DP, stripe );
+		}
+	} else {
+		CG_HudText( 320, HY( 980 ), 35, BG_String( STR_DEATH_RESPAWN_BUTTON ), colorWhite, 1, 1 );
+	}
+}
+#endif
+
 static void CG_DrawDeathScreen( void ) {
 	static qhandle_t	skull;
 	char			line[128];
@@ -4816,6 +4913,12 @@ static void CG_DrawDeathScreen( void ) {
 	if ( !cg.deathTime || cg.snap->ps.stats[STAT_HEALTH] > 0 || cg.time - cg.deathTime > 30000 ) {
 		return;
 	}
+#ifndef MISSIONPACK
+	if ( CG_HudModern() ) {
+		CG_DrawDeathScreenModern();
+		return;
+	}
+#endif
 	if ( !skull ) {
 		skull = trap_R_RegisterShaderNoMip( "gfx/tremor/skull.tga" );
 	}
@@ -6591,11 +6694,6 @@ ring and status-effect row, placed in the 1920 x 1080 design page
 ================================================================================
 */
 
-// design page x to the 640 frame from a side or the centre, and y
-#define HX_L( x )	( (x) * DP )
-#define HX_R( x )	( 640 - ( 1920 - (x) ) * DP )
-#define HX_C( x )	( 320 + ( (x) - 960 ) * DP )
-#define HY( y )		( (y) * DP )
 
 #define HUD_GLYPH_W		0.62f		// glyph width over its height
 

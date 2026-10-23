@@ -1911,6 +1911,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"UNAVAILABLE",
 	"FOLLOWING",
 	"ALL|TEAM|TELL",
+	"RESPAWN",
 	"One beep",
 	"By damage",
 	"By damage, reversed",
