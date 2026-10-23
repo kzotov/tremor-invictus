@@ -530,9 +530,10 @@ def level(samples, db=-1.0):
 def tone(freqs, seconds, decay, noise=0.0, rate=22050, seed=5):
     rnd = random.Random(seed)
     out = []
-    for i in range(int(seconds * rate)):
+    n = int(seconds * rate)
+    for i in range(n):
         t = i / rate
-        env = math.exp(-t * decay) * min(1.0, t * 400)
+        env = math.exp(-t * decay) * min(1.0, t * 400) * min(1.0, (n - i) / (0.04 * rate))   # a 40 ms faded tail
         v = sum(a * math.sin(2 * math.pi * f * t) for f, a in freqs)
         v += noise * (rnd.random() * 2 - 1)
         out.append(v * env * 0.6)
@@ -566,7 +567,7 @@ def scrape(seconds, cutoff, decay, rate=22050, seed=5, loop=False):
         if loop:
             env = min(1.0, i / (0.05 * rate), (n - i) / (0.05 * rate))
         else:
-            env = math.exp(-t * decay) * min(1.0, t * 200)
+            env = math.exp(-t * decay) * min(1.0, t * 200) * min(1.0, (n - i) / (0.04 * rate))   # faded tail
         out.append(lp * env * 1.6)
     return out
 
@@ -696,7 +697,8 @@ ABILITY_SOUNDS = {
     # Death Knight's flame strike: a crackling roar
     "flamestrike": (lambda: mix((env(noise(1.2, lfo(13, 0.6, 1500), 15), attack=0.04, decay=2.2), 1.0, 0),
                                 (env(noise(1.2, 300, 16), attack=0.08, decay=2.0), 0.9, 0)),
-                    lambda: mix((env(noise(0.6, glide(1200, 300, 0.5), 17), decay=5), 0.9, 0))),
+                    lambda: mix((env(osc(glide(90, 45, 0.3), 0.4), decay=9), 0.8, 0),
+                                *[(env(noise(0.03, 3000, 170 + k), decay=80), 0.6, 0.05 + k * 0.07) for k in range(6)])),
     # Doom Slayer's berserk: a vibrating growl
     "berserk": (lambda: mix((env(osc(lfo(18, 0.12, 82), 1.1, "saw"), attack=0.05, decay=2.2), 0.6, 0),
                             (env(noise(1.1, lfo(18, 0.5, 600), 18), attack=0.05, decay=2.4), 0.6, 0)),
@@ -717,7 +719,8 @@ ABILITY_SOUNDS = {
     # Nyx's ghost walk: an airy reversed breath and a high shimmer
     "ghostwalk": (lambda: mix((env(noise(0.9, glide(500, 4000, 0.8), 25), attack=0.6, decay=0.3, release=0.2), 0.8, 0),
                               (env(osc(lfo(9, 0.02, 1760), 0.9), attack=0.5, decay=0.5, release=0.2), 0.12, 0)),
-                  lambda: mix((env(noise(0.6, glide(4000, 400, 0.5), 26), decay=6), 0.8, 0))),
+                  lambda: mix((env(osc(1320, 0.6), decay=6), 0.45, 0), (env(osc(1980, 0.6), decay=8), 0.2, 0),
+                              (env(noise(0.5, glide(3000, 600, 0.4), 26), decay=8), 0.3, 0))),
     # Ranger's dire orb: a deep wobbling hum
     "orb": (lambda: mix((env(osc(lfo(7, 0.25, 110), 1.2), attack=0.05, decay=1.5), 0.8, 0),
                         (env(osc(lfo(7, 0.25, 220), 1.2, "tri"), attack=0.05, decay=1.8), 0.3, 0),
@@ -735,7 +738,8 @@ ABILITY_SOUNDS = {
     # Strogg's drone: a servo spinning up
     "drone": (lambda: mix((env(osc(glide(200, 1200, 0.9), 1.1, "square"), attack=0.05, decay=1.5), 0.15, 0),
                           (env(noise(1.1, glide(400, 3000, 0.9), 32), attack=0.05, decay=1.8), 0.6, 0)),
-              lambda: mix((env(osc(glide(1200, 200, 0.6), 0.7, "square"), decay=4), 0.15, 0), (env(noise(0.7, 1200, 33), decay=5), 0.5, 0))),
+              lambda: mix((env(osc(1000, 0.09, "square"), decay=20), 0.2, 0), (env(osc(700, 0.09, "square"), decay=20), 0.2, 0.13),
+                          (env(osc(450, 0.14, "square"), decay=14), 0.2, 0.26))),
     # Visor's piercing sight: a high ping and a sonar sweep
     "piercingsight": (lambda: mix((env(osc(2093, 0.4), decay=10), 0.6, 0), (env(osc(glide(500, 2500, 0.8), 1.0), attack=0.2, decay=2), 0.3, 0.1)),
                       lambda: mix((env(osc(1568, 0.3), decay=14), 0.5, 0))),
@@ -745,7 +749,7 @@ ABILITY_SOUNDS = {
                    lambda: mix((env(osc(2800, 0.6), decay=6), 0.15, 0), (env(noise(0.3, 500, 35), decay=10), 0.5, 0))),
     # Klesk's spine volley: three quick whistles
     "spinevolley": (lambda: mix(*[(env(osc(glide(2200 - k * 200, 1200 - k * 100, 0.15), 0.2), decay=10), 0.5, k * 0.09) for k in range(3)]),
-                    lambda: mix((env(noise(0.15, 3000, 36), decay=25), 0.5, 0))),
+                    lambda: mix((env(noise(0.06, 1500, 36), decay=60), 0.9, 0), (env(osc(glide(1400, 600, 0.12), 0.15, "tri"), decay=18), 0.4, 0.03))),
     # master of death: an ominous low chord
     "masterofdeath": (lambda: mix((env(osc(lfo(4, 0.01, 65), 1.4, "saw"), attack=0.2, decay=1.3), 0.35, 0),
                                   (env(osc(lfo(4.5, 0.01, 98), 1.4, "saw"), attack=0.25, decay=1.3), 0.25, 0),
@@ -763,15 +767,17 @@ ABILITY_SOUNDS = {
     # Raine's downpour: a rain swell
     "downpour": (lambda: mix((env(noise(1.4, lfo(25, 0.4, 5000), 40), attack=0.35, decay=1.0), 0.8, 0),
                              (env(noise(1.4, 400, 41), attack=0.35, decay=1.0), 0.5, 0)),
-                 lambda: mix((env(noise(0.8, 4500, 42), decay=4), 0.7, 0))),
+                 lambda: mix((env(noise(0.8, 4500, 42), decay=4), 0.5, 0),
+                             *[(env(osc(1900 + k * 230, 0.06), decay=45), 0.35, 0.1 + k * 0.13) for k in range(5)])),
     # Beastmaster's hound: a snarl
     "hound": (lambda: mix((env(noise(0.8, lfo(22, 0.6, 700), 43), attack=0.05, decay=3), 1.0, 0),
                           (env(osc(lfo(22, 0.15, 140), 0.8, "saw"), attack=0.05, decay=3.2), 0.3, 0)),
-              lambda: mix((env(noise(0.4, lfo(16, 0.5, 900), 44), decay=8), 0.9, 0))),
+              lambda: mix((env(osc(lambda t: (900 - 1100 * t) * (1 + 0.08 * math.sin(2 * math.pi * 9 * t)), 0.38, "tri"), decay=5), 0.6, 0))),
     # Unumrey's rift anchor: a warp falling into place
     "riftanchor": (lambda: mix((env(osc(glide(1600, 120, 1.0), 1.2, "tri"), attack=0.03, decay=1.8), 0.5, 0),
                                (env(noise(1.2, glide(5000, 300, 1.0), 45), attack=0.03, decay=2.0), 0.5, 0)),
-                   lambda: mix((env(osc(glide(120, 1600, 0.4), 0.5, "tri"), decay=6), 0.5, 0), (env(noise(0.5, 3000, 46), decay=8), 0.4, 0))),
+                   lambda: mix((env(osc(88, 0.8), attack=0.01, decay=4), 0.8, 0), (env(osc(88 * 2.76, 0.8), decay=5), 0.3, 0),
+                               (env(noise(0.5, 6000, 46), decay=10), 0.2, 0))),
 }
 
 
