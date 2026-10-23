@@ -3076,7 +3076,6 @@ static void PM_Ability( void ) {
 			time = 0;
 			pm->ps->stats[STAT_MOVE_STATE] = 0;
 			pm->ps->stats[STAT_HOOK] = pm->cmd.upmove >= 10 ? HOOK_JUMP_DOWN : 0;
-			HOOK_SET_MOVED( pm->ps, 0 );
 			VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
 			VectorNormalize( dir );
 			VectorMA( pm->ps->velocity, bg_pmoveSettings.hookImpulse, dir, pm->ps->velocity );
@@ -3129,10 +3128,10 @@ static void PM_Ability( void ) {
 				}
 				// stuck: under 32 u moved in a 0.2 s window
 				if ( time / HOOK_STUCK_MSEC != ( time + pml.msec ) / HOOK_STUCK_MSEC ) {
-					if ( time >= HOOK_STUCK_MSEC && moved < HOOK_STUCK_DIST ) {
+					if ( time >= HOOK_STUCK_MSEC && moved < HOOK_STUCK_DIST - 0.5f ) {		// (15 steps make 32)
 						arrived = qtrue;
 					}
-					HOOK_SET_MOVED( pm->ps, 0 );		// a new window
+					hook &= ~( 15 << HOOK_MOVED_SHIFT );		// a new window
 				}
 				// the rope cut: the line blocked for 0.6 s
 				pm->trace( &tr, pm->ps->origin, NULL, NULL, pm->ps->grapplePoint, pm->ps->clientNum, MASK_SOLID );
@@ -3147,7 +3146,7 @@ static void PM_Ability( void ) {
 				} else {
 					blocked = 0;
 				}
-				hook = ( hook & HOOK_AIRBORNE ) | blocked | ( jumpDown ? HOOK_JUMP_DOWN : 0 );
+				hook = ( hook & ( HOOK_AIRBORNE | ( 15 << HOOK_MOVED_SHIFT ) ) ) | blocked | ( jumpDown ? HOOK_JUMP_DOWN : 0 );
 				pm->ps->stats[STAT_HOOK] = hook;
 			}
 		}
@@ -3777,12 +3776,15 @@ void PmoveSingle (pmove_t *pmove) {
 
 	// the hook's stuck check: how far this frame's move took her
 	if ( BG_AbilityState( pm->ps ) == ABILITY_HOOK_PULL ) {
-		float	moved = HOOK_MOVED( pm->ps ) + Distance( pm->ps->origin, pml.previous_origin );
+		int		hook = pm->ps->stats[STAT_HOOK] & 0xffff;
+		// (rounded to the nearest step, at most 15 steps = 32 u)
+		int		steps = ( ( hook >> HOOK_MOVED_SHIFT ) & 15 )
+			+ (int)( Distance( pm->ps->origin, pml.previous_origin ) / HOOK_MOVED_STEP + 0.5f );
 
-		if ( moved > HOOK_MOVED_MAX ) {
-			moved = HOOK_MOVED_MAX;
+		if ( steps > 15 ) {
+			steps = 15;
 		}
-		HOOK_SET_MOVED( pm->ps, moved );
+		pm->ps->stats[STAT_HOOK] = ( hook & ~( 15 << HOOK_MOVED_SHIFT ) ) | ( steps << HOOK_MOVED_SHIFT );
 	}
 
 	// weapons

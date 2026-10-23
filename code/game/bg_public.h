@@ -1486,21 +1486,15 @@ typedef enum {
 
 // the hook's release tracking in STAT_HOOK (16 bits): msec the rope has been
 // blocked (bits 0-9), whether she has been off the ground since it caught
-// (bit 10) and the jump button (bit 15); the distance moved in the current
-// 0.2 s goes in STAT_TAPS in 1/16 u (the hook champion has no air-dodge), or
-// with MISSIONPACK (where STAT_TAPS is STAT_HOOK) in generic1 in 1/2 u
+// (bit 10), the distance moved in the current 0.2 s up to 32 u in 15
+// steps (bits 11-14: the stuck rule only asks for 32 u), and the jump
+// button (bit 15)
 #define	HOOK_BLOCKED( ps )		( (ps)->stats[STAT_HOOK] & 1023 )
 #define	HOOK_AIRBORNE			1024
+#define	HOOK_MOVED_SHIFT		11
+#define	HOOK_MOVED_STEP			( 32.0f / 15 )
+#define	HOOK_MOVED( ps )		( ( ( (ps)->stats[STAT_HOOK] >> HOOK_MOVED_SHIFT ) & 15 ) * HOOK_MOVED_STEP )
 #define	HOOK_JUMP_DOWN			0x8000
-#ifndef MISSIONPACK
-#define	HOOK_MOVED( ps )			( ( (ps)->stats[STAT_TAPS] & 0x7fff ) / 16.0f )
-#define	HOOK_SET_MOVED( ps, d )		( (ps)->stats[STAT_TAPS] = (int)( (d) * 16 ) )
-#define	HOOK_MOVED_MAX				2000
-#else
-#define	HOOK_MOVED( ps )			( ( (ps)->generic1 & 255 ) / 2.0f )
-#define	HOOK_SET_MOVED( ps, d )		( (ps)->generic1 = (int)( (d) * 2 + 0.5f ) )
-#define	HOOK_MOVED_MAX				127
-#endif
 
 // Xaero's Leaping Kick in STAT_TAPS (free for champions without air-dodge):
 // kicks banked in bits 0-1, air control left in 100 ms units in bits 2-7,
