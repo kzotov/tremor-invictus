@@ -1305,7 +1305,7 @@ void ClientSpawn(gentity_t *ent) {
 	G_RewindReset( ent );
 	ClientUserinfoChanged( index );		// show this champion's model
 	BG_SetAbility( &client->ps, ABILITY_IDLE,
-		BG_AbilityParam( BG_Champion( client->pers.champion )->active, AP_CHARGES ) );
+		BG_AbilityParam( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active, AP_CHARGES ) );
 	client->abilityRecharge = 0;
 	client->abilityPrevState = ABILITY_IDLE;
 	client->lastDamageTime = 0;

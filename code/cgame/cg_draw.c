@@ -4239,8 +4239,9 @@ static void CG_DrawDeathScreen( void ) {
 	if ( !cg.deathTime || cg.snap->ps.stats[STAT_HEALTH] > 0 || cg.time - cg.deathTime > 30000 ) {
 		return;
 	}
-	// down to the starter line's bottom, 6 under it
-	CG_FillRect( 140, y - 6, 360, ( cg.deathKiller >= 0 ? 104 : 46 ) + 2 * SMALLCHAR_HEIGHT + 12, back );
+	// the killer block (88), the respawn line, the starter line under it
+	// (+6), room for the bind hint, 6 above and below
+	CG_FillRect( 140, y - 6, 360, ( cg.deathKiller >= 0 ? 88 : 0 ) + 2 * SMALLCHAR_HEIGHT + 6 + TINYCHAR_HEIGHT + 2 + 12, back );
 
 	if ( cg.deathKiller >= 0 && cg.deathKiller < MAX_CLIENTS ) {
 		int champ;
@@ -4290,15 +4291,22 @@ static void CG_DrawDeathScreen( void ) {
 		char	current[8], part[3][32];
 		int		i, total = 0;
 		float	x;
+		qboolean	keyless = qfalse;
 
 		trap_Cvar_VariableStringBuffer( "cg_startWeapon", current, sizeof( current ) );
 		for ( i = 0 ; i < 3 ; i++ ) {
 			// the key bound to that weapon slot, or the command without one
 			const char	*key = CG_BindName( va( "weapon %i", BG_WeaponSlot( starters[i] ) ) );
 
-			Com_sprintf( part[i], sizeof( part[i] ), "%s [%s]", codes[i],
-				key[0] ? key : va( (char *)BG_String( STR_DEATH_BIND_HINT ), BG_WeaponSlot( starters[i] ) ) );
-			Q_strupr( part[i] );
+			char	code[8];
+
+			Q_strncpyz( code, codes[i], sizeof( code ) );
+			Q_strupr( code );
+			if ( !key[0] ) {
+				key = "-";		// nothing bound: a hint goes under the row
+				keyless = qtrue;
+			}
+			Com_sprintf( part[i], sizeof( part[i] ), "%s [%s]", code, key );
 			total += CG_DrawStrlen( part[i] ) + 2;
 		}
 		Com_sprintf( line, sizeof( line ), BG_String( STR_MENU_START_WEAPON ), "" );
@@ -4312,6 +4320,13 @@ static void CG_DrawDeathScreen( void ) {
 
 			CG_DrawSmallStringColor( x, y, part[i], on ? colorWhite : grey );
 			x += ( CG_DrawStrlen( part[i] ) + 2 ) * SMALLCHAR_WIDTH;
+		}
+		if ( keyless ) {
+			const char	*hint = BG_String( STR_DEATH_BIND_HINT );
+
+			y += SMALLCHAR_HEIGHT + 2;
+			CG_DrawStringExt( 320 - CG_DrawStrlen( hint ) * TINYCHAR_WIDTH / 2, y, hint, grey, qfalse, qtrue,
+				TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
 		}
 	}
 }
@@ -4394,7 +4409,10 @@ static const char *CG_BindName( const char *binding ) {
 		return va( "MOUSE%i", key - K_MOUSE1 + 1 );
 	}
 	if ( key >= K_KP_HOME && key <= K_KP_EQUALS ) {
-		return "KP";
+		static const char	*keypad[] = { "KP7", "KP8", "KP9", "KP4", "KP5", "KP6", "KP1", "KP2", "KP3",
+			"KP_ENTER", "KP0", "KP_DEL", "KP_SLASH", "KP_MINUS", "KP_PLUS", "NUMLOCK", "KP_STAR", "KP_EQUALS" };
+
+		return keypad[key - K_KP_HOME];
 	}
 	switch ( key ) {
 	case K_SPACE:		return "SPACE";
@@ -4433,7 +4451,7 @@ static void CG_DrawVote( float y ) {
 	}
 	// one format, no nesting: "VOTE(Ns): what  Yes(F1): N  No(F2): N"
 	{
-		char	yesKey[8], noKey[8];
+		char	yesKey[16], noKey[16];
 
 		Q_strncpyz( yesKey, CG_BindName( "vote yes" ), sizeof( yesKey ) );
 		if ( !yesKey[0] ) {
@@ -4498,7 +4516,7 @@ static void CG_DrawTeamVote( float y ) {
 	// as the main vote line, with the team-vote keys, under it (gaps.md:
 	// votes yellow, one per line)
 	{
-		char	yesKey[8], noKey[8];
+		char	yesKey[16], noKey[16];
 
 		Q_strncpyz( yesKey, CG_BindName( "teamvote yes" ), sizeof( yesKey ) );
 		if ( !yesKey[0] ) {

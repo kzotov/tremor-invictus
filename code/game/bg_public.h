@@ -1097,7 +1097,7 @@ typedef enum {
 	STR_EV_OBELISK_ATTACK,
 	STR_CHAT_TEAM,					// "(TEAM)"
 	STR_CHAT_SPEC,
-	STR_DEATH_BIND_HINT,				// "bind weapon %i"
+	STR_DEATH_BIND_HINT,				// "Bind the weapon keys in Controls"
 	STR_BD_PLAYER,
 	STR_BD_SCORE,
 	STR_BD_DEATHS,

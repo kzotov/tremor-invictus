@@ -445,10 +445,17 @@ void G_LobbyInit( int restart ) {
 	// a real map load (not the warm-up's restart) ends a finished lobby's
 	// hold, however the last match ended (vote, nextmap, map, abort); the
 	// lobby's own change of map comes with "pick"
-	if ( !restart && !Q_stricmp( state, "done" ) ) {
-		trap_Cvar_Set( "g_lobbyState", "" );
-		trap_Cvar_Set( "g_lobbyPicks", "" );
-		state[0] = 0;
+	if ( !restart && state[0] ) {
+		char	mapname[MAX_QPATH], target[MAX_QPATH];
+
+		trap_Cvar_VariableStringBuffer( "mapname", mapname, sizeof( mapname ) );
+		trap_Cvar_VariableStringBuffer( "g_lobbyMap", target, sizeof( target ) );
+		if ( Q_stricmp( state, "pick" ) || Q_stricmp( mapname, target ) ) {
+			trap_Cvar_Set( "g_lobbyState", "" );
+			trap_Cvar_Set( "g_lobbyPicks", "" );
+			state[0] = 0;
+		}
+		trap_Cvar_Set( "g_lobbyMap", "" );
 	}
 	if ( !g_lobby.integer || g_gametype.integer == GT_SINGLE_PLAYER ) {
 		return;
@@ -536,10 +543,12 @@ void G_LobbyThink( void ) {
 	// match, has no held pick: both pick again, blind
 	if ( g_lobby.integer && G_LobbyPickMode() == 1 && ( lobbyPhase == LOBBY_START
 		|| ( lobbyPhase == LOBBY_OFF && level.warmupTime != 0 && !level.intermissiontime ) ) ) {
-		char	picks[MAX_CVAR_VALUE_STRING];
+		char	state[16];
 
-		trap_Cvar_VariableStringBuffer( "g_lobbyPicks", picks, sizeof( picks ) );
-		if ( picks[0] ) {
+		// (a finished lobby on this map: its picks may all have gone with
+		// their players)
+		trap_Cvar_VariableStringBuffer( "g_lobbyState", state, sizeof( state ) );
+		if ( lobbyPhase == LOBBY_START || !Q_stricmp( state, "done" ) ) {
 			for ( i = 0 ; i < level.maxclients ; i++ ) {
 				cl = &level.clients[i];
 				if ( cl->pers.connected == CON_CONNECTED && cl->sess.sessionTeam != TEAM_SPECTATOR
@@ -553,6 +562,18 @@ void G_LobbyThink( void ) {
 				memset( lobbyLocked, 0, sizeof( lobbyLocked ) );
 				lobbyPhase = LOBBY_PICK;
 				lobbyEnd = 0;
+				// hide everyone again: the default model in CS_PLAYERS, and
+				// the duellists respawn as the default champion
+				for ( i = 0 ; i < level.maxclients ; i++ ) {
+					cl = &level.clients[i];
+					if ( cl->pers.connected != CON_CONNECTED ) {
+						continue;
+					}
+					ClientUserinfoChanged( i );
+					if ( cl->sess.sessionTeam != TEAM_SPECTATOR ) {
+						ClientSpawn( &g_entities[i] );
+					}
+				}
 			}
 		}
 	}
@@ -608,6 +629,7 @@ void G_LobbyThink( void ) {
 			if ( lobbyWinner && Q_stricmp( mapVoteMaps[lobbyWinner - 1], current ) ) {
 				// the champion phase goes on on the winning map
 				trap_Cvar_Set( "g_lobbyState", "pick" );
+				trap_Cvar_Set( "g_lobbyMap", mapVoteMaps[lobbyWinner - 1] );
 				trap_SendConsoleCommand( EXEC_APPEND, va( "map %s\n", mapVoteMaps[lobbyWinner - 1] ) );
 				lobbyPhase = LOBBY_OFF;		// (the map load starts it again)
 				return;
