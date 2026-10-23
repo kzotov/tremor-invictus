@@ -1270,6 +1270,29 @@ static qboolean S_AL_CheckInput(int entityNum, sfxHandle_t sfx)
 
 /*
 =================
+S_AL_WorldDuplicate
+
+sound-clarity.md 2: a world sound counts as a duplicate only when the same
+sound started within 32 u in the last 50 ms (no cap on copies)
+=================
+*/
+static qboolean S_AL_WorldDuplicate(sfxHandle_t sfx, const vec3_t origin)
+{
+	int i, now = Sys_Milliseconds();
+
+	for(i = 0; i < srcCount; i++)
+	{
+		src_t *src = &srcList[i];
+
+		if(src->isActive && !src->isLooping && src->sfx == sfx && now - src->lastUsedTime < 50
+			&& DistanceSquared(src->loopSpeakerPos, origin) < 32 * 32)
+			return qtrue;
+	}
+	return qfalse;
+}
+
+/*
+=================
 S_AL_TooManyCopies
 
 sound-clarity.md 2: a sound that started on the same entity in the last
@@ -1381,8 +1404,9 @@ static void S_AL_StartSound( vec3_t origin, int entnum, int entchannel, sfxHandl
 		return;
 	}
 
-	// the same sound on the same entity: once per 50 ms, at most 4 at a time
-	if(S_AL_TooManyCopies(entnum, sfx, entnum == lastListenerNumber ? 8 : 4))
+	// the same sound on the same entity: once per 50 ms, at most 4 at a
+	// time; a sound at a point in the world: once per 50 ms within 32 u
+	if(origin ? S_AL_WorldDuplicate(sfx, sorigin) : S_AL_TooManyCopies(entnum, sfx, entnum == lastListenerNumber ? 8 : 4))
 		return;
 
 	// Try to grab a source
@@ -1393,6 +1417,7 @@ static void S_AL_StartSound( vec3_t origin, int entnum, int entchannel, sfxHandl
 	S_AL_SrcSetup(src, sfx, SRCPRI_ONESHOT, entnum, entchannel, qfalse);
 	
 	curSource = &srcList[src];
+	VectorCopy(sorigin, curSource->loopSpeakerPos);		// (for S_AL_WorldDuplicate)
 
 	if(!origin)
 		curSource->isTracking = qtrue;
@@ -1438,9 +1463,20 @@ static void S_AL_SrcLoop( alSrcPriority_t priority, sfxHandle_t sfx,
 	if(S_AL_CheckInput(base, sfx))
 		return;
 
-	// Do we need to allocate a new source for this entity
+	// Do we need to allocate a new source for this entity (not for a loop
+	// out of hearing: it would be freed again at once)
 	if( !sent->srcAllocated )
 	{
+		if( !S_AL_HearingThroughEntity( base ) )
+		{
+			vec3_t	at;
+
+			VectorCopy( origin ? origin : entityList[base].origin, at );
+			if( DistanceSquared( at, lastListenerOrigin ) >=
+				( s_alMaxDistance->value + s_alGraceDistance->value ) * ( s_alMaxDistance->value + s_alGraceDistance->value ) )
+				return;
+		}
+
 		// Try to get a channel
 		src = S_AL_SrcAlloc( priority, entityNum, -1 );
 		if( src == -1 )
@@ -1647,8 +1683,7 @@ void S_AL_SrcUpdate( void )
 				if(curSource->isActive && !sent->startLoopingSound &&
 						curSource->sfx != sent->loopSfx)
 				{
-					S_AL_NewLoopMaster(curSource, qtrue);
-					S_AL_SrcKill(i);
+					S_AL_SrcKill(i);		// (which hands the loop master on)
 					sent->srcAllocated = qfalse;
 					continue;
 				}
@@ -1671,8 +1706,7 @@ void S_AL_SrcUpdate( void )
 				// (sound-clarity.md 2); an ambient one stays to keep its sync
 				if(!curSource->scaleGain && curSource->priority != SRCPRI_AMBIENT)
 				{
-					S_AL_NewLoopMaster(curSource, qtrue);
-					S_AL_SrcKill(i);
+					S_AL_SrcKill(i);		// (which hands the loop master on)
 					continue;
 				}
 				if(!curSource->scaleGain)
@@ -1711,7 +1745,7 @@ void S_AL_SrcUpdate( void )
 							if((error = qalGetError()) == AL_NO_ERROR)
 							{
 								qalSourcei(curSource->alSource, AL_SAMPLE_OFFSET, offset);
-								S_AL_ClearError(qfalse);		// (a rejected offset is ignored)
+								S_AL_ClearError(qtrue);		// (a rejected offset is ignored, quietly)
 							}
 						}
 						else if(curSfx->loopCnt && curSfx->masterLoopSrc >= 0)
@@ -1728,7 +1762,7 @@ void S_AL_SrcUpdate( void )
 								secofs = fmodf(secofs, (float) curSfx->info.samples / curSfx->info.rate);
 						
 								qalSourcef(curSource->alSource, AL_SEC_OFFSET, secofs);
-								S_AL_ClearError(qfalse);		// (a rejected offset is ignored)
+								S_AL_ClearError(qtrue);		// (a rejected offset is ignored, quietly)
 							}
 
 							// I be the master now
@@ -1746,7 +1780,7 @@ void S_AL_SrcUpdate( void )
 						secofs = curSource->lastTimePos + (Sys_Milliseconds() - curSource->lastSampleTime) / 1000.0f;
 						secofs = fmodf(secofs, (float) curSfx->info.samples / curSfx->info.rate);
 						qalSourcef(curSource->alSource, AL_SEC_OFFSET, secofs);
-						S_AL_ClearError(qfalse);		// (a rejected offset is ignored)
+						S_AL_ClearError(qtrue);		// (a rejected offset is ignored, quietly)
 					}
 						
 					curSfx->loopActiveCnt++;
@@ -1792,6 +1826,7 @@ void S_AL_SrcUpdate( void )
 			if((state == AL_STOPPED && elapsed >= curSource->length)
 				|| (curSource->length > 0 && elapsed > curSource->length + 1000))
 			{
+				qalSourceStop(curSource->alSource);		// (it may still be playing)
 				curSource->isPlaying = qfalse;
 				S_AL_SrcKill(i);
 				continue;
