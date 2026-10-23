@@ -275,12 +275,31 @@ pushReward
 ==================
 */
 void CG_PushReward( sfxHandle_t sfx, qhandle_t shader, int rewardCount, int name ) {
+	int		i, voice = -1;
+
 	if (cg.rewardStack < (MAX_REWARDSTACK-1)) {
 		cg.rewardStack++;
 		cg.rewardSound[cg.rewardStack] = sfx;
 		cg.rewardShader[cg.rewardStack] = shader;
 		cg.rewardCount[cg.rewardStack] = rewardCount;
 		cg.rewardName[cg.rewardStack] = name;
+		cg.rewardGroup[cg.rewardStack] = cg.time;
+		cg.rewardVoice[cg.rewardStack] = qtrue;
+		// messages.md 2.3: of the medals earned together the announcer says
+		// the rarest only (the one earned fewest times this match, the later
+		// on a tie); the others chime
+		for ( i = 1 ; i < cg.rewardStack ; i++ ) {
+			if ( cg.rewardGroup[i] == cg.time && cg.rewardVoice[i] ) {
+				voice = i;
+			}
+		}
+		if ( voice > 0 ) {
+			if ( cg.rewardCount[voice] < rewardCount ) {
+				cg.rewardVoice[cg.rewardStack] = qfalse;
+			} else {
+				cg.rewardVoice[voice] = qfalse;
+			}
+		}
 	}
 }
 
@@ -436,6 +455,11 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 		}
 	}
 
+	// the holder's Quad Damage ran out (not lost by dying)
+	if ( ops->powerups[PW_QUAD] && !ps->powerups[PW_QUAD] && ps->stats[STAT_HEALTH] > 0 ) {
+		CG_EventBanner( BG_String( STR_EV_QUAD_UP ), 3 );
+	}
+
 	// lead changes
 	if (!reward) {
 		//
@@ -445,10 +469,13 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 				if ( cgs.gametype < GT_TEAM) {
 					if (  ps->persistant[PERS_RANK] == 0 ) {
 						CG_AddBufferedSound(cgs.media.takenLeadSound);
+						CG_EventBanner( BG_String( STR_EV_TAKEN_LEAD ), 4 );
 					} else if ( ps->persistant[PERS_RANK] == RANK_TIED_FLAG ) {
 						CG_AddBufferedSound(cgs.media.tiedLeadSound);
+						CG_EventBanner( BG_String( STR_EV_TIED_LEAD ), 4 );
 					} else if ( ( ops->persistant[PERS_RANK] & ~RANK_TIED_FLAG ) == 0 ) {
 						CG_AddBufferedSound(cgs.media.lostLeadSound);
+						CG_EventBanner( BG_String( STR_EV_LOST_LEAD ), 4 );
 					}
 				}
 			}
@@ -467,10 +494,12 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 		else if ( !( cg.timelimitWarnings & 2 ) && msec > (cgs.timelimit - 1) * 60 * 1000 ) {
 			cg.timelimitWarnings |= 1 | 2;
 			trap_S_StartLocalSound( cgs.media.oneMinuteSound, CHAN_ANNOUNCER );
+			CG_EventBanner( BG_String( STR_EV_1_MINUTE ), 4 );
 		}
 		else if ( cgs.timelimit > 5 && !( cg.timelimitWarnings & 1 ) && msec > (cgs.timelimit - 5) * 60 * 1000 ) {
 			cg.timelimitWarnings |= 1;
 			trap_S_StartLocalSound( cgs.media.fiveMinuteSound, CHAN_ANNOUNCER );
+			CG_EventBanner( BG_String( STR_EV_5_MINUTES ), 4 );
 		}
 	}
 

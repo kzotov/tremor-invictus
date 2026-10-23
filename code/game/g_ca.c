@@ -142,7 +142,7 @@ static void G_CAStartRound( void ) {
 	level.caSpawning = qfalse;
 
 	Com_sprintf( msg, sizeof( msg ), BG_String( STR_CA_ROUND ), level.caRound );
-	trap_SendServerCommand( -1, va( "cp \"%s\"", msg ) );
+	G_EventLine( -1, 1, msg );
 	G_Announce( -1, "roundbegins" );
 	level.caLastStanding[TEAM_RED] = level.caLastStanding[TEAM_BLUE] = qfalse;
 }
@@ -204,7 +204,7 @@ static void G_CAEndRound( int winner ) {
 	} else {
 		id = STR_CA_DRAW;
 	}
-	trap_SendServerCommand( -1, va( "cp \"%s\"", BG_String( id ) ) );
+	G_EventLine( -1, 1, BG_String( id ) );
 	trap_SendServerCommand( -1, va( "print \"%s\n\"", BG_String( id ) ) );
 	G_Announce( -1, winner == TEAM_RED ? "redwinsround" : winner == TEAM_BLUE ? "bluewinsround" : "rounddraw" );
 }
@@ -260,7 +260,7 @@ void G_CACheckRules( void ) {
 		if ( level.time >= level.caStateTime ) {
 			level.caState = CA_FIGHTING;
 			level.caRoundStart = level.time;
-			trap_SendServerCommand( -1, va( "cp \"%s\"", BG_String( STR_CA_FIGHT ) ) );
+			G_BannerWord( BG_String( STR_CA_FIGHT ) );
 		}
 		break;
 

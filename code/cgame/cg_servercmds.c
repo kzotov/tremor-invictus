@@ -1160,6 +1160,20 @@ static void CG_ServerCommand( void ) {
 		return;
 	}
 
+	if ( !strcmp( cmd, "evline" ) ) {
+		// an event line at a priority (messages.md 2.4): 1 match flow,
+		// 2 objectives, 3 power-ups, 4 lead and time, 5 server
+		int		priority = atoi( CG_Argv( 1 ) );
+
+		CG_EventBanner( CG_Argv( 2 ), priority < 1 ? 1 : priority > 5 ? 5 : priority );
+		return;
+	}
+
+	if ( !strcmp( cmd, "bword" ) ) {
+		CG_BannerWord( CG_Argv( 1 ) );
+		return;
+	}
+
 	if ( !strcmp( cmd, "cs" ) ) {
 		CG_ConfigStringModified();
 		return;
@@ -1177,21 +1191,28 @@ static void CG_ServerCommand( void ) {
 			Q_strncpyz( a, CG_Argv( 2 ), sizeof( a ) );
 			Q_strncpyz( b, CG_Argv( 3 ), sizeof( b ) );
 			Com_sprintf( text, sizeof( text ), BG_String( id ), a, b );
-#ifndef MISSIONPACK
-			if ( id < STR_SYS_FORFEIT || id > STR_SYS_BLUE_CAPLIMIT )		// (the event line logs its own)
-#endif
-			{
-				CG_Printf( "[skipnotify]%s\n", text );
-			}
-#ifndef MISSIONPACK
-			if ( id == STR_SYS_CONNECTED || id == STR_SYS_ENTERED || id == STR_SYS_RENAMED ) {
-				CG_ConnectLine( text );
-			} else if ( id >= STR_SYS_FORFEIT && id <= STR_SYS_BLUE_CAPLIMIT ) {
-				CG_EventBanner( text, 1 );		// match ends: the event line
+			// messages.md 2.4: the event line by priority (it logs its own
+			// lines); vote results go to both the event line and the chat
+			if ( id >= STR_SYS_FORFEIT && id <= STR_SYS_BLUE_CAPLIMIT ) {
+				CG_EventBanner( text, 1 );		// match ends
+			} else if ( id >= STR_EV_RED_FLAG_TAKEN && id <= STR_EV_BLUE_FLAG_CAPTURED ) {
+				CG_EventBanner( text, 2 );		// objectives
+			} else if ( id >= STR_EV_QUAD_SOON && id <= STR_EV_HAS_PROTECTION ) {
+				CG_EventBanner( text, 3 );		// power-ups
 			} else {
-				CG_AddSystemLine( text );
-			}
+				if ( id >= STR_SYS_VOTE_PASSED && id <= STR_SYS_TEAMVOTE_FAILED ) {
+					CG_EventBanner( text, 5 );
+				} else {
+					CG_Printf( "[skipnotify]%s\n", text );
+				}
+#ifndef MISSIONPACK
+				if ( id == STR_SYS_CONNECTED || id == STR_SYS_ENTERED || id == STR_SYS_RENAMED ) {
+					CG_ConnectLine( text );
+				} else {
+					CG_AddSystemLine( text );
+				}
 #endif
+			}
 		}
 		return;
 	}

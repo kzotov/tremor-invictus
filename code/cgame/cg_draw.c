@@ -84,7 +84,7 @@ static const hudElement_t	hudDefaults[] = {
 	{ "eventline",		ANCHOR_CENTER,	qfalse,	0, 337, 1 },		// top
 	{ "bannerword",		ANCHOR_CENTER,	qfalse,	0, 171, 1 },		// top
 	{ "chat",			ANCHOR_LEFT,	qtrue,	10, 308, 1 },
-	{ "teamoverlay",	ANCHOR_LEFT,	qfalse,	10, 340, 1 },
+	{ "teamoverlay",	ANCHOR_LEFT,	qfalse,	10, 445, 1 },		// below the kill feed's fifth row
 	{ "passive",		ANCHOR_LEFT,	qtrue,	142, 110, 1 },
 	{ "warmup",			ANCHOR_CENTER,	qfalse,	0, 762, 1 },		// the status line's top
 	{ "countdown",		ANCHOR_CENTER,	qfalse,	0, 455, 1 }		// top
@@ -713,6 +713,8 @@ void CG_AddKillFeed( const char *killer, const char *victim, int weapon, int kil
 			&& ( cg_entities[killerNum].currentState.powerups & ( 1 << PW_QUAD ) );
 	}
 	k->time = cg.time;
+	k->rowY = k->fromY = 0;		// a reused slot starts afresh
+	k->moveTime = 0;
 }
 
 /*
@@ -765,7 +767,7 @@ static void CG_KillFeedNameModern( float x, float y, const char *name, int team,
 		c[3] = fade[3];
 		CG_DrawStringExt( x, y, name, c, qtrue, qtrue, cw, ch, 0 );
 	} else {
-		CG_DrawStringExt( x, y, name, c, qfalse, qtrue, cw, ch, 0 );
+		CG_DrawStringExt( x, y, name, c, qtrue, qtrue, cw, ch, 0 );		// white in FFA and duel
 	}
 }
 
@@ -775,7 +777,9 @@ static void CG_DrawKillFeedModern( int rows ) {
 	int			i, n = 0, life = KF_IN + KF_HOLD + KF_OUT, me = cg.snap->ps.clientNum, t;
 	float		fx, fy, ch = 23 * DP, cw = ch * 0.6f, icon = 28 * DP, pitch = 34 * DP, x, w, y;
 	vec4_t		fade = { 1, 1, 1, 1 }, band;
-	const char	*killer, *victim;
+	const char	*victim;
+	char		killer[64];
+	vec4_t		quadColor;
 
 	if ( !skull ) {
 		skull = trap_R_RegisterShaderNoMip( "gfx/tremor/skull.tga" );
@@ -815,7 +819,8 @@ static void CG_DrawKillFeedModern( int rows ) {
 		}
 		fade[3] = t < KF_IN ? t / (float)KF_IN : t > life - KF_OUT ? ( life - t ) / (float)KF_OUT : 1;
 
-		killer = CG_CapName( k->killer, 23, 160 );
+		// (CG_CapName returns one shared buffer)
+		Q_strncpyz( killer, CG_CapName( k->killer, 23, 160 ), sizeof( killer ) );
 		victim = CG_CapName( k->victim, 23, 160 );
 		w = ( k->killer[0] ? ( k->killerPic ? icon + 4 : 0 ) + CG_DrawStrlen( killer ) * cw + 6 : 0 )
 			+ icon + 6 + ( k->quad ? cw + 4 : 0 ) + ( k->victimPic ? icon + 4 : 0 ) + CG_DrawStrlen( victim ) * cw;
@@ -839,7 +844,9 @@ static void CG_DrawKillFeedModern( int rows ) {
 			x += CG_DrawStrlen( killer ) * cw + 6;
 		}
 		if ( k->quad ) {
-			CG_DrawStringExt( x, y + ( icon - ch ) / 2, "Q", colorBlue, qtrue, qtrue, cw, ch, 0 );
+			Vector4Copy( colorBlue, quadColor );
+			quadColor[3] = fade[3];
+			CG_DrawStringExt( x, y + ( icon - ch ) / 2, "Q", quadColor, qtrue, qtrue, cw, ch, 0 );
 			x += cw + 4;
 		}
 		trap_R_SetColor( fade );
@@ -3083,6 +3090,29 @@ static void CG_DrawPersistantPowerup( void ) {
 
 
 /*
+=================
+CG_MedalChime
+
+The short sound for a medal the announcer doesn't say
+=================
+*/
+static void CG_MedalChime( void ) {
+	static sfxHandle_t	chime;
+	static qboolean		tried;
+
+	if ( !tried ) {
+		tried = qtrue;
+		chime = trap_S_RegisterSound( "sound/feedback/medalchime.wav", qfalse );
+		if ( !chime ) {
+			chime = trap_S_RegisterSound( "sound/misc/menu1.wav", qfalse );
+		}
+	}
+	if ( chime ) {
+		trap_S_StartLocalSound( chime, CHAN_LOCAL_SOUND );
+	}
+}
+
+/*
 ===================
 CG_DrawReward
 ===================
@@ -3122,7 +3152,7 @@ static void CG_DrawReward( void ) {
 	}
 
 	// the row is done: up to four waiting medals line up together; the
-	// first one's announcer line plays, the others chime
+	// the rarest of a group is said, the others chime (CG_PushReward)
 	t = cg.time - medalRowTime;
 	// the modern layout shows one medal at a time, and a new one replaces it
 	// (the old one slides out under it)
@@ -3142,8 +3172,10 @@ static void CG_DrawReward( void ) {
 			medalRow[medalRowCount].name = cg.rewardName[1];
 			medalRow[medalRowCount].shader = cg.rewardShader[1];
 			medalRow[medalRowCount].count = cg.rewardCount[1];
-			if ( medalRowCount == 0 ) {
+			if ( cg.rewardVoice[1] ) {
 				trap_S_StartLocalSound( cg.rewardSound[1], CHAN_ANNOUNCER );
+			} else if ( medalRowCount == 0 ) {
+				CG_MedalChime();
 			}
 			medalRowCount++;
 			for ( i = 1 ; i < cg.rewardStack ; i++ ) {
@@ -3151,6 +3183,8 @@ static void CG_DrawReward( void ) {
 				cg.rewardShader[i] = cg.rewardShader[i+1];
 				cg.rewardCount[i] = cg.rewardCount[i+1];
 				cg.rewardName[i] = cg.rewardName[i+1];
+				cg.rewardVoice[i] = cg.rewardVoice[i+1];
+				cg.rewardGroup[i] = cg.rewardGroup[i+1];
 			}
 			cg.rewardStack--;
 		}
@@ -3577,6 +3611,25 @@ typedef struct {
 static banner_t	bannerShown;
 static banner_t	bannerQueue[BANNER_QUEUE];
 static int		bannerQueued;
+static banner_t	bannerWord;		// FIGHT, SUDDEN DEATH...: their own slot
+
+/*
+==============
+CG_BannerWord
+
+hud.md 7.5: a banner word replaces the shown one and leaves the event
+line queue alone
+==============
+*/
+void CG_BannerWord( const char *text ) {
+	if ( !text[0] ) {
+		return;
+	}
+	CG_Printf( "[skipnotify]%s\n", text );
+	Q_strncpyz( bannerWord.text, text, sizeof( bannerWord.text ) );
+	bannerWord.priority = 1;
+	bannerWord.time = cg.time;
+}
 
 /*
 ==============
@@ -3615,12 +3668,16 @@ void CG_EventBanner( const char *text, int priority ) {
 ==============
 CG_CenterPrint
 
-Quake III's centre text, now an event banner: "FIGHT!" leads the match
-flow, everything else (server text) comes last
+Centre text, now the event line: "FIGHT!" is a banner word, everything
+else (server text) comes last
 ==============
 */
 void CG_CenterPrint( const char *str, int y, int charWidth ) {
-	CG_EventBanner( str, !Q_stricmp( str, BG_String( STR_SYS_FIGHT ) ) ? 1 : 5 );
+	if ( !Q_stricmp( str, BG_String( STR_SYS_FIGHT ) ) ) {
+		CG_BannerWord( str );
+	} else {
+		CG_EventBanner( str, 5 );
+	}
 }
 
 /*
@@ -3639,6 +3696,42 @@ static void CG_DrawCenterString( void ) {
 
 	if ( !cg_eventBanner.integer ) {
 		bannerQueued = 0;
+		bannerWord.time = 0;
+		return;
+	}
+	// the banner word, in its own slot
+	if ( bannerWord.time && cg.time - bannerWord.time < BANNER_TIME && bannerWord.time <= cg.time ) {
+		fade = BANNER_TIME - ( cg.time - bannerWord.time );
+		color[3] = fade < 100 ? fade / 100.0f : 1;
+		if ( CG_HudModern() ) {
+			// 57 dp, its top at + 171, shrunk to fit the page width less 840 dp
+			float	h = 57 * DP, cw = h * 0.8f, bx, by;
+			float	room = ( 1080.0f * cgs.glconfig.vidWidth / cgs.glconfig.vidHeight - 840 ) * DP;
+			int		len = CG_DrawStrlen( bannerWord.text );
+
+			if ( len > 0 && len * cw > room ) {
+				cw = room / len;
+				h = cw / 0.8f;
+			}
+			CG_HudPlace( "bannerword", &bx, &by );
+			cg_hudAnchor = ANCHOR_CENTER;
+			w = len * cw;
+			CG_DrawStringExt( bx - w / 2, by, bannerWord.text, color, qfalse, qtrue, cw, h, 0 );
+		} else {
+			w = GIANTCHAR_WIDTH * CG_DrawStrlen( bannerWord.text );
+			CG_DrawStringExt( centre - w / 2, BANNER_Y + 60, bannerWord.text, color, qfalse, qtrue, GIANTCHAR_WIDTH, GIANTCHAR_HEIGHT, 0 );
+		}
+		color[3] = 1;
+	} else {
+		bannerWord.time = 0;
+	}
+	// messages.md 2.4: while the fragged-by panel shows, the event line is
+	// hidden and its queue held (the shown line keeps its time left)
+	if ( CG_HudModern() && cg.deathTime && cg.snap->ps.stats[STAT_HEALTH] <= 0
+		&& cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
+		if ( bannerShown.time ) {
+			bannerShown.time += cg.frametime;
+		}
 		return;
 	}
 	for ( i = 0 ; i < bannerQueued ; i++ ) {
@@ -3665,26 +3758,6 @@ static void CG_DrawCenterString( void ) {
 	if ( CG_HudModern() ) {
 		float	bx, by;
 
-		if ( bannerShown.priority == 1 ) {
-			// the banner word: 57 dp, its top at + 171, shrunk to fit the page
-			// width less 840 dp
-			float	h = 57 * DP, cw = h * 0.8f;
-			float	room = ( 1080.0f * cgs.glconfig.vidWidth / cgs.glconfig.vidHeight - 840 ) * DP;
-			int		len = CG_DrawStrlen( bannerShown.text );
-
-			if ( len > 0 && len * cw > room ) {
-				cw = room / len;
-				h = cw / 0.8f;
-			}
-			CG_HudPlace( "bannerword", &bx, &by );
-			cg_hudAnchor = ANCHOR_CENTER;
-			w = len * cw;
-			CG_DrawStringExt( bx - w / 2, by, bannerShown.text, color, qfalse, qtrue, cw, h, 0 );
-			return;
-		}
-		if ( cg.deathTime && cg.snap->ps.stats[STAT_HEALTH] <= 0 ) {
-			return;		// the fragged-by panel has the centre
-		}
 		CG_HudPlace( "eventline", &bx, &by );
 		cg_hudAnchor = ANCHOR_CENTER;
 		centre = bx;

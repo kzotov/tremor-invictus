@@ -167,7 +167,7 @@ static void G_RDUpdateHud( void ) {
 }
 
 static void G_RDAnnounce( const char *msg ) {
-	trap_SendServerCommand( -1, va( "cp \"%s\"", msg ) );
+	G_EventLine( -1, 1, msg );
 	trap_SendServerCommand( -1, va( "print \"%s\n\"", msg ) );
 }
 

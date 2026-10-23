@@ -629,6 +629,8 @@ typedef struct {
 	qhandle_t	rewardShader[MAX_REWARDSTACK];
 	qhandle_t	rewardSound[MAX_REWARDSTACK];
 	int			rewardName[MAX_REWARDSTACK];		// string id of a medal's name, 0 for the Quake III awards
+	qboolean	rewardVoice[MAX_REWARDSTACK];		// the announcer says it; else a chime
+	int			rewardGroup[MAX_REWARDSTACK];		// cg.time it arrived: one group per frame
 
 	// sound buffer mainly for announcer sounds
 	int			soundBufferCount;	// lines waiting, oldest first
@@ -1900,6 +1902,7 @@ void CG_AddOwnMissiles( void );
 //
 void CG_DemoFrame( void );
 void CG_EventBanner( const char *text, int priority );
+void CG_BannerWord( const char *text );
 void CG_FragBanner( const char *fragger, const char *victim, const char *line );
 void CG_AddSystemLine( const char *text );
 void CG_ConnectLine( const char *text );

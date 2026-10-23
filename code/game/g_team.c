@@ -630,7 +630,7 @@ void Team_ReturnFlag( int team ) {
 		PrintMsg(NULL, "The flag has returned!\n" );
 	}
 	else {
-		PrintMsg(NULL, "The %s flag has returned!\n", TeamName(team));
+		G_SysMsg( -1, team == TEAM_RED ? STR_EV_RED_FLAG_HOME : STR_EV_BLUE_FLAG_HOME, NULL, NULL );
 	}
 }
 
@@ -698,8 +698,7 @@ int Team_TouchOurFlag( gentity_t *ent, gentity_t *other, int team ) {
 
 	if ( ent->flags & FL_DROPPED_ITEM ) {
 		// hey, it's not home.  return it by teleporting it back
-		PrintMsg( NULL, "%s" S_COLOR_WHITE " returned the %s flag!\n", 
-			cl->pers.netname, TeamName(team));
+		G_SysMsg( -1, team == TEAM_RED ? STR_EV_RED_FLAG_RETURNED : STR_EV_BLUE_FLAG_RETURNED, cl->pers.netname, NULL );
 		AddScore(other, ent->r.currentOrigin, CTF_RECOVERY_BONUS);
 		other->client->pers.teamState.flagrecovery++;
 		other->client->pers.teamState.lastreturnedflag = level.time;
@@ -721,7 +720,7 @@ int Team_TouchOurFlag( gentity_t *ent, gentity_t *other, int team ) {
 	}
 	else {
 #endif
-	PrintMsg( NULL, "%s" S_COLOR_WHITE " captured the %s flag!\n", cl->pers.netname, TeamName(OtherTeam(team)));
+	G_SysMsg( -1, OtherTeam( team ) == TEAM_RED ? STR_EV_RED_FLAG_CAPTURED : STR_EV_BLUE_FLAG_CAPTURED, cl->pers.netname, NULL );
 #ifdef MISSIONPACK
 	}
 #endif
@@ -813,8 +812,7 @@ int Team_TouchEnemyFlag( gentity_t *ent, gentity_t *other, int team ) {
 	}
 	else{
 #endif
-		PrintMsg (NULL, "%s" S_COLOR_WHITE " got the %s flag!\n",
-			other->client->pers.netname, TeamName(team));
+		G_SysMsg( -1, team == TEAM_RED ? STR_EV_RED_FLAG_TAKEN : STR_EV_BLUE_FLAG_TAKEN, other->client->pers.netname, NULL );
 
 		if (team == TEAM_RED)
 			cl->ps.powerups[PW_REDFLAG] = INT_MAX; // flags never expire

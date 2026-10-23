@@ -420,11 +420,8 @@ Tells everyone a power-up is about to appear
 */
 static void G_PowerupWarning( gentity_t *ent ) {
 	gitem_t		*item = ent->item;
-	char		msg[MAX_STRING_CHARS];
 
-	Com_sprintf( msg, sizeof( msg ), BG_String( STR_POWERUP_WARNING ), item->pickup_name, g_powerupWarning.integer );
-
-	trap_SendServerCommand( -1, va( "cp \"%s\"", msg ) );
+	G_SysMsg( -1, item->giTag == PW_QUAD ? STR_EV_QUAD_SOON : STR_EV_PROTECTION_SOON, va( "%i", g_powerupWarning.integer ), NULL );
 	G_Announce( -1, item->giTag == PW_QUAD ? "quaddamagesoon" : "protectionsoon" );
 	ent->think = RespawnItem;
 	ent->nextthink = level.time + g_powerupWarning.integer * 1000;
@@ -560,6 +557,7 @@ void RespawnItem( gentity_t *ent ) {
 		}
 		te->s.eventParm = G_SoundIndex( "sound/items/poweruprespawn.wav" );
 		G_Announce( -1, ent->item->giTag == PW_QUAD ? "quaddamageavailable" : "protectionavailable" );
+		G_SysMsg( -1, ent->item->giTag == PW_QUAD ? STR_EV_QUAD_SPAWN : STR_EV_PROTECTION_SPAWN, NULL, NULL );
 		te->r.svFlags |= SVF_BROADCAST;
 	}
 
@@ -666,6 +664,7 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
 	if ( ent->item->giType == IT_POWERUP ) {
 		// after the item's own pickup sound, the announcer
 		G_Announce( -1, ent->item->giTag == PW_QUAD ? "quaddamagetaken" : "protectiontaken" );
+		G_SysMsg( -1, ent->item->giTag == PW_QUAD ? STR_EV_HAS_QUAD : STR_EV_HAS_PROTECTION, other->client->pers.netname, NULL );
 	}
 
 	// play the normal pickup sound
@@ -816,6 +815,10 @@ gentity_t *Drop_Item( gentity_t *ent, gitem_t *item, float angle ) {
 	vec3_t	velocity;
 	vec3_t	angles;
 
+	if ( g_gametype.integer == GT_CTF && ent->client && item->giType == IT_TEAM
+		&& ( item->giTag == PW_REDFLAG || item->giTag == PW_BLUEFLAG ) ) {
+		G_SysMsg( -1, item->giTag == PW_REDFLAG ? STR_EV_RED_FLAG_DROPPED : STR_EV_BLUE_FLAG_DROPPED, ent->client->pers.netname, NULL );
+	}
 	VectorCopy( ent->s.apos.trBase, angles );
 	angles[YAW] += angle;
 	angles[PITCH] = 0;	// always forward

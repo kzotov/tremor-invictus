@@ -14,6 +14,7 @@ weaponbar	right	bottom	198	274
 clock		centre	top		0	35
 clockline	centre	top		0	92
 killfeed	left	top		44	267
+teamoverlay	left	top		10	445
 pickups		right	top		50	150
 eventline	centre	top		0	337
 bannerword	centre	top		0	171

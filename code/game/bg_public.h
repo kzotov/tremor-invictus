@@ -1082,6 +1082,14 @@ typedef enum {
 	STR_HUD_RED,
 	STR_HUD_BLUE,
 	STR_HUD_TIED,
+	STR_EV_TAKEN_LEAD,				// event line, cgame only
+	STR_EV_TIED_LEAD,
+	STR_EV_LOST_LEAD,
+	STR_EV_5_MINUTES,
+	STR_EV_1_MINUTE,
+	STR_EV_QUAD_UP,
+	STR_CHAT_TEAM,					// "(TEAM)"
+	STR_CHAT_SPEC,
 	STR_JOIN_RED,					// "%s^7 joined the red team"
 	STR_JOIN_BLUE,
 	STR_JOIN_SPECTATORS,
@@ -1115,6 +1123,22 @@ typedef enum {
 	STR_SYS_VOTE_CALLED,
 	STR_SYS_RED_FULL,
 	STR_SYS_BLUE_FULL,
+	STR_EV_RED_FLAG_TAKEN,			// event line, priority 2: first of the objectives
+	STR_EV_BLUE_FLAG_TAKEN,
+	STR_EV_RED_FLAG_DROPPED,
+	STR_EV_BLUE_FLAG_DROPPED,
+	STR_EV_RED_FLAG_RETURNED,
+	STR_EV_BLUE_FLAG_RETURNED,
+	STR_EV_RED_FLAG_HOME,
+	STR_EV_BLUE_FLAG_HOME,
+	STR_EV_RED_FLAG_CAPTURED,
+	STR_EV_BLUE_FLAG_CAPTURED,		// last of the objectives
+	STR_EV_QUAD_SOON,				// event line, priority 3: first of the power-ups
+	STR_EV_PROTECTION_SOON,
+	STR_EV_QUAD_SPAWN,
+	STR_EV_PROTECTION_SPAWN,
+	STR_EV_HAS_QUAD,
+	STR_EV_HAS_PROTECTION,			// last of the power-ups
 	STR_SYS_FIGHT,				// keep last of the system-message range
 
 	STR_NUM_STRINGS

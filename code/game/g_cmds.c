@@ -934,11 +934,38 @@ static void G_SayTo( gentity_t *ent, gentity_t *other, int mode, int color, cons
 
 #define EC		"\x19"
 
+/*
+==================
+G_ChatName
+
+messages.md 2.6: the name in the real team colour (red or blue), white in
+free-for-all and duel; "(SPEC)" for a spectator while a match runs
+==================
+*/
+static void G_ChatName( gentity_t *ent, char *out, int size ) {
+	char	clean[MAX_NETNAME];
+	int		team = ent->client->sess.sessionTeam;
+	char	c = COLOR_WHITE;
+
+	Q_strncpyz( clean, ent->client->pers.netname, sizeof( clean ) );
+	Q_CleanStr( clean );
+	if ( g_gametype.integer >= GT_TEAM && team == TEAM_RED ) {
+		c = COLOR_RED;
+	} else if ( g_gametype.integer >= GT_TEAM && team == TEAM_BLUE ) {
+		c = COLOR_BLUE;
+	}
+	if ( team == TEAM_SPECTATOR && !level.warmupTime && !level.intermissiontime ) {
+		Com_sprintf( out, size, "%s %c%c%s", BG_String( STR_CHAT_SPEC ), Q_COLOR_ESCAPE, c, clean );
+	} else {
+		Com_sprintf( out, size, "%c%c%s", Q_COLOR_ESCAPE, c, clean );
+	}
+}
+
 void G_Say( gentity_t *ent, gentity_t *target, int mode, const char *chatText ) {
 	int			j;
 	gentity_t	*other;
 	int			color;
-	char		name[64];
+	char		name[128], who[64];
 	// don't let text be too long for malicious reasons
 	char		text[MAX_SAY_TEXT];
 	char		location[64];
@@ -952,21 +979,22 @@ void G_Say( gentity_t *ent, gentity_t *target, int mode, const char *chatText ) 
 		mode = SAY_ALL;
 	}
 
+	G_ChatName( ent, who, sizeof( who ) );
 	switch ( mode ) {
 	default:
 	case SAY_ALL:
 		G_LogPrintf( "say: %s: %s\n", ent->client->pers.netname, chatText );
-		Com_sprintf (name, sizeof(name), "%s%c%c"EC": ", ent->client->pers.netname, Q_COLOR_ESCAPE, COLOR_WHITE );
+		Com_sprintf (name, sizeof(name), "%s%c%c"EC": ", who, Q_COLOR_ESCAPE, COLOR_WHITE );
 		color = COLOR_GREEN;
 		break;
 	case SAY_TEAM:
 		G_LogPrintf( "sayteam: %s: %s\n", ent->client->pers.netname, chatText );
 		if (Team_GetLocationMsg(ent, location, sizeof(location)))
-			Com_sprintf (name, sizeof(name), EC"(%s%c%c"EC") (%s)"EC": ", 
-				ent->client->pers.netname, Q_COLOR_ESCAPE, COLOR_WHITE, location);
+			Com_sprintf (name, sizeof(name), EC"%s %s%c%c"EC" (%s)"EC": ",
+				BG_String( STR_CHAT_TEAM ), who, Q_COLOR_ESCAPE, COLOR_WHITE, location);
 		else
-			Com_sprintf (name, sizeof(name), EC"(%s%c%c"EC")"EC": ", 
-				ent->client->pers.netname, Q_COLOR_ESCAPE, COLOR_WHITE );
+			Com_sprintf (name, sizeof(name), EC"%s %s%c%c"EC""EC": ",
+				BG_String( STR_CHAT_TEAM ), who, Q_COLOR_ESCAPE, COLOR_WHITE );
 		color = COLOR_CYAN;
 		break;
 	case SAY_TELL:

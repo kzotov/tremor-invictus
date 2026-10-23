@@ -87,6 +87,45 @@ void G_Announce( int clientNum, const char *key ) {
 
 /*
 =================
+G_EventLine
+
+An event line at a priority (messages.md 2.4): 1 match flow, 2 objectives,
+3 power-ups, 4 lead and time, 5 server
+=================
+*/
+void G_EventLine( int clientNum, int priority, const char *text ) {
+	char	safe[MAX_STRING_CHARS], *p;
+
+	Q_strncpyz( safe, text, sizeof( safe ) );
+	for ( p = safe ; *p ; p++ ) {
+		if ( *p == '"' ) {
+			*p = '\'';
+		}
+	}
+	trap_SendServerCommand( clientNum, va( "evline %i \"%s\"", priority, safe ) );
+}
+
+/*
+=================
+G_BannerWord
+
+FIGHT, SUDDEN DEATH and the like: the banner word slot (hud.md 7.5)
+=================
+*/
+void G_BannerWord( const char *text ) {
+	char	safe[MAX_STRING_CHARS], *p;
+
+	Q_strncpyz( safe, text, sizeof( safe ) );
+	for ( p = safe ; *p ; p++ ) {
+		if ( *p == '"' ) {
+			*p = '\'';
+		}
+	}
+	trap_SendServerCommand( -1, va( "bword \"%s\"", safe ) );
+}
+
+/*
+=================
 G_ServerLine
 
 Map and admin text for the server line, quotes made safe

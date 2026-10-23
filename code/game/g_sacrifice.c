@@ -169,7 +169,7 @@ static void G_SacrificeAnnounce( int id, const char *name ) {
 	} else {
 		Q_strncpyz( msg, BG_String( id ), sizeof( msg ) );
 	}
-	trap_SendServerCommand( -1, va( "cp \"%s\"", msg ) );
+	G_EventLine( -1, 2, msg );
 	trap_SendServerCommand( -1, va( "print \"%s\n\"", msg ) );
 }
 
@@ -754,7 +754,7 @@ void G_SacrificeCheckRules( void ) {
 				sac.warned = qtrue;
 				Com_sprintf( msg, sizeof( msg ), BG_String( STR_SAC_SOUL_SOON ),
 					( SAC_SOUL_DELAY - ( level.time - sac.roundStart ) + 999 ) / 1000 );
-				trap_SendServerCommand( -1, va( "cp \"%s\"", msg ) );
+				G_EventLine( -1, 2, msg );
 			}
 			if ( level.time - sac.roundStart >= SAC_SOUL_DELAY ) {
 				G_SoulPlace( sac.soulSpawn, NULL );

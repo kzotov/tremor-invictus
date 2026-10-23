@@ -384,12 +384,12 @@ qboolean G_DuelCheckTime( void ) {
 	if ( g_overtime.integer > 0 ) {
 		level.overtimes++;
 		Com_sprintf( msg, sizeof( msg ), BG_String( STR_DUEL_OVERTIME ), ( g_overtime.integer + 59 ) / 60 );
-		trap_SendServerCommand( -1, va( "cp \"%s\"", msg ) );
+		G_EventLine( -1, 1, msg );
 		trap_SendServerCommand( -1, va( "print \"%s\n\"", msg ) );
 		G_Announce( -1, "overtime" );
 	} else if ( !level.overtimes ) {
 		level.overtimes = 1;
-		trap_SendServerCommand( -1, va( "cp \"%s\"", BG_String( STR_DUEL_SUDDEN_DEATH ) ) );
+		G_BannerWord( BG_String( STR_DUEL_SUDDEN_DEATH ) );
 		trap_SendServerCommand( -1, va( "print \"%s\n\"", BG_String( STR_DUEL_SUDDEN_DEATH ) ) );
 	}
 	return qtrue;
