@@ -249,6 +249,9 @@ void CG_DrawChar( int x, int y, int width, int height, int ch ) {
 }
 
 
+// set while drawing chat: ^4 draws as the palette blue
+qboolean	cg_drawTeamPalette;
+
 /*
 ==================
 CG_DrawStringExt
@@ -304,6 +307,10 @@ void CG_DrawStringExt( int x, int y, const char *string, const float *setColor,
 		if ( Q_IsColorString( s ) ) {
 			if ( !forceColor ) {
 				memcpy( color, g_color_table[ColorIndex(*(s+1))], sizeof( color ) );
+				if ( cg_drawTeamPalette && ColorIndex( *( s + 1 ) ) == ColorIndex( COLOR_BLUE ) ) {
+					// hud.md palette blue #0099FF for team names in chat
+					color[0] = 0; color[1] = 0.6f; color[2] = 1;
+				}
 				color[3] = setColor[3];
 				trap_R_SetColor( color );
 			}

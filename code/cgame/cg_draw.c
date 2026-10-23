@@ -1223,6 +1223,7 @@ static void CG_DrawChat( void ) {
 	if ( rows > CHAT_HISTORY ) {
 		rows = CHAT_HISTORY;
 	}
+	cg_drawTeamPalette = qtrue;		// messages.md: names in the real team blue
 	for ( i = 0 ; i < rows ; i++ ) {
 		c = &chatLines[( chatHead - 1 - i + CHAT_HISTORY * 2 ) % CHAT_HISTORY];
 		if ( !c->time || c->time > cg.time ) {
@@ -1250,6 +1251,7 @@ static void CG_DrawChat( void ) {
 			y -= SMALLCHAR_HEIGHT + 2;
 		}
 	}
+	cg_drawTeamPalette = qfalse;
 }
 
 /*
