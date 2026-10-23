@@ -1947,6 +1947,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"%s^7 is not on the team any more",
 	"%s^7 is the new team leader",
 	"%s^7 is not a player on your team",
+	"ROUND %i",
+	"OVERTIME",
 	"%s^7 HAS THE RED FLAG",
 	"%s^7 HAS THE BLUE FLAG",
 	"%s^7 DROPPED THE RED FLAG",

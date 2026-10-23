@@ -1659,7 +1659,7 @@ and the time limit, then the duel bar, the team bar or the free-for-all
 standings
 =================
 */
-static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit ) {
+static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, qboolean overtime ) {
 	static vec4_t	pale = { 1, 0.871f, 0.624f, 1 }, grey = { 0.75f, 0.75f, 0.75f, 1 }, darkGrey = { 0.6f, 0.6f, 0.6f, 1 };
 	static vec4_t	red = { 1, 0.3f, 0.3f, 1 }, ourBlue = { 0, 0.6f, 1, 1 }, theirRed = { 1, 0.22f, 0.22f, 1 };
 	static vec4_t	box = { 0, 0, 0, 0.45f };
@@ -1681,10 +1681,25 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit )
 		clockX -= 248;
 		lineX -= 248;
 	}
-	CG_TopText( clockX, clockTop - 19, 20, cg.warmup ? BG_String( STR_WARMUP ) : CG_ModeString(), cg.warmup ? pale : grey, 0 );
+	{
+		// the label: WARM-UP, ROUND n in Clan Arena and Sacrifice (rounds won
+		// so far + 1), else the mode
+		const char	*info = CG_ConfigString( CS_SERVERINFO ), *label = CG_ModeString();
+
+		if ( cg.warmup ) {
+			label = BG_String( STR_WARMUP );
+		} else if ( cgs.gametype >= GT_TEAM && ( atoi( Info_ValueForKey( info, "g_clanArena" ) )
+			|| atoi( Info_ValueForKey( info, "g_sacrifice" ) ) ) ) {
+			label = va( (char *)BG_String( STR_HUD_ROUND ), cgs.scores1 + cgs.scores2 + 1 );
+		}
+		CG_TopText( clockX, clockTop - 19, 20, label, cg.warmup ? pale : grey, 0 );
+	}
 	if ( !cg.warmup ) {
 		CG_TopText( clockX, clockTop, 45, clock, finalSeconds ? red : colorWhite, 0 );
-		if ( limit ) {
+		// the limit line, OVERTIME once the clock runs past it
+		if ( overtime ) {
+			CG_TopText( lineX, lineTop, 18, BG_String( STR_HUD_OVERTIME ), red, 0 );
+		} else if ( limit ) {
 			CG_TopText( lineX, lineTop, 18, va( "%i:00", limit ), grey, 0 );
 		}
 	}
@@ -1822,7 +1837,7 @@ Top centre: the clock counting down to the limit, and the scores
 static void CG_DrawHudClock( void ) {
 	const char	*info = CG_ConfigString( CS_SERVERINFO );
 	int			limit = cgs.timelimit, msec, mins, secs, w, ty;
-	qboolean	finalSeconds;
+	qboolean	finalSeconds, overtime;
 	const char	*s;
 	vec4_t		red = { 1, 0.3f, 0.3f, 1 }, blue = { 0.3f, 0.5f, 1, 1 };
 
@@ -1836,19 +1851,21 @@ static void CG_DrawHudClock( void ) {
 	if ( cg.warmup ) {
 		msec = 0;
 	}
-	if ( limit ) {
+	// past the limit (overtime) the clock counts up from it
+	overtime = limit && !cg.warmup && msec > limit * 60000;
+	if ( limit && !overtime ) {
 		msec = limit * 60000 - msec;
 		if ( msec < 0 ) {
 			msec = 0;
 		}
 	}
-	finalSeconds = limit && !cg.warmup && msec < 10000;		// red for the last 10 s
+	finalSeconds = limit && !cg.warmup && !overtime && msec < 10000;		// red for the last 10 s
 	secs = msec / 1000;
 	mins = secs / 60;
 	secs %= 60;
 	s = va( "%i:%02i", mins, secs );
 	if ( CG_HudModern() ) {
-		CG_DrawTopBar( s, finalSeconds, limit );
+		CG_DrawTopBar( s, finalSeconds, limit, overtime );
 		return;
 	}
 	w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;

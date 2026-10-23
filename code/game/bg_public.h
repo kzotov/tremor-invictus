@@ -1183,6 +1183,8 @@ typedef enum {
 	STR_SYS_LEADER_LEFT,
 	STR_SYS_NEW_LEADER,
 	STR_SYS_NOT_TEAM_PLAYER,
+	STR_HUD_ROUND,					// "ROUND %i": the top bar label in round modes
+	STR_HUD_OVERTIME,
 	STR_EV_RED_FLAG_TAKEN,			// event line, priority 2: first of the objectives
 	STR_EV_BLUE_FLAG_TAKEN,
 	STR_EV_RED_FLAG_DROPPED,
