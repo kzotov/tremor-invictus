@@ -3076,7 +3076,7 @@ static void PM_Ability( void ) {
 			time = 0;
 			pm->ps->stats[STAT_MOVE_STATE] = 0;
 			pm->ps->stats[STAT_HOOK] = pm->cmd.upmove >= 10 ? HOOK_JUMP_DOWN : 0;
-			pm->ps->stats[STAT_HOOK_MOVED] = 0;
+			HOOK_SET_MOVED( pm->ps, 0 );
 			VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
 			VectorNormalize( dir );
 			VectorMA( pm->ps->velocity, bg_pmoveSettings.hookImpulse, dir, pm->ps->velocity );
@@ -3132,7 +3132,7 @@ static void PM_Ability( void ) {
 					if ( time >= HOOK_STUCK_MSEC && moved < HOOK_STUCK_DIST ) {
 						arrived = qtrue;
 					}
-					pm->ps->stats[STAT_HOOK_MOVED] = 0;		// a new window
+					HOOK_SET_MOVED( pm->ps, 0 );		// a new window
 				}
 				// the rope cut: the line blocked for 0.6 s
 				pm->trace( &tr, pm->ps->origin, NULL, NULL, pm->ps->grapplePoint, pm->ps->clientNum, MASK_SOLID );
@@ -3779,10 +3779,10 @@ void PmoveSingle (pmove_t *pmove) {
 	if ( BG_AbilityState( pm->ps ) == ABILITY_HOOK_PULL ) {
 		float	moved = HOOK_MOVED( pm->ps ) + Distance( pm->ps->origin, pml.previous_origin );
 
-		if ( moved > 2000 ) {
-			moved = 2000;
+		if ( moved > HOOK_MOVED_MAX ) {
+			moved = HOOK_MOVED_MAX;
 		}
-		pm->ps->stats[STAT_HOOK_MOVED] = (int)( moved * 16 );
+		HOOK_SET_MOVED( pm->ps, moved );
 	}
 
 	// weapons
