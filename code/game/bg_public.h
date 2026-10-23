@@ -1484,6 +1484,7 @@ typedef struct {
 	float	hookPullMax;
 	float	hookDeadZone;
 	float	hookSwingMax;
+	float	hookSwingGravity;
 
 	float	rampJumpScale;
 	float	rampJumpMax;

@@ -133,6 +133,7 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_hookPullMax",		"700",	&bg_pmoveSettings.hookPullMax },
 	{ {0}, "pm_hookDeadZone",		"40",	&bg_pmoveSettings.hookDeadZone },
 	{ {0}, "pm_hookSwingMax",		"1000",	&bg_pmoveSettings.hookSwingMax },
+	{ {0}, "pm_hookSwingGravity",	"800",	&bg_pmoveSettings.hookSwingGravity },
 
 	{ {0}, "pm_rampJumpScale",		"1",	&bg_pmoveSettings.rampJumpScale },
 	{ {0}, "pm_rampJumpMax",		"600",	&bg_pmoveSettings.rampJumpMax },
@@ -2974,7 +2975,8 @@ static void PM_EndAbility( void ) {
 #define HOOK_SWING_HOLD			50		// held this long, the button swings
 #define HOOK_SWING_AFTER		100		// from this long into the pull
 #define HOOK_SWING_CLEAR		20		// the swinging rope keeps her this high
-#define HOOK_SWING_STEPS		6		// half-seconds of swing (3 s)
+#define HOOK_SWING_TIME			3000	// a swing ends after this long
+#define HOOK_SWING_TURN			250		// the entry speed turns sideways over this long
 #define HOOK_ROPE_MASK			4095
 
 /*
@@ -3125,7 +3127,7 @@ static void PM_Ability( void ) {
 					arrived = qtrue;
 				}
 				// a swing ends after 3 s
-				if ( pm->ps->stats[STAT_MOVE_STATE] > 0 && ( ( pm->ps->stats[STAT_MOVE_STATE] >> 12 ) & 7 ) >= HOOK_SWING_STEPS ) {
+				if ( pm->ps->stats[STAT_MOVE_STATE] > 0 && time >= HOOK_SWING_TIME ) {
 					arrived = qtrue;
 				}
 				// a landing from the air (a hook thrown from the ground stays)
@@ -3398,6 +3400,20 @@ static void PM_CheckRushBlocked( void ) {
 
 /*
 ================
+PM_HookOnPlayer
+
+Whether the hook holds a player: the line to the point ends on a body
+================
+*/
+static qboolean PM_HookOnPlayer( void ) {
+	trace_t	tr;
+
+	pm->trace( &tr, pm->ps->origin, NULL, NULL, pm->ps->grapplePoint, pm->ps->clientNum, CONTENTS_BODY );
+	return tr.fraction < 1 && tr.entityNum < MAX_CLIENTS && Distance( tr.endpos, pm->ps->grapplePoint ) < 64;
+}
+
+/*
+================
 PM_HookMove
 
 Athena's hook. Holding the ability button locks the rope and swings;
@@ -3407,33 +3423,37 @@ otherwise the hook pulls, speeding up to the top pull speed
 static void PM_HookMove( void ) {
 	vec3_t	dir;
 	float	dist, rope, radial, pull, speed;
-	int		state = pm->ps->stats[STAT_MOVE_STATE], time = pm->ps->stats[STAT_ABILITY_TIME], steps;
+	int		state = pm->ps->stats[STAT_MOVE_STATE], time = pm->ps->stats[STAT_ABILITY_TIME];
 
 	VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
 	dist = VectorNormalize( dir );
 	radial = DotProduct( pm->ps->velocity, dir );
 
 	// movement.md hook swing: STAT_MOVE_STATE counts the button's hold below
-	// 0 until the swing starts (held 0.05 s, from 0.1 s into the pull),
-	// then holds the rope length (bits 0-11) and the swing's half-seconds
-	// (bits 12-14; it ends at 3 s, in the ability code)
+	// 0 until the swing starts (held 0.05 s, from 0.1 s into the pull), then
+	// holds the rope length; the ability timer restarts with the swing (it
+	// ends at 3 s, in the ability code)
 	if ( pml.abilityHeld && state <= 0 ) {
 		state -= pml.msec;
 		if ( -state >= HOOK_SWING_HOLD && time >= HOOK_SWING_AFTER ) {
-			state = (int)( dist < 1 ? 1 : dist > HOOK_ROPE_MASK ? HOOK_ROPE_MASK : dist );
+			if ( PM_HookOnPlayer() ) {
+				state = -HOOK_SWING_HOLD;		// no swing on a player: keep pulling
+			} else if ( pm->ps->groundEntityNum != ENTITYNUM_NONE ) {
+				PM_EndAbility();		// on the ground the hold lets go instead
+				return;
+			} else {
+				state = (int)( dist < 1 ? 1 : dist > HOOK_ROPE_MASK ? HOOK_ROPE_MASK : dist );
+				pm->ps->stats[STAT_ABILITY_TIME] = time = 0;
+			}
 		}
 		pm->ps->stats[STAT_MOVE_STATE] = state;
 	}
 	if ( pml.abilityHeld && state > 0 ) {
 		trace_t	tr;
-		vec3_t	down;
-		float	gap;
+		vec3_t	down, side;
+		float	gap, turn;
 
 		rope = state & HOOK_ROPE_MASK;
-		steps = ( state >> 12 ) & 7;
-		if ( time / 500 != ( time + pml.msec ) / 500 && steps < 7 ) {
-			steps++;
-		}
 		// the rope shortens to keep her 20 u above the ground
 		VectorCopy( pm->ps->origin, down );
 		down[2] += pm->mins[2] - HOOK_SWING_CLEAR;
@@ -3447,13 +3467,40 @@ static void PM_HookMove( void ) {
 				}
 			}
 		}
-		pm->ps->stats[STAT_MOVE_STATE] = (int)rope | ( steps << 12 );
+		pm->ps->stats[STAT_MOVE_STATE] = (int)rope;
+		// the entry speed toward the point turns sideways, evenly over the
+		// swing's first 0.25 s (4x its size each second)
+		if ( time < HOOK_SWING_TURN && radial > 0 ) {
+			VectorMA( pm->ps->velocity, -radial, dir, side );
+			if ( VectorNormalize( side ) < 1 ) {
+				VectorMA( pml.forward, -DotProduct( pml.forward, dir ), dir, side );
+				if ( VectorNormalize( side ) < 0.1f ) {
+					VectorMA( pml.right, -DotProduct( pml.right, dir ), dir, side );
+					VectorNormalize( side );
+				}
+			}
+			turn = radial * pml.msec / (float)( HOOK_SWING_TURN - time );
+			if ( turn > radial ) {
+				turn = radial;
+			}
+			VectorMA( pm->ps->velocity, -turn, dir, pm->ps->velocity );
+			VectorMA( pm->ps->velocity, turn, side, pm->ps->velocity );
+			radial -= turn;
+		}
 		if ( dist >= rope ) {
-			// taut rope: no moving away, and take up any slack
+			// taut rope: back onto the rope's sphere, and no moving away
+			if ( dist > rope ) {
+				vec3_t	end;
+
+				VectorMA( pm->ps->origin, dist - rope, dir, end );
+				pm->trace( &tr, pm->ps->origin, pm->mins, pm->maxs, end, pm->ps->clientNum, pm->tracemask );
+				if ( !tr.allsolid ) {
+					VectorCopy( tr.endpos, pm->ps->origin );
+				}
+			}
 			if ( radial < 0 ) {
 				VectorMA( pm->ps->velocity, -radial, dir, pm->ps->velocity );
 			}
-			VectorMA( pm->ps->velocity, ( dist - rope ) * 10, dir, pm->ps->velocity );
 		}
 		speed = VectorLength( pm->ps->velocity );
 		if ( speed > bg_pmoveSettings.hookSwingMax ) {
@@ -3888,7 +3935,14 @@ void Pmove (pmove_t *pmove) {
 			}
 		}
 		pmove->cmd.serverTime = pmove->ps->commandTime + msec;
-		if ( BG_AbilityState( pmove->ps ) == ABILITY_RUSH ) {
+		if ( BG_AbilityState( pmove->ps ) == ABILITY_HOOK_PULL ) {
+			// abilities.md, Athena: no gravity on the pull, 800 u/s/s on the swing
+			int		gravity = pmove->ps->gravity;
+
+			pmove->ps->gravity = pmove->ps->stats[STAT_MOVE_STATE] > 0 ? (int)bg_pmoveSettings.hookSwingGravity : 0;
+			PmoveSingle( pmove );
+			pmove->ps->gravity = gravity;
+		} else if ( BG_AbilityState( pmove->ps ) == ABILITY_RUSH ) {
 			// the bull rush falls faster
 			int		gravity = pmove->ps->gravity;
 
