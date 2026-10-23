@@ -410,6 +410,7 @@ int G_LobbyFrozenChampion( int clientNum ) {
 			return champion;
 		}
 	}
+	return -1;		// (not reached: the loop returns)
 }
 
 /*
