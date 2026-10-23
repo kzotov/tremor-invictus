@@ -37,7 +37,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "ui_local.h"
 
-#define CS_SLOTS		12		// maps on a page
+#define CS_SLOTS		64		// names in the list (a page)
 #define CS_MAX_MAPS		256
 
 typedef struct {
@@ -93,7 +93,7 @@ static int CS_TypeBits( const char *types ) {
 	return bits;
 }
 
-// the page of maps into ui_csMap<n> (name) and ui_csShot<n> (levelshot)
+// the page of maps into ui_csMap<n> (names), the picked one's levelshot into ui_csShotSel
 static void CS_PublishPage( void ) {
 	const char	*info;
 	char		map[MAX_QPATH];
@@ -105,20 +105,22 @@ static void CS_PublishPage( void ) {
 			info = UI_GetArenaInfoByNumber( cs.maps[n] );
 			Q_strncpyz( map, Info_ValueForKey( info, "map" ), sizeof( map ) );
 			trap_Cvar_Set( va( "ui_csMap%i", i ), Info_ValueForKey( info, "longname" )[0] ? Info_ValueForKey( info, "longname" ) : map );
-			trap_Cvar_Set( va( "ui_csShot%i", i ), va( "levelshots/%s", map ) );
 		} else {
 			trap_Cvar_Set( va( "ui_csMap%i", i ), "" );
-			trap_Cvar_Set( va( "ui_csShot%i", i ), "" );
 		}
 	}
 	trap_Cvar_Set( "ui_csPicked", cs.picked >= cs.page * CS_SLOTS && cs.picked < ( cs.page + 1 ) * CS_SLOTS
 		? va( "%i", cs.picked - cs.page * CS_SLOTS ) : "-1" );
 	trap_Cvar_Set( "ui_csPageText", va( "%i / %i", cs.page + 1, ( cs.numMaps + CS_SLOTS - 1 ) / CS_SLOTS > 0 ? ( cs.numMaps + CS_SLOTS - 1 ) / CS_SLOTS : 1 ) );
+	trap_Cvar_Set( "ui_csPages", va( "%i", ( cs.numMaps + CS_SLOTS - 1 ) / CS_SLOTS ) );
+	// the one preview: the selected map's levelshot
 	if ( cs.picked >= 0 && cs.picked < cs.numMaps ) {
 		info = UI_GetArenaInfoByNumber( cs.maps[cs.picked] );
 		trap_Cvar_Set( "ui_csMapName", Info_ValueForKey( info, "longname" )[0] ? Info_ValueForKey( info, "longname" ) : Info_ValueForKey( info, "map" ) );
+		trap_Cvar_Set( "ui_csShotSel", va( "levelshots/%s", Info_ValueForKey( info, "map" ) ) );
 	} else {
 		trap_Cvar_Set( "ui_csMapName", "" );
+		trap_Cvar_Set( "ui_csShotSel", "" );
 	}
 }
 

@@ -19,45 +19,14 @@
 			<button class="opt mode" data-class="on:ui_csModeShown=unholytrinity" onclick="ui_csMode unholytrinity">[mode_unholytrinity]</button>
 			<button class="opt mode" data-when="ui_csPractice=1" data-class="on:ui_csModeShown=movement" onclick="ui_csMode movement">[mode_movement]</button>
 		</div>
-		<div class="maps">
-			<div class="map" data-when="ui_csMap0!=" data-class="on:ui_csPicked=0" onclick="ui_csPick 0">
-				<img data-src-cvar="ui_csShot0"/><span data-text-cvar="ui_csMap0"></span>
-			</div>
-			<div class="map" data-when="ui_csMap1!=" data-class="on:ui_csPicked=1" onclick="ui_csPick 1">
-				<img data-src-cvar="ui_csShot1"/><span data-text-cvar="ui_csMap1"></span>
-			</div>
-			<div class="map" data-when="ui_csMap2!=" data-class="on:ui_csPicked=2" onclick="ui_csPick 2">
-				<img data-src-cvar="ui_csShot2"/><span data-text-cvar="ui_csMap2"></span>
-			</div>
-			<div class="map" data-when="ui_csMap3!=" data-class="on:ui_csPicked=3" onclick="ui_csPick 3">
-				<img data-src-cvar="ui_csShot3"/><span data-text-cvar="ui_csMap3"></span>
-			</div>
-			<div class="map" data-when="ui_csMap4!=" data-class="on:ui_csPicked=4" onclick="ui_csPick 4">
-				<img data-src-cvar="ui_csShot4"/><span data-text-cvar="ui_csMap4"></span>
-			</div>
-			<div class="map" data-when="ui_csMap5!=" data-class="on:ui_csPicked=5" onclick="ui_csPick 5">
-				<img data-src-cvar="ui_csShot5"/><span data-text-cvar="ui_csMap5"></span>
-			</div>
-			<div class="map" data-when="ui_csMap6!=" data-class="on:ui_csPicked=6" onclick="ui_csPick 6">
-				<img data-src-cvar="ui_csShot6"/><span data-text-cvar="ui_csMap6"></span>
-			</div>
-			<div class="map" data-when="ui_csMap7!=" data-class="on:ui_csPicked=7" onclick="ui_csPick 7">
-				<img data-src-cvar="ui_csShot7"/><span data-text-cvar="ui_csMap7"></span>
-			</div>
-			<div class="map" data-when="ui_csMap8!=" data-class="on:ui_csPicked=8" onclick="ui_csPick 8">
-				<img data-src-cvar="ui_csShot8"/><span data-text-cvar="ui_csMap8"></span>
-			</div>
-			<div class="map" data-when="ui_csMap9!=" data-class="on:ui_csPicked=9" onclick="ui_csPick 9">
-				<img data-src-cvar="ui_csShot9"/><span data-text-cvar="ui_csMap9"></span>
-			</div>
-			<div class="map" data-when="ui_csMap10!=" data-class="on:ui_csPicked=10" onclick="ui_csPick 10">
-				<img data-src-cvar="ui_csShot10"/><span data-text-cvar="ui_csMap10"></span>
-			</div>
-			<div class="map" data-when="ui_csMap11!=" data-class="on:ui_csPicked=11" onclick="ui_csPick 11">
-				<img data-src-cvar="ui_csShot11"/><span data-text-cvar="ui_csMap11"></span>
-			</div>
+		<div class="maplist">
+			<div class="mrow" data-repeat="64" data-when="ui_csMap#!=" data-class="on:ui_csPicked=#" onclick="ui_csPick #"><span data-text-cvar="ui_csMap#"></span></div>
 		</div>
-		<div class="pager">
+		<div class="preview" data-when="ui_csShotSel!=">
+			<img data-src-cvar="ui_csShotSel"/>
+			<div class="pname" data-text-cvar="ui_csMapName"></div>
+		</div>
+		<div class="pager" data-when="ui_csPages>1">
 			<button class="opt" onclick="ui_csPage -1">&lt;</button>
 			<span data-text-cvar="ui_csPageText"></span>
 			<button class="opt" onclick="ui_csPage 1">&gt;</button>

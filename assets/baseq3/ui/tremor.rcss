@@ -876,6 +876,56 @@ button.small {
 	height: 150dp;
 }
 
+/* the map list: names A to Z, one preview of the picked map beside it */
+.create .maplist {
+	display: inline-block;
+	width: 26%;
+	height: 560dp;
+	overflow-y: auto;
+	background-color: #16171bf0;
+	border: 3dp #26272c;
+	vertical-align: top;
+}
+
+.create .mrow {
+	display: block;
+	padding: 6dp 14dp;
+	font-size: 24dp;
+	color: #c8c4bc;
+	cursor: pointer;
+}
+
+.create .mrow:hover {
+	background-color: #26272c;
+	color: #f2efe9;
+}
+
+.create .mrow.on {
+	background-color: #d3191f;
+	color: #f2efe9;
+}
+
+.create .preview {
+	display: inline-block;
+	width: 36%;
+	margin-left: 2%;
+	vertical-align: top;
+}
+
+.create .preview img {
+	display: block;
+	width: 100%;
+	height: 400dp;
+	border: 3dp #d3191f;
+}
+
+.create .preview .pname {
+	display: block;
+	font-size: 30dp;
+	color: #f2efe9;
+	margin-top: 10dp;
+}
+
 .create .pager {
 	display: block;
 	font-size: 24dp;
