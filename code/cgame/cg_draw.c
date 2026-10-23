@@ -2258,7 +2258,9 @@ static void CG_DrawHud( void ) {
 	CG_DrawAbilityIcon( 320, 452, 34 );
 	maxCharges = BG_AbilityParam( BG_Champion( ps->stats[STAT_CHAMPION] )->active, AP_CHARGES );
 	charges = BG_AbilityCharges( ps );
-	if ( maxCharges > 1 ) {
+	if ( BG_Champion( ps->stats[STAT_CHAMPION] )->active == ACTIVE_TOTEM ) {
+		CG_DrawChargeIcons( ACTIVE_TOTEM, ps->stats[STAT_TOTEMS] & 0xffff, TOTEMS_SHOWN );		// totems standing
+	} else if ( maxCharges > 1 ) {
 		CG_DrawChargeIcons( BG_Champion( ps->stats[STAT_CHAMPION] )->active, charges, maxCharges );
 	}
 	// Xaero's banked Leaping Kicks
@@ -6140,7 +6142,12 @@ static void CG_DrawModernHud( void ) {
 	}
 	CG_DrawAbilityIcon( x, y, 32 );
 	maxCharges = BG_AbilityParam( champ->active, AP_CHARGES );
-	if ( maxCharges > 1 ) {
+	if ( champ->active == ACTIVE_TOTEM ) {
+		// Galena: the totems standing instead (one charge at a time)
+		chargeIconsY = y - 30 - 20;
+		CG_DrawChargeIcons( champ->active, ps->stats[STAT_TOTEMS] & 0xffff, TOTEMS_SHOWN );
+		chargeIconsY = 470;
+	} else if ( maxCharges > 1 ) {
 		chargeIconsY = y - 30 - 20;		// on top of the ring, clear of the name
 		CG_DrawChargeIcons( champ->active, BG_AbilityCharges( ps ), maxCharges );
 		chargeIconsY = 470;

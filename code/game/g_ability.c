@@ -1544,6 +1544,20 @@ Per-frame work for a client: acid blobs in a row, burning and poison
 void G_AbilityClientThink( gentity_t *ent ) {
 	gclient_t	*client = ent->client;
 
+	// Galena: how many of her totems stand, for the HUD's marks
+	if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_TOTEM ) {
+		gentity_t	*other;
+		int			i, count = 0;
+
+		for ( i = MAX_CLIENTS, other = &g_entities[MAX_CLIENTS] ; i < level.num_entities ; i++, other++ ) {
+			if ( other->inuse && other->parent == ent && other->s.eType == ET_GENERAL && other->classname
+				&& !strcmp( other->classname, "totem" ) ) {
+				count++;
+			}
+		}
+		client->ps.stats[STAT_TOTEMS] = count;
+	}
+
 	if ( G_AbilityActive( ent, ACTIVE_ACIDSPIT ) ) {
 		while ( client->abilityShots < g_acidBlobs.integer && level.time >= client->abilityShotTime ) {
 			G_SpitAcid( ent );

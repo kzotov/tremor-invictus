@@ -1565,6 +1565,10 @@ typedef enum {
 #define	HOOK_SWINGING			0x2000
 #define	HOOK_ON_PLAYER			0x4000		// set by the game when the hook bites a player
 
+// Galena's totems standing, for the HUD, in STAT_TAPS (she has no air-dodge)
+#define	STAT_TOTEMS				STAT_TAPS
+#define	TOTEMS_SHOWN			3		// marks above the ring (g_totemMax's default)
+
 // Xaero's Leaping Kick in STAT_TAPS (free for champions without air-dodge):
 // kicks banked in bits 0-1, air control left in 100 ms units in bits 2-7,
 // bit 8 while the kick passes through players
