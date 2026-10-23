@@ -211,6 +211,9 @@ void Cmd_MapVote_f( gentity_t *ent ) {
 	int		n, clientNum = ent - g_entities;
 
 	if ( G_LobbyVoteOpen() ) {
+		if ( ent->client->sess.sessionTeam == TEAM_SPECTATOR && g_gametype.integer != GT_TOURNAMENT ) {
+			return;		// players only; in duel the queue votes too
+		}
 		trap_Argv( 1, arg, sizeof( arg ) );
 		n = atoi( arg );
 		if ( n >= 1 && n <= mapVoteCount && n != mapVoteOf[clientNum]
@@ -336,6 +339,46 @@ static qboolean G_LobbyVoteOpen( void ) {
 
 /*
 =================
+G_LobbyHidesPicks
+
+A classic duel's blind pick: every champion hidden until the pick ends
+=================
+*/
+qboolean G_LobbyHidesPicks( void ) {
+	return lobbyPhase != LOBBY_OFF && lobbyPhase < LOBBY_START && G_LobbyPickMode() == 1;
+}
+
+/*
+=================
+G_LobbyFrozenChampion
+
+A classic duel's lobby pick, kept from its reveal to the end of the match
+(g_lobbyPicks "client:champion ..."); -1 when nothing is held
+=================
+*/
+int G_LobbyFrozenChampion( int clientNum ) {
+	char	picks[MAX_CVAR_VALUE_STRING], *p, *token;
+	int		client, champion;
+
+	if ( !g_lobby.integer || G_LobbyPickMode() != 1 || ( lobbyPhase != LOBBY_START && lobbyPhase != LOBBY_OFF ) ) {
+		return -1;
+	}
+	trap_Cvar_VariableStringBuffer( "g_lobbyPicks", picks, sizeof( picks ) );
+	p = picks;
+	while ( 1 ) {
+		token = COM_Parse( &p );
+		if ( !token[0] ) {
+			return -1;
+		}
+		if ( sscanf( token, "%i:%i", &client, &champion ) == 2 && client == clientNum
+			&& champion >= 0 && champion < bg_numChampions ) {
+			return champion;
+		}
+	}
+}
+
+/*
+=================
 G_LobbyActive
 
 True while the lobby holds the match back
@@ -374,7 +417,7 @@ static void G_LobbySend( void ) {
 				continue;
 			}
 			Q_strcat( text, sizeof( text ), va( " %i:%i:%i", i,
-				mode == 1 && lobbyPhase == LOBBY_PICK ? -1 : cl->pers.champion, lobbyLocked[i] ) );
+				G_LobbyHidesPicks() ? -1 : cl->pers.champion, lobbyLocked[i] ) );
 		}
 	}
 	if ( strcmp( text, last ) ) {
@@ -420,6 +463,7 @@ The intermission: the next match gets a lobby of its own
 void G_LobbyEndMatch( void ) {
 	if ( g_lobby.integer ) {
 		trap_Cvar_Set( "g_lobbyState", "" );
+		trap_Cvar_Set( "g_lobbyPicks", "" );
 	}
 }
 
@@ -429,7 +473,7 @@ Cmd_LobbyLock_f
 =================
 */
 void Cmd_LobbyLock_f( gentity_t *ent ) {
-	if ( lobbyPhase == LOBBY_PICK || lobbyPhase == LOBBY_REVEAL || lobbyPhase == LOBBY_VOTE || lobbyPhase == LOBBY_SOON ) {
+	if ( lobbyPhase == LOBBY_PICK ) {
 		lobbyLocked[ent - g_entities] = qtrue;
 		G_LobbySend();
 	}
@@ -522,8 +566,19 @@ void G_LobbyThink( void ) {
 			}
 			lobbyPhase = LOBBY_START;
 			lobbyEnd = level.time + LOBBY_START_MSEC;
-			// a blind pick is shown to all now
+			// a blind pick is held from here to the match's end and shown to
+			// all now
 			if ( G_LobbyPickMode() == 1 ) {
+				char	picks[MAX_CVAR_VALUE_STRING];
+
+				picks[0] = 0;
+				for ( i = 0 ; i < level.maxclients ; i++ ) {
+					cl = &level.clients[i];
+					if ( cl->pers.connected == CON_CONNECTED && cl->sess.sessionTeam != TEAM_SPECTATOR ) {
+						Q_strcat( picks, sizeof( picks ), va( "%i:%i ", i, cl->pers.champion ) );
+					}
+				}
+				trap_Cvar_Set( "g_lobbyPicks", picks );
 				for ( i = 0 ; i < level.maxclients ; i++ ) {
 					if ( level.clients[i].pers.connected == CON_CONNECTED ) {
 						ClientUserinfoChanged( i );

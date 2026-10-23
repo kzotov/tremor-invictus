@@ -2005,6 +2005,10 @@ Once a frame, check for changes in tournement player state
 void CheckTournament( void ) {
 	// the pre-match lobby first: no warm-up countdown until it is done
 	if ( G_LobbyActive() ) {
+		// a queued duellist still comes in to the empty place
+		if ( g_gametype.integer == GT_TOURNAMENT && level.numPlayingClients < 2 ) {
+			AddTournamentPlayer();
+		}
 		if ( level.warmupTime != -1 ) {
 			level.warmupTime = -1;
 			trap_SetConfigstring( CS_WARMUP, va( "%i", level.warmupTime ) );

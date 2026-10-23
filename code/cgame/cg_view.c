@@ -880,6 +880,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 	// pacifier, don't even try to read snapshots
 	if ( cg.infoScreenText[0] != 0 || cg_showLoading.integer ) {
 		CG_DrawInformation();
+		CG_RmlScoreboardEndFrame();
 		return;
 	}
 
@@ -900,6 +901,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 	// we can draw is the information screen
 	if ( !cg.snap || ( cg.snap->snapFlags & SNAPFLAG_NOT_ACTIVE ) ) {
 		CG_DrawInformation();
+		CG_RmlScoreboardEndFrame();
 		return;
 	}
 

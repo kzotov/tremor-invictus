@@ -781,6 +781,8 @@ void		G_LobbyInit( void );
 void		G_LobbyThink( void );
 void		G_LobbyEndMatch( void );
 qboolean	G_LobbyActive( void );
+qboolean	G_LobbyHidesPicks( void );
+int			G_LobbyFrozenChampion( int clientNum );
 void		Cmd_LobbyLock_f( gentity_t *ent );
 int			G_ArenaCount( void );
 const char	*G_ArenaInfo( int n );

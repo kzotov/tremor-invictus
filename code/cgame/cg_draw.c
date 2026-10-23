@@ -4218,6 +4218,8 @@ static void CG_DrawSpectatorAbilities( void ) {
 	}
 }
 
+static const char *CG_BindName( const char *binding );
+
 /*
 =================
 CG_DrawNextSpawn
@@ -4237,7 +4239,7 @@ static void CG_DrawDeathScreen( void ) {
 	if ( !cg.deathTime || cg.snap->ps.stats[STAT_HEALTH] > 0 || cg.time - cg.deathTime > 30000 ) {
 		return;
 	}
-	CG_FillRect( 140, y - 6, 360, cg.deathKiller >= 0 ? 104 : 46, back );
+	CG_FillRect( 140, y - 6, 360, cg.deathKiller >= 0 ? 104 + SMALLCHAR_HEIGHT + 6 : 46 + SMALLCHAR_HEIGHT + 6, back );		// (to the starter line)
 
 	if ( cg.deathKiller >= 0 && cg.deathKiller < MAX_CLIENTS ) {
 		int champ;
@@ -4290,7 +4292,10 @@ static void CG_DrawDeathScreen( void ) {
 
 		trap_Cvar_VariableStringBuffer( "cg_startWeapon", current, sizeof( current ) );
 		for ( i = 0 ; i < 3 ; i++ ) {
-			Com_sprintf( part[i], sizeof( part[i] ), "%s [%i]", codes[i], BG_WeaponSlot( starters[i] ) );
+			// the key bound to that weapon slot, or the command without one
+			const char	*key = CG_BindName( va( "weapon %i", BG_WeaponSlot( starters[i] ) ) );
+
+			Com_sprintf( part[i], sizeof( part[i] ), "%s [%s]", codes[i], key[0] ? key : va( "/ui_startWeapon %s", codes[i] ) );
 			Q_strupr( part[i] );
 			total += CG_DrawStrlen( part[i] ) + 2;
 		}
@@ -5126,13 +5131,31 @@ static qboolean CG_DrawLobby( void ) {
 		}
 		if ( client == me ) {
 			locked = i;
+			if ( champion < 0 ) {
+				// a blind pick hides everyone's choice, but you know yours
+				char	name[64];
+
+				trap_Cvar_VariableStringBuffer( "champion", name, sizeof( name ) );
+				champion = BG_ChampionForName( name );
+			}
+		}
+		{
+			char	*c;
+
+			Q_strncpyz( mine, cgs.clientinfo[client].name, sizeof( mine ) );
+			Q_CleanStr( mine );
+			for ( c = mine ; *c ; c++ ) {
+				if ( *c == '|' ) {
+					*c = '/';
+				}
+			}
 		}
 		Com_sprintf( text, sizeof( text ), "%s%s%s|%s|%s|%s|%s",
 			i ? "locked" : "picking",
 			cgs.clientinfo[client].team == TEAM_RED ? " red" : cgs.clientinfo[client].team == TEAM_BLUE ? " blue" : "",
 			client == me ? " self" : "",
 			champion >= 0 && champion < 32 ? cg_portraitPath[champion] : "",
-			cgs.clientinfo[client].name,
+			mine,
 			champion >= 0 && champion < bg_numChampions ? BG_String( BG_Champion( champion )->nameString ) : "?",
 			i ? "1" : "" );
 		CG_LobbyCvar( va( "lb_p%i", n ), text );

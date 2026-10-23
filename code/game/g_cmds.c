@@ -39,6 +39,7 @@ void DeathmatchScoreboardMessage( gentity_t *ent ) {
 	int			i, j;
 	gclient_t	*cl;
 	int			numSorted, scoreFlags, accuracy, perfect;
+	qboolean	hide;
 
 	// don't send scores to bots, they don't parse it
 	if ( ent->r.svFlags & SVF_BOT ) {
@@ -69,6 +70,13 @@ void DeathmatchScoreboardMessage( gentity_t *ent ) {
 		else {
 			accuracy = 0;
 		}
+		// duel: a player sees the opponent's accuracy and damage only at the
+		// end (scoreboard.md 3.1, as dstats)
+		hide = g_gametype.integer == GT_TOURNAMENT && cl != ent->client
+			&& ent->client->sess.sessionTeam != TEAM_SPECTATOR && !level.intermissiontime;
+		if ( hide ) {
+			accuracy = 0;
+		}
 		perfect = ( cl->ps.persistant[PERS_RANK] == 0 && cl->ps.persistant[PERS_KILLED] == 0 ) ? 1 : 0;
 
 		Com_sprintf (entry, sizeof(entry),
@@ -83,7 +91,7 @@ void DeathmatchScoreboardMessage( gentity_t *ent ) {
 			perfect,
 			cl->ps.persistant[PERS_CAPTURES],
 			cl->ps.persistant[PERS_KILLED],
-			cl->pers.damageGiven, cl->pers.modeStat[0], cl->pers.modeStat[1]);
+			hide ? 0 : cl->pers.damageGiven, cl->pers.modeStat[0], cl->pers.modeStat[1]);
 		j = strlen(entry);
 		if (stringlength + j >= sizeof(string))
 			break;

@@ -793,6 +793,14 @@ void ClientUserinfoChanged( int clientNum ) {
 	} else {
 		client->pers.champion = BG_ChampionForName( *s ? s : DEFAULT_CHAMPION );
 	}
+	// a classic duel's lobby pick holds from its reveal to the match's end
+	{
+		int		frozen = G_LobbyFrozenChampion( clientNum );
+
+		if ( frozen >= 0 ) {
+			client->pers.champion = frozen;
+		}
+	}
 
 	// set model
 	if( g_gametype.integer >= GT_TEAM ) {
@@ -805,7 +813,7 @@ void ClientUserinfoChanged( int clientNum ) {
 
 	// the champion being played decides the model; a new pick shows on respawn.
 	// Blind pick: before a duel's countdown everyone looks like the default
-	if ( g_blindPick.integer && g_gametype.integer == GT_TOURNAMENT && level.warmupTime < 0 ) {
+	if ( ( g_blindPick.integer && g_gametype.integer == GT_TOURNAMENT && level.warmupTime < 0 ) || G_LobbyHidesPicks() ) {
 		G_ChampionModel( 0, model, sizeof( model ) );
 	} else {
 		G_ChampionModel( client->ps.stats[STAT_CHAMPION], model, sizeof( model ) );

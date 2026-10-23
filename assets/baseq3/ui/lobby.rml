@@ -73,7 +73,7 @@
 		</div>
 
 		<!-- the champion drawer, the loadout and lock-in -->
-		<div class="pickbar" data-when="lb_phase!=wait&amp;lb_mode!=none">
+		<div class="pickbar" data-when="lb_phase!=wait&amp;lb_phase!=start&amp;lb_mode!=none">
 			<div class="loadout">
 				[lb_loadout]
 				<button class="opt" data-class="on:cg_startWeapon=mg" onclick="ui_startWeapon mg">[ch_mg_short]</button>
