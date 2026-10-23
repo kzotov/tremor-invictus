@@ -1019,9 +1019,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
 	// the start countdown: players and their abilities hurt nobody; lava,
 	// acid, falls and the void still do (warmup.md)
-	if ( level.warmupTime > 0 && targ->client && attacker->client && mod != MOD_TELEFRAG && mod != MOD_SUICIDE
-		&& mod != MOD_FALLING && mod != MOD_TRIGGER_HURT && mod != MOD_LAVA && mod != MOD_SLIME && mod != MOD_WATER
-		&& mod != MOD_CRUSH ) {
+	if ( level.warmupTime > 0 && targ->client && attacker->client ) {
 		return;
 	}
 
