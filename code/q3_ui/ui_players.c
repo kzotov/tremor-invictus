@@ -724,7 +724,7 @@ A hexagonal column under the champion, its top at `top`, `dist` in front of
 the camera, with the lineup pillars' textures
 ===============
 */
-static void UI_AddStagePillar( float dist, float y, float top, float bottom, float flash ) {
+static void UI_AddStagePillar( float dist, float y, float top, float bottom, float flash, qboolean blue ) {
 	static qhandle_t	side, cap;
 	polyVert_t	v[4];
 	vec3_t		corner[6];
@@ -735,9 +735,15 @@ static void UI_AddStagePillar( float dist, float y, float top, float bottom, flo
 		side = trap_R_RegisterShaderNoMip( "tremor/pillar/side" );
 		cap = trap_R_RegisterShaderNoMip( "tremor/pillar/cap" );
 	}
-	glow[0] = 211;
-	glow[1] = 25 + 120 * flash;
-	glow[2] = 31 + 120 * flash;
+	if ( blue ) {
+		glow[0] = 40 + 120 * flash;
+		glow[1] = 90 + 120 * flash;
+		glow[2] = 220;
+	} else {
+		glow[0] = 211;
+		glow[1] = 25 + 120 * flash;
+		glow[2] = 31 + 120 * flash;
+	}
 	for ( i = 0 ; i < 6 ; i++ ) {
 		float	a = DEG2RAD( 30 + i * 60 );
 
@@ -848,7 +854,7 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 	// down so its base always leaves the view (menu-style.md 4.1)
 	if ( pi->sharedScene ) {
 		VectorCopy( pi->stageTop, origin );
-		UI_AddStagePillar( origin[0], origin[1], origin[2], origin[2] - 400, pi->flash );
+		UI_AddStagePillar( origin[0], origin[1], origin[2], origin[2] - 400, pi->flash, pi->blueSide );
 		origin[2] += -mins[2] + pi->rise;
 		goto addBody;
 	}
@@ -897,7 +903,7 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 	trap_R_ClearScene();
 
 	if ( pi->onPillar ) {
-		UI_AddStagePillar( origin[0], 0, STAGE_FEET, -STAGE_HALF_HEIGHT * 1.2f, pi->flash );	// just past the box's bottom edge
+		UI_AddStagePillar( origin[0], 0, STAGE_FEET, -STAGE_HALF_HEIGHT * 1.2f, pi->flash, qfalse );	// just past the box's bottom edge
 		origin[2] += pi->rise;
 	}
 

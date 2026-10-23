@@ -7,7 +7,7 @@
 	<!-- a duel: one face-off stage (menu-style.md 4.1); the menu module
 	     draws the two champions behind this page, you on the left -->
 	<div class="faceoff" data-when="mm_pcount=2">
-		<div class="fomist"></div>
+		<div class="fomist"><div class="mb" style="top: 0%; opacity: 0.12;"></div><div class="mb" style="top: 12%; opacity: 0.25;"></div><div class="mb" style="top: 25%; opacity: 0.38;"></div><div class="mb" style="top: 37%; opacity: 0.50;"></div><div class="mb" style="top: 50%; opacity: 0.62;"></div><div class="mb" style="top: 62%; opacity: 0.75;"></div><div class="mb" style="top: 75%; opacity: 0.88;"></div><div class="mb" style="top: 87%; opacity: 1.00;"></div></div>
 		<div class="fohead"><span class="foblue" data-text-cvar="mm_fo_l_name"></span><span class="fovs">VS</span><span class="fored" data-text-cvar="mm_fo_r_name"></span></div>
 		<div class="vsmark"><div class="vsglow">VS</div><div class="vstext">VS</div></div>
 		<div class="folabel foleft"><div class="foname" data-text-cvar="mm_fo_l_name"></div><div class="fochamp" data-text-cvar="mm_fo_l_champName"></div></div>

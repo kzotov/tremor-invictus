@@ -6,6 +6,8 @@ div { display: block; }
 
 .lbhead { position: absolute; left: 82dp; top: 70dp; }
 .lbphase { font-family: "Arial Black"; font-size: 46dp; color: #e8e4dc; }
+.lbhead.duelhead { left: 0; width: 100%; top: 20dp; text-align: center; }
+.lbhead.duelhead .lbphase { font-size: 34dp; }
 .lbsecs { font-size: 68dp; color: #d3191f; }
 
 /* map cards across the top centre */
@@ -19,6 +21,31 @@ div { display: block; }
 .lost { opacity: 0.15; }
 
 .lbmid { position: absolute; left: 50dp; right: 50dp; top: 420dp; height: 420dp; }
+
+/* a duel: nameplates, pick panels, VS mark and pick timer (lobby.md 3) */
+.duel { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+.plate { position: absolute; top: 100dp; width: 314dp; height: 92dp; display: flex; align-items: center; background-color: rgba(10, 10, 14, 200); border-top: 4dp #2f8bff; }
+.plate.pleft { left: 76dp; }
+.plate.pright { left: 100%; margin-left: -390dp; border-top-color: #ff3838; }
+.pava { width: 56dp; height: 56dp; margin: 0 10dp; }
+.pnm { font-size: 16dp; color: #ffffff; }
+.pst { font-size: 14dp; }
+.pick { position: absolute; top: 200dp; width: 505dp; padding: 8dp; background-color: rgba(10, 10, 14, 170); }
+.pick.pkleft { left: 80dp; }
+.pick.pkright { left: 100%; margin-left: -585dp; text-align: right; }
+.pkt { font-size: 25dp; color: #9a9aa0; }
+.pkc { font-size: 15dp; color: #ff674a; margin: 4dp 0; }
+.pkbar { display: flex; width: 505dp; height: 7dp; background-color: rgba(255, 255, 255, 20); }
+.pkbar .seg { width: 50.5dp; height: 7dp; }
+.pkbar.blue .seg { background-color: #2f8bff; }
+.pkbar.red .seg { background-color: #ff3838; }
+.lvs { position: absolute; left: 50%; margin-left: -150dp; top: 207dp; width: 300dp; height: 250dp; }
+.lvs .vstext, .lvs .vsglow { position: absolute; left: 0; top: 50dp; width: 300dp; text-align: center; font-family: "Arial Black"; font-size: 140dp; }
+.lvs .vstext { color: #ffffffb3; }
+.lvs .vsglow { color: #ff5a1e00; font-effect: glow( 8dp 0dp 0dp #ff5a1e66 ); }
+.ptimer { position: absolute; left: 50%; margin-left: -157dp; top: 455dp; width: 314dp; height: 70dp; text-align: center; background-color: rgba(10, 10, 14, 200); }
+.ptl { font-size: 28dp; color: #e8e4dc; display: inline-block; vertical-align: middle; margin-right: 16dp; }
+.pts { font-size: 68dp; color: #d3191f; display: inline-block; vertical-align: middle; }
 
 /* the players, right */
 .players { position: absolute; right: 0; top: 0; width: 520dp; }
@@ -38,7 +65,7 @@ div { display: block; }
 .locked .pout, .picking .pin { display: none; }
 
 /* chat, left */
-.chat { position: absolute; left: 0; top: 0; width: 560dp; padding: 8dp; background-color: rgba(10, 10, 14, 200); }
+.chat { position: absolute; left: 0; bottom: -10dp; width: 560dp; padding: 8dp; background-color: rgba(10, 10, 14, 200); }
 .cline { height: 22dp; font-size: 16dp; color: #cccccc; white-space: nowrap; overflow: hidden; font-weight: normal; }
 .cinput { display: block; width: 512dp; height: 26dp; margin-top: 6dp; padding: 2dp 6dp; font-size: 16dp; color: #ffffff; background-color: rgba(255, 255, 255, 24); border: 1dp #555555; }
 .hint { font-size: 12dp; color: #77777c; margin-top: 3dp; }

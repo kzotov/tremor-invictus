@@ -5325,6 +5325,7 @@ their own in front of the darkened screen
 #define PILLAR_GAP		56		// least distance between pillar centres
 #define PILLAR_FOV_Y	40		// the lineup camera's vertical view, fixed (menu-style.md 4.1)
 #define PILLAR_TOP		-44		// the pillar tops at PILLAR_DIST: 70 % of the height down
+static qboolean	pillarSilhouette;		// the next pillar player drawn as a dark figure
 
 /*
 =================
@@ -5339,7 +5340,7 @@ vertical view fixed at 40 degrees; the pillars run out of the bottom
 static void CG_AddPillar( const vec3_t base, const byte *glow, int rank );
 static void CG_AddPillarPlayerTurned( int clientNum, const vec3_t feet, float yaw );
 
-static void CG_DrawFaceoff( int left, int right ) {
+static void CG_DrawFaceoff( int left, int right, qboolean rightHidden ) {
 	static const byte	glows[2][4] = { { 40, 90, 220, 255 }, { 208, 26, 26, 255 } };
 	refdef_t	refdef;
 	vec3_t		base, light;
@@ -5361,7 +5362,10 @@ static void CG_DrawFaceoff( int left, int right ) {
 		VectorSet( base, 183, i ? -59 : 59, top );
 		CG_AddPillar( base, glows[i], 0 );
 		if ( who[i] >= 0 && who[i] < MAX_CLIENTS ) {
-			CG_AddPillarPlayerTurned( who[i], base, i ? -48 : 48 );
+			pillarSilhouette = i && rightHidden;
+			// 48 degrees in, less the idle stance's own turn to the right
+			CG_AddPillarPlayerTurned( who[i], base, i ? -48 + 30 : 48 + 30 );
+			pillarSilhouette = qfalse;
 		}
 		VectorSet( light, 63, base[1], top + 160 );
 		trap_R_AddLightToScene( light, 400, 1.0f, 0.95f, 0.9f );
@@ -5458,6 +5462,30 @@ static void CG_AddPillar( const vec3_t base, const byte *glow, int rank ) {
 
 /*
 =================
+CG_PillarSilhouette
+
+A blind pick's hidden opponent: a flat dark figure
+=================
+*/
+static void CG_PillarSilhouette( refEntity_t *ent ) {
+	static qhandle_t	flat;
+
+	if ( !pillarSilhouette ) {
+		return;
+	}
+	if ( !flat ) {
+		flat = trap_R_RegisterShader( "tremor/bright" );
+	}
+	ent->customShader = flat;
+	ent->customSkin = 0;
+	ent->shaderRGBA[0] = 14;
+	ent->shaderRGBA[1] = 14;
+	ent->shaderRGBA[2] = 18;
+	ent->shaderRGBA[3] = 255;
+}
+
+/*
+=================
 CG_AddPillarPlayer
 
 The player's champion standing still on top of a pillar, turned yaw
@@ -5490,6 +5518,7 @@ static void CG_AddPillarPlayerTurned( int clientNum, const vec3_t feet, float ya
 	legs.customSkin = ci->legsSkin;
 	legs.frame = legs.oldframe = ci->animations[LEGS_IDLE].firstFrame;
 	legs.renderfx = RF_LIGHTING_ORIGIN | RF_NOSHADOW;
+	CG_PillarSilhouette( &legs );
 	trap_R_AddRefEntityToScene( &legs );
 
 	memset( &torso, 0, sizeof( torso ) );
@@ -5500,6 +5529,7 @@ static void CG_AddPillarPlayerTurned( int clientNum, const vec3_t feet, float ya
 	VectorCopy( legs.origin, torso.lightingOrigin );
 	torso.renderfx = legs.renderfx;
 	CG_PositionRotatedEntityOnTag( &torso, &legs, ci->legsModel, "tag_torso" );
+	CG_PillarSilhouette( &torso );
 	trap_R_AddRefEntityToScene( &torso );
 
 	memset( &head, 0, sizeof( head ) );
@@ -5509,6 +5539,7 @@ static void CG_AddPillarPlayerTurned( int clientNum, const vec3_t feet, float ya
 	VectorCopy( legs.origin, head.lightingOrigin );
 	head.renderfx = legs.renderfx;
 	CG_PositionRotatedEntityOnTag( &head, &torso, ci->torsoModel, "tag_head" );
+	CG_PillarSilhouette( &head );
 	trap_R_AddRefEntityToScene( &head );
 }
 
@@ -5672,7 +5703,9 @@ static qboolean CG_DrawLobby( void ) {
 	char		maps[3][MAX_QPATH], text[MAX_CVAR_VALUE_STRING], doc[MAX_QPATH], active[8], hidden[8], mine[64];
 	int			phase, end, mode, winner, votes[3], i, n, client, champion, locked, players = 0, secs;
 	int			me = cg.clientNum;		// your own row, also while following
-	int			seen[LOBBY_PLAYERS];
+	int			seen[LOBBY_PLAYERS], seenLocked[LOBBY_PLAYERS], seenChamp[LOBBY_PLAYERS];
+	char		rows[2][MAX_CVAR_VALUE_STRING];
+	static int	phaseEnd, phaseLength;
 
 	trap_Cvar_VariableStringBuffer( "rml_doc", doc, sizeof( doc ) );
 	trap_Cvar_VariableStringBuffer( "rml_active", active, sizeof( active ) );
@@ -5747,6 +5780,11 @@ static qboolean CG_DrawLobby( void ) {
 			champion >= 0 && champion < bg_numChampions ? BG_String( BG_Champion( champion )->nameString ) : "?",
 			i ? "1" : "" );
 		CG_LobbyCvar( va( "lb_p%i", n ), text );
+		if ( players < 2 ) {
+			Q_strncpyz( rows[players], text, sizeof( rows[players] ) );
+		}
+		seenLocked[players] = i;
+		seenChamp[players] = champion;
 		seen[players++] = client;
 	}
 	for ( ; n < LOBBY_PLAYERS ; n++ ) {
@@ -5754,6 +5792,25 @@ static qboolean CG_DrawLobby( void ) {
 	}
 	CG_LobbyCvar( "lb_count", va( "%i", players ) );
 	CG_LobbyCvar( "lb_locked", locked ? "1" : "0" );
+
+	// a duel's own layout (lobby.md 3): the nameplates left (you) and right,
+	// the pick timer's label and how much of the phase is left
+	if ( end != phaseEnd ) {
+		phaseEnd = end;
+		phaseLength = end - cg.time;
+	}
+	if ( cgs.gametype == GT_TOURNAMENT && players == 2 ) {
+		int		left = seen[1] == me ? 1 : 0;
+		float	frac = phaseLength > 0 && end > cg.time ? (float)( end - cg.time ) / phaseLength : 0;
+
+		CG_LobbyCvar( "lb_duel", "1" );
+		CG_LobbyCvar( "lb_dl", rows[left] );
+		CG_LobbyCvar( "lb_dr", rows[1 - left] );
+		CG_LobbyCvar( "lb_frac", va( "%i", (int)( frac * 100 ) ) );
+		CG_LobbyCvar( "lb_pickstate", seenLocked[left] ? "wait" : secs <= 5 ? "now" : "pick" );
+	} else {
+		CG_LobbyCvar( "lb_duel", "0" );
+	}
 
 	// the champion grid: classes|portrait|name; yours marked
 	trap_Cvar_VariableStringBuffer( "champion", mine, sizeof( mine ) );
@@ -5800,7 +5857,8 @@ static qboolean CG_DrawLobby( void ) {
 	if ( cgs.gametype == GT_TOURNAMENT && players == 2 ) {
 		int		left = seen[1] == me ? 1 : 0;
 
-		CG_DrawFaceoff( seen[left], seen[1 - left] );
+		// a blind pick shows the opponent as a dark figure until the reveal
+		CG_DrawFaceoff( seen[left], seen[1 - left], mode == 1 && phase == 5 && seenChamp[1 - left] < 0 );
 	}
 	return qtrue;
 }

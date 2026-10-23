@@ -75,6 +75,7 @@ void UI_Stage_Draw( uiStage_t *st, float x, float y, float w, float h, int champ
 
 	if ( pi ) {
 		pi->sharedScene = qfalse;
+		pi->blueSide = qfalse;
 		UI_DrawPlayer( x, y, w, h, pi, uis.realtime / 2 );
 	}
 }
@@ -164,6 +165,7 @@ view. The page draws the names, the VS mark and the floor mist over it.
 #define FACEOFF_DIST		183
 #define FACEOFF_SIDE		59
 #define FACEOFF_TURN		48
+#define FACEOFF_STANCE		30		// the idle stance turns the body this far to its right: the left one turns more
 #define FACEOFF_ARRIVE		500		// msec between the two champions' arrivals
 
 void UI_DrawFaceoff( uiStage_t stages[2], const int champions[2], const weapon_t weapons[2], int startTime ) {
@@ -205,11 +207,12 @@ void UI_DrawFaceoff( uiStage_t stages[2], const int champions[2], const weapon_t
 				trap_S_StartLocalSound( sfx, CHAN_LOCAL_SOUND );
 			}
 		}
-		pi = UI_Stage_Update( &stages[i], champions[i], weapons[i], i ? -FACEOFF_TURN : FACEOFF_TURN );
+		pi = UI_Stage_Update( &stages[i], champions[i], weapons[i], i ? -FACEOFF_TURN + FACEOFF_STANCE : FACEOFF_TURN + FACEOFF_STANCE );
 		if ( !pi ) {
 			continue;
 		}
 		pi->sharedScene = qtrue;
+		pi->blueSide = !i;
 		VectorSet( pi->stageTop, FACEOFF_DIST, i ? -FACEOFF_SIDE : FACEOFF_SIDE, top );
 		UI_DrawPlayer( 0, 0, 0, 0, pi, uis.realtime / 2 );
 	}

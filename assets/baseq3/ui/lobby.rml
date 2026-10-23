@@ -10,7 +10,7 @@
      champions  classes|portrait|name -->
 <body data-escape="set lb_hidden 1; rml_hide">
 	<div class="lobby">
-		<div class="lbhead">
+		<div class="lbhead" data-class="duelhead:lb_duel=1">
 			<div class="lbphase">
 				<span data-when="lb_phase=wait">[lb_wait]</span>
 				<span data-when="lb_phase=soon">[lb_soon]</span>
@@ -21,7 +21,7 @@
 				<span data-when="lb_phase=pick&amp;lb_mode=none">[lb_none]</span>
 				<span data-when="lb_phase=start">[lb_start]</span>
 			</div>
-			<div class="lbsecs" data-text-cvar="lb_secs"></div>
+			<div class="lbsecs" data-when="lb_duel!=1" data-text-cvar="lb_secs"></div>
 		</div>
 
 		<!-- the map cards: greyed until the vote opens, the winner alone after it -->
@@ -43,9 +43,32 @@
 			</div>
 		</div>
 
+		<!-- a duel (lobby.md 3): nameplates, pick panels, the VS mark and the
+		     pick timer over the face-off the game draws behind -->
+		<div class="duel" data-when="lb_duel=1">
+			<div class="plate pleft" data-row="lb_dl" data-cell-class="0">
+				<img class="pava" data-cell-src="1"/><div class="pwho"><div class="pnm" data-cell="2"></div><div class="pst"><span class="pin">[lb_locked_in]</span><span class="pout">[lb_picking]</span></div></div>
+			</div>
+			<div class="plate pright" data-row="lb_dr" data-cell-class="0">
+				<img class="pava" data-cell-src="1"/><div class="pwho"><div class="pnm" data-cell="2"></div><div class="pst"><span class="pin">[lb_locked_in]</span><span class="pout">[lb_picking]</span></div></div>
+			</div>
+			<div class="pick pkleft" data-row="lb_dl" data-cell-class="0" data-when="lb_phase=pick">
+				<div class="pkt">[lb_champion]</div><div class="pkc" data-cell="3"></div>
+				<div class="pkbar blue"><div class="seg" data-when="lb_frac>=1"></div><div class="seg" data-when="lb_frac>=11"></div><div class="seg" data-when="lb_frac>=21"></div><div class="seg" data-when="lb_frac>=31"></div><div class="seg" data-when="lb_frac>=41"></div><div class="seg" data-when="lb_frac>=51"></div><div class="seg" data-when="lb_frac>=61"></div><div class="seg" data-when="lb_frac>=71"></div><div class="seg" data-when="lb_frac>=81"></div><div class="seg" data-when="lb_frac>=91"></div></div>
+			</div>
+			<div class="pick pkright" data-row="lb_dr" data-cell-class="0" data-when="lb_phase=pick">
+				<div class="pkt">[lb_champion]</div><div class="pkc" data-cell="3"></div>
+				<div class="pkbar red"><div class="seg" data-when="lb_frac>=1"></div><div class="seg" data-when="lb_frac>=11"></div><div class="seg" data-when="lb_frac>=21"></div><div class="seg" data-when="lb_frac>=31"></div><div class="seg" data-when="lb_frac>=41"></div><div class="seg" data-when="lb_frac>=51"></div><div class="seg" data-when="lb_frac>=61"></div><div class="seg" data-when="lb_frac>=71"></div><div class="seg" data-when="lb_frac>=81"></div><div class="seg" data-when="lb_frac>=91"></div></div>
+			</div>
+			<div class="lvs"><div class="vsglow">VS</div><div class="vstext">VS</div></div>
+			<div class="ptimer" data-when="lb_phase=pick">
+				<div class="ptl"><span data-when="lb_pickstate=pick">[lb_yourpick]</span><span data-when="lb_pickstate=wait">[lb_waiting]</span><span data-when="lb_pickstate=now">[lb_picknow]</span></div>
+				<div class="pts" data-text-cvar="lb_secs"></div>
+			</div>
+		</div>
 		<div class="lbmid">
 			<!-- the players and their picks -->
-			<div class="players">
+			<div class="players" data-when="lb_duel!=1">
 				<div class="ptitle">[lb_players] <span data-text-cvar="lb_count"></span></div>
 				<div class="prow" data-row="lb_p#" data-repeat="16" data-cell-class="0">
 					<span class="ppor"><img data-cell-src="1"/></span>
