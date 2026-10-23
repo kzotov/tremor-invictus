@@ -1490,6 +1490,9 @@ static void G_DroneBodyThink( gentity_t *body ) {
 		if ( tr.startsolid ) {
 			tr.fraction = 0;
 		}
+		if ( tr.allsolid ) {
+			VectorClear( vel );		// stuck in something: no speed builds up
+		}
 		VectorCopy( tr.endpos, body->r.currentOrigin );
 		if ( tr.fraction < 1 && tr.plane.normal[2] > 0.7f ) {
 			// landed
