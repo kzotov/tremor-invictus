@@ -166,8 +166,19 @@ static void G_RDUpdateHud( void ) {
 	}
 }
 
-static void G_RDAnnounce( const char *msg ) {
-	G_EventLine( -1, 1, msg );
+static void G_RDAnnounce( int id, const char *a, const char *b ) {
+	char	msg[MAX_STRING_CHARS];
+
+	if ( id == STR_RD_SUDDEN_DEATH ) {
+		G_BannerWord( id );
+	} else {
+		G_EventLine( -1, id, a, b );
+	}
+	if ( id == STR_RD_ROUND ) {
+		Com_sprintf( msg, sizeof( msg ), BG_String( id ), atoi( a ) );
+	} else {
+		Com_sprintf( msg, sizeof( msg ), BG_String( id ), a, b );
+	}
 	trap_SendServerCommand( -1, va( "print \"%s\n\"", msg ) );
 }
 
@@ -180,7 +191,6 @@ picked again by either player
 =================
 */
 static qboolean G_RDPick( int side, int champion ) {
-	char	msg[MAX_STRING_CHARS];
 	int		i, s, n;
 
 	if ( champion < 0 || champion >= bg_numChampions ) {
@@ -203,9 +213,8 @@ static qboolean G_RDPick( int side, int champion ) {
 	rd.picks[side][n] = champion;
 	rd.numPicks++;
 	rd.stateTime = level.time + RD_PICK_MSEC;
-	Com_sprintf( msg, sizeof( msg ), BG_String( STR_RD_PICKED ), level.clients[rd.player[side]].pers.netname,
+	G_RDAnnounce( STR_RD_PICKED, level.clients[rd.player[side]].pers.netname,
 		BG_String( BG_Champion( champion )->nameString ) );
-	G_RDAnnounce( msg );
 	G_RDUpdateHud();
 	return qtrue;
 }
@@ -295,7 +304,6 @@ held for the countdown
 =================
 */
 static void G_RDStartRound( void ) {
-	char	msg[MAX_STRING_CHARS];
 	int		side;
 
 	rd.round++;
@@ -308,21 +316,18 @@ static void G_RDStartRound( void ) {
 		rd.current[side] = 0;
 		ClientSpawn( &g_entities[rd.player[side]] );
 	}
-	Com_sprintf( msg, sizeof( msg ), BG_String( STR_RD_ROUND ), rd.round );
-	G_RDAnnounce( msg );
+	G_RDAnnounce( STR_RD_ROUND, va( "%i", rd.round ), NULL );
 	G_Announce( -1, "roundbegins" );
 	G_RDUpdateHud();
 }
 
 static void G_RDEndRound( int winner ) {
-	char		msg[MAX_STRING_CHARS];
 	gclient_t	*cl = &level.clients[rd.player[winner]];
 
 	rd.state = RD_RESULT;
 	rd.stateTime = level.time + RD_RESULT_MSEC;
 	cl->ps.persistant[PERS_SCORE]++;
-	Com_sprintf( msg, sizeof( msg ), BG_String( STR_RD_WINS_ROUND ), cl->pers.netname );
-	G_RDAnnounce( msg );
+	G_RDAnnounce( STR_RD_WINS_ROUND, cl->pers.netname, NULL );
 	G_Announce( rd.player[winner], "youwintheround" );
 	G_Announce( rd.player[!winner], "youlosetheround" );
 	CalculateRanks();
@@ -438,7 +443,7 @@ void G_RoundDuelCheckRules( void ) {
 			break;
 		}
 		rd.suddenDeath = qtrue;
-		G_RDAnnounce( BG_String( STR_RD_SUDDEN_DEATH ) );
+		G_RDAnnounce( STR_RD_SUDDEN_DEATH, NULL, NULL );
 		break;
 
 	case RD_RESULT:

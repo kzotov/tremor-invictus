@@ -769,6 +769,7 @@ gentity_t *LaunchItem( gitem_t *item, vec3_t origin, vec3_t velocity ) {
 	dropped->s.eType = ET_ITEM;
 	dropped->s.modelindex = item - bg_itemlist;	// store item number in modelindex
 	dropped->s.modelindex2 = 1; // This is non-zero is it's a dropped item
+	dropped->s.time = level.time + 30000;	// when it goes, for the client's blink
 
 	dropped->classname = item->classname;
 	dropped->item = item;

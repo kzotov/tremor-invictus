@@ -630,6 +630,7 @@ typedef struct {
 	qhandle_t	rewardSound[MAX_REWARDSTACK];
 	int			rewardName[MAX_REWARDSTACK];		// string id of a medal's name, 0 for the Quake III awards
 	qboolean	rewardVoice[MAX_REWARDSTACK];		// the announcer says it; else a chime
+	int			rewardRank[MAX_REWARDSTACK];		// MEDAL_RANK_*, lower is rarer
 	int			rewardGroup[MAX_REWARDSTACK];		// cg.time it arrived: one group per frame
 
 	// sound buffer mainly for announcer sounds
@@ -708,6 +709,8 @@ typedef struct {
 
 	// the death screen ("deathinfo"): who killed us and how
 	int			deathTime;					// cg.time it arrived, 0 for none
+	int			followKiller;				// client to follow at followKillerTime, -1 for none
+	int			followKillerTime;
 	int			deathKiller, deathMod, deathWeapon, deathHealth, deathArmor;
 	int			deathDealt, deathTaken, deathRespawn;	// respawn: msec after deathTime
 } cg_t;
@@ -1670,7 +1673,13 @@ void CG_Respawn( void );
 void CG_TransitionPlayerState( playerState_t *ps, playerState_t *ops );
 qboolean CG_PlayerRevealed( int clientNum );
 void CG_RevealModel( const refEntity_t *ent, int clientNum );
-void CG_PushReward( sfxHandle_t sfx, qhandle_t shader, int rewardCount, int name );
+// gaps.md GAP-17 announcer order, rarest first: lower is rarer
+#define MEDAL_RANK_HUMILIATOR	30
+#define MEDAL_RANK_IMPRESSIVE	34
+#define MEDAL_RANK_EXCELLENT	35
+#define MEDAL_RANK_TOTALS		40
+
+void CG_PushReward( sfxHandle_t sfx, qhandle_t shader, int rewardCount, int name, int rank );
 void CG_CheckChangedPredictableEvents( playerState_t *ps );
 
 
@@ -1902,7 +1911,9 @@ void CG_AddOwnMissiles( void );
 //
 void CG_DemoFrame( void );
 void CG_EventBanner( const char *text, int priority );
+void CG_CheckFollowKiller( void );
 void CG_BannerWord( const char *text );
+void CG_EventAlarm( const char *text, int priority );
 void CG_FragBanner( const char *fragger, const char *victim, const char *line );
 void CG_AddSystemLine( const char *text );
 void CG_ConnectLine( const char *text );

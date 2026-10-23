@@ -89,39 +89,38 @@ void G_Announce( int clientNum, const char *key ) {
 =================
 G_EventLine
 
-An event line at a priority (messages.md 2.4): 1 match flow, 2 objectives,
-3 power-ups, 4 lead and time, 5 server
+An event line by string id with up to two arguments; the client picks its
+priority (messages.md 2.4) and checks the id and the format
 =================
 */
-void G_EventLine( int clientNum, int priority, const char *text ) {
-	char	safe[MAX_STRING_CHARS], *p;
+void G_EventLine( int clientNum, int id, const char *a, const char *b ) {
+	char	sa[MAX_STRING_CHARS], sb[MAX_STRING_CHARS], *p;
 
-	Q_strncpyz( safe, text, sizeof( safe ) );
-	for ( p = safe ; *p ; p++ ) {
+	Q_strncpyz( sa, a ? a : "", sizeof( sa ) );
+	Q_strncpyz( sb, b ? b : "", sizeof( sb ) );
+	for ( p = sa ; *p ; p++ ) {
 		if ( *p == '"' ) {
 			*p = '\'';
 		}
 	}
-	trap_SendServerCommand( clientNum, va( "evline %i \"%s\"", priority, safe ) );
+	for ( p = sb ; *p ; p++ ) {
+		if ( *p == '"' ) {
+			*p = '\'';
+		}
+	}
+	trap_SendServerCommand( clientNum, va( "evline %i \"%s\" \"%s\"", id, sa, sb ) );
 }
 
 /*
 =================
 G_BannerWord
 
-FIGHT, SUDDEN DEATH and the like: the banner word slot (hud.md 7.5)
+FIGHT, SUDDEN DEATH and the like, by string id: the banner word slot
+(hud.md 7.5)
 =================
 */
-void G_BannerWord( const char *text ) {
-	char	safe[MAX_STRING_CHARS], *p;
-
-	Q_strncpyz( safe, text, sizeof( safe ) );
-	for ( p = safe ; *p ; p++ ) {
-		if ( *p == '"' ) {
-			*p = '\'';
-		}
-	}
-	trap_SendServerCommand( -1, va( "bword \"%s\"", safe ) );
+void G_BannerWord( int id ) {
+	trap_SendServerCommand( -1, va( "bword %i", id ) );
 }
 
 /*

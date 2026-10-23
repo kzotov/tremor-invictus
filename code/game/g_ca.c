@@ -114,7 +114,6 @@ Everyone back to a spawn on the full stack, held there for the countdown
 =================
 */
 static void G_CAStartRound( void ) {
-	char		msg[MAX_STRING_CHARS];
 	gentity_t	*ent;
 	int			i;
 
@@ -141,8 +140,7 @@ static void G_CAStartRound( void ) {
 	}
 	level.caSpawning = qfalse;
 
-	Com_sprintf( msg, sizeof( msg ), BG_String( STR_CA_ROUND ), level.caRound );
-	G_EventLine( -1, 1, msg );
+	G_EventLine( -1, STR_CA_ROUND, va( "%i", level.caRound ), NULL );
 	G_Announce( -1, "roundbegins" );
 	level.caLastStanding[TEAM_RED] = level.caLastStanding[TEAM_BLUE] = qfalse;
 }
@@ -204,7 +202,7 @@ static void G_CAEndRound( int winner ) {
 	} else {
 		id = STR_CA_DRAW;
 	}
-	G_EventLine( -1, 1, BG_String( id ) );
+	G_EventLine( -1, id, NULL, NULL );
 	trap_SendServerCommand( -1, va( "print \"%s\n\"", BG_String( id ) ) );
 	G_Announce( -1, winner == TEAM_RED ? "redwinsround" : winner == TEAM_BLUE ? "bluewinsround" : "rounddraw" );
 }
@@ -260,7 +258,7 @@ void G_CACheckRules( void ) {
 		if ( level.time >= level.caStateTime ) {
 			level.caState = CA_FIGHTING;
 			level.caRoundStart = level.time;
-			G_BannerWord( BG_String( STR_CA_FIGHT ) );
+			G_BannerWord( STR_CA_FIGHT );
 		}
 		break;
 

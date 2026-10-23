@@ -169,7 +169,11 @@ static void G_SacrificeAnnounce( int id, const char *name ) {
 	} else {
 		Q_strncpyz( msg, BG_String( id ), sizeof( msg ) );
 	}
-	G_EventLine( -1, 2, msg );
+	if ( id == STR_SAC_SUDDEN_DEATH ) {
+		G_BannerWord( id );
+	} else {
+		G_EventLine( -1, id, name, NULL );
+	}
 	trap_SendServerCommand( -1, va( "print \"%s\n\"", msg ) );
 }
 
@@ -687,6 +691,7 @@ static void G_SacrificeObelisk( int msec ) {
 			for ( j = 0 ; j < level.maxclients ; j++ ) {
 				if ( g_entities[j].inuse && g_entities[j].client && g_entities[j].client->sess.sessionTeam == team ) {
 					G_Announce( j, "obeliskunderattack" );
+					G_EventLine( j, STR_EV_OBELISK_ATTACK, NULL, NULL );
 				}
 			}
 		}
@@ -752,9 +757,8 @@ void G_SacrificeCheckRules( void ) {
 
 				// 15 s ahead, or at the round start when the soul comes sooner
 				sac.warned = qtrue;
-				Com_sprintf( msg, sizeof( msg ), BG_String( STR_SAC_SOUL_SOON ),
-					( SAC_SOUL_DELAY - ( level.time - sac.roundStart ) + 999 ) / 1000 );
-				G_EventLine( -1, 2, msg );
+				Com_sprintf( msg, sizeof( msg ), "%i", ( SAC_SOUL_DELAY - ( level.time - sac.roundStart ) + 999 ) / 1000 );
+				G_EventLine( -1, STR_SAC_SOUL_SOON, msg, NULL );
 			}
 			if ( level.time - sac.roundStart >= SAC_SOUL_DELAY ) {
 				G_SoulPlace( sac.soulSpawn, NULL );

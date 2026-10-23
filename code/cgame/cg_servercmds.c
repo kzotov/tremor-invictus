@@ -1095,6 +1095,48 @@ A medal earned: our own icon (misc/art/make-medals.py) and the announcer
 line from the install when it has one, loaded the first time each is earned
 =================
 */
+// gaps.md GAP-17: the announcer's rarest-first order when several medals
+// come at once (the multi-kill steps the list leaves out sit by their count)
+static const int cg_medalRank[MEDAL_NUM] = {
+	36,		// MEDAL_FIRSTBLOOD
+	22,		// MEDAL_MIDAIR
+	32,		// MEDAL_AIRBORNE
+	21,		// MEDAL_COMBOKILL
+	8,		// MEDAL_COLLATERAL
+	7,		// MEDAL_DOUBLEWHAMMY
+	20,		// MEDAL_DENIED
+	18,		// MEDAL_REVENGE
+	19,		// MEDAL_PARTYBREAKER
+	9,		// MEDAL_PERFORATED
+	31,		// MEDAL_POINTBLANK
+	23,		// MEDAL_PRECISE
+	10,		// MEDAL_RINGOUT
+	33,		// MEDAL_STOPWATCH
+	28,		// MEDAL_TANK
+	29,		// MEDAL_DIEHARD
+	6,		// MEDAL_FROMTHEGRAVE
+	5,		// MEDAL_KAMIKAZE
+	17,		// MEDAL_SHOWSTOPPER
+	25,		// MEDAL_TRIPLEKILL
+	24,		// MEDAL_OVERKILL (4 kills: between Fighter and Triple Kill)
+	15,		// MEDAL_FIGHTER
+	14,		// MEDAL_CRUSHER (6)
+	13,		// MEDAL_EXTERMINATOR (7)
+	12,		// MEDAL_DEMOLISHER (8)
+	11,		// MEDAL_GRIMREAPER (9)
+	1,		// MEDAL_AVATAR
+	26,		// MEDAL_SPREE
+	16,		// MEDAL_RAGE
+	3,		// MEDAL_FRENZY
+	2,		// MEDAL_RAMPAGE
+	27,		// MEDAL_DOMINATING
+	4,		// MEDAL_PUMASSACRE
+	0, 0, 0, 0, 0, 0, 0, 0,		// the weapon gods
+	MEDAL_RANK_TOTALS,	// MEDAL_DAMAGEDEALER
+	MEDAL_RANK_TOTALS,	// MEDAL_NETMASTER
+	MEDAL_RANK_TOTALS	// MEDAL_ASSISTANT
+};
+
 static void CG_Medal( int medal, int count ) {
 	static qboolean		loaded[MEDAL_NUM];
 	static sfxHandle_t	sounds[MEDAL_NUM];
@@ -1108,7 +1150,7 @@ static void CG_Medal( int medal, int count ) {
 		sounds[medal] = trap_S_RegisterSound( va( "sound/feedback/%s.wav", bg_medalInfo[medal].key ), qtrue );
 		icons[medal] = trap_R_RegisterShaderNoMip( va( "gfx/tremor/medals/%s", bg_medalInfo[medal].key ) );
 	}
-	CG_PushReward( sounds[medal], icons[medal], count, bg_medalInfo[medal].name );
+	CG_PushReward( sounds[medal], icons[medal], count, bg_medalInfo[medal].name, cg_medalRank[medal] );
 }
 
 /*
@@ -1138,6 +1180,86 @@ static qboolean CG_SafeFormat( const char *fmt ) {
 
 /*
 =================
+CG_FormatArgs
+
+Formats a string-table line with up to two arguments given as strings: %s
+takes one as it is, %i as a number; false for any other conversion
+=================
+*/
+static qboolean CG_FormatArgs( char *out, int size, const char *fmt, const char *a, const char *b ) {
+	const char	*args[2];
+	int			n = 0, len = 0;
+	const char	*add;
+	char		num[16];
+
+	args[0] = a;
+	args[1] = b;
+	for ( ; *fmt && len < size - 1 ; fmt++ ) {
+		if ( *fmt != '%' ) {
+			out[len++] = *fmt;
+			continue;
+		}
+		fmt++;
+		if ( *fmt == '%' ) {
+			out[len++] = '%';
+			continue;
+		}
+		if ( n == 2 || ( *fmt != 's' && *fmt != 'i' ) ) {
+			return qfalse;
+		}
+		if ( *fmt == 'i' ) {
+			Com_sprintf( num, sizeof( num ), "%i", atoi( args[n] ) );
+			add = num;
+		} else {
+			add = args[n];
+		}
+		n++;
+		while ( *add && len < size - 1 ) {
+			out[len++] = *add++;
+		}
+	}
+	out[len] = 0;
+	return qtrue;
+}
+
+/*
+=================
+CG_EventLinePriority
+
+messages.md 2.4: the event lines a server may send by id, and their
+priority; 0 for any other id
+=================
+*/
+static int CG_EventLinePriority( int id ) {
+	switch ( id ) {
+	case STR_CA_ROUND:
+	case STR_CA_RED_WINS:
+	case STR_CA_BLUE_WINS:
+	case STR_CA_DRAW:
+	case STR_CTF_HALF_TIME:
+	case STR_CTF_SECOND_HALF:
+	case STR_DUEL_OVERTIME:
+	case STR_RD_PICKED:
+	case STR_RD_ROUND:
+	case STR_RD_WINS_ROUND:
+	case STR_SAC_RED_WINS:
+	case STR_SAC_BLUE_WINS:
+		return 1;		// match flow
+	case STR_SAC_SOUL_SOON:
+	case STR_SAC_SOUL_SPAWNED:
+	case STR_SAC_PLANTED:
+	case STR_SAC_EXTRACTED:
+	case STR_SAC_DROPPED:
+	case STR_SAC_RETURNED:
+	case STR_EV_OBELISK_ATTACK:
+		return 2;		// objectives
+	default:
+		return 0;
+	}
+}
+
+/*
+=================
 CG_ServerCommand
 
 The string has been tokenized and can be retrieved with
@@ -1161,16 +1283,31 @@ static void CG_ServerCommand( void ) {
 	}
 
 	if ( !strcmp( cmd, "evline" ) ) {
-		// an event line at a priority (messages.md 2.4): 1 match flow,
-		// 2 objectives, 3 power-ups, 4 lead and time, 5 server
-		int		priority = atoi( CG_Argv( 1 ) );
+		// an event line by string id: only the ids below, and only formats
+		// taking up to two strings or numbers
+		int		id = atoi( CG_Argv( 1 ) ), priority = CG_EventLinePriority( id );
+		char	a[MAX_STRING_CHARS], b[MAX_STRING_CHARS];
 
-		CG_EventBanner( CG_Argv( 2 ), priority < 1 ? 1 : priority > 5 ? 5 : priority );
+		// (CG_Argv returns one shared buffer)
+		Q_strncpyz( a, CG_Argv( 2 ), sizeof( a ) );
+		Q_strncpyz( b, CG_Argv( 3 ), sizeof( b ) );
+		if ( priority && CG_FormatArgs( text, sizeof( text ), BG_String( id ), a, b ) ) {
+			if ( id == STR_EV_OBELISK_ATTACK ) {
+				CG_EventAlarm( text, priority );
+			} else {
+				CG_EventBanner( text, priority );
+			}
+		}
 		return;
 	}
 
 	if ( !strcmp( cmd, "bword" ) ) {
-		CG_BannerWord( CG_Argv( 1 ) );
+		int		id = atoi( CG_Argv( 1 ) );
+
+		if ( id == STR_SYS_FIGHT || id == STR_CA_FIGHT || id == STR_DUEL_SUDDEN_DEATH
+			|| id == STR_RD_SUDDEN_DEATH || id == STR_SAC_SUDDEN_DEATH ) {
+			CG_BannerWord( BG_String( id ) );
+		}
 		return;
 	}
 
@@ -1195,6 +1332,9 @@ static void CG_ServerCommand( void ) {
 			// lines); vote results go to both the event line and the chat
 			if ( id >= STR_SYS_FORFEIT && id <= STR_SYS_BLUE_CAPLIMIT ) {
 				CG_EventBanner( text, 1 );		// match ends
+			} else if ( ( id == STR_EV_RED_FLAG_TAKEN && cg.snap && cg.snap->ps.persistant[PERS_TEAM] == TEAM_RED )
+				|| ( id == STR_EV_BLUE_FLAG_TAKEN && cg.snap && cg.snap->ps.persistant[PERS_TEAM] == TEAM_BLUE ) ) {
+				CG_EventAlarm( text, 2 );		// your flag is taken
 			} else if ( id >= STR_EV_RED_FLAG_TAKEN && id <= STR_EV_BLUE_FLAG_CAPTURED ) {
 				CG_EventBanner( text, 2 );		// objectives
 			} else if ( id >= STR_EV_QUAD_SOON && id <= STR_EV_HAS_PROTECTION ) {
@@ -1202,10 +1342,15 @@ static void CG_ServerCommand( void ) {
 			} else {
 				if ( id >= STR_SYS_VOTE_PASSED && id <= STR_SYS_TEAMVOTE_FAILED ) {
 					CG_EventBanner( text, 5 );
+					CG_AddBufferedSoundPriority( id == STR_SYS_VOTE_PASSED || id == STR_SYS_TEAMVOTE_PASSED
+						? cgs.media.votePassed : cgs.media.voteFailed, 3 );
 				} else {
 					CG_Printf( "[skipnotify]%s\n", text );
 				}
 #ifndef MISSIONPACK
+				if ( id == STR_SYS_VOTE_CALLED ) {
+					CG_AddBufferedSoundPriority( cgs.media.voteNow, 3 );
+				}
 				if ( id == STR_SYS_CONNECTED || id == STR_SYS_ENTERED || id == STR_SYS_RENAMED ) {
 					CG_ConnectLine( text );
 				} else {

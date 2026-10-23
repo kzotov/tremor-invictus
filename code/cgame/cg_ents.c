@@ -224,6 +224,8 @@ static void CG_Speaker( centity_t *cent ) {
 CG_Item
 ==================
 */
+#define ITEM_BLINK	5000		// (d)
+
 static void CG_Item( centity_t *cent ) {
 	refEntity_t		ent;
 	entityState_t	*es;
@@ -243,6 +245,21 @@ static void CG_Item( centity_t *cent ) {
 		return;
 	}
 	CG_RegisterItemVisuals( es->modelindex );		// a power-up spot may switch items
+
+	// hud.md corrections: a dropped item about to vanish blinks, hidden
+	// 45 ms at a time while its visible time shrinks from 250 ms to 50 ms
+	// over the last ITEM_BLINK ms
+	if ( es->modelindex2 && es->time && es->time - cg.time < ITEM_BLINK ) {
+		int		left = es->time - cg.time, shown;
+
+		if ( left < 0 ) {
+			left = 0;
+		}
+		shown = 50 + 200 * left / ITEM_BLINK;
+		if ( cg.time % ( shown + 45 ) < 45 ) {
+			return;
+		}
+	}
 
 	item = &bg_itemlist[ es->modelindex ];
 	if ( cg_simpleItems.integer && item->giType != IT_TEAM ) {

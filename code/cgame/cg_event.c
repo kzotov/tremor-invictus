@@ -76,6 +76,23 @@ const char	*CG_PlaceString( int rank ) {
 
 /*
 =============
+CG_CheckFollowKiller
+
+The delayed switch to the killer, if we are still following the victim
+=============
+*/
+void CG_CheckFollowKiller( void ) {
+	if ( !cg.followKillerTime || cg.time < cg.followKillerTime ) {
+		return;
+	}
+	cg.followKillerTime = 0;
+	if ( cg.snap && ( cg.snap->ps.pm_flags & PMF_FOLLOW ) && cg.followKiller != cg.snap->ps.clientNum ) {
+		trap_SendClientCommand( va( "follow %i", cg.followKiller ) );
+	}
+}
+
+/*
+=============
 CG_Obituary
 =============
 */
@@ -134,10 +151,12 @@ static void CG_Obituary( entityState_t *ent ) {
 	}
 	mod = ent->eventParm;
 
-	// following the victim: go on with whoever killed them
+	// following the victim: go on with whoever killed them, 1.0 s after
+	// the kill (spectator.md corrections)
 	if ( cg_followKiller.integer && !cg.demoPlayback && ( cg.snap->ps.pm_flags & PMF_FOLLOW )
 		&& target == cg.snap->ps.clientNum && attacker >= 0 && attacker < MAX_CLIENTS && attacker != target ) {
-		trap_SendClientCommand( va( "follow %i", attacker ) );
+		cg.followKiller = attacker;
+		cg.followKillerTime = cg.time + 1000;
 	}
 
 	if ( target < 0 || target >= MAX_CLIENTS ) {

@@ -274,37 +274,57 @@ void CG_CheckChangedPredictableEvents( playerState_t *ps ) {
 pushReward
 ==================
 */
-void CG_PushReward( sfxHandle_t sfx, qhandle_t shader, int rewardCount, int name ) {
-	int		i, voice = -1;
+void CG_PushReward( sfxHandle_t sfx, qhandle_t shader, int rewardCount, int name, int rank ) {
+	int		i, first;
 
 	if (cg.rewardStack < (MAX_REWARDSTACK-1)) {
+		// messages.md 2.3: medals earned together form a group, kept rarest
+		// first (lowest rank, gaps.md GAP-17 order); the first is said, the
+		// others chime
+		for ( first = cg.rewardStack + 1 ; first > 1 && cg.rewardGroup[first - 1] == cg.time ; first-- ) {
+		}
+		for ( i = cg.rewardStack + 1 ; i > first && cg.rewardRank[i - 1] > rank ; i-- ) {
+			cg.rewardSound[i] = cg.rewardSound[i - 1];
+			cg.rewardShader[i] = cg.rewardShader[i - 1];
+			cg.rewardCount[i] = cg.rewardCount[i - 1];
+			cg.rewardName[i] = cg.rewardName[i - 1];
+			cg.rewardRank[i] = cg.rewardRank[i - 1];
+			cg.rewardGroup[i] = cg.rewardGroup[i - 1];
+			cg.rewardVoice[i] = qfalse;
+		}
 		cg.rewardStack++;
-		cg.rewardSound[cg.rewardStack] = sfx;
-		cg.rewardShader[cg.rewardStack] = shader;
-		cg.rewardCount[cg.rewardStack] = rewardCount;
-		cg.rewardName[cg.rewardStack] = name;
-		cg.rewardGroup[cg.rewardStack] = cg.time;
-		cg.rewardVoice[cg.rewardStack] = qtrue;
-		// messages.md 2.3: of the medals earned together the announcer says
-		// the rarest only (the one earned fewest times this match, the later
-		// on a tie); the others chime
-		for ( i = 1 ; i < cg.rewardStack ; i++ ) {
-			if ( cg.rewardGroup[i] == cg.time && cg.rewardVoice[i] ) {
-				voice = i;
-			}
-		}
-		if ( voice > 0 ) {
-			if ( cg.rewardCount[voice] < rewardCount ) {
-				cg.rewardVoice[cg.rewardStack] = qfalse;
-			} else {
-				cg.rewardVoice[voice] = qfalse;
-			}
-		}
+		cg.rewardSound[i] = sfx;
+		cg.rewardShader[i] = shader;
+		cg.rewardCount[i] = rewardCount;
+		cg.rewardName[i] = name;
+		cg.rewardRank[i] = rank;
+		cg.rewardGroup[i] = cg.time;
+		cg.rewardVoice[i] = qfalse;
+		cg.rewardVoice[first] = qtrue;
 	}
 }
 
-static void pushReward(sfxHandle_t sfx, qhandle_t shader, int rewardCount) {
-	CG_PushReward( sfx, shader, rewardCount, 0 );
+static void pushReward(sfxHandle_t sfx, qhandle_t shader, int rewardCount, int rank) {
+	CG_PushReward( sfx, shader, rewardCount, 0, rank );
+}
+
+/*
+==================
+CG_EventLineFor
+
+An event line about the viewed player: "YOU ..." for yourself, the name
+for the player you follow (hud.md 8.3)
+==================
+*/
+static void CG_EventLineFor( playerState_t *ps, int own, int other, int priority ) {
+	char	text[MAX_STRING_CHARS];
+
+	if ( ( ps->pm_flags & PMF_FOLLOW ) && ps->clientNum >= 0 && ps->clientNum < MAX_CLIENTS ) {
+		Com_sprintf( text, sizeof( text ), BG_String( other ), cgs.clientinfo[ps->clientNum].name );
+		CG_EventBanner( text, priority );
+	} else {
+		CG_EventBanner( BG_String( own ), priority );
+	}
 }
 
 /*
@@ -372,7 +392,7 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 	// reward sounds
 	reward = qfalse;
 	if (ps->persistant[PERS_CAPTURES] != ops->persistant[PERS_CAPTURES]) {
-		pushReward(cgs.media.captureAwardSound, cgs.media.medalCapture, ps->persistant[PERS_CAPTURES]);
+		pushReward(cgs.media.captureAwardSound, cgs.media.medalCapture, ps->persistant[PERS_CAPTURES], MEDAL_RANK_TOTALS);
 		reward = qtrue;
 		//Com_Printf("capture\n");
 	}
@@ -386,7 +406,7 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 #else
 		sfx = cgs.media.impressiveSound;
 #endif
-		pushReward(sfx, cgs.media.medalImpressive, ps->persistant[PERS_IMPRESSIVE_COUNT]);
+		pushReward(sfx, cgs.media.medalImpressive, ps->persistant[PERS_IMPRESSIVE_COUNT], MEDAL_RANK_IMPRESSIVE);
 		reward = qtrue;
 		//Com_Printf("impressive\n");
 	}
@@ -400,7 +420,7 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 #else
 		sfx = cgs.media.excellentSound;
 #endif
-		pushReward(sfx, cgs.media.medalExcellent, ps->persistant[PERS_EXCELLENT_COUNT]);
+		pushReward(sfx, cgs.media.medalExcellent, ps->persistant[PERS_EXCELLENT_COUNT], MEDAL_RANK_EXCELLENT);
 		reward = qtrue;
 		//Com_Printf("excellent\n");
 	}
@@ -414,17 +434,17 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 #else
 		sfx = cgs.media.humiliationSound;
 #endif
-		pushReward(sfx, cgs.media.medalGauntlet, ps->persistant[PERS_GAUNTLET_FRAG_COUNT]);
+		pushReward(sfx, cgs.media.medalGauntlet, ps->persistant[PERS_GAUNTLET_FRAG_COUNT], MEDAL_RANK_HUMILIATOR);
 		reward = qtrue;
 		//Com_Printf("gauntlet frag\n");
 	}
 	if (ps->persistant[PERS_DEFEND_COUNT] != ops->persistant[PERS_DEFEND_COUNT]) {
-		pushReward(cgs.media.defendSound, cgs.media.medalDefend, ps->persistant[PERS_DEFEND_COUNT]);
+		pushReward(cgs.media.defendSound, cgs.media.medalDefend, ps->persistant[PERS_DEFEND_COUNT], MEDAL_RANK_TOTALS);
 		reward = qtrue;
 		//Com_Printf("defend\n");
 	}
 	if (ps->persistant[PERS_ASSIST_COUNT] != ops->persistant[PERS_ASSIST_COUNT]) {
-		pushReward(cgs.media.assistSound, cgs.media.medalAssist, ps->persistant[PERS_ASSIST_COUNT]);
+		pushReward(cgs.media.assistSound, cgs.media.medalAssist, ps->persistant[PERS_ASSIST_COUNT], MEDAL_RANK_TOTALS);
 		reward = qtrue;
 		//Com_Printf("assist\n");
 	}
@@ -457,7 +477,7 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 
 	// the holder's Quad Damage ran out (not lost by dying)
 	if ( ops->powerups[PW_QUAD] && !ps->powerups[PW_QUAD] && ps->stats[STAT_HEALTH] > 0 ) {
-		CG_EventBanner( BG_String( STR_EV_QUAD_UP ), 3 );
+		CG_EventLineFor( ps, STR_EV_QUAD_UP, STR_EV_QUAD_UP_OTHER, 3 );
 	}
 
 	// lead changes
@@ -469,13 +489,13 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 				if ( cgs.gametype < GT_TEAM) {
 					if (  ps->persistant[PERS_RANK] == 0 ) {
 						CG_AddBufferedSound(cgs.media.takenLeadSound);
-						CG_EventBanner( BG_String( STR_EV_TAKEN_LEAD ), 4 );
+						CG_EventLineFor( ps, STR_EV_TAKEN_LEAD, STR_EV_TAKEN_LEAD_OTHER, 4 );
 					} else if ( ps->persistant[PERS_RANK] == RANK_TIED_FLAG ) {
 						CG_AddBufferedSound(cgs.media.tiedLeadSound);
-						CG_EventBanner( BG_String( STR_EV_TIED_LEAD ), 4 );
+						CG_EventLineFor( ps, STR_EV_TIED_LEAD, STR_EV_TIED_LEAD_OTHER, 4 );
 					} else if ( ( ops->persistant[PERS_RANK] & ~RANK_TIED_FLAG ) == 0 ) {
 						CG_AddBufferedSound(cgs.media.lostLeadSound);
-						CG_EventBanner( BG_String( STR_EV_LOST_LEAD ), 4 );
+						CG_EventLineFor( ps, STR_EV_LOST_LEAD, STR_EV_LOST_LEAD_OTHER, 4 );
 					}
 				}
 			}

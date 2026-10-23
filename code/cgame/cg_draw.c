@@ -3122,6 +3122,7 @@ CG_DrawReward
 #define MEDAL_FADE		300
 #define MEDAL_POP		150
 #define MEDAL_ONE_TIME	3900	// modern: one medal's whole showing
+#define MEDAL_NEXT		600		// modern: a waiting medal replaces the shown one after this
 #define MEDAL_ONE_IN	170
 #define MEDAL_ONE_OUT	570
 #define MEDAL_ONE_POP	290
@@ -3152,12 +3153,12 @@ static void CG_DrawReward( void ) {
 	}
 
 	// the row is done: up to four waiting medals line up together; the
-	// the rarest of a group is said, the others chime (CG_PushReward)
+	// rarest of a group is said, the others chime (CG_PushReward)
 	t = cg.time - medalRowTime;
-	// the modern layout shows one medal at a time, and a new one replaces it
-	// (the old one slides out under it)
+	// the modern layout shows one medal at a time, and a waiting one
+	// replaces it after MEDAL_NEXT (the old one slides out under it)
 	if ( !medalRowCount || t >= ( CG_HudModern() ? MEDAL_ONE_TIME : MEDAL_SHOW + MEDAL_FADE ) || t < 0
-		|| ( CG_HudModern() && cg.rewardStack > 0 ) ) {
+		|| ( CG_HudModern() && cg.rewardStack > 0 && t >= MEDAL_NEXT ) ) {
 		if ( CG_HudModern() && medalRowCount && t >= 0 && t < MEDAL_ONE_TIME && cg.rewardStack > 0 ) {
 			medalOutName = medalRow[0].name;
 			medalOutShader = medalRow[0].shader;
@@ -3173,7 +3174,7 @@ static void CG_DrawReward( void ) {
 			medalRow[medalRowCount].shader = cg.rewardShader[1];
 			medalRow[medalRowCount].count = cg.rewardCount[1];
 			if ( cg.rewardVoice[1] ) {
-				trap_S_StartLocalSound( cg.rewardSound[1], CHAN_ANNOUNCER );
+				CG_AddBufferedSoundPriority( cg.rewardSound[1], 3 );
 			} else if ( medalRowCount == 0 ) {
 				CG_MedalChime();
 			}
@@ -3184,6 +3185,7 @@ static void CG_DrawReward( void ) {
 				cg.rewardCount[i] = cg.rewardCount[i+1];
 				cg.rewardName[i] = cg.rewardName[i+1];
 				cg.rewardVoice[i] = cg.rewardVoice[i+1];
+				cg.rewardRank[i] = cg.rewardRank[i+1];
 				cg.rewardGroup[i] = cg.rewardGroup[i+1];
 			}
 			cg.rewardStack--;
@@ -3606,6 +3608,8 @@ typedef struct {
 	char	text[256];
 	int		priority;
 	int		time;		// when shown; 0 while queued
+	int		queued;		// when it arrived
+	qboolean	alarm;	// the alarm look: your flag taken, obelisk under attack
 } banner_t;
 
 static banner_t	bannerShown;
@@ -3636,7 +3640,7 @@ void CG_BannerWord( const char *text ) {
 CG_EventBanner
 ==============
 */
-void CG_EventBanner( const char *text, int priority ) {
+static void CG_EventLineAdd( const char *text, int priority, qboolean alarm ) {
 	banner_t	*b;
 
 	if ( !text[0] ) {
@@ -3662,6 +3666,16 @@ void CG_EventBanner( const char *text, int priority ) {
 	Q_strncpyz( b->text, text, sizeof( b->text ) );
 	b->priority = priority;
 	b->time = 0;
+	b->queued = cg.time;
+	b->alarm = alarm;
+}
+
+void CG_EventBanner( const char *text, int priority ) {
+	CG_EventLineAdd( text, priority, qfalse );
+}
+
+void CG_EventAlarm( const char *text, int priority ) {
+	CG_EventLineAdd( text, priority, qtrue );
 }
 
 /*
@@ -3732,6 +3746,15 @@ static void CG_DrawCenterString( void ) {
 		if ( bannerShown.time ) {
 			bannerShown.time += cg.frametime;
 		}
+		// hud.md 8.9: held lines of priority 3-5 expire after 5 s
+		for ( i = 0 ; i < bannerQueued ; ) {
+			if ( bannerQueue[i].priority >= 3 && cg.time - bannerQueue[i].queued > 5000 ) {
+				memmove( bannerQueue + i, bannerQueue + i + 1, sizeof( bannerQueue[0] ) * ( bannerQueued - i - 1 ) );
+				bannerQueued--;
+			} else {
+				i++;
+			}
+		}
 		return;
 	}
 	for ( i = 0 ; i < bannerQueued ; i++ ) {
@@ -3764,6 +3787,16 @@ static void CG_DrawCenterString( void ) {
 		y = by;
 		lineH = 45 * DP;
 		lineW = lineH * 0.8f;
+	}
+	if ( bannerShown.alarm ) {
+		// the alarm look (d): red, blinking three times as it comes up
+		int		up = cg.time - bannerShown.time;
+
+		color[0] = 1;
+		color[1] = color[2] = 0.22f;
+		if ( up < 900 && ( up / 150 ) % 2 ) {
+			color[3] *= 0.35f;
+		}
 	}
 	start = bannerShown.text;
 	for ( line = 0 ; line < 3 && *start ; line++ ) {
@@ -4357,12 +4390,12 @@ static void CG_DrawVote( float y ) {
 			cw = 480 * DP / len;
 		}
 		cg_hudAnchor = ANCHOR_LEFT;
-		CG_DrawStringExt( 50 * DP, 110 * DP, s, colorWhite, qfalse, qtrue, cw, h, 0 );
+		CG_DrawStringExt( 50 * DP, 110 * DP, s, colorYellow, qfalse, qtrue, cw, h, 0 );		// votes are yellow
 		CG_DrawStringExt( 50 * DP, 110 * DP + h + 2, BG_String( STR_VOTE_ESC ), colorLtGrey, qfalse, qtrue, h * 0.5f, h * 0.8f, 0 );
 		cg_hudAnchor = ANCHOR_CENTER;
 		return;
 	}
-	CG_DrawSmallString( 8, y, s, 1.0F );
+	CG_DrawSmallStringColor( 8, y, s, colorYellow );
 	CG_DrawSmallStringColor( 8, y + SMALLCHAR_HEIGHT + 2, (char *)BG_String( STR_VOTE_ESC ), colorLtGrey );
 	cg_hudAnchor = ANCHOR_CENTER;
 }

@@ -164,7 +164,7 @@ static void G_CTFSwapHalves( void ) {
 		ClientSpawn( ent );
 	}
 	CalculateRanks();
-	G_EventLine( -1, 1, BG_String( STR_CTF_SECOND_HALF ) );
+	G_EventLine( -1, STR_CTF_SECOND_HALF, NULL, NULL );
 }
 
 /*
@@ -204,7 +204,7 @@ void G_CTFCheckRules( void ) {
 	if ( level.ctfHalf < 2 && !level.halfTimeEnd && elapsed >= half ) {
 		level.halfTimeEnd = level.time + CTF_HALF_TIME_MSEC;
 		Com_sprintf( msg, sizeof( msg ), BG_String( STR_CTF_HALF_TIME ), level.teamScores[TEAM_RED], level.teamScores[TEAM_BLUE] );
-		G_EventLine( -1, 1, msg );
+		G_EventLine( -1, STR_CTF_HALF_TIME, va( "%i", level.teamScores[TEAM_RED] ), va( "%i", level.teamScores[TEAM_BLUE] ) );
 		G_Announce( -1, "halftime" );
 		trap_SendServerCommand( -1, va( "print \"%s\n\"", msg ) );
 		return;

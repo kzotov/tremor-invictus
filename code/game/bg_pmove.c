@@ -1048,6 +1048,42 @@ static void PM_FlyMove( void ) {
 
 /*
 ===================
+PM_SpectatorMove
+
+spectator.md corrections: free fly at 400 u/s, 800 while the speed key is
+held, reached at 1600 u/s per second (6400 when fast); letting go slows
+at the same rate
+===================
+*/
+static void PM_SpectatorMove( void ) {
+	int		i;
+	vec3_t	wish, delta;
+	float	speed, accel, len, step;
+	qboolean	fast = ( pm->cmd.buttons & BUTTON_WALKING ) != 0;
+
+	speed = fast ? 800 : 400;
+	accel = fast ? 6400 : 1600;
+	for ( i = 0 ; i < 3 ; i++ ) {
+		wish[i] = pml.forward[i] * pm->cmd.forwardmove + pml.right[i] * pm->cmd.rightmove;
+	}
+	wish[2] += pm->cmd.upmove;
+	if ( VectorNormalize( wish ) > 0 ) {
+		VectorScale( wish, speed, wish );
+	}
+	VectorSubtract( wish, pm->ps->velocity, delta );
+	len = VectorLength( delta );
+	step = accel * pml.frametime;
+	if ( len <= step ) {
+		VectorCopy( wish, pm->ps->velocity );
+	} else {
+		VectorMA( pm->ps->velocity, step / len, delta, pm->ps->velocity );
+	}
+	PM_StepSlideMove( qfalse );
+}
+
+
+/*
+===================
 PM_WallTrace
 
 Looks for a wall to jump off in one horizontal direction
@@ -3572,7 +3608,7 @@ void PmoveSingle (pmove_t *pmove) {
 
 	if ( pm->ps->pm_type == PM_SPECTATOR ) {
 		PM_CheckDuck ();
-		PM_FlyMove ();
+		PM_SpectatorMove ();
 		PM_DropTimers ();
 		return;
 	}
