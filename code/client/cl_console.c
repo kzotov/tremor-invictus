@@ -632,22 +632,19 @@ void Con_DrawNotify (void)
 		return;
 	}
 
-	// draw the chat line
+	// draw the chat line: hud.md 9.7, at (94, 704) on the 1080 page, an
+	// ALL / TEAM label before the typed text, no wider than x 512
 	if ( Key_GetCatcher( ) & KEYCATCH_MESSAGE )
 	{
-		if (chat_team)
-		{
-			SCR_DrawBigString (8, v, "say_team:", 1.0f, qfalse );
-			skip = 10;
-		}
-		else
-		{
-			SCR_DrawBigString (8, v, "say:", 1.0f, qfalse );
-			skip = 5;
-		}
+		static vec4_t	labelColor = { 0.95f, 0.75f, 0.3f, 1 };
+		int		x = 94 * cls.glconfig.vidHeight / 1080, y = 704 * cls.glconfig.vidHeight / 1080;
+		int		right = 512 * cls.glconfig.vidHeight / 1080;
+		const char	*label = chat_team ? "TEAM" : "ALL";
 
-		Field_BigDraw( &chatField, skip * BIGCHAR_WIDTH, v,
-			SCREEN_WIDTH - ( skip + 1 ) * BIGCHAR_WIDTH, qtrue, qtrue );
+		skip = strlen( label ) + 1;
+		SCR_DrawSmallStringExt( x, y, label, labelColor, qtrue, qfalse );
+		Field_Draw( &chatField, x + skip * SMALLCHAR_WIDTH, y, ( right - x ) / SMALLCHAR_WIDTH - skip, qtrue, qtrue );
+		(void)v;
 	}
 
 }

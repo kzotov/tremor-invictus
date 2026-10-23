@@ -78,7 +78,7 @@ static const hudElement_t	hudDefaults[] = {
 	{ "clock",			ANCHOR_CENTER,	qfalse,	0, 35, 1 },		// top
 	{ "clockline",		ANCHOR_CENTER,	qfalse,	0, 92, 1 },		// top
 	{ "killfeed",		ANCHOR_LEFT,	qfalse,	44, 267, 1 },		// first row's top
-	{ "pickups",		ANCHOR_RIGHT,	qfalse,	50, 150, 1 },
+	{ "pickups",		ANCHOR_RIGHT,	qfalse,	41, 60, 1 },		// hud.md 9.7: the strip's right edge at x 1879, top 60
 	{ "medals",			ANCHOR_CENTER,	qfalse,	0, 234, 1 },		// the medal's top
 	{ "fragline",		ANCHOR_CENTER,	qfalse,	0, 412, 1 },
 	{ "eventline",		ANCHOR_CENTER,	qfalse,	0, 337, 1 },		// top
@@ -755,7 +755,7 @@ static const char *CG_CapName( const char *name, float size, float maxDp );
 
 #define KF_IN		290
 #define KF_HOLD		4000
-#define KF_OUT		340
+#define KF_OUT		310
 #define KF_SLIDE	340
 
 static void CG_KillFeedNameModern( float x, float y, const char *name, int team, const vec4_t fade, float cw, float ch ) {
@@ -775,7 +775,7 @@ static void CG_DrawKillFeedModern( int rows ) {
 	static qhandle_t	skull;
 	killFeed_t	*k, *shown[5];
 	int			i, n = 0, life = KF_IN + KF_HOLD + KF_OUT, me = cg.snap->ps.clientNum, t;
-	float		fx, fy, ch = 23 * DP, cw = ch * 0.6f, icon = 28 * DP, pitch = 34 * DP, x, w, y;
+	float		fx, fy, ch = 20 * DP, cw = ch * 0.6f, icon = 22 * DP, pitch = 26 * DP, x, w, y;		// hud.md 9.7
 	vec4_t		fade = { 1, 1, 1, 1 }, band;
 	const char	*victim;
 	char		killer[64];
@@ -818,6 +818,13 @@ static void CG_DrawKillFeedModern( int rows ) {
 			k->fromY = k->rowY;
 		}
 		fade[3] = t < KF_IN ? t / (float)KF_IN : t > life - KF_OUT ? ( life - t ) / (float)KF_OUT : 1;
+		// a new row comes in from a white flash
+		if ( t < KF_IN ) {
+			vec4_t	flash = { 1, 1, 1, 0 };
+
+			flash[3] = 0.45f * ( 1 - t / (float)KF_IN );
+			CG_FillRect( fx - 4, y - 2, 300 * DP, icon + 4, flash );
+		}
 
 		// (CG_CapName returns one shared buffer)
 		Q_strncpyz( killer, CG_CapName( k->killer, 23, 160 ), sizeof( killer ) );
@@ -1216,7 +1223,7 @@ CG_DrawChat
 */
 static void CG_DrawChat( void ) {
 	chatLine_t	*c;
-	int			i, rows, y = CHAT_Y, life;
+	int			i, rows, y = CHAT_Y, life, modernRow = 0;
 	vec4_t		color = { 1, 1, 1, 1 };
 
 	rows = cg.showChatHistory ? CHAT_HISTORY : cg_chatHistoryLength.integer;
@@ -1233,12 +1240,30 @@ static void CG_DrawChat( void ) {
 		if ( !cg.showChatHistory && cg.time - c->time > life ) {
 			continue;
 		}
-		// in over 0.4 s, out over 0.47 s
+		// in over 0.38 s, out over 0.44 s (hud.md 9.7)
 		color[3] = 1;
-		if ( !cg.showChatHistory && cg.time - c->time > life - 470 ) {
-			color[3] = ( life - ( cg.time - c->time ) ) / 470.0f;
-		} else if ( !cg.showChatHistory && cg.time - c->time < 400 ) {
-			color[3] = ( cg.time - c->time ) / 400.0f;
+		if ( !cg.showChatHistory && cg.time - c->time > life - 440 ) {
+			color[3] = ( life - ( cg.time - c->time ) ) / 440.0f;
+		} else if ( !cg.showChatHistory && cg.time - c->time < 380 ) {
+			color[3] = ( cg.time - c->time ) / 380.0f;
+		}
+		// the modern layout: lines 18 dp in the box x 93-512 over the typed
+		// line at 704, newest at the bottom, about 181 dp of history
+		if ( CG_HudModern() ) {
+			float	ch = 18 * DP, cw = ch * 0.6f, top;
+
+			top = 700 * DP - ( modernRow + 1 ) * 22 * DP;
+			if ( top < ( 700 - 181 ) * DP ) {
+				break;
+			}
+			cg_hudAnchor = ANCHOR_LEFT;
+			if ( c->system ) {
+				color[0] = color[1] = color[2] = 0.6f;
+			}
+			CG_DrawStringExt( 93 * DP, top, c->text, color, c->system, qtrue, cw, ch, (int)( 419 * DP / cw ) );
+			color[0] = color[1] = color[2] = 1;
+			modernRow++;
+			continue;
 		}
 		if ( c->system ) {
 			// grey and smaller, under the colour the line carries
@@ -1251,6 +1276,7 @@ static void CG_DrawChat( void ) {
 			y -= SMALLCHAR_HEIGHT + 2;
 		}
 	}
+	cg_hudAnchor = ANCHOR_CENTER;
 	cg_drawTeamPalette = qfalse;
 }
 
@@ -2118,10 +2144,11 @@ static struct {
 
 static void CG_DrawPickupFeed( void ) {
 	static int	seen;
-	float		x, y, row = 34 * DP;
-	vec4_t		c = { 1, 1, 1, 1 };
+	float		x, y, row = 33 * DP, ch = 22 * DP, cw = ch * 0.6f, icon = 26 * DP, f;
+	vec4_t		c = { 1, 1, 1, 1 }, strip = { 0.05f, 0.05f, 0.06f, 0.5f }, flash = { 1, 1, 1, 0 };
 	int			i;
 	const char	*s;
+	gitem_t		*it;
 
 	if ( !cg_drawItemPickups.integer ) {
 		return;
@@ -2155,15 +2182,29 @@ static void CG_DrawPickupFeed( void ) {
 		if ( !pickupFeed[i].item || t < 0 || t >= PICKUP_TIME ) {
 			continue;
 		}
-		c[3] = t > PICKUP_TIME - 300 ? ( PICKUP_TIME - t ) / 300.0f : 1;
-		s = pickupFeed[i].count > 1 ? va( "%s x%i", bg_itemlist[pickupFeed[i].item].pickup_name, pickupFeed[i].count )
-			: bg_itemlist[pickupFeed[i].item].pickup_name;
+		// hud.md 9.7: 22 dp rows on a 320 x 33 strip, in from a white flash
+		// over 0.23 s, 4.6 s with the fades; health and armour show the amount
+		c[3] = t < 230 ? t / 230.0f : t > PICKUP_TIME - 300 ? ( PICKUP_TIME - t ) / 300.0f : 1;
+		it = &bg_itemlist[pickupFeed[i].item];
+		if ( ( it->giType == IT_HEALTH || it->giType == IT_ARMOR ) && it->quantity > 0 ) {
+			s = pickupFeed[i].count > 1 ? va( "+%i %s x%i", it->quantity, it->pickup_name, pickupFeed[i].count )
+				: va( "+%i %s", it->quantity, it->pickup_name );
+		} else {
+			s = pickupFeed[i].count > 1 ? va( "%s x%i", it->pickup_name, pickupFeed[i].count ) : it->pickup_name;
+		}
+		strip[3] = 0.5f * c[3];
+		CG_FillRect( x - 320 * DP, y, 320 * DP, row - 2 * DP, strip );
+		f = t < 230 ? 1 - t / 230.0f : 0;
+		if ( f > 0 ) {
+			flash[3] = 0.6f * f;
+			CG_FillRect( x - 320 * DP, y, 320 * DP, row - 2 * DP, flash );
+		}
 		CG_RegisterItemVisuals( pickupFeed[i].item );
 		trap_R_SetColor( c );
-		CG_DrawPic( x - 16, y, 16, 16, cg_items[pickupFeed[i].item].icon );
+		CG_DrawPic( x - icon - 4 * DP, y + ( row - 2 * DP - icon ) / 2, icon, icon, cg_items[pickupFeed[i].item].icon );
 		trap_R_SetColor( NULL );
-		CG_DrawStringExt( x - 20 - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH, y + 1, s, c, qfalse, qtrue,
-			SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+		CG_DrawStringExt( x - icon - 12 * DP - CG_DrawStrlen( s ) * cw, y + ( row - 2 * DP - ch ) / 2, s, c, qfalse, qtrue,
+			cw, ch, 0 );
 		y += row;
 	}
 	cg_hudAnchor = ANCHOR_CENTER;
@@ -2512,6 +2553,17 @@ static float CG_DrawFPS( float y ) {
 			total = 1;
 		}
 		fps = 1000 * FPS_FRAMES / total;
+
+		// hud.md 9.7: the number changes every 0.5 s
+		{
+			static int	shownFps, shownAt;
+
+			if ( t - shownAt >= 500 || t < shownAt || !shownFps ) {
+				shownAt = t;
+				shownFps = fps;
+			}
+			fps = shownFps;
+		}
 
 		// a capped game reads as its cap, not one below it
 		{
@@ -3235,7 +3287,7 @@ CG_DrawReward
 #define MEDAL_FADE		300
 #define MEDAL_POP		150
 #define MEDAL_ONE_TIME	3900	// modern: one medal's whole showing
-#define MEDAL_NEXT		600		// modern: a waiting medal replaces the shown one after this
+#define MEDAL_NEXT		0		// modern: a waiting medal replaces the shown one at once (hud.md 9.7)
 #define MEDAL_ONE_IN	170
 #define MEDAL_ONE_OUT	570
 #define MEDAL_ONE_POP	290
@@ -4285,18 +4337,32 @@ static void CG_DrawCrosshairNames( void ) {
 	w = CG_Text_Width(name, 0.3f, 0);
 	CG_Text_Paint( 320 - w / 2, 190, 0.3f, color, name, 0, 0, ITEM_TEXTSTYLE_SHADOWED);
 #else
-	w = CG_DrawStrlen( name ) * BIGCHAR_WIDTH;
-	CG_DrawBigString( 320 - w / 2, 170, name, color[3] * 0.5f );
-#endif
+	// hud.md 9.7: 18 dp white at 80 %, centred, top 456 (under the frag
+	// line), no wider than x 757-1158
+	{
+		vec4_t	white = { 1, 1, 1, 0 };
+		float	ch = 18 * DP, cw = ch * 0.6f;
 
-	// a teammate: their health and armour (from the team overlay info)
-	if ( cgs.gametype >= GT_TEAM && cgs.clientinfo[cg.crosshairClientNum].team == cg.snap->ps.persistant[PERS_TEAM]
-		&& cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
-		const char	*s = va( "%i / %i", cgs.clientinfo[cg.crosshairClientNum].health,
-			cgs.clientinfo[cg.crosshairClientNum].armor );
+		white[3] = color[3] * 0.8f;
+		cg_hudAnchor = ANCHOR_CENTER;
+		w = CG_DrawStrlen( name ) * cw;
+		if ( w > 401 * DP ) {
+			cw *= 401 * DP / w;
+			w = 401 * DP;
+		}
+		CG_DrawStringExt( 320 - w / 2, 456 * DP, name, white, qfalse, qtrue, cw, ch, 0 );
 
-		CG_DrawSmallStringColor( 320 - CG_DrawStrlen( s ) * SMALLCHAR_WIDTH / 2, 170 + BIGCHAR_HEIGHT + 2, s, color );
+		// a teammate: their health and armour (from the team overlay info)
+		if ( cgs.gametype >= GT_TEAM && cgs.clientinfo[cg.crosshairClientNum].team == cg.snap->ps.persistant[PERS_TEAM]
+			&& cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
+			const char	*s = va( "%i / %i", cgs.clientinfo[cg.crosshairClientNum].health,
+				cgs.clientinfo[cg.crosshairClientNum].armor );
+
+			cw = ch * 0.6f;
+			CG_DrawStringExt( 320 - CG_DrawStrlen( s ) * cw / 2, 478 * DP, s, white, qfalse, qtrue, cw, ch, 0 );
+		}
 	}
+#endif
 	trap_R_SetColor( NULL );
 }
 
@@ -4308,8 +4374,8 @@ A red arc around the crosshair toward where damage came from, one for
 each of the last four hits, fading over 1.2 s, brighter for bigger hits
 =================
 */
-#define DAMAGE_ARC_TIME		1200
-#define DAMAGE_ARC_RADIUS	56
+#define DAMAGE_ARC_TIME		1170		// hud.md 9.7: in to pure red, held to 0.54 s, out over 0.6 s
+#define DAMAGE_ARC_RADIUS	( 277 * DP )
 #define DAMAGE_ARC_SPAN		40		// degrees
 static void CG_DrawDamageArc( void ) {
 	vec4_t	color = { 0.9f, 0.08f, 0.05f, 1 };
@@ -4329,13 +4395,22 @@ static void CG_DrawDamageArc( void ) {
 		}
 		value = cg.damageArcValue[n];
 		dot = value >= 50 ? 6 : 4;		// a hit of 50 or more draws the big arc
-		color[3] = ( 1.0f - t / DAMAGE_ARC_TIME ) * ( 0.4f + 0.6f * ( value > 50 ? 1.0f : value / 50.0f ) );
-		for ( i = 0 ; i <= 10 ; i++ ) {
-			a = cg.damageArcYaw[n] + DAMAGE_ARC_SPAN * ( i / 10.0f - 0.5f );
-			rad = DEG2RAD( a );
-			x = 320 - sin( rad ) * DAMAGE_ARC_RADIUS;
-			y = 240 - cos( rad ) * DAMAGE_ARC_RADIUS;
-			CG_FillRect( x - dot / 2, y - dot / 2, dot, dot, color );
+		// growing 0.65 -> 0.70 while going to pure red (0.11 s), held, then
+		// fading and shrinking over the last 0.6 s
+		{
+			float	size = t < 115 ? 0.65f + 0.05f * t / 115.0f : t < 540 ? 0.7f : 0.7f - 0.2f * ( t - 540 ) / 630.0f;
+			float	ramp = t < 115 ? t / 115.0f : 1;
+
+			color[0] = 1;
+			color[1] = color[2] = 0.6f * ( 1 - ramp );
+			color[3] = ( t < 540 ? 1 : 1 - ( t - 540 ) / 630.0f ) * ( 0.5f + 0.5f * ( value > 50 ? 1.0f : value / 50.0f ) );
+			for ( i = 0 ; i <= 10 ; i++ ) {
+				a = cg.damageArcYaw[n] + DAMAGE_ARC_SPAN * size / 0.7f * ( i / 10.0f - 0.5f );
+				rad = DEG2RAD( a );
+				x = 320 - sin( rad ) * DAMAGE_ARC_RADIUS;
+				y = 240 - cos( rad ) * DAMAGE_ARC_RADIUS;
+				CG_FillRect( x - dot * size / 0.7f / 2, y - dot * size / 0.7f / 2, dot * size / 0.7f, dot * size / 0.7f, color );
+			}
 		}
 	}
 }
@@ -4521,9 +4596,7 @@ static void CG_DrawLowHealth( void ) {
 	if ( cg.lowHealthStep >= LH_LOW ) {
 		float	ch = 26 * DP, cw = ch * 0.8f;
 
-		color[0] = 1;
-		color[1] = 0.22f;
-		color[2] = 0.22f;
+		CG_HealthPalette( 0, color );		// red, or the colour-blind palette's low
 		color[3] = 0.45f + 0.55f * pulse;
 		cg_hudAnchor = ANCHOR_CENTER;
 		CG_DrawStringExt( 320 + 466 * DP, 586 * DP, BG_String( STR_HUD_LOW_HEALTH ), color, qtrue, qtrue, cw, ch, 0 );
@@ -5259,6 +5332,18 @@ static void CG_DrawAmmoWarning( void ) {
 		return;		// (the drone's gun uses no ammo)
 	}
 
+	// the modern layout: the warning column at centre + 466 (hud.md 9.7,
+	// under LOW HEALTH and LOW ARMOR), blinking
+	if ( CG_HudModern() ) {
+		vec4_t	color = { 1, 0.75f, 0.2f, 1 };
+		float	ch = 26 * DP;
+
+		color[3] = 0.55f + 0.45f * cos( cg.time / 400.0f * M_PI );
+		cg_hudAnchor = ANCHOR_CENTER;
+		CG_DrawStringExt( 320 + 466 * DP, 686 * DP, BG_String( cg.lowAmmoWarning == 2 ? STR_HUD_NO_AMMO : STR_HUD_LOW_AMMO ),
+			color, qtrue, qtrue, ch * 0.8f, ch, 0 );
+		return;
+	}
 	if ( cg.lowAmmoWarning == 2 ) {
 		s = "OUT OF AMMO";
 	} else {
@@ -5266,6 +5351,29 @@ static void CG_DrawAmmoWarning( void ) {
 	}
 	w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
 	CG_DrawBigString(320 - w / 2, 64, s, 1.0F);
+}
+
+/*
+=================
+CG_DrawArmorWarning
+
+The warning column's middle slot (hud.md 9.7, 1426, 636): LOW ARMOR when a
+class that spawns with armour is down to 25 or less
+=================
+*/
+static void CG_DrawArmorWarning( void ) {
+	playerState_t		*ps = &cg.snap->ps;
+	const classInfo_t	*ci = &bg_classInfo[BG_Champion( ps->stats[STAT_CHAMPION] )->bodyClass];
+	vec4_t				color = { 0.35f, 0.95f, 0.45f, 1 };
+	float				ch = 26 * DP;
+
+	if ( !CG_HudModern() || ps->stats[STAT_HEALTH] <= 0 || ci->spawnArmor <= 0 || ps->stats[STAT_ARMOR] > 25
+		|| ps->persistant[PERS_TEAM] == TEAM_SPECTATOR ) {
+		return;
+	}
+	color[3] = 0.55f + 0.45f * cos( cg.time / 400.0f * M_PI );
+	cg_hudAnchor = ANCHOR_CENTER;
+	CG_DrawStringExt( 320 + 466 * DP, 636 * DP, BG_String( STR_HUD_LOW_ARMOR ), color, qtrue, qtrue, ch * 0.8f, ch, 0 );
 }
 
 
@@ -7285,6 +7393,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 #endif
       
 			CG_DrawAmmoWarning();
+			CG_DrawArmorWarning();
 
 #ifdef MISSIONPACK
 			CG_DrawProxWarning();
