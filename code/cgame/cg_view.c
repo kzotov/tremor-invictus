@@ -218,6 +218,53 @@ static void CG_CalcVrect (void) {
 
 /*
 ===============
+CG_KillerCamera
+
+hud.md corrections: dead for 3 s, the camera moves to the killer: behind
+them on a 120 u arm, looking where they look with the pitch kept within
+45 degrees, pulled in where a wall is closer
+===============
+*/
+#define KILLER_CAM_DELAY	3000
+#define KILLER_CAM_ARM		120
+#define KILLER_CAM_PITCH	45
+
+static qboolean CG_KillerCamera( void ) {
+	centity_t	*killer;
+	vec3_t		target, forward, angles, mins = { -4, -4, -4 }, maxs = { 4, 4, 4 };
+	trace_t		tr;
+
+	if ( cg.snap->ps.stats[STAT_HEALTH] > 0 || cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR
+		|| !cg.deathTime || cg.time - cg.deathTime < KILLER_CAM_DELAY
+		|| cg.deathKiller < 0 || cg.deathKiller >= MAX_CLIENTS || cg.deathKiller == cg.snap->ps.clientNum ) {
+		return qfalse;
+	}
+	killer = &cg_entities[cg.deathKiller];
+	if ( !killer->currentValid || ( killer->currentState.eFlags & EF_DEAD ) ) {
+		return qfalse;		// not in view any more, or dead too: stay put
+	}
+	VectorCopy( killer->lerpOrigin, target );
+	target[2] += DEFAULT_VIEWHEIGHT;
+	VectorCopy( killer->lerpAngles, angles );
+	angles[ROLL] = 0;
+	if ( angles[PITCH] > 180 ) {
+		angles[PITCH] -= 360;
+	}
+	if ( angles[PITCH] > KILLER_CAM_PITCH ) {
+		angles[PITCH] = KILLER_CAM_PITCH;
+	} else if ( angles[PITCH] < -KILLER_CAM_PITCH ) {
+		angles[PITCH] = -KILLER_CAM_PITCH;
+	}
+	AngleVectors( angles, forward, NULL, NULL );
+	VectorMA( target, -KILLER_CAM_ARM, forward, cg.refdef.vieworg );
+	CG_Trace( &tr, target, mins, maxs, cg.refdef.vieworg, cg.deathKiller, MASK_SOLID );
+	VectorCopy( tr.endpos, cg.refdef.vieworg );
+	VectorCopy( angles, cg.refdefViewAngles );
+	return qtrue;
+}
+
+/*
+===============
 CG_OffsetThirdPersonView
 
 ===============
@@ -693,7 +740,9 @@ static int CG_CalcViewValues( void ) {
 		}
 	}
 
-	if ( cg.renderingThirdPerson ) {
+	if ( CG_KillerCamera() ) {
+		// the death camera follows the killer
+	} else if ( cg.renderingThirdPerson ) {
 		// back away from character
 		CG_OffsetThirdPersonView();
 	} else {
