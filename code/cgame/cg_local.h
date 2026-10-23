@@ -1547,6 +1547,7 @@ void CG_OwnerColors( int owner );
 void CG_DroneBody( centity_t *cent );
 int CG_ClientChampion( clientInfo_t *ci );
 int CG_EyeHeight( int clientNum, qboolean crouched );
+const char *CG_DemoModeTag( void );
 clientInfo_t *CG_ChampionPreview( int champion );
 void CG_PlayerColorPart( int part );
 void CG_ColorReset( void );

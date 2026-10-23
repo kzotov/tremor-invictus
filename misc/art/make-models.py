@@ -407,6 +407,7 @@ GLYPHS = {
     "C": ["01111", "10000", "10000", "10000", "10000", "10000", "01111"],
     "D": ["11110", "10001", "10001", "10001", "10001", "10001", "11110"],
     "E": ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
+    "F": ["11111", "10000", "10000", "11110", "10000", "10000", "10000"],
     "G": ["01111", "10000", "10000", "10011", "10001", "10001", "01111"],
     "H": ["10001", "10001", "10001", "11111", "10001", "10001", "10001"],
     "I": ["11111", "00100", "00100", "00100", "00100", "00100", "11111"],
@@ -416,6 +417,7 @@ GLYPHS = {
     "M": ["10001", "11011", "10101", "10101", "10001", "10001", "10001"],
     "N": ["10001", "11001", "10101", "10011", "10001", "10001", "10001"],
     "O": ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
+    "P": ["11110", "10001", "10001", "11110", "10000", "10000", "10000"],
     "R": ["11110", "10001", "10001", "11110", "10100", "10010", "10001"],
     "S": ["01111", "10000", "10000", "01110", "00001", "00001", "11110"],
     "T": ["11111", "00100", "00100", "00100", "00100", "00100", "00100"],
@@ -470,6 +472,28 @@ def portraits(out):
             path = os.path.join(out, "gfx/champions-generated/%s%s.tga" % (name, suffix))
             os.makedirs(os.path.dirname(path), exist_ok=True)
             write_tga(path, size, size, c.px)
+
+
+def hud_badges(out):
+    """hud.md 9.7: the mode icon (top left) and the network warning icons,
+    white letters on a dark hex or square, tinted by the HUD."""
+    for tag, text in (("ffa", "FFA"), ("duel", "DU"), ("rduel", "RD"), ("tdm", "TDM"), ("ca", "CA"),
+                      ("ctf", "CTF"), ("sac", "SAC")):
+        c = Canvas(64, 64)
+        c.fill(regular(0.5, 0.5, 0.48, 6, 0), (0.55, 0.55, 0.58))
+        c.fill(regular(0.5, 0.5, 0.42, 6, 0), INK)
+        monogram(c, text, 0.5, 0.5, 0.045 if len(text) > 2 else 0.06, SILVER)
+        path = os.path.join(out, "gfx/tremor/modes/%s.tga" % tag)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        write_tga(path, 64, 64, c.px)
+    for tag, text in (("loss", "PL"), ("ping", "MS"), ("spike", "SP"), ("fps", "FPS")):
+        c = Canvas(64, 64)
+        c.fill(art.box(0.5, 0.5, 0.46, 0.46, 0.1), (1, 1, 1))
+        c.fill(art.box(0.5, 0.5, 0.4, 0.4, 0.07), INK)
+        monogram(c, text, 0.5, 0.5, 0.045 if len(text) > 2 else 0.06, (1, 1, 1))
+        path = os.path.join(out, "gfx/tremor/net/%s.tga" % tag)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        write_tga(path, 64, 64, c.px)
 
 
 # ---------------------------------------------------------------- sounds
@@ -786,6 +810,7 @@ def main():
     os.makedirs(os.path.join(src, "icons"), exist_ok=True)
     weapon_icons(src)
     hud_icons(src)
+    hud_badges(src)
     portraits(src)
     sounds(src)
     texture(os.path.join(src, "gfx/abilities/plasmatrail.tga"), 128, 64, trail, False)

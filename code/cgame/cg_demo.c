@@ -54,7 +54,7 @@ static void CG_DemoSafe( char *out, int size, const char *in ) {
 	out[n] = 0;
 }
 
-static const char *CG_DemoModeTag( void ) {
+const char *CG_DemoModeTag( void ) {
 	if ( cgs.gametype == GT_TOURNAMENT ) {
 		return atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_roundDuel" ) ) ? "rduel" : "duel";
 	}

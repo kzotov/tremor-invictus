@@ -3560,11 +3560,17 @@ static void CG_DrawNetWarnings( void ) {
 	cg_hudAnchor = ANCHOR_LEFT;
 	cg_netWarningShown = qfalse;
 	for ( i = 0 ; i < NETW_NUM ; i++ ) {
+		static const char	*names[NETW_NUM] = { "loss", "ping", "spike", "fps" };
+		static qhandle_t	icons[NETW_NUM];
 		float	cw = 9 * DP, ch = 14 * DP;
 		char	label[16], *num;
 
-		x = ( 50 + i * 50 ) * DP;
+		// hud.md 9.7: 50 dp icons on a 65 dp pitch from (50, 100), the value under
+		x = ( 50 + i * 65 ) * DP;
 		y = 100 * DP;
+		if ( !icons[i] ) {
+			icons[i] = trap_R_RegisterShaderNoMip( va( "gfx/tremor/net/%s", names[i] ) );
+		}
 		// a warning stays at least 1 s, at its worst level meanwhile
 		if ( level[i] && ( cg.time >= shownUntil[i] || level[i] >= shownLevel[i] ) ) {
 			shownUntil[i] = cg.time + 1000;
@@ -3581,9 +3587,17 @@ static void CG_DrawNetWarnings( void ) {
 		if ( num ) {
 			*num++ = 0;
 		}
-		CG_DrawStringExt( x, y, label, shownLevel[i] >= 2 ? major : minor, qtrue, qtrue, cw, ch, 0 );
+		if ( icons[i] ) {
+			trap_R_SetColor( shownLevel[i] >= 2 ? major : minor );
+			CG_DrawPic( x, y, 50 * DP, 50 * DP, icons[i] );
+			trap_R_SetColor( NULL );
+			y += 52 * DP;
+		} else {
+			CG_DrawStringExt( x, y, label, shownLevel[i] >= 2 ? major : minor, qtrue, qtrue, cw, ch, 0 );
+			y += ch + 2 * DP;
+		}
 		if ( num ) {
-			CG_DrawStringExt( x, y + ch + 2 * DP, num, shownLevel[i] >= 2 ? major : minor, qtrue, qtrue, cw, ch, 0 );
+			CG_DrawStringExt( x, y, num, shownLevel[i] >= 2 ? major : minor, qtrue, qtrue, cw, ch, 0 );
 		}
 	}
 	cg_hudAnchor = ANCHOR_CENTER;
@@ -7119,6 +7133,21 @@ static void CG_DrawModernHud( void ) {
 	pic = CG_ChampionPortrait( ps->stats[STAT_CHAMPION], qfalse );
 	if ( pic ) {
 		CG_DrawPic( x - size, y - size, size, size, pic );
+	}
+
+	// the mode icon top left (hud.md 9.7, 34, 80)
+	{
+		static qhandle_t	icon;
+		static char			tag[8];
+
+		if ( strcmp( tag, CG_DemoModeTag() ) ) {
+			Q_strncpyz( tag, CG_DemoModeTag(), sizeof( tag ) );
+			icon = trap_R_RegisterShaderNoMip( va( "gfx/tremor/modes/%s", tag ) );
+		}
+		if ( icon ) {
+			cg_hudAnchor = ANCHOR_LEFT;
+			CG_DrawPic( 34 * DP, 80 * DP, 44 * DP, 44 * DP, icon );
+		}
 	}
 
 	// hud.md 9.7: the reference's vitals, ability, ammo, weapon column and
