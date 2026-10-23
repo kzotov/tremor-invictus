@@ -6281,12 +6281,17 @@ static void CG_DrawDotEdge( void ) {
 		return;
 	}
 	pulse = 0.75f + 0.25f * sin( cg.time * 0.008f );
-	for ( i = 0 ; i < 6 ; i++ ) {
-		color[3] = ( 0.35f - i * 0.055f ) * pulse;
-		CG_FillRect( -80 + 0, i * band, w + 160, band, color );
-		CG_FillRect( -80 + 0, h - ( i + 1 ) * band, w + 160, band, color );
-		CG_FillRect( -80 + i * band, 0, band, h, color );
-		CG_FillRect( w + 80 - ( i + 1 ) * band, 0, band, h, color );
+	{
+		// the whole screen's width: the 640 space plus the side bias
+		float	left = -cgs.screenXBias / cgs.screenXScale, full = w + 2 * cgs.screenXBias / cgs.screenXScale;
+
+		for ( i = 0 ; i < 6 ; i++ ) {
+			color[3] = ( 0.35f - i * 0.055f ) * pulse;
+			CG_FillRect( left, i * band, full, band, color );
+			CG_FillRect( left, h - ( i + 1 ) * band, full, band, color );
+			CG_FillRect( left + i * band, 0, band, h, color );
+			CG_FillRect( left + full - ( i + 1 ) * band, 0, band, h, color );
+		}
 	}
 }
 
@@ -6309,16 +6314,21 @@ static void CG_DrawBerserkCone( void ) {
 		|| ps->stats[STAT_HEALTH] <= 0 || cg.refdef.fov_x <= BERSERK_CONE ) {
 		return;
 	}
-	// the cone's edge as a share of the half screen, across and up
-	half = tan( DEG2RAD( BERSERK_CONE * 0.5f ) );
-	frac = half / tan( DEG2RAD( cg.refdef.fov_x * 0.5f ) );
-	x0 = 320 - 320 * frac;
-	x1 = 640 - x0;
-	frac = half / tan( DEG2RAD( cg.refdef.fov_y * 0.5f ) );
-	y0 = frac < 1 ? 240 - 240 * frac : 0;
-	y1 = 480 - y0;
-	CG_FillRect( -200, 0, x0 + 200, 480, dark );
-	CG_FillRect( x1, 0, 840 - x1, 480, dark );
+	// the cone's edge as a share of the half screen, across and up; across
+	// on the whole screen's width (the 640 space plus the side bias)
+	{
+		float	left = -cgs.screenXBias / cgs.screenXScale, right = 640 + cgs.screenXBias / cgs.screenXScale;
+
+		half = tan( DEG2RAD( BERSERK_CONE * 0.5f ) );
+		frac = half / tan( DEG2RAD( cg.refdef.fov_x * 0.5f ) );
+		x0 = 320 - ( 320 - left ) * frac;
+		x1 = 640 - x0;
+		frac = half / tan( DEG2RAD( cg.refdef.fov_y * 0.5f ) );
+		y0 = frac < 1 ? 240 - 240 * frac : 0;
+		y1 = 480 - y0;
+		CG_FillRect( left, 0, x0 - left, 480, dark );
+		CG_FillRect( x1, 0, right - x1, 480, dark );
+	}
 	if ( y0 > 0 ) {
 		CG_FillRect( x0, 0, x1 - x0, y0, dark );
 		CG_FillRect( x0, y1, x1 - x0, 480 - y1, dark );

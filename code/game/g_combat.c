@@ -1070,7 +1070,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		knockback = knockNext;
 	}
 	// the attacker's damage multiplier pushes too, at most double (Quad)
-	if ( attacker->client && attacker->client->ps.powerups[PW_QUAD] && !( mod >= MOD_HEAVYWEIGHT && mod <= MOD_LEAPINGKICK ) ) {
+	if ( attacker->client && attacker->client->ps.powerups[PW_QUAD] && mod != MOD_GRAPPLE && !( mod >= MOD_HEAVYWEIGHT && mod <= MOD_LEAPINGKICK ) ) {
 		knockback *= g_quadfactor.value < 2 ? g_quadfactor.value : 2;		// (not for abilities)
 	}
 	if ( knockback > 132 ) {		// the cap is one rocket on yourself

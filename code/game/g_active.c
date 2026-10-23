@@ -529,6 +529,7 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 	// timed abilities starting and ending
 	if ( client->abilityPrevState != ABILITY_ACTIVE && state == ABILITY_ACTIVE ) {
 		G_AbilityStarted( ent );
+		state = BG_AbilityState( &client->ps );		// (a refused start, as Master of Death's, is idle again)
 	}
 	// champion-audit.md: the end sound on every end (natural, second press,
 	// cancel), not on a second press that doesn't end it
@@ -684,7 +685,8 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed, c
 		}
 		if ( champ->abilities & MOVEABIL_HEAVYWEIGHT ) {
 			// mechanics.md: the push comes from the damage through the normal
-			// knockback (Quad, the 132 cap, the knockback state): a Bull Rush
+			// knockback (the 132 cap, the knockback state; no Quad, it is an
+			// ability): a Bull Rush
 			// hit x1.5 tilted up 0.2 m, the Heavyweight stomp x0.5 flat
 			qboolean	rush = BG_AbilityState( &client->ps ) == ABILITY_RUSH;
 

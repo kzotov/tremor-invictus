@@ -1512,6 +1512,7 @@ void CG_Player( centity_t *cent );
 void CG_PlayerColors( centity_t *cent, clientInfo_t *ci );
 void CG_OwnerColors( int owner );
 void CG_DroneBody( centity_t *cent );
+int CG_ClientChampion( clientInfo_t *ci );
 void CG_PlayerColorPart( int part );
 void CG_ColorReset( void );
 void CG_ColorBeforeDraw( refEntity_t *ent );

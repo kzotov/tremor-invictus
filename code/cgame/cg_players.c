@@ -2359,7 +2359,7 @@ void CG_Player( centity_t *cent ) {
 	// player models are built for a shorter body: scale them to the hull,
 	// keeping the feet on the floor. The torso and head follow through their tags.
 	scale = ( DEFAULT_HEIGHT - MINS_Z ) / (float)MODEL_HEIGHT * cg_playerScale.value
-		* BG_ChampionModelScale( BG_ChampionForModel( ci->modelName ) );		// the champion's own size, drawn only
+		* BG_ChampionModelScale( CG_ClientChampion( ci ) );		// the champion's own size, drawn only
 	if ( scale > 0 && scale != 1.0f ) {
 		VectorScale( legs.axis[0], scale, legs.axis[0] );
 		VectorScale( legs.axis[1], scale, legs.axis[1] );
@@ -2747,7 +2747,7 @@ void CG_DroneBody( centity_t *cent ) {
 	// the player hull scale, as on a player (feet kept on the floor)
 	{
 		float	scale = ( DEFAULT_HEIGHT - MINS_Z ) / (float)MODEL_HEIGHT * cg_playerScale.value
-			* BG_ChampionModelScale( BG_ChampionForModel( ci->modelName ) );
+			* BG_ChampionModelScale( CG_ClientChampion( ci ) );
 
 		if ( scale > 0 && scale != 1.0f ) {
 			VectorScale( legs.axis[0], scale, legs.axis[0] );
@@ -2782,4 +2782,26 @@ void CG_DroneBody( centity_t *cent ) {
 		VectorCopy( cent->lerpOrigin, part->lightingOrigin );
 		trap_R_AddRefEntityToScene( part );
 	}
+}
+
+/*
+===============
+CG_ClientChampion
+
+A player's champion from their model and skin: champions that share a
+model (Wrack is ranger/wrack) are told apart by the skin
+===============
+*/
+int CG_ClientChampion( clientInfo_t *ci ) {
+	char	own[MAX_QPATH], full[MAX_QPATH];
+	int		i;
+
+	Com_sprintf( full, sizeof( full ), "%s/%s", ci->modelName, ci->skinName );
+	for ( i = 0 ; i < bg_numChampions ; i++ ) {
+		BG_ChampionModel( i, own, sizeof( own ) );
+		if ( strchr( own, '/' ) && !Q_stricmp( own, full ) ) {
+			return i;
+		}
+	}
+	return BG_ChampionForModel( ci->modelName );
 }

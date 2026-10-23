@@ -2481,7 +2481,9 @@ Generates weapon events and modifes the weapon counter
 */
 #define LUNGE_MSEC		250		// the jump strike builds over this long
 #define LUNGE_TOP		800		// to this speed
-#define LUNGE_EASE		0.75f	// and is then eased off
+#define LUNGE_REACH		200		// and at most this far
+#define LUNGE_STOP_SPEED	100	// then held under this speed
+#define LUNGE_STOP_MSEC	200		// for this long
 #define LUNGE_USED		0x4000	// this airtime's lunge is spent
 #define BERSERK_RAISE	800		// no punches while the fists come up
 
@@ -2507,10 +2509,10 @@ static void PM_Weapon( void ) {
 		pm->cmd.weapon = WP_GAUNTLET;
 
 		// the jump strike (champion-audit.md): a punch in the air lunges where
-		// the player looks, building from 666 to 800 u/s over 0.25 s, then
-		// eased off (x 0.75); once per time off the ground, apart from the
-		// double jump. STAT_MOVE_STATE: msec into the lunge + 1 (bits 0-9),
-		// LUNGE_USED (bit 14)
+		// the player looks, building from 666 to 800 u/s over 0.25 s and at
+		// most 200 u, then held under 100 u/s for 0.2 s; once per time off the
+		// ground, apart from the double jump. STAT_MOVE_STATE: msec into the
+		// lunge + 1 (bits 0-9), LUNGE_USED (bit 14)
 		{
 			int		state = pm->ps->stats[STAT_MOVE_STATE] & 0xffff, t = state & 1023;
 			vec3_t	forward;
@@ -2526,13 +2528,27 @@ static void PM_Weapon( void ) {
 				t += pml.msec;
 			}
 			if ( t ) {
+				float	s = ( t - 1 ) * 0.001f;		// seconds into it
+				float	rate = ( LUNGE_TOP - bg_pmoveSettings.berserkLunge ) / ( LUNGE_MSEC * 0.001f );
+				// the distance so far, from the speed's straight build-up
+				float	dist = bg_pmoveSettings.berserkLunge * s + 0.5f * rate * s * s;
+
 				AngleVectors( pm->ps->viewangles, forward, NULL, NULL );
-				if ( t <= LUNGE_MSEC + 1 ) {
-					VectorScale( forward, bg_pmoveSettings.berserkLunge
-						+ ( LUNGE_TOP - bg_pmoveSettings.berserkLunge ) * ( t - 1 ) / (float)LUNGE_MSEC, pm->ps->velocity );
+				if ( t <= LUNGE_MSEC + 1 && dist < LUNGE_REACH ) {
+					VectorScale( forward, bg_pmoveSettings.berserkLunge + rate * s, pm->ps->velocity );
 				} else {
-					VectorScale( pm->ps->velocity, LUNGE_EASE, pm->ps->velocity );
-					t = 0;
+					// the stop: held under 100 u/s for 0.2 s
+					float	speed = VectorLength( pm->ps->velocity );
+
+					if ( t <= LUNGE_MSEC + 1 ) {
+						t = LUNGE_MSEC + 2;		// cut short by the reach
+					}
+					if ( speed > LUNGE_STOP_SPEED ) {
+						VectorScale( pm->ps->velocity, LUNGE_STOP_SPEED / speed, pm->ps->velocity );
+					}
+					if ( t > LUNGE_MSEC + 1 + LUNGE_STOP_MSEC ) {
+						t = 0;
+					}
 				}
 			}
 			pm->ps->stats[STAT_MOVE_STATE] = ( state & LUNGE_USED ) | ( t > 1023 ? 1023 : t );
@@ -3080,6 +3096,9 @@ static void PM_EndAbility( void ) {
 	pm->ps->stats[STAT_ABILITY_TIME] = 0;
 	if ( active == ACTIVE_HOOK ) {
 		pm->ps->stats[STAT_MOVE_STATE] = 0;		// the swing's rope, not a climb speed for the ramp jump
+	}
+	if ( active == ACTIVE_BERSERK ) {
+		pm->ps->stats[STAT_MOVE_STATE] &= ~1023;	// a lunge in progress ends with Berserk
 	}
 	pm->ps->pm_flags &= ~PMF_GRAPPLE_PULL;
 	if ( bg_abilityInfo[active].lockoutAtEnd ) {

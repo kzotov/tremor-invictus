@@ -827,6 +827,9 @@ static void CG_PowerupTimerSounds( void ) {
 
 	// powerup timers going away
 	for ( i = 0 ; i < MAX_POWERUPS ; i++ ) {
+		if ( i == PW_BURNING || i == PW_POISONED ) {
+			continue;		// not power-ups: no wear-off ticks
+		}
 		t = cg.snap->ps.powerups[i];
 		if ( t <= cg.time ) {
 			continue;
