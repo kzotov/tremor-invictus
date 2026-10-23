@@ -2607,20 +2607,17 @@ grabbing them easier
 qboolean	BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int atTime ) {
 	vec3_t		origin;
 
+	vec3_t		feet;
+
 	BG_EvaluateTrajectory( &item->pos, atTime, origin );
 
-	// within ITEM_PICKUP_RADIUS across, the usual reach up and down (the
-	// server's touch boxes are the same size, g_items.c)
-	if ( ps->origin[0] - origin[0] > ITEM_PICKUP_RADIUS
-		|| ps->origin[0] - origin[0] < -ITEM_PICKUP_RADIUS
-		|| ps->origin[1] - origin[1] > ITEM_PICKUP_RADIUS
-		|| ps->origin[1] - origin[1] < -ITEM_PICKUP_RADIUS
-		|| ps->origin[2] - origin[2] > 36
-		|| ps->origin[2] - origin[2] < -36 ) {
-		return qfalse;
-	}
-
-	return qtrue;
+	// br-champions.md, item pickup shape: within ITEM_PICKUP_RADIUS of the
+	// player's origin or of their feet, so a hop over an item still takes
+	// it (the server's touch boxes only pre-filter, g_items.c)
+	VectorCopy( ps->origin, feet );
+	feet[2] += MINS_Z;
+	return DistanceSquared( ps->origin, origin ) <= ITEM_PICKUP_RADIUS * ITEM_PICKUP_RADIUS
+		|| DistanceSquared( feet, origin ) <= ITEM_PICKUP_RADIUS * ITEM_PICKUP_RADIUS;
 }
 
 

@@ -916,10 +916,13 @@ void FinishSpawningItem( gentity_t *ent ) {
 		return;
 	}
 
-	// picked up from ITEM_PICKUP_RADIUS across (the box is set after the drop
-	// to the floor, which needs the small one)
-	ent->r.mins[0] = ent->r.mins[1] = -( ITEM_PICKUP_RADIUS - 15 );
-	ent->r.maxs[0] = ent->r.maxs[1] = ITEM_PICKUP_RADIUS - 15;
+	// the touch box holds the whole pickup shape (BG_PlayerTouchesItem: 70 u
+	// from the player's origin or feet), so it never cuts it off; set after
+	// the drop to the floor, which needs the small one
+	ent->r.mins[0] = ent->r.mins[1] = -ITEM_PICKUP_RADIUS;
+	ent->r.maxs[0] = ent->r.maxs[1] = ITEM_PICKUP_RADIUS;
+	ent->r.mins[2] = -50;
+	ent->r.maxs[2] = ITEM_PICKUP_RADIUS;
 
 	// warm-up: the map is clean; the match start restarts the map
 	if ( G_WarmupPractice() && ent->item->giType != IT_TEAM ) {
