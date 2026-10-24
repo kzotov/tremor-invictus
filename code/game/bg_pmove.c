@@ -3429,29 +3429,15 @@ static void PM_DroneMove( void ) {
 	float	wishspeed, scale, speed, newspeed;
 	int		i;
 
-	// champion-audit.md, Strogg's second press: the drone charges straight
-	// along the view, building up to 800 u/s at 6400 u/s/s, turning at 0.4 of
-	// the view's rate
+	// champion-audit.md, Strogg's second press: the drone charges where the
+	// view points, building up to 800 u/s at 6400 u/s/s (the view itself
+	// turns at 0.4 of its rate meanwhile: cg_turnScale)
 	if ( pm->ps->pm_flags & PMF_DRONE_CHARGE ) {
-		vec3_t	dir;
-		float	k = 0.4f * 10 * pml.frametime;
-
-		speed = VectorNormalize2( pm->ps->velocity, dir );
-		if ( speed < 1 ) {
-			VectorCopy( pml.forward, dir );
-		}
-		if ( k > 1 ) {
-			k = 1;
-		}
-		for ( i = 0 ; i < 3 ; i++ ) {
-			dir[i] += ( pml.forward[i] - dir[i] ) * k;
-		}
-		VectorNormalize( dir );
-		speed += DRONE_CHARGE_ACCEL * pml.frametime;
+		speed = VectorLength( pm->ps->velocity ) + DRONE_CHARGE_ACCEL * pml.frametime;
 		if ( speed > DRONE_CHARGE_SPEED ) {
 			speed = DRONE_CHARGE_SPEED;
 		}
-		VectorScale( dir, speed, pm->ps->velocity );
+		VectorScale( pml.forward, speed, pm->ps->velocity );
 		PM_SlideMove( qfalse );
 		return;
 	}

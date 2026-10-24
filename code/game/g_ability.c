@@ -1787,6 +1787,7 @@ void G_DroneEnd( gentity_t *ent, qboolean launch ) {
 		return;
 	}
 	client->droneCharging = qfalse;
+	client->ps.pm_flags &= ~PMF_DRONE_CHARGE;		// (else the body would grapple-move)
 	if ( launch ) {
 		// champion-audit.md: the charging drone blows up where it is (75
 		// within 120 u, never hurting Strogg or his body, credited to him)
@@ -1980,7 +1981,10 @@ void G_AbilityEnded( gentity_t *ent ) {
 		G_MasterOfDeathEnd( ent );
 	}
 	if ( client->droneBody ) {
-		G_DroneEnd( ent, client->droneCharging );		// a charging drone's time out ends in its blast
+		// a charging drone's 45 s running out end in its blast; a death, a
+		// team change or a Shell Shock end it quietly
+		G_DroneEnd( ent, client->droneCharging && ent->health > 0
+			&& client->ps.powerups[PW_SHELLSHOCK] <= level.time && client->sess.sessionTeam != TEAM_SPECTATOR );
 	}
 }
 
@@ -2104,8 +2108,12 @@ void G_AbilityClientThink( gentity_t *ent ) {
 		vec3_t	dir, end;
 		trace_t	hit;
 
-		if ( VectorNormalize2( client->ps.velocity, dir ) > 1 ) {
-			VectorMA( client->ps.origin, 6, dir, end );
+		// ahead along the view (it flies where the view points): a server
+		// frame's flight and 6 u more, so a drone pressed against a wall (its
+		// speed clipped away) or grazing one still finds it
+		AngleVectors( client->ps.viewangles, dir, NULL, NULL );
+		{
+			VectorMA( client->ps.origin, VectorLength( client->ps.velocity ) * 0.05f + 6, dir, end );
 			trap_Trace( &hit, client->ps.origin, ent->r.mins, ent->r.maxs, end, ent->s.number, MASK_PLAYERSOLID );
 			if ( hit.fraction < 1 && hit.entityNum != client->droneBody->s.number
 				&& ( hit.entityNum >= MAX_CLIENTS || G_AbilityEnemy( ent, &g_entities[hit.entityNum] ) ) ) {

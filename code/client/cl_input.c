@@ -472,6 +472,17 @@ void CL_MouseMove(usercmd_t *cmd)
 
 	if (mx == 0.0f && my == 0.0f)
 		return;
+
+	// the game can slow the view's turning (Strogg's charging drone: 0.4)
+	{
+		float turn = Cvar_VariableValue( "cg_turnScale" );
+
+		if ( turn > 0.0f && turn < 1.0f )
+		{
+			mx *= turn;
+			my *= turn;
+		}
+	}
 	
 	// with the mouse's counts per inch known, move in centimetres, so
 	// sensitivity is degrees per centimetre

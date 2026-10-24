@@ -1073,6 +1073,18 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 	CG_PlayBufferedSounds();
 	CG_PlayHitBeep();
 	CG_LowHealthFrame();
+	// Strogg's charging drone turns the view at 0.4 of its rate (the engine's
+	// mouse input reads cg_turnScale)
+	{
+		static float	shown = -1;
+		float			want = ( cg.predictedPlayerState.pm_flags & PMF_DRONE_CHARGE ) && ( cg.predictedPlayerState.eFlags & EF_DRONE )
+			&& !( cg.snap->ps.pm_flags & PMF_FOLLOW ) && !cg.demoPlayback ? 0.4f : 1.0f;
+
+		if ( want != shown ) {
+			shown = want;
+			trap_Cvar_Set( "cg_turnScale", want < 1 ? "0.4" : "1" );
+		}
+	}
 
 #ifdef MISSIONPACK
 	// play buffered voice chats

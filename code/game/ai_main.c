@@ -985,7 +985,8 @@ static qboolean BotWantsAbility(bot_state_t *bs) {
 	// a second press: recall to the rift anchor when hurt; back from the
 	// drone after 4 s or as soon as an enemy shows
 	if (state == ABILITY_ACTIVE) {
-		if (active == ACTIVE_DRONE) return seen || FloatTime() > bs->abilitystart_time + 4;
+		// the drone's second press charges it: only at an enemy in view
+		if (active == ACTIVE_DRONE) return seen;
 		return active == ACTIVE_RIFTANCHOR && health < 40;
 	}
 	if (state != ABILITY_IDLE || BG_AbilityCharges(ps) <= 0) return qfalse;
