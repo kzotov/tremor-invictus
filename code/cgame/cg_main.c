@@ -2227,6 +2227,7 @@ void CG_Shutdown( void ) {
 	// some mods may need to do cleanup work here,
 	// like closing files or archiving session data
 	trap_Cvar_Set( "rml_overlay", "" );		// the Tab board goes with the game
+	trap_Cvar_Set( "cg_turnScale", "1" );		// (a charging drone's slow turning)
 }
 
 

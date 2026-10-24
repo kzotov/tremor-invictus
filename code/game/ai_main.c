@@ -986,7 +986,7 @@ static qboolean BotWantsAbility(bot_state_t *bs) {
 	// drone after 4 s or as soon as an enemy shows
 	if (state == ABILITY_ACTIVE) {
 		// the drone's second press charges it: only at an enemy in view
-		if (active == ACTIVE_DRONE) return seen;
+		if (active == ACTIVE_DRONE) return seen && !(ps->pm_flags & PMF_DRONE_CHARGE);		// (then it waits for contact)
 		return active == ACTIVE_RIFTANCHOR && health < 40;
 	}
 	if (state != ABILITY_IDLE || BG_AbilityCharges(ps) <= 0) return qfalse;

@@ -730,7 +730,7 @@ void G_UpdateRevealedPlayers( void );
 //
 void G_AbilityFire( gentity_t *ent );
 void G_AbilityRepress( gentity_t *ent );
-void G_AbilityClientThink( gentity_t *ent );
+void G_AbilityClientThink( gentity_t *ent, int msec );
 void G_AbilityClientDied( gentity_t *ent );
 void G_Ignite( gentity_t *target, gentity_t *attacker );
 void G_Poison( gentity_t *target, gentity_t *attacker );

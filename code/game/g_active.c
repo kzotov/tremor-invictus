@@ -512,7 +512,7 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 	int					state, charges, maxCharges, recharge;
 
 	G_Regeneration( ent, msec );
-	G_AbilityClientThink( ent );
+	G_AbilityClientThink( ent, msec );
 	G_WeaponThink( ent );
 
 	// the ability as it stands, for the next spawn (duel.md 1)

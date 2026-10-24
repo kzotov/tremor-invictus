@@ -2049,8 +2049,12 @@ void G_AbilityRepress( gentity_t *ent ) {
 			break;
 		}
 		if ( !ent->client->droneCharging ) {
+			gentity_t	*tent = G_TempEntity( ent->client->ps.origin, EV_GENERAL_SOUND );
+
 			ent->client->droneCharging = qtrue;
-			G_AddEvent( ent, EV_GENERAL_SOUND, G_SoundIndex( "sound/abilities/drone_charge.wav" ) );
+			// (its own entity: the player's two event slots also carry the
+			// predicted second press)
+			tent->s.eventParm = G_SoundIndex( "sound/abilities/drone_charge.wav" );
 		} else {
 			G_DroneEnd( ent, qtrue );
 		}
@@ -2067,7 +2071,7 @@ G_AbilityClientThink
 Per-frame work for a client: acid blobs in a row, burning and poison
 ================
 */
-void G_AbilityClientThink( gentity_t *ent ) {
+void G_AbilityClientThink( gentity_t *ent, int msec ) {
 	gclient_t	*client = ent->client;
 
 	// Galena: how many of her totems stand, for the HUD's marks
@@ -2108,15 +2112,20 @@ void G_AbilityClientThink( gentity_t *ent ) {
 		vec3_t	dir, end;
 		trace_t	hit;
 
-		// ahead along the view (it flies where the view points): a server
-		// frame's flight and 6 u more, so a drone pressed against a wall (its
-		// speed clipped away) or grazing one still finds it
+		// ahead along the view (it flies where the view points): this
+		// command's flight and 6 u more, so a drone pressed against a wall (its
+		// speed clipped away) or grazing one still finds it; the blast where
+		// the trace stopped. Walls (the world and movers) and enemies only.
 		AngleVectors( client->ps.viewangles, dir, NULL, NULL );
 		{
-			VectorMA( client->ps.origin, VectorLength( client->ps.velocity ) * 0.05f + 6, dir, end );
+			gentity_t	*other;
+
+			VectorMA( client->ps.origin, VectorLength( client->ps.velocity ) * msec * 0.001f + 6, dir, end );
 			trap_Trace( &hit, client->ps.origin, ent->r.mins, ent->r.maxs, end, ent->s.number, MASK_PLAYERSOLID );
-			if ( hit.fraction < 1 && hit.entityNum != client->droneBody->s.number
-				&& ( hit.entityNum >= MAX_CLIENTS || G_AbilityEnemy( ent, &g_entities[hit.entityNum] ) ) ) {
+			other = &g_entities[hit.entityNum];
+			if ( hit.fraction < 1 && ( hit.entityNum == ENTITYNUM_WORLD || other->s.eType == ET_MOVER
+				|| ( hit.entityNum < MAX_CLIENTS && G_AbilityEnemy( ent, other ) ) ) ) {
+				VectorCopy( hit.endpos, client->ps.origin );
 				G_DroneEnd( ent, qtrue );
 				return;
 			}
