@@ -266,6 +266,9 @@ typedef enum {
 #define	PMF_RESPAWNED		512		// clear after attack and jump buttons come up
 #define	PMF_USE_ITEM_HELD	1024
 #define PMF_GRAPPLE_PULL	2048	// pull towards grapple location
+#define PMF_DRONE_CHARGE	PMF_GRAPPLE_PULL	// Strogg's drone charging (he has no hook)
+#define	DRONE_CHARGE_SPEED	800		// u/s
+#define	DRONE_CHARGE_ACCEL	6400	// u/s/s
 #define PMF_FOLLOW			4096	// spectate following another player
 #define PMF_SCOREBOARD		8192	// spectate as a scoreboard
 #define PMF_INVULEXPAND		16384	// invulnerability sphere set to full size

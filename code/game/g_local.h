@@ -424,6 +424,7 @@ struct gclient_s {
 	vec3_t		trailLast;			// where the last plasma trail charge was dropped
 	gentity_t	*droneBody;			// the body left behind while flying the drone
 	int			droneStartTime;
+	qboolean	droneCharging;		// the second press sent the drone charging (champion-audit.md)
 	int			droneEndTime;		// input waits 0.25 s after the drone ends
 	vec3_t		droneBodyAngles;
 	int			droneArmor;

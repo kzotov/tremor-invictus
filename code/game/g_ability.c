@@ -1786,9 +1786,10 @@ void G_DroneEnd( gentity_t *ent, qboolean launch ) {
 	if ( !body ) {
 		return;
 	}
+	client->droneCharging = qfalse;
 	if ( launch ) {
-		// champion-audit.md: the second press detonates the drone where it is
-		// (75 within 120 u)
+		// champion-audit.md: the charging drone blows up where it is (75
+		// within 120 u, never hurting Strogg or his body, credited to him)
 		tent = G_TempEntity( client->ps.origin, EV_MISSILE_MISS );
 		tent->s.weapon = WP_ROCKET_LAUNCHER;
 		tent->s.eventParm = DirToByte( vec3_origin );
@@ -1856,6 +1857,15 @@ qboolean G_DroneAbsorbDamage( gentity_t *ent, int take ) {
 	}
 	if ( ent->health - take > 0 ) {
 		return qfalse;
+	}
+	// shot down: a small burst and its end sound where it was, no damage
+	{
+		gentity_t	*tent = G_TempEntity( ent->client->ps.origin, EV_MISSILE_MISS );
+
+		tent->s.weapon = WP_PLASMAGUN;
+		tent->s.eventParm = DirToByte( vec3_origin );
+		tent = G_TempEntity( ent->client->ps.origin, EV_GENERAL_SOUND );
+		tent->s.eventParm = G_SoundIndex( "sound/abilities/drone_end.wav" );
 	}
 	G_DroneEnd( ent, qfalse );
 	return qtrue;
@@ -1970,7 +1980,7 @@ void G_AbilityEnded( gentity_t *ent ) {
 		G_MasterOfDeathEnd( ent );
 	}
 	if ( client->droneBody ) {
-		G_DroneEnd( ent, qfalse );
+		G_DroneEnd( ent, client->droneCharging );		// a charging drone's time out ends in its blast
 	}
 }
 
@@ -2029,7 +2039,15 @@ void G_AbilityRepress( gentity_t *ent ) {
 	case ACTIVE_PLASMATRAIL:	G_DetonateTrail( ent ); break;
 	case ACTIVE_RIFTANCHOR:		G_RecallAnchor( ent ); break;
 	case ACTIVE_DRONE:
-		if ( level.time - ent->client->droneStartTime >= g_droneLaunchDelay.integer ) {
+		// (pmove holds the 0.5 s gate and starts the charge) the first
+		// second press: the charge and its sound; a further one: the blast
+		if ( !ent->client->droneBody ) {
+			break;
+		}
+		if ( !ent->client->droneCharging ) {
+			ent->client->droneCharging = qtrue;
+			G_AddEvent( ent, EV_GENERAL_SOUND, G_SoundIndex( "sound/abilities/drone_charge.wav" ) );
+		} else {
 			G_DroneEnd( ent, qtrue );
 		}
 		break;
@@ -2079,6 +2097,21 @@ void G_AbilityClientThink( gentity_t *ent ) {
 			BG_SetAbility( &client->ps, ABILITY_IDLE, BG_AbilityCharges( &client->ps ) );
 			client->ps.stats[STAT_ABILITY_TIME] = 0;
 			G_AbilityEnded( ent );
+		}
+	}
+	// the charging drone blows up on touching a wall or an enemy
+	if ( client->droneCharging && client->droneBody && G_AbilityActive( ent, ACTIVE_DRONE ) ) {
+		vec3_t	dir, end;
+		trace_t	hit;
+
+		if ( VectorNormalize2( client->ps.velocity, dir ) > 1 ) {
+			VectorMA( client->ps.origin, 6, dir, end );
+			trap_Trace( &hit, client->ps.origin, ent->r.mins, ent->r.maxs, end, ent->s.number, MASK_PLAYERSOLID );
+			if ( hit.fraction < 1 && hit.entityNum != client->droneBody->s.number
+				&& ( hit.entityNum >= MAX_CLIENTS || G_AbilityEnemy( ent, &g_entities[hit.entityNum] ) ) ) {
+				G_DroneEnd( ent, qtrue );
+				return;
+			}
 		}
 	}
 	// Strogg's drone shows the enemies it sees

@@ -2508,8 +2508,9 @@ Generates weapon events and modifes the weapon counter
 static void PM_Weapon( void ) {
 	int		addTime;
 
-	// no firing or switching during a bull rush or ghost walk
-	if ( BG_AbilityState( pm->ps ) == ABILITY_RUSH || PM_AbilityActive( ACTIVE_GHOSTWALK ) ) {
+	// no firing or switching during a bull rush, a ghost walk or the drone's charge
+	if ( BG_AbilityState( pm->ps ) == ABILITY_RUSH || PM_AbilityActive( ACTIVE_GHOSTWALK )
+		|| ( PM_DroneActive() && ( pm->ps->pm_flags & PMF_DRONE_CHARGE ) ) ) {
 		return;
 	}
 
@@ -3352,6 +3353,11 @@ static void PM_Ability( void ) {
 			// a second press works once the ability has run its gate time
 			if ( ( BG_AbilityParam( active, AP_DURATION ) / BG_AbilityTimeUnit( active ) - time ) * BG_AbilityTimeUnit( active )
 				>= BG_AbilityParam( active, AP_DELAY ) ) {
+				// the drone: the first one charges it (the game blows it up
+				// on a further press or on contact)
+				if ( active == ACTIVE_DRONE ) {
+					pm->ps->pm_flags |= PMF_DRONE_CHARGE;
+				}
 				PM_AddEvent( EV_ABILITY_REPRESS );
 			}
 		}
@@ -3422,6 +3428,33 @@ static void PM_DroneMove( void ) {
 	vec3_t	wishvel, wishdir;
 	float	wishspeed, scale, speed, newspeed;
 	int		i;
+
+	// champion-audit.md, Strogg's second press: the drone charges straight
+	// along the view, building up to 800 u/s at 6400 u/s/s, turning at 0.4 of
+	// the view's rate
+	if ( pm->ps->pm_flags & PMF_DRONE_CHARGE ) {
+		vec3_t	dir;
+		float	k = 0.4f * 10 * pml.frametime;
+
+		speed = VectorNormalize2( pm->ps->velocity, dir );
+		if ( speed < 1 ) {
+			VectorCopy( pml.forward, dir );
+		}
+		if ( k > 1 ) {
+			k = 1;
+		}
+		for ( i = 0 ; i < 3 ; i++ ) {
+			dir[i] += ( pml.forward[i] - dir[i] ) * k;
+		}
+		VectorNormalize( dir );
+		speed += DRONE_CHARGE_ACCEL * pml.frametime;
+		if ( speed > DRONE_CHARGE_SPEED ) {
+			speed = DRONE_CHARGE_SPEED;
+		}
+		VectorScale( dir, speed, pm->ps->velocity );
+		PM_SlideMove( qfalse );
+		return;
+	}
 
 	// air brake like a spectator, so it stops when let go
 	speed = VectorLength( pm->ps->velocity );

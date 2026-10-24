@@ -572,9 +572,12 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 		charges = maxCharges = 0;
 	}
 
-	// one charge recharges at a time; shell shock runs it backwards
+	// one charge recharges at a time; shell shock runs it backwards; Strogg's
+	// drone recharges only once the flight is over (champion-audit.md)
 	if ( charges < maxCharges && G_ShellShockRecharge( client, msec ) ) {
 		// held back by the shock
+	} else if ( charges < maxCharges && client->droneBody ) {
+		client->abilityRecharge = 0;
 	} else if ( charges < maxCharges && !level.timeoutEnd ) {
 		client->abilityRecharge += msec;
 		if ( client->abilityRecharge >= recharge ) {

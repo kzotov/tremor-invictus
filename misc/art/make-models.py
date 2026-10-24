@@ -818,6 +818,10 @@ def sounds(out):
     thump = tone([(95, 0.9), (62, 0.6)], 0.55, 8, seed=67)
     put(os.path.join(out, "sound/tremor/tribolt_exp.wav"),
               level([0.75 * a + 0.9 * b for a, b in zip(crack, thump)]))
+    # Strogg's drone charging (the second press): a servo screaming up and a rush
+    put(os.path.join(out, "sound/abilities/drone_charge.wav"),
+        mix((env(osc(glide(400, 1800, 0.5), 0.7, "square"), attack=0.02, decay=2.5), 0.15, 0),
+            (env(noise(0.7, glide(800, 5000, 0.5), 47), attack=0.05, decay=2.2), 0.8, 0)))
     # each ability: its own cast and end (ABILITY_SOUNDS), levelled to -1 dBFS
     for name in ABILITIES:
         cast, end = ABILITY_SOUNDS[name]
