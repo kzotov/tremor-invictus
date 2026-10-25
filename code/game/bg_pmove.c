@@ -2524,8 +2524,9 @@ Generates weapon events and modifes the weapon counter
 static void PM_Weapon( void ) {
 	int		addTime;
 
-	// no firing or switching during a bull rush, a ghost walk or the drone's charge
-	if ( BG_AbilityState( pm->ps ) == ABILITY_RUSH || PM_AbilityActive( ACTIVE_GHOSTWALK )
+	// no firing or switching during a bull rush or the drone's charge (Ghost
+	// Walk: switching allowed, firing not; below)
+	if ( BG_AbilityState( pm->ps ) == ABILITY_RUSH
 		|| ( PM_DroneActive() && ( pm->ps->pm_flags & PMF_DRONE_CHARGE ) ) ) {
 		return;
 	}
@@ -2679,7 +2680,7 @@ static void PM_Weapon( void ) {
 	}
 
 	// check for fire
-	if ( ! (pm->cmd.buttons & BUTTON_ATTACK) ) {
+	if ( ! (pm->cmd.buttons & BUTTON_ATTACK) || PM_AbilityActive( ACTIVE_GHOSTWALK ) ) {
 		pm->ps->weaponTime = 0;
 		pm->ps->weaponstate = WEAPON_READY;
 		return;

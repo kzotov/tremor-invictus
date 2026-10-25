@@ -1282,9 +1282,17 @@ static float	CG_MachinegunSpinAngle( centity_t *cent ) {
 CG_AddWeaponWithPowerups
 ========================
 */
-static void CG_AddWeaponWithPowerups( refEntity_t *gun, int powerups ) {
-	// add powerup effects
-	if ( powerups & ( 1 << PW_INVIS ) ) {
+static void CG_AddWeaponWithPowerups( refEntity_t *gun, int powerups, int clientNum ) {
+	int		ghost = CG_GhostLook( clientNum, powerups );
+
+	// add powerup effects (Ghost Walk: as the body, CG_GhostLook)
+	if ( ghost == GHOST_HIDDEN ) {
+		return;
+	}
+	if ( ghost == GHOST_FADING ) {
+		trap_R_AddRefEntityToScene( gun );
+	}
+	if ( ghost != GHOST_NORMAL ) {
 		gun->customShader = cgs.media.invisShader;
 		trap_R_AddRefEntityToScene( gun );
 	} else {
@@ -1381,7 +1389,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 	MatrixMultiply(lerped.axis, ((refEntity_t *)parent)->axis, gun.axis);
 	gun.backlerp = parent->backlerp;
 
-	CG_AddWeaponWithPowerups( &gun, cent->currentState.powerups );
+	CG_AddWeaponWithPowerups( &gun, cent->currentState.powerups, ps ? -1 : cent->currentState.clientNum );
 	if ( weapon->heavyTint && !( cent->currentState.powerups & ( 1 << PW_INVIS ) ) ) {
 		refEntity_t	gold = gun;
 
@@ -1411,7 +1419,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 
 		CG_PositionRotatedEntityOnTag( &barrel, &gun, weapon->weaponModel, "tag_barrel" );
 
-		CG_AddWeaponWithPowerups( &barrel, cent->currentState.powerups );
+		CG_AddWeaponWithPowerups( &barrel, cent->currentState.powerups, ps ? -1 : cent->currentState.clientNum );
 	}
 
 	// make sure we aren't looking at cg.predictedPlayerEntity for LG

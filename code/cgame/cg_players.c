@@ -2239,11 +2239,49 @@ Adds a piece with modifications or duplications for powerups
 Also called by CG_Missile for quad rockets, but nobody can tell...
 ===============
 */
+/*
+===============
+CG_GhostLook
+
+champion-audit.md, Nyx's Ghost Walk: others see her model for the first
+quarter second (the way she set off), the shimmer over half a second,
+then nothing; she herself and her teammates keep the shimmer. Any other
+invisibility is the plain shimmer.
+===============
+*/
+int CG_GhostLook( int clientNum, int powerups ) {
+	int		t;
+
+	if ( !( powerups & ( 1 << PW_INVIS ) ) ) {
+		return GHOST_NORMAL;
+	}
+	if ( clientNum < 0 || clientNum >= MAX_CLIENTS
+		|| BG_Champion( CG_ClientChampion( &cgs.clientinfo[clientNum] ) )->active != ACTIVE_GHOSTWALK ) {
+		return GHOST_SHIMMER;
+	}
+	if ( clientNum == cg.snap->ps.clientNum
+		|| ( cgs.gametype >= GT_TEAM && cgs.clientinfo[clientNum].team == cg.snap->ps.persistant[PERS_TEAM] ) ) {
+		return GHOST_SHIMMER;
+	}
+	t = cg.time - cg_entities[clientNum].ghostTime;
+	if ( !cg_entities[clientNum].ghostTime || t < 250 ) {
+		return GHOST_FADING;
+	}
+	return t < 500 ? GHOST_SHIMMER : GHOST_HIDDEN;
+}
+
 void CG_AddRefEntityWithPowerups( refEntity_t *ent, entityState_t *state, int team ) {
+	int		ghost = CG_GhostLook( state->clientNum, state->powerups );
 
 	CG_RevealModel( ent, state->clientNum );
 
-	if ( state->powerups & ( 1 << PW_INVIS ) ) {
+	if ( ghost == GHOST_HIDDEN ) {
+		return;
+	}
+	if ( ghost == GHOST_FADING ) {
+		trap_R_AddRefEntityToScene( ent );
+	}
+	if ( ghost != GHOST_NORMAL ) {
 		ent->customShader = cgs.media.invisShader;
 		trap_R_AddRefEntityToScene( ent );
 	} else {
@@ -2372,6 +2410,15 @@ void CG_Player( centity_t *cent ) {
 		return;
 	}
 	CG_TriboltSounds( cent );
+
+	// when Ghost Walk (the invisibility) began, for its fade
+	if ( cent->currentState.powerups & ( 1 << PW_INVIS ) ) {
+		if ( !cent->ghostTime ) {
+			cent->ghostTime = cg.time;
+		}
+	} else {
+		cent->ghostTime = 0;
+	}
 
 	// a player flying the drone is drawn as the drone
 	if ( cent->currentState.eFlags & EF_DRONE ) {
@@ -2857,14 +2904,20 @@ void CG_DroneBody( centity_t *cent ) {
 	for ( i = 0 ; i < 3 ; i++ ) {
 		refEntity_t	*part = i == 0 ? &legs : i == 1 ? &torso : &head;
 
-		part->customShader = cgs.media.droneShimmerShader;
-		part->shaderRGBA[0] = 160;
-		part->shaderRGBA[1] = 190;
-		part->shaderRGBA[2] = 220;
-		part->shaderRGBA[3] = (byte)( alpha * 255 );
+		// the invisibility shimmer Nyx had (Konstantin); a hit flashes
+		// the faint shimmer over it (the additive shader ignores alpha)
+		part->customShader = cgs.media.invisShader;
 		part->renderfx = RF_NOSHADOW | RF_LIGHTING_ORIGIN;
 		VectorCopy( cent->lerpOrigin, part->lightingOrigin );
 		trap_R_AddRefEntityToScene( part );
+		if ( alpha > 0.5f ) {
+			part->customShader = cgs.media.droneShimmerShader;
+			part->shaderRGBA[0] = 160;
+			part->shaderRGBA[1] = 190;
+			part->shaderRGBA[2] = 220;
+			part->shaderRGBA[3] = (byte)( alpha * 255 );
+			trap_R_AddRefEntityToScene( part );
+		}
 	}
 }
 
