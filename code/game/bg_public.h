@@ -269,6 +269,9 @@ typedef enum {
 #define PMF_GRAPPLE_PULL	2048	// pull towards grapple location
 #define PMF_DRONE_CHARGE	PMF_GRAPPLE_PULL	// Strogg's drone charging (he has no hook)
 #define	DRONE_CHARGE_SPEED	800		// u/s
+#define	DRONE_FLY_ACCEL		1600	// free flight: u/s/s toward the steering
+#define	DRONE_FLY_BRAKE		1280	// and off it, when let go
+#define	DRONE_HALF_HEIGHT	20		// its box is 28 x 40 u (pm_droneSize the half width)
 #define	DRONE_CHARGE_ACCEL	6400	// u/s/s
 #define PMF_FOLLOW			4096	// spectate following another player
 #define PMF_SCOREBOARD		8192	// spectate as a scoreboard

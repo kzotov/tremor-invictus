@@ -38,7 +38,6 @@ float	pm_flyaccelerate = 8.0f;
 
 float	pm_waterfriction = 1.0f;
 float	pm_flightfriction = 3.0f;
-float	pm_flyfriction = 5.0f;		// drone air brake
 float	pm_spectatorfriction = 5.0f;
 
 int		c_pmove = 0;
@@ -151,8 +150,8 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_berserkLunge",		"666",	&bg_pmoveSettings.berserkLunge },
 
 	{ {0}, "pm_hmgZoomRefire",		"150",	&bg_pmoveSettings.hmgZoomRefire },
-	{ {0}, "pm_droneSpeed",			"320",	&bg_pmoveSettings.droneSpeed },
-	{ {0}, "pm_droneSize",			"10",	&bg_pmoveSettings.droneSize },
+	{ {0}, "pm_droneSpeed",			"400",	&bg_pmoveSettings.droneSpeed },
+	{ {0}, "pm_droneSize",			"14",	&bg_pmoveSettings.droneSize },
 	{ {0}, "pm_droneFireInterval",	"125",	&bg_pmoveSettings.droneFireInterval }
 };
 
@@ -2204,9 +2203,10 @@ static void PM_CheckDuck (void)
 	pm->ps->pm_flags &= ~PMF_INVULEXPAND;
 
 	if ( PM_DroneActive() ) {
+		// 28 x 40 u (the data): pm_droneSize is the half width
 		width = bg_pmoveSettings.droneSize;
-		VectorSet( pm->mins, -width, -width, -width );
-		VectorSet( pm->maxs, width, width, width );
+		VectorSet( pm->mins, -width, -width, -DRONE_HALF_HEIGHT );
+		VectorSet( pm->maxs, width, width, DRONE_HALF_HEIGHT );
 		pm->ps->pm_flags &= ~PMF_DUCKED;
 		pm->ps->viewheight = 0;
 		return;
@@ -3512,7 +3512,7 @@ The drone flies where the player looks, without gravity
 */
 static void PM_DroneMove( void ) {
 	vec3_t	wishvel, wishdir;
-	float	wishspeed, scale, speed, newspeed;
+	float	wishspeed, scale, speed;
 	int		i;
 
 	// champion-audit.md, Strogg's second press: the drone charges where the
@@ -3528,16 +3528,6 @@ static void PM_DroneMove( void ) {
 		return;
 	}
 
-	// air brake like a spectator, so it stops when let go
-	speed = VectorLength( pm->ps->velocity );
-	if ( speed > 0 ) {
-		newspeed = speed - speed * pm_flyfriction * pml.frametime;
-		if ( newspeed < 0 ) {
-			newspeed = 0;
-		}
-		VectorScale( pm->ps->velocity, newspeed / speed, pm->ps->velocity );
-	}
-
 	scale = PM_CmdScale( &pm->cmd );
 	if ( scale ) {
 		scale *= bg_pmoveSettings.droneSpeed / pml.runSpeed;
@@ -3546,10 +3536,25 @@ static void PM_DroneMove( void ) {
 		wishvel[i] = scale * pml.forward[i] * pm->cmd.forwardmove + scale * pml.right[i] * pm->cmd.rightmove;
 	}
 	wishvel[2] += scale * pm->cmd.upmove;
-
 	VectorCopy( wishvel, wishdir );
 	wishspeed = VectorNormalize( wishdir );
-	PM_Accelerate( wishdir, wishspeed, pm_flyaccelerate );
+
+	// free flight (champion-audit.md, the data): 400 u/s, accelerating at
+	// 1600 u/s/s toward where it's steered and braking at 1280 u/s/s off
+	// it, so it stops when let go
+	{
+		vec3_t	want, diff;
+		float	len, step;
+
+		VectorScale( wishdir, wishspeed, want );
+		VectorSubtract( want, pm->ps->velocity, diff );
+		len = VectorNormalize( diff );
+		step = ( wishspeed > 0 ? DRONE_FLY_ACCEL : DRONE_FLY_BRAKE ) * pml.frametime;
+		if ( step > len ) {
+			step = len;
+		}
+		VectorMA( pm->ps->velocity, step, diff, pm->ps->velocity );
+	}
 	PM_SlideMove( qfalse );
 }
 

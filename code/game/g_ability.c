@@ -2454,14 +2454,19 @@ void G_AbilityClientThink( gentity_t *ent, int msec ) {
 				|| Distance( other->r.currentOrigin, client->ps.origin ) > 2000 ) {
 				continue;
 			}
-			// inside the drone's 115 degree view
+			// inside the drone's view: 115 degrees up and down (the data's
+			// vertical view), as wide as a 16:9 screen makes it across
 			{
-				vec3_t	fwd, to;
+				vec3_t	fwd, right, up, to;
+				float	f, r, u;
 
-				AngleVectors( client->ps.viewangles, fwd, NULL, NULL );
+				AngleVectors( client->ps.viewangles, fwd, right, up );
 				VectorSubtract( other->r.currentOrigin, client->ps.origin, to );
-				VectorNormalize( to );
-				if ( DotProduct( fwd, to ) < cos( DEG2RAD( DRONE_VIEW * 0.5f ) ) ) {
+				f = DotProduct( to, fwd );
+				r = DotProduct( to, right );
+				u = DotProduct( to, up );
+				if ( f <= 0 || fabs( u ) > f * tan( DEG2RAD( DRONE_VIEW * 0.5f ) )
+					|| fabs( r ) > f * tan( DEG2RAD( DRONE_VIEW * 0.5f ) ) * 16 / 9 ) {
 					continue;
 				}
 			}

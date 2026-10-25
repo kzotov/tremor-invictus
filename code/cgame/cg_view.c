@@ -606,10 +606,6 @@ static int CG_CalcFov( void ) {
 			} else if ( fov_x > 130 ) {
 				fov_x = 130;
 			}
-			// Strogg's drone sees 115 degrees (champion-audit.md)
-			if ( cg.predictedPlayerState.eFlags & EF_DRONE ) {
-				fov_x = 115;
-			}
 		}
 
 		// account for zooms
@@ -640,6 +636,10 @@ static int CG_CalcFov( void ) {
 	x = 640 / tan( fov_x / 360 * M_PI );
 	fov_y = atan2( 480, x );
 	fov_y = fov_y * 360 / M_PI;
+	// Strogg's drone: its 115 degrees are the vertical view (the data)
+	if ( cg.predictedPlayerState.eFlags & EF_DRONE ) {
+		fov_y = 115;
+	}
 	x = cg.refdef.height / tan( fov_y / 360 * M_PI );
 	fov_x = atan2( cg.refdef.width, x ) * 360 / M_PI;
 
