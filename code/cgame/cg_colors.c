@@ -127,7 +127,8 @@ void CG_PlayerColors( centity_t *cent, clientInfo_t *ci ) {
 
 	// the enemy outline: a living enemy in plain sight (never through walls)
 	if ( cg_enemyOutline.integer && cent->currentState.number != ps->clientNum
-		&& !( cent->currentState.powerups & ( 1 << PW_INVIS ) ) && !( cent->currentState.eFlags & EF_DEAD )
+		&& !( cent->currentState.powerups & ( 1 << PW_INVIS ) ) && !CG_InGhostWalk( &cent->currentState )
+		&& !( cent->currentState.eFlags & EF_DEAD )
 		&& ( cgs.gametype < GT_TEAM || ci->team != viewTeam ) && viewTeam != TEAM_SPECTATOR ) {
 		trace_t	tr;
 		vec3_t	chest;
@@ -144,7 +145,7 @@ void CG_PlayerColors( centity_t *cent, clientInfo_t *ci ) {
 	if ( cent->currentState.number == ps->clientNum ) {
 		return;
 	}
-	if ( cent->currentState.powerups & ( 1 << PW_INVIS ) ) {
+	if ( ( cent->currentState.powerups & ( 1 << PW_INVIS ) ) || CG_InGhostWalk( &cent->currentState ) ) {
 		return;		// never make an invisible player visible
 	}
 

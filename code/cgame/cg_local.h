@@ -164,7 +164,6 @@ typedef struct {
 // only the entityState_t is directly communicated to the cgame
 typedef struct centity_s {
 	int				dotPuffTime;	// next burn / poison puff on this body
-	int				ghostTime;		// cg.time Ghost Walk (PW_INVIS) began, 0 none
 	entityState_t	currentState;	// from cg.frame
 	entityState_t	nextState;		// from cg.nextFrame, if available
 	qboolean		interpolate;	// true if next is valid to interpolate to
@@ -1574,7 +1573,8 @@ void CG_AddRefEntityWithPowerups( refEntity_t *ent, entityState_t *state, int te
 #define GHOST_SHIMMER	1		// the invisibility shimmer only
 #define GHOST_FADING	2		// the model and the shimmer: the first moment
 #define GHOST_HIDDEN	3		// nothing
-int CG_GhostLook( int clientNum, int powerups );
+int CG_GhostLook( const entityState_t *state );
+qboolean CG_InGhostWalk( const entityState_t *state );
 void CG_NewClientInfo( int clientNum );
 sfxHandle_t	CG_CustomSound( int clientNum, const char *soundName );
 

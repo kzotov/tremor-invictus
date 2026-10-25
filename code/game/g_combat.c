@@ -549,7 +549,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	BG_SetAbility( &self->client->ps, ABILITY_IDLE, BG_AbilityCharges( &self->client->ps ) );
 	self->client->ps.stats[STAT_ABILITY_TIME] = 0;
 	self->client->abilityPrevState = ABILITY_IDLE;
-	self->client->ps.powerups[PW_INVIS] = 0;
+	self->s.time2 = 0;		// (out of Ghost Walk)
 	G_AbilityClientDied( self );
 	G_DropStroyentCell( self, attacker );
 #ifdef MISSIONPACK
@@ -1090,6 +1090,11 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	// the start countdown: players and their abilities hurt nobody; lava,
 	// acid, falls and the void still do (warmup.md)
 	if ( level.warmupTime > 0 && as->client && attacker->client ) {
+		return;
+	}
+	// Nyx in Ghost Walk hurts nobody (she fires nothing; a gauntlet test
+	// slipping through mustn't either)
+	if ( attacker->client && attacker != as && G_AbilityActive( attacker, ACTIVE_GHOSTWALK ) ) {
 		return;
 	}
 	// round duel's draft: nobody hurts anybody while a pick is being made

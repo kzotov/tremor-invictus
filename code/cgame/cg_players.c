@@ -2106,7 +2106,7 @@ static qboolean CG_PlayerShadow( centity_t *cent, float *shadowPlane ) {
 	}
 
 	// no shadows when invisible
-	if ( cent->currentState.powerups & ( 1 << PW_INVIS ) ) {
+	if ( ( cent->currentState.powerups & ( 1 << PW_INVIS ) ) || CG_InGhostWalk( &cent->currentState ) ) {
 		return qfalse;
 	}
 
@@ -2241,39 +2241,60 @@ Also called by CG_Missile for quad rockets, but nobody can tell...
 */
 /*
 ===============
+CG_InGhostWalk
+
+Nyx in Ghost Walk: the game sends when it began in s.time2 (any champion
+model); the local player from the prediction
+===============
+*/
+qboolean CG_InGhostWalk( const entityState_t *state ) {
+	if ( !state || state->eType != ET_PLAYER ) {
+		return qfalse;
+	}
+	if ( state->clientNum == cg.predictedPlayerState.clientNum && !( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
+		return BG_Champion( cg.predictedPlayerState.stats[STAT_CHAMPION] )->active == ACTIVE_GHOSTWALK
+			&& BG_AbilityState( &cg.predictedPlayerState ) == ABILITY_ACTIVE;
+	}
+	return state->time2 != 0;
+}
+
+/*
+===============
 CG_GhostLook
 
 champion-audit.md, Nyx's Ghost Walk: others see her model for the first
-quarter second (the way she set off), the shimmer over half a second,
-then nothing; she herself and her teammates keep the shimmer. Any other
-invisibility is the plain shimmer.
+quarter second (the way she set off), the shimmer to half a second, then
+nothing; she herself and her teammates keep the shimmer. The invisibility
+power-up keeps its own plain shimmer.
 ===============
 */
-int CG_GhostLook( int clientNum, int powerups ) {
+int CG_GhostLook( const entityState_t *state ) {
 	int		t;
 
-	if ( !( powerups & ( 1 << PW_INVIS ) ) ) {
-		return GHOST_NORMAL;
+	if ( CG_InGhostWalk( state ) ) {
+		if ( state->clientNum == cg.snap->ps.clientNum
+			|| ( cgs.gametype >= GT_TEAM && cgs.clientinfo[state->clientNum].team == cg.snap->ps.persistant[PERS_TEAM] ) ) {
+			return GHOST_SHIMMER;
+		}
+		t = cg.time - state->time2;
+		if ( t < 250 ) {
+			return GHOST_FADING;
+		}
+		return t < 500 ? GHOST_SHIMMER : GHOST_HIDDEN;
 	}
-	if ( clientNum < 0 || clientNum >= MAX_CLIENTS
-		|| BG_Champion( CG_ClientChampion( &cgs.clientinfo[clientNum] ) )->active != ACTIVE_GHOSTWALK ) {
+	if ( state && ( state->powerups & ( 1 << PW_INVIS ) ) ) {
 		return GHOST_SHIMMER;
 	}
-	if ( clientNum == cg.snap->ps.clientNum
-		|| ( cgs.gametype >= GT_TEAM && cgs.clientinfo[clientNum].team == cg.snap->ps.persistant[PERS_TEAM] ) ) {
-		return GHOST_SHIMMER;
-	}
-	t = cg.time - cg_entities[clientNum].ghostTime;
-	if ( !cg_entities[clientNum].ghostTime || t < 250 ) {
-		return GHOST_FADING;
-	}
-	return t < 500 ? GHOST_SHIMMER : GHOST_HIDDEN;
+	return GHOST_NORMAL;
 }
 
 void CG_AddRefEntityWithPowerups( refEntity_t *ent, entityState_t *state, int team ) {
-	int		ghost = CG_GhostLook( state->clientNum, state->powerups );
+	int		ghost = CG_GhostLook( state );
 
-	CG_RevealModel( ent, state->clientNum );
+	// Piercing Sight and marks don't show her through Ghost Walk
+	if ( !CG_InGhostWalk( state ) ) {
+		CG_RevealModel( ent, state->clientNum );
+	}
 
 	if ( ghost == GHOST_HIDDEN ) {
 		return;
@@ -2411,15 +2432,6 @@ void CG_Player( centity_t *cent ) {
 	}
 	CG_TriboltSounds( cent );
 
-	// when Ghost Walk (the invisibility) began, for its fade
-	if ( cent->currentState.powerups & ( 1 << PW_INVIS ) ) {
-		if ( !cent->ghostTime ) {
-			cent->ghostTime = cg.time;
-		}
-	} else {
-		cent->ghostTime = 0;
-	}
-
 	// a player flying the drone is drawn as the drone
 	if ( cent->currentState.eFlags & EF_DRONE ) {
 		if ( cent->currentState.number == cg.snap->ps.clientNum && !cg.renderingThirdPerson ) {
@@ -2435,6 +2447,12 @@ void CG_Player( centity_t *cent ) {
 		trap_R_AddRefEntityToScene( &legs );
 		CG_ColorAfterDraw( &legs );
 		CG_ColorReset();
+		return;
+	}
+
+	// Nyx gone in Ghost Walk: nothing of her at all, no balloon, shadow,
+	// splash, light or weapon hum (her footsteps are events, and stay)
+	if ( CG_GhostLook( &cent->currentState ) == GHOST_HIDDEN ) {
 		return;
 	}
 
@@ -2843,7 +2861,7 @@ CG_DroneBody
 
 abilities.md, Strogg's body during the drone: his own model crouched
 (crouch-idle legs, standing torso, no weapon) facing the way he launched,
-a faint shimmer (12%) that a hit flashes to 60% for 0.3 s; no shadow, no
+the invisibility shimmer, a hit flashing a faint one at 60% for 0.3 s; no shadow, no
 outline, no forced colours. The entity is ET_GENERAL with EF_DRONE and
 his clientNum; s.time is the last hit.
 ===============

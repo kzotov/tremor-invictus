@@ -1389,6 +1389,7 @@ void ClientSpawn(gentity_t *ent) {
 
 	G_SetOrigin( ent, spawn_origin );
 	VectorCopy( spawn_origin, client->ps.origin );
+	ent->s.time2 = 0;		// (no Ghost Walk carried over)
 
 	// the respawned flag will be cleared after the attack and jump keys come up
 	client->ps.pm_flags |= PMF_RESPAWNED;

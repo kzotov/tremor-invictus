@@ -4464,7 +4464,8 @@ static void CG_ScanForCrosshairEntity( void ) {
 	}
 
 	// if the player is invisible, don't show it
-	if ( cg_entities[ trace.entityNum ].currentState.powerups & ( 1 << PW_INVIS ) ) {
+	if ( ( cg_entities[ trace.entityNum ].currentState.powerups & ( 1 << PW_INVIS ) )
+		|| CG_InGhostWalk( &cg_entities[ trace.entityNum ].currentState ) ) {
 		return;
 	}
 

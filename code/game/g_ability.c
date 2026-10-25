@@ -1138,7 +1138,7 @@ static void G_TurretThink( gentity_t *turret ) {
 		if ( !other->inuse || !G_AbilityEnemy( turret->parent, other ) ) {
 			continue;
 		}
-		if ( other->client->ps.powerups[PW_INVIS] ) {
+		if ( other->client->ps.powerups[PW_INVIS] || G_AbilityActive( other, ACTIVE_GHOSTWALK ) ) {
 			continue;
 		}
 		VectorCopy( other->r.currentOrigin, target );
@@ -2166,7 +2166,7 @@ qboolean G_DroneAbsorbDamage( gentity_t *ent, int take ) {
 STROYENT CELLS
 
 A kill by a champion with this passive drops a cell; only such champions
-can pick it up, for health that may go over the maximum.
+can pick it up, for health up to the maximum (it stays at full health).
 
 ==============================================================================
 */

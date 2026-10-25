@@ -372,7 +372,7 @@ static void G_GhostWalkEnd( gentity_t *ent ) {
 	gentity_t	*other;
 	int			i, num;
 
-	ent->client->ps.powerups[PW_INVIS] = 0;
+	ent->s.time2 = 0;
 	ent->r.contents = CONTENTS_BODY;
 
 	VectorAdd( ent->client->ps.origin, ent->r.mins, mins );
@@ -425,7 +425,9 @@ static void G_UseAbility( gentity_t *ent ) {
 		break;
 
 	case ACTIVE_GHOSTWALK:
-		client->ps.powerups[PW_INVIS] = level.time + BG_AbilityParam( ACTIVE_GHOSTWALK, AP_DURATION ) + 100;
+		// its own state, not the invisibility power-up: s.time2 is when it
+		// began, for the others' fade (CG_GhostLook)
+		ent->s.time2 = level.time;
 		ent->r.contents = 0;
 		break;
 
@@ -1074,8 +1076,10 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 			TeleportPlayer( ent, origin, angles );
 			break;
 
-		case EV_USE_ITEM2:		// medkit
-			ent->health = ent->client->ps.stats[STAT_MAX_HEALTH] + 25;
+		case EV_USE_ITEM2:		// medkit: to the maximum, no overheal (FIX-13)
+			if ( ent->health < ent->client->ps.stats[STAT_MAX_HEALTH] ) {
+				ent->health = ent->client->ps.stats[STAT_MAX_HEALTH];
+			}
 
 			break;
 
@@ -1402,9 +1406,20 @@ void ClientThink_real( gentity_t *ent ) {
 	// go through as an attack unless it actually hits something
 	// (the weapon time counts down inside pmove: a punch due this command
 	// is tested now)
+	// (stunned, or Master of Death's first half second: no attack at all)
+	if ( client->stunEndTime > level.time ) {
+		ucmd->buttons &= ~( BUTTON_ATTACK | BUTTON_ABILITY );
+	}
+	if ( client->modStartTime && level.time - client->modStartTime < 500 ) {
+		ucmd->buttons &= ~BUTTON_ATTACK;
+	}
+	// (the gauntlet held and staying: not while switching away, nor in
+	// Ghost Walk, which fires nothing)
 	if ( client->ps.weapon == WP_GAUNTLET && !( ucmd->buttons & BUTTON_TALK ) &&
 		( ucmd->buttons & BUTTON_ATTACK ) && client->ps.weaponTime <= msec
-		&& ( client->ps.weaponstate == WEAPON_READY || client->ps.weaponstate == WEAPON_FIRING ) ) {
+		&& ( client->ps.weaponstate == WEAPON_READY || client->ps.weaponstate == WEAPON_FIRING )
+		&& ( ucmd->weapon == WP_GAUNTLET || G_AbilityActive( ent, ACTIVE_BERSERK ) )
+		&& !G_AbilityActive( ent, ACTIVE_GHOSTWALK ) ) {
 		pm.gauntletHit = CheckGauntletAttack( ent );
 	}
 
@@ -1439,14 +1454,6 @@ void ClientThink_real( gentity_t *ent ) {
 		}
 	}
 #endif
-
-	if ( client->stunEndTime > level.time ) {
-		ucmd->buttons &= ~( BUTTON_ATTACK | BUTTON_ABILITY );
-	}
-	// Master of Death holds his fire for its first half second
-	if ( client->modStartTime && level.time - client->modStartTime < 500 ) {
-		ucmd->buttons &= ~BUTTON_ATTACK;
-	}
 
 	pm.ps = &client->ps;
 	pm.cmd = *ucmd;
