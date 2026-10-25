@@ -2321,10 +2321,7 @@ void CG_AddRefEntityWithPowerups( refEntity_t *ent, entityState_t *state, int te
 		//}
 		CG_ColorAfterDraw( ent );
 
-		if ( state->eFlags & EF_BARRIER ) {
-			ent->customShader = cgs.media.barrierShader;
-			trap_R_AddRefEntityToScene( ent );
-		}
+		// (the barrier is the panel in front, CG_Player: no glow all over)
 		if ( state->powerups & ( 1 << PW_QUAD ) )
 		{
 			if (team == TEAM_RED)
@@ -2580,16 +2577,21 @@ void CG_Player( centity_t *cent ) {
 	CG_AddRefEntityWithPowerups( &legs, &cent->currentState, ci->team );
 	CG_ColorCorpse( cent, &legs );
 
-	// the barrier's shell around the whole player
+	// the barrier: a shield in front of him, where it stops hits (about
+	// 70 degrees: the shell flattened into a curved panel ahead, turning
+	// with his view; abilities-data)
 	if ( ( cent->currentState.eFlags & EF_BARRIER ) && cgs.media.abilityBarrierModel ) {
 		refEntity_t	shell;
 		vec3_t		yaw;
 
 		memset( &shell, 0, sizeof( shell ) );
-		VectorCopy( cent->lerpOrigin, shell.origin );
-		VectorCopy( shell.origin, shell.oldorigin );
 		VectorSet( yaw, 0, cent->lerpAngles[YAW], 0 );
 		AnglesToAxis( yaw, shell.axis );
+		VectorMA( cent->lerpOrigin, 22, shell.axis[0], shell.origin );
+		VectorCopy( shell.origin, shell.oldorigin );
+		VectorScale( shell.axis[0], 0.25f, shell.axis[0] );
+		VectorScale( shell.axis[1], 1.1f, shell.axis[1] );
+		shell.nonNormalizedAxes = qtrue;
 		shell.hModel = cgs.media.abilityBarrierModel;
 		shell.renderfx = renderfx;		// not in our own first-person view
 		trap_R_AddRefEntityToScene( &shell );
