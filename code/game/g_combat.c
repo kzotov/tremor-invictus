@@ -1017,6 +1017,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 #endif
 	float		tilt = nextTilt;		// (one call only)
 	float		knockNext = nextKnockback;
+	gentity_t	*as;		// whose team, self-damage and armour rules apply
 	nextTilt = -1;
 	nextKnockback = -1;
 
@@ -1045,10 +1046,16 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if ( !attacker ) {
 		attacker = &g_entities[ENTITYNUM_WORLD];
 	}
+	// champion-audit.md: Strogg's body during the drone takes damage as
+	// Strogg does (team, self-damage, armour and Protection rules)
+	as = targ;
+	if ( !targ->client && targ->parent && targ->parent->client && targ->parent->client->droneBody == targ ) {
+		as = targ->parent;
+	}
 
 	// the start countdown: players and their abilities hurt nobody; lava,
 	// acid, falls and the void still do (warmup.md)
-	if ( level.warmupTime > 0 && targ->client && attacker->client ) {
+	if ( level.warmupTime > 0 && as->client && attacker->client ) {
 		return;
 	}
 
@@ -1113,13 +1120,13 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	}
 
 	// teammates never push each other (the attack still lands with friendly fire 1)
-	if ( targ != attacker && OnSameTeam( targ, attacker ) && !( dflags & DAMAGE_NO_PROTECTION ) ) {
+	if ( as != attacker && OnSameTeam( as, attacker ) && !( dflags & DAMAGE_NO_PROTECTION ) ) {
 		knockback = 0;
 	}
 
 	// warm-up is for moving: your own shots still push you, nothing else does
-	if ( G_WarmupPractice() && targ->client && mod != MOD_TRIGGER_HURT && mod != MOD_TELEFRAG ) {
-		if ( targ != attacker ) {
+	if ( G_WarmupPractice() && as->client && mod != MOD_TRIGGER_HURT && mod != MOD_TELEFRAG ) {
+		if ( as != attacker ) {
 			return;
 		}
 	}
@@ -1166,14 +1173,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	}
 
 	// clan arena: rocket and nail jumps and falls cost nothing
-	if ( G_ClanArena() && ( targ == attacker || mod == MOD_FALLING ) ) {
+	if ( G_ClanArena() && ( as == attacker || mod == MOD_FALLING ) ) {
 		return;
 	}
-	if ( G_WarmupPractice() && targ->client && ( targ == attacker || mod == MOD_FALLING ) ) {
+	if ( G_WarmupPractice() && as->client && ( as == attacker || mod == MOD_FALLING ) ) {
 		return;
 	}
 	// a mode without self damage: your own blasts only push
-	if ( !g_selfDamage.integer && targ->client && targ == attacker ) {
+	if ( !g_selfDamage.integer && as->client && as == attacker ) {
 		return;
 	}
 
@@ -1183,9 +1190,9 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		// if TF_NO_FRIENDLY_FIRE is set, don't do damage to the target
 		// if the attacker was on the same team
 #ifdef MISSIONPACK
-		if ( mod != MOD_JUICED && targ != attacker && !(dflags & DAMAGE_NO_TEAM_PROTECTION) && OnSameTeam (targ, attacker)  ) {
+		if ( mod != MOD_JUICED && as != attacker && !(dflags & DAMAGE_NO_TEAM_PROTECTION) && OnSameTeam (as, attacker)  ) {
 #else	
-		if ( targ != attacker && OnSameTeam (targ, attacker)  ) {
+		if ( as != attacker && OnSameTeam (as, attacker)  ) {
 #endif
 			if ( !g_friendlyFire.integer ) {
 				return;
@@ -1234,7 +1241,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	// battlesuit protects from all radius damage (but takes knockback)
 	// and protects 50% against all damage
 	// protection: a third of the damage from every source but telefrags
-	if ( client && client->ps.powerups[PW_BATTLESUIT] && mod != MOD_TELEFRAG ) {
+	if ( as->client && as->client->ps.powerups[PW_BATTLESUIT] && mod != MOD_TELEFRAG ) {
 		G_AddEvent( targ, EV_POWERUP_BATTLESUIT, 0 );
 		damage *= g_protectionScale.value;
 	}
@@ -1261,17 +1268,17 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
 	// always give half damage if hurting self
 	// calculated after knockback, so rocket jumping works
-	if ( targ == attacker) {
+	if ( as == attacker) {
 		damage *= 0.5;
 	}
 
 	// champion damage passives, also after knockback
-	if ( client ) {
-		int		passives = BG_Champion( client->ps.stats[STAT_CHAMPION] )->passives;
+	if ( as->client ) {
+		int		passives = BG_Champion( as->client->ps.stats[STAT_CHAMPION] )->passives;
 
 
 		if ( passives & PASSIVE_SPLASHRESIST ) {
-			if ( targ == attacker ) {
+			if ( as == attacker ) {
 				damage *= g_reinforcedSelfScale.value;
 			} else if ( dflags & DAMAGE_RADIUS ) {
 				damage *= g_splashResistScale.value;
@@ -1319,7 +1326,26 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	take = damage;
 
 	// save some from armor
-	if ( teamArmorOnly ) {
+	if ( as != targ ) {
+		// the body's armour is what Strogg had when he launched
+		int	*armor = &as->client->droneArmor;
+
+		asave = 0;
+		if ( teamArmorOnly ) {
+			asave = *armor < take ? *armor : take;
+			take = 0;
+		} else if ( !( dflags & DAMAGE_NO_ARMOR ) ) {
+			asave = ceil( take * ARMOR_PROTECTION );
+			if ( asave > *armor ) {
+				asave = *armor;
+			}
+			take -= asave;
+		}
+		*armor -= asave;
+		if ( !take && !asave ) {
+			return;
+		}
+	} else if ( teamArmorOnly ) {
 		// only what the armour can hold, and none of it to health
 		asave = client ? client->ps.stats[STAT_ARMOR] : 0;
 		if ( asave > take ) {

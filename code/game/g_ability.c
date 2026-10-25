@@ -1763,6 +1763,10 @@ static void G_StartDrone( gentity_t *ent ) {
 	client->droneBody = body;
 	client->droneStartTime = level.time;
 	client->droneMGAmmo = client->ps.ammo[WP_MACHINEGUN];
+	// the drone's gun, never the held weapon (that fired rockets for free)
+	client->droneWeapon = client->ps.weapon;
+	client->ps.weapon = WP_MACHINEGUN;
+	client->ps.weaponstate = WEAPON_READY;
 	client->droneArmor = client->ps.stats[STAT_ARMOR];
 	VectorCopy( client->ps.viewangles, client->droneBodyAngles );
 
@@ -1799,6 +1803,14 @@ void G_DroneEnd( gentity_t *ent, qboolean launch ) {
 	}
 	// no machinegun bullet left from the drone's gun
 	client->ps.ammo[WP_MACHINEGUN] = client->droneMGAmmo;
+	// and the weapon he held, raised again
+	if ( client->droneWeapon > WP_NONE && client->droneWeapon < WP_NUM_WEAPONS
+		&& ( client->ps.stats[STAT_WEAPONS] & ( 1 << client->droneWeapon ) ) ) {
+		client->ps.weapon = client->droneWeapon;
+	} else {
+		client->ps.weapon = WP_GAUNTLET;
+	}
+	client->ps.weaponstate = WEAPON_RAISING;
 	// detection effects pass him by for a second after he is back
 	client->undetectedUntil = level.time + DRONE_UNDETECTED;
 

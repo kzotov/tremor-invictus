@@ -429,6 +429,7 @@ struct gclient_s {
 	vec3_t		droneBodyAngles;
 	int			droneArmor;
 	int			droneMGAmmo;		// machinegun ammo before the drone (its gun forces one)
+	int			droneWeapon;		// the weapon held at launch, back when the flight ends
 	int			undetectedUntil;	// detection effects pass him by until then
 
 	int			triboltShots;		// bolts still to come from this trigger pull

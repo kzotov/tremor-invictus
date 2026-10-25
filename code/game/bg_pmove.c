@@ -2514,9 +2514,15 @@ static void PM_Weapon( void ) {
 		return;
 	}
 
-	// the drone has its own gun: machinegun rate set by pm_droneFireInterval, no ammo
+	// the drone has its own gun (WP_MACHINEGUN stands for it): no weapon
+	// change, whatever the inventory holds, rate pm_droneFireInterval, no
+	// ammo; the held weapon comes back when the flight ends (g_ability.c)
 	if ( PM_DroneActive() ) {
-		pm->cmd.weapon = WP_MACHINEGUN;		// (its ammo isn't used or checked)
+		pm->ps->weapon = WP_MACHINEGUN;
+		pm->cmd.weapon = WP_MACHINEGUN;
+		if ( pm->ps->weaponstate == WEAPON_DROPPING || pm->ps->weaponstate == WEAPON_RAISING ) {
+			pm->ps->weaponstate = WEAPON_READY;
+		}
 	}
 
 	// berserk is fists only

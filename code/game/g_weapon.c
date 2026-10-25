@@ -1290,6 +1290,20 @@ void FireWeapon( gentity_t *ent ) {
 		break;
 	}
 
+	// the drone's gun, whatever weapon number it carries (champion-audit.md:
+	// bolts at 2000 u/s, 15 damage and impulse 15, no splash)
+	if ( ent->client->ps.eFlags & EF_DRONE ) {
+		gentity_t	*bolt = fire_plasma( ent, muzzle, forward );
+
+		bolt->classname = "drone_shot";
+		bolt->damage = g_droneDamage.integer;
+		bolt->splashDamage = 0;
+		bolt->splashRadius = 0;
+		bolt->methodOfDeath = MOD_DRONE;
+		bolt->splashMethodOfDeath = MOD_DRONE;
+		return;
+	}
+
 	// fire the specific weapon
 	switch( ent->s.weapon ) {
 	case WP_GAUNTLET:
@@ -1315,18 +1329,7 @@ void FireWeapon( gentity_t *ent ) {
 		break;
 #endif
 	case WP_MACHINEGUN:
-		if ( ent->client->ps.eFlags & EF_DRONE ) {
-			// champion-audit.md: the drone's gun shoots bolts at 2000 u/s, 15
-			// damage and impulse 15, no splash
-			gentity_t	*bolt = fire_plasma( ent, muzzle, forward );
-
-			bolt->classname = "drone_shot";
-			bolt->damage = g_droneDamage.integer;
-			bolt->splashDamage = 0;
-			bolt->splashRadius = 0;
-			bolt->methodOfDeath = MOD_DRONE;
-			bolt->splashMethodOfDeath = MOD_DRONE;
-		} else if ( BG_WeaponTuned( WP_MACHINEGUN ) ) {
+		if ( BG_WeaponTuned( WP_MACHINEGUN ) ) {
 			Bullet_Fire( ent, BG_WeaponParam( WP_MACHINEGUN, WPP_SPREAD ), BG_WeaponParam( WP_MACHINEGUN, WPP_DAMAGE ), MOD_MACHINEGUN );
 		} else if ( g_gametype.integer != GT_TEAM ) {
 			Bullet_Fire( ent, MACHINEGUN_SPREAD, MACHINEGUN_DAMAGE, MOD_MACHINEGUN );
