@@ -714,13 +714,13 @@ void G_ChampionClientThink( gentity_t *ent ) {
 	}
 
 	// Hive Regeneration: 3 s after the last hit, 5 health a second up to base health
-	if ( ( passives & PASSIVE_HIVEREGEN ) && g_passiveRegen.integer && level.time - client->lastDamageTime >= 3000 && ent->health < 100 ) {
+	if ( ( passives & PASSIVE_HIVEREGEN ) && g_passiveRegen.integer && level.time - client->lastDamageTime >= 3000 && ent->health < client->ps.stats[STAT_MAX_HEALTH] ) {
 		client->hiveResidual += 5 * CHAMP_FRAME;
 		add = client->hiveResidual / 1000;
 		client->hiveResidual -= add * 1000;
 		ent->health += add;
-		if ( ent->health > 100 ) {
-			ent->health = 100;
+		if ( ent->health > client->ps.stats[STAT_MAX_HEALTH] ) {
+			ent->health = client->ps.stats[STAT_MAX_HEALTH];
 		}
 		client->ps.stats[STAT_HEALTH] = ent->health;
 	}
@@ -747,9 +747,12 @@ void G_ChampionClientThink( gentity_t *ent ) {
 				add = client->echoLeft;
 			}
 			client->echoLeft -= add;
-			ent->health += add;
-			if ( ent->health > client->ps.stats[STAT_MAX_HEALTH] ) {
-				ent->health = client->ps.stats[STAT_MAX_HEALTH];
+			// up to the maximum, never lowering health already over it
+			if ( ent->health < client->ps.stats[STAT_MAX_HEALTH] ) {
+				ent->health += add;
+				if ( ent->health > client->ps.stats[STAT_MAX_HEALTH] ) {
+					ent->health = client->ps.stats[STAT_MAX_HEALTH];
+				}
 			}
 			client->ps.stats[STAT_HEALTH] = ent->health;
 		}

@@ -2190,7 +2190,12 @@ static void G_CellThink( gentity_t *cell ) {
 		if ( Distance( other->r.currentOrigin, cell->r.currentOrigin ) > 40 ) {
 			continue;
 		}
-		max = other->client->ps.stats[STAT_MAX_HEALTH] + G_ClassInfo( other->client )->maxHealthBonus;
+		// heals to the base maximum only, and stays on the floor for later
+		// at full health (konstantin-list-audit 1)
+		max = other->client->ps.stats[STAT_MAX_HEALTH];
+		if ( other->health >= max ) {
+			continue;
+		}
 		other->health += g_stroyentHeal.integer;
 		if ( other->health > max ) {
 			other->health = max;

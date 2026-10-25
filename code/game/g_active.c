@@ -891,10 +891,11 @@ void ClientTimerActions( gentity_t *ent, int msec ) {
 					ent->health = client->ps.stats[STAT_MAX_HEALTH] * 1.1;
 				}
 				G_AddEvent( ent, EV_POWERUP_REGEN, 0 );
-			} else if ( ent->health < client->ps.stats[STAT_MAX_HEALTH] * 2) {
+			} else if ( ent->health < client->ps.stats[STAT_MAX_HEALTH] + G_ClassInfo( client )->maxHealthBonus ) {
+				// (up to the overheal cap, 175, not twice the maximum)
 				ent->health += 5;
-				if ( ent->health > client->ps.stats[STAT_MAX_HEALTH] * 2 ) {
-					ent->health = client->ps.stats[STAT_MAX_HEALTH] * 2;
+				if ( ent->health > client->ps.stats[STAT_MAX_HEALTH] + G_ClassInfo( client )->maxHealthBonus ) {
+					ent->health = client->ps.stats[STAT_MAX_HEALTH] + G_ClassInfo( client )->maxHealthBonus;
 				}
 				G_AddEvent( ent, EV_POWERUP_REGEN, 0 );
 			}
