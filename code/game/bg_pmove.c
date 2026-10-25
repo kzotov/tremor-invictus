@@ -1389,6 +1389,10 @@ static void PM_AirSpeedDecay( void ) {
 	pm->ps->velocity[1] *= nh / h;
 }
 
+#define WRACK_STRAFE_ACCEL		2.5f	// Wrack's air control (abilities-data)
+#define WRACK_STRAFE_SPEED		30
+#define WRACK_STOP_ACCEL		1.0f
+
 /*
 ===================
 PM_AirMove
@@ -1450,6 +1454,17 @@ static void PM_AirMove( void ) {
 			}
 		} else if ( DotProduct( pm->ps->velocity, wishdir ) < 0 ) {
 			accelerate = bg_pmoveSettings.acBrakeAccel;
+		}
+	} else if ( pml.champion->abilities & MOVEABIL_ISOAIR ) {
+		// Wrack's air control (abilities-data): a side strafe alone turns at
+		// 2.5 up to a 30 u/s wish, steering against the motion stops at 1.0
+		if ( fmove == 0 && smove != 0 ) {
+			accelerate = WRACK_STRAFE_ACCEL;
+			if ( accelspeed > WRACK_STRAFE_SPEED ) {
+				accelspeed = WRACK_STRAFE_SPEED;
+			}
+		} else if ( DotProduct( pm->ps->velocity, wishdir ) < 0 ) {
+			accelerate = WRACK_STOP_ACCEL;
 		}
 	}
 	added = PM_Accelerate (wishdir, accelspeed, accelerate);
