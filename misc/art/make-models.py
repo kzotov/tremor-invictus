@@ -871,6 +871,14 @@ def sounds(out):
     n = len(laser)
     laser = [v * min(1.0, i / (0.02 * RATE), (n - i) / (0.02 * RATE)) for i, v in enumerate(laser)]
     write_wav(os.path.join(out, "sound/abilities/laser_loop.wav"), level(laser, db=-6))
+    # Galena's totem: a burst (a cracking thud) and a heal (a rising chime)
+    put(os.path.join(out, "sound/abilities/totem_burst.wav"),
+        mix((env(noise(0.5, glide(5000, 600, 0.4), 102), decay=7), 1.0, 0),
+            (env(osc(glide(150, 55, 0.35), 0.5), decay=7), 0.9, 0),
+            (env(osc(lfo(7, 0.05, 520), 0.5, "tri"), decay=6), 0.25, 0.02)))
+    put(os.path.join(out, "sound/abilities/totem_heal.wav"),
+        mix((env(osc(glide(660, 990, 0.25), 0.4, "tri"), attack=0.02, decay=6), 0.5, 0),
+            (env(osc(1320, 0.3), attack=0.03, decay=8), 0.25, 0.08)))
     # the drone's gun: a light, quick zap
     put(os.path.join(out, "sound/abilities/drone_shot.wav"),
         mix((env(osc(glide(2400, 900, 0.07), 0.1, "saw"), decay=35), 0.3, 0),

@@ -7599,6 +7599,19 @@ static void CG_DrawAbilityBlock( void ) {
 		chargeIconsY = cy - r - 20;
 		CG_DrawChargeIcons( champ->active, ps->stats[STAT_TOTEMS] & 0xffff, TOTEMS_SHOWN );
 		chargeIconsY = 470;
+	} else if ( champ->active == ACTIVE_TURRET ) {
+		// Eisen's turret (abilities-data): 0 / 1 out, its health and armour
+		int		t = ps->stats[STAT_TURRET] & 0xffff;
+		vec4_t	c;
+
+		Vector4Set( c, 1, 1, 1, 1 );
+		CG_HudText( cx + r + 10 * DP, cy - 26 * DP, 20, va( "%i / 1", ( t & TURRET_OUT ) ? 1 : 0 ), c, 0, 1 );
+		if ( t & TURRET_OUT ) {
+			Vector4Set( c, 1, 1, 1, 0.9f );
+			CG_HudText( cx + r + 10 * DP, cy - 2 * DP, 18, va( "%i", t & 255 ), c, 0, 1 );
+			Vector4Set( c, 0.35f, 0.95f, 0.45f, 0.9f );
+			CG_HudText( cx + r + 60 * DP, cy - 2 * DP, 18, va( "%i", ( t >> 8 ) & 63 ), c, 0, 1 );
+		}
 	} else if ( maxCharges > 1 ) {
 		chargeIconsY = cy - r - 20;
 		CG_DrawChargeIcons( champ->active, BG_AbilityCharges( ps ), maxCharges );

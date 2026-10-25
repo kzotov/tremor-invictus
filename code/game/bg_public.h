@@ -1631,6 +1631,10 @@ typedef enum {
 
 // Galena's totems standing, for the HUD, in STAT_TAPS (she has no air-dodge)
 #define	STAT_TOTEMS				STAT_TAPS
+// Eisen's turret for the HUD, in STAT_TAPS (no air-dodge either): its health
+// in bits 0-7, its armour in bits 8-13, TURRET_OUT while one stands
+#define	STAT_TURRET				STAT_TAPS
+#define	TURRET_OUT				0x4000
 #define	TOTEMS_SHOWN			3		// marks above the ring (g_totemMax's default)
 
 // Xaero's Leaping Kick in STAT_TAPS (free for champions without air-dodge):

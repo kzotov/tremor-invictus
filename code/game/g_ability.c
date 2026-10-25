@@ -971,6 +971,15 @@ static void G_TotemBurst( gentity_t *totem, int damage ) {
 			}
 		}
 	}
+	// the burst: its flash and sound
+	{
+		gentity_t	*tent = G_TempEntity( totem->r.currentOrigin, EV_MISSILE_MISS );
+
+		tent->s.weapon = WP_PLASMAGUN;
+		tent->s.eventParm = DirToByte( vec3_origin );
+		tent = G_TempEntity( totem->r.currentOrigin, EV_GENERAL_SOUND );
+		tent->s.eventParm = G_SoundIndex( "sound/abilities/totem_burst.wav" );
+	}
 	G_FreeEntity( totem );
 }
 
@@ -1007,7 +1016,8 @@ static void G_TotemThink( gentity_t *totem ) {
 				G_TotemBurst( totem, enforced ? g_totemEnforcedDamage.integer : g_totemDamage.integer );
 				return;
 			}
-		} else if ( !G_AbilityMarked( totem, other->s.number ) ) {
+		} else if ( dist <= g_totemHealRadius.value && !G_AbilityMarked( totem, other->s.number ) ) {
+			// (within the radius, not the box's corners: abilities-data)
 			// one heal per ally per totem, over the maximum up to the
 			// class's overheal cap (champion-audit.md "Heal caps", Konstantin)
 			max = other->client->ps.stats[STAT_MAX_HEALTH] + G_ClassInfo( other->client )->maxHealthBonus;
@@ -1022,6 +1032,13 @@ static void G_TotemThink( gentity_t *totem ) {
 			}
 			other->client->ps.stats[STAT_HEALTH] = other->health;
 			G_ClearDamageOverTime( other );
+			// the heal shown and heard, at the totem and on the ally
+			{
+				gentity_t	*tent = G_TempEntity( other->r.currentOrigin, EV_GENERAL_SOUND );
+
+				tent->s.eventParm = G_SoundIndex( "sound/abilities/totem_heal.wav" );
+				G_AddEvent( totem, EV_GENERAL_SOUND, G_SoundIndex( "sound/abilities/totem_heal.wav" ) );
+			}
 		}
 	}
 }
@@ -1112,6 +1129,9 @@ static void G_TurretDie( gentity_t *self, gentity_t *inflictor, gentity_t *attac
 	if ( self->parent && self->parent->client && self->parent->client->turret == self ) {
 		self->parent->client->turret = NULL;
 	}
+	if ( self->parent && self->parent->client ) {
+		self->parent->client->ps.stats[STAT_TURRET] = 0;		// (none out for the HUD)
+	}
 	G_FreeEntity( self );
 }
 
@@ -1128,6 +1148,11 @@ static void G_TurretThink( gentity_t *turret ) {
 	int			i;
 
 	turret->nextthink = level.time + ABILITY_FRAME;
+	// Eisen's HUD: the turret out, its health and armour (STAT_TURRET)
+	if ( turret->parent && turret->parent->client && turret->parent->inuse ) {
+		turret->parent->client->ps.stats[STAT_TURRET] = TURRET_OUT | ( turret->health > 255 ? 255 : turret->health < 0 ? 0 : turret->health )
+			| ( ( turret->count > 63 ? 63 : turret->count < 0 ? 0 : turret->count ) << 8 );
+	}
 	// it outlives Eisen's death; it goes when he leaves the game
 	if ( !turret->parent || !turret->parent->client || !turret->parent->inuse
 		|| turret->parent->client->pers.connected != CON_CONNECTED ) {
@@ -1171,6 +1196,13 @@ static void G_TurretThink( gentity_t *turret ) {
 		}
 		best = other;
 		bestDist = dist;
+	}
+	// a target that left its view is kept 1.0 s (abilities-data)
+	if ( best ) {
+		turret->timestamp = level.time;
+	} else if ( turret->enemy && turret->enemy->inuse && turret->enemy->client && turret->enemy->health > 0
+		&& level.time - turret->timestamp < 1000 ) {
+		best = turret->enemy;
 	}
 	// a new target: the acquire beeps (its own entity, so the first shot's
 	// sound in the same frame doesn't replace it)
