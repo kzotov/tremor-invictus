@@ -346,6 +346,7 @@ void RE_RegisterFont(const char *fontName, int pointSize, fontInfo_t *font) {
 	void *faceData;
 	int i, len;
 	char name[1024];
+	char base[MAX_QPATH];
 
 	if (!fontName) {
 		ri.Printf(PRINT_ALL, "RE_RegisterFont: called with empty name\n");
@@ -363,7 +364,15 @@ void RE_RegisterFont(const char *fontName, int pointSize, fontInfo_t *font) {
 		return;
 	}
 
-	Com_sprintf(name, sizeof(name), "fonts/fontImage_%i.dat",pointSize);
+	// a TrueType file's glyphs are named after it, so several faces at one
+	// size don't share images (the stock names only have the size)
+	if ( strlen( fontName ) > 4 && ( !Q_stricmp( fontName + strlen( fontName ) - 4, ".ttf" )
+		|| !Q_stricmp( fontName + strlen( fontName ) - 4, ".otf" ) ) ) {
+		COM_StripExtension( COM_SkipPath( (char *)fontName ), base, sizeof( base ) );
+	} else {
+		Q_strncpyz( base, "fontImage", sizeof( base ) );
+	}
+	Com_sprintf(name, sizeof(name), "fonts/%s_%i.dat", base, pointSize);
 	for (i = 0; i < registeredFontCount; i++) {
 		if (Q_stricmp(name, registeredFont[i].name) == 0) {
 			Com_Memcpy(font, &registeredFont[i], sizeof(fontInfo_t));
@@ -492,7 +501,7 @@ void RE_RegisterFont(const char *fontName, int pointSize, fontInfo_t *font) {
 				imageBuff[left++] = ((float)out[k] * max);
 			}
 
-			Com_sprintf (name, sizeof(name), "fonts/fontImage_%i_%i.tga", imageNumber++, pointSize);
+			Com_sprintf (name, sizeof(name), "fonts/%s_%i_%i.tga", base, imageNumber++, pointSize);
 			if (r_saveFontData->integer) { 
 				WriteTGA(name, imageBuff, 256, 256);
 			}
@@ -523,12 +532,12 @@ void RE_RegisterFont(const char *fontName, int pointSize, fontInfo_t *font) {
 	// we also need to adjust the scale based on point size relative to 48 points as the ui scaling is based on a 48 point font
 	glyphScale *= 48.0f / pointSize;
 
-	registeredFont[registeredFontCount].glyphScale = glyphScale;
 	font->glyphScale = glyphScale;
+	Com_sprintf( font->name, sizeof( font->name ), "fonts/%s_%i.dat", base, pointSize );		// (found again by name)
 	Com_Memcpy(&registeredFont[registeredFontCount++], font, sizeof(fontInfo_t));
 
 	if (r_saveFontData->integer) {
-		ri.FS_WriteFile(va("fonts/fontImage_%i.dat", pointSize), font, sizeof(fontInfo_t));
+		ri.FS_WriteFile(va("fonts/%s_%i.dat", base, pointSize), font, sizeof(fontInfo_t));
 	}
 
 	ri.Free(out);

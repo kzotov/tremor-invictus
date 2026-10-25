@@ -2,7 +2,7 @@
    white), flat panels, text buttons with a red bar on hover */
 
 body {
-	font-family: "Arial Narrow";
+	font-family: "Roboto Condensed";
 	font-weight: bold;
 	color: #e8e4dc;
 	width: 100%;
@@ -27,7 +27,7 @@ body {
 
 button {
 	display: block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 46dp;
 	color: #d3191f;
 	padding: 6dp 0dp 6dp 22dp;
@@ -62,7 +62,7 @@ button.small {
 	bottom: 30dp;
 	width: 100%;
 	text-align: center;
-	font-family: "Arial Narrow";
+	font-family: "Roboto Condensed";
 	font-weight: normal;
 	font-size: 24dp;
 	color: #8a8780;
@@ -136,7 +136,7 @@ button.small {
 
 .card h1 {
 	display: block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 44dp;
 	color: #f2efe9;
 	margin-bottom: 10dp;
@@ -173,7 +173,7 @@ button.small {
 .draft h1 {
 	display: block;
 	text-align: center;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 40dp;
 	color: #f2efe9;
 }
@@ -208,7 +208,7 @@ button.small {
 
 .vote h1 {
 	display: block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 34dp;
 	color: #f2efe9;
 	margin-top: 16dp;
@@ -266,7 +266,7 @@ button.small {
 
 .findmatch h1 {
 	display: block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 44dp;
 	color: #f2efe9;
 }
@@ -356,7 +356,7 @@ button.small {
 /* the ready check: a big countdown */
 .card.ready .countdown {
 	display: block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 90dp;
 	color: #d3191f;
 	text-align: center;
@@ -385,7 +385,7 @@ button.small {
 
 .findmatch .party .code {
 	margin: 0dp 10dp;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 34dp;
 	color: #f2efe9;
 }
@@ -424,7 +424,7 @@ button.small {
 
 .chname {
 	display: block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 48dp;
 	color: #f2efe9;
 }
@@ -462,7 +462,7 @@ button.small {
 
 .roster h1 {
 	display: block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 50dp;
 	color: #f2efe9;
 	height: 70dp;
@@ -534,7 +534,7 @@ button.small {
 
 .roster .cls, .roster .rmark {
 	position: absolute;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 16dp;
 	color: #f2efe9;
 	background-color: #0b0c0ecc;
@@ -570,7 +570,7 @@ button.small {
 
 .roster .reclabel {
 	display: block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 20dp;
 	color: #d3191f;
 }
@@ -612,7 +612,7 @@ button.small {
 }
 
 .chinfo .aname {
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	color: #d3191f;
 }
 
@@ -705,7 +705,7 @@ button.small {
 
 .chactions .selected, .chactions .locked {
 	display: inline-block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 50dp;
 	color: #d3191f;
 }
@@ -733,7 +733,7 @@ button.small {
 
 .colors h1 {
 	display: block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 50dp;
 	color: #f2efe9;
 }
@@ -755,7 +755,7 @@ button.small {
 
 .colors h2 {
 	display: block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 32dp;
 	color: #f2efe9;
 	margin-bottom: 8dp;
@@ -834,7 +834,7 @@ button.small {
 
 .create h1 {
 	display: block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 50dp;
 	color: #f2efe9;
 	margin-bottom: 12dp;
@@ -997,7 +997,7 @@ button.small {
 
 .found h1 {
 	display: block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 60dp;
 	color: #f2efe9;
 }
@@ -1081,7 +1081,7 @@ button.small {
 
 .settings h1 {
 	display: block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 50dp;
 	color: #f2efe9;
 }
@@ -1240,7 +1240,7 @@ scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc {
 
 .fs h1 {
 	display: block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 50dp;
 	color: #f2efe9;
 }
@@ -1371,14 +1371,14 @@ scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc {
 
 .credits h1 {
 	display: block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 50dp;
 	color: #f2efe9;
 }
 
 .credits .crgame {
 	display: block;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 36dp;
 	color: #f2efe9;
 }
@@ -1485,7 +1485,7 @@ scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc {
 	top: 50dp;
 	width: 300dp;
 	text-align: center;
-	font-family: "Arial Black";
+	font-family: "Roboto Black";
 	font-size: 140dp;
 }
 

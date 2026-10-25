@@ -641,6 +641,9 @@ typedef struct {
 	qhandle_t			logoShader;			// our logo, rendered from misc/logo at build time
 	qhandle_t			charset;
 	qhandle_t			charsetProp;
+	// the TrueType text (FIX-11), as the cgame's: a glyph handle of 0 means
+	// not loaded and the bitmap fonts draw
+	fontInfo_t			fontMono, fontProp, fontBanner;
 	qhandle_t			charsetPropGlow;
 	qhandle_t			charsetPropB;
 	qhandle_t			cursor;
@@ -747,6 +750,7 @@ void			trap_R_AddPolyToScene( qhandle_t hShader , int numVerts, const polyVert_t
 void			trap_R_AddLightToScene( const vec3_t org, float intensity, float r, float g, float b );
 void			trap_R_RenderScene( const refdef_t *fd );
 void			trap_R_SetColor( const float *rgba );
+void			trap_R_RegisterFont( const char *fontName, int pointSize, fontInfo_t *font );
 void			trap_R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, qhandle_t hShader );
 void			trap_UpdateScreen( void );
 int				trap_CM_LerpTag( orientation_t *tag, clipHandle_t mod, int startFrame, int endFrame, float frac, const char *tagName );

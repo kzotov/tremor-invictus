@@ -1097,6 +1097,30 @@ tremor/droneshimmer
 """
 
 
+FONTS = ["Roboto-Regular.ttf", "Roboto-Bold.ttf", "Roboto-Black.ttf", "RobotoCondensed-Regular.ttf",
+         "RobotoCondensed-Bold.ttf", "RobotoMono-Regular.ttf"]
+
+
+def fonts(out):
+    """The Roboto fonts (Apache-2.0) from $TREMOR_FONTS, packed unmodified with
+    their licence; without them the menus and HUD fall back to the bitmap
+    fonts. Font files stay out of the repository (assets/baseq3/ui/fonts)."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    folder = os.environ.get("TREMOR_FONTS", os.path.join(os.path.expanduser("~"), "projects/quake/fonts"))
+    dest = os.path.join(out, "ui/fonts")
+    found = [f for f in FONTS if os.path.isfile(os.path.join(folder, f))]
+    if not found:
+        print("make-models: no Roboto fonts in %s; menus and HUD use the fallback fonts" % folder)
+        return
+    os.makedirs(dest, exist_ok=True)
+    for f in found:
+        with open(os.path.join(folder, f), "rb") as i, open(os.path.join(dest, f), "wb") as o:
+            o.write(i.read())
+    licence = os.path.join(here, "../../assets/baseq3/ui/fonts/LICENSE-Roboto.txt")
+    with open(licence, "rb") as i, open(os.path.join(dest, "LICENSE-Roboto.txt"), "wb") as o:
+        o.write(i.read())
+
+
 def main():
     out = sys.argv[1]
     src = os.path.join(out, "assets-src")
@@ -1119,6 +1143,7 @@ def main():
     os.makedirs(os.path.join(src, "scripts"), exist_ok=True)
     with open(os.path.join(src, "scripts/tremor-assets.shader"), "w") as f:
         f.write(SHADERS)
+    fonts(src)
     with zipfile.ZipFile(os.path.join(out, "tremor-assets.pk3"), "w", zipfile.ZIP_DEFLATED) as z:
         for root, _, files in os.walk(src):
             for name in sorted(files):

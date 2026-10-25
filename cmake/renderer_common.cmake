@@ -25,6 +25,12 @@ set(DYNAMIC_RENDERER_SOURCES
 
 if(USE_FREETYPE)
     list(APPEND RENDERER_DEFINITIONS BUILD_FREETYPE)
+elseif(BUILD_CLIENT AND (NOT DEFINED USE_RMLUI OR USE_RMLUI))
+    # the HUD's TrueType text (Roboto) through RE_RegisterFont, with the
+    # FreeType the menus already bundle (cmake/rmlui.cmake)
+    list(APPEND RENDERER_DEFINITIONS BUILD_FREETYPE)
+    list(APPEND RENDERER_INCLUDE_DIRS ${SOURCE_DIR}/thirdparty/freetype-2.13.3/include)
+    list(APPEND RENDERER_LIBRARIES freetype)
 endif()
 
 if(USE_RENDERER_DLOPEN)

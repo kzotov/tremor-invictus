@@ -2,7 +2,7 @@
    fixed columns per mode, a team stripe on each row's left edge */
 
 body {
-	font-family: "Arial Narrow";
+	font-family: "Roboto Condensed";
 	font-weight: bold;
 	color: #e8e4dc;
 	width: 100%;
@@ -126,7 +126,7 @@ div { display: block; }
 .dtable { flex: 1; }
 .drow { display: flex; justify-content: center; align-items: center; height: 30dp; font-size: 20dp; }
 .drow:nth-child(even) { background-color: rgba(255, 255, 255, 10); }
-.drow span { display: block; width: 90dp; text-align: center; font-family: "Arial Narrow"; }
+.drow span { display: block; width: 90dp; text-align: center; font-family: "Roboto Condensed"; }
 .drow .dicon { width: 64dp; }
 .drow img { width: 24dp; height: 24dp; }
 .dhead { font-size: 15dp; color: #9a9aa0; height: 24dp; }

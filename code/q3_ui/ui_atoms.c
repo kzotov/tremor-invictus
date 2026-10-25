@@ -332,6 +332,56 @@ static int propMapB[26][3] = {
 
 /*
 =================
+UI_DrawGlyph / UI_FontWidth / UI_DrawFont
+
+TrueType text in place of the bitmap fonts (FIX-11): a glyph of a font at
+a baseline in virtual units, xs and ys the font pixels to virtual units
+=================
+*/
+static qboolean UI_FontReady( const fontInfo_t *font ) {
+	return font->glyphs['A'].glyph != 0;
+}
+
+static void UI_DrawGlyph( const fontInfo_t *font, float x, float baseline, float xs, float ys, int ch ) {
+	const glyphInfo_t	*g = &font->glyphs[ch & 255];
+
+	if ( !g->glyph || !g->imageWidth ) {
+		return;
+	}
+	trap_R_DrawStretchPic( x * uis.xscale + uis.bias, ( baseline - g->top * ys ) * uis.yscale,
+		g->imageWidth * xs * uis.xscale, g->imageHeight * ys * uis.yscale, g->s, g->t, g->s2, g->t2, g->glyph );
+}
+
+static float UI_FontWidth( const fontInfo_t *font, const char *str, float height ) {
+	float	scale = height / 48.0f, w = 0;
+
+	for ( ; *str ; str++ ) {
+		if ( Q_IsColorString( str ) ) {
+			str++;
+			continue;
+		}
+		w += font->glyphs[*str & 255].xSkip * scale;
+	}
+	return w;
+}
+
+static void UI_DrawFont( const fontInfo_t *font, float x, float y, const char *str, float height, const float *color ) {
+	float	scale = height / 48.0f;
+
+	trap_R_SetColor( color );
+	for ( ; *str ; str++ ) {
+		if ( Q_IsColorString( str ) ) {
+			str++;
+			continue;
+		}
+		UI_DrawGlyph( font, x, y + height * 0.82f, scale, scale, *str );
+		x += font->glyphs[*str & 255].xSkip * scale;
+	}
+	trap_R_SetColor( NULL );
+}
+
+/*
+=================
 UI_DrawBannerString
 =================
 */
@@ -347,6 +397,11 @@ static void UI_DrawBannerString2( int x, int y, const char* str, vec4_t color )
 	float	fcol;
 	float	fwidth;
 	float	fheight;
+
+	if ( UI_FontReady( &uis.fontBanner ) ) {
+		UI_DrawFont( &uis.fontBanner, x, y, str, PROPB_HEIGHT, color );
+		return;
+	}
 
 	// draw the colored text
 	trap_R_SetColor( color );
@@ -387,6 +442,10 @@ void UI_DrawBannerString( int x, int y, const char* str, int style, vec4_t color
 	// find the width of the drawn text
 	s = str;
 	width = 0;
+	if ( UI_FontReady( &uis.fontBanner ) ) {
+		width = UI_FontWidth( &uis.fontBanner, str, PROPB_HEIGHT ) + PROPB_GAP_WIDTH;
+		s = "";
+	}
 	while ( *s ) {
 		ch = *s;
 		if ( ch == ' ' ) {
@@ -429,6 +488,10 @@ int UI_ProportionalStringWidth( const char* str ) {
 	int				charWidth;
 	int				width;
 
+	if ( UI_FontReady( &uis.fontProp ) ) {
+		return UI_FontWidth( &uis.fontProp, str, PROP_HEIGHT );
+	}
+
 	s = str;
 	width = 0;
 	while ( *s ) {
@@ -457,6 +520,11 @@ static void UI_DrawProportionalString2( int x, int y, const char* str, vec4_t co
 	float	fcol;
 	float	fwidth;
 	float	fheight;
+
+	if ( UI_FontReady( &uis.fontProp ) ) {
+		UI_DrawFont( &uis.fontProp, x, y, str, PROP_HEIGHT * sizeScale, color );
+		return;
+	}
 
 	// draw the colored text
 	trap_R_SetColor( color );
@@ -677,7 +745,19 @@ static void UI_DrawString2( int x, int y, const char* str, vec4_t color, int cha
 		}
 
 		ch = *s & 255;
-		if (ch != ' ')
+		if ( ch != ' ' && UI_FontReady( &uis.fontMono ) && uis.fontMono.glyphs[ch & 255].xSkip > 0 ) {
+			// Roboto Mono in the cell, as the cgame's CG_DrawChar
+			float	ys = charh * 1.05f / 48.0f;
+			float	xs = (float)charw / uis.fontMono.glyphs[ch & 255].xSkip;
+			float	vx = ( ax - uis.bias ) / uis.xscale;
+
+			if ( xs > ys ) {
+				xs = ys;
+			}
+			UI_DrawGlyph( &uis.fontMono, vx + ( charw - uis.fontMono.glyphs[ch & 255].xSkip * xs ) * 0.5f,
+				y + charh * 0.84f, xs, ys, ch );
+		}
+		else if (ch != ' ')
 		{
 			frow = (ch>>4)*0.0625;
 			fcol = (ch&15)*0.0625;

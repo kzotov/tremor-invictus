@@ -323,22 +323,6 @@ public:
 		int			len;
 
 		file->pos = 0;
-		if ( !path.compare( 0, 21, "/System/Library/Fonts" ) ) {
-			FILE	*f = fopen( path.c_str(), "rb" );
-
-			if ( !f ) {
-				delete file;
-				return 0;
-			}
-			fseek( f, 0, SEEK_END );
-			file->data.resize( ftell( f ) );
-			fseek( f, 0, SEEK_SET );
-			if ( fread( file->data.data(), 1, file->data.size(), f ) != file->data.size() ) {
-				file->data.clear();
-			}
-			fclose( f );
-			return reinterpret_cast<Rml::FileHandle>( file );
-		}
 		len = imp.ReadFile( path.c_str(), &buffer );
 		if ( len < 0 || !buffer ) {
 			delete file;
@@ -429,24 +413,32 @@ CommandListenerInstancer	listenerInstancer;
 =================
 LoadFonts
 
-Our fonts from ui/fonts/ when the game has them, else the system's
+The Roboto family from ui/fonts/ (Apache-2.0, shipped with the game): body
+text in Roboto, headings in Roboto Black, tables in Roboto Condensed,
+numbers that line up in Roboto Mono; Roboto Regular covers missing glyphs
 =================
 */
 void LoadFonts( void ) {
-	static const char	*fonts[] = {
-		"ui/fonts/display.ttf", "ui/fonts/body.ttf", "ui/fonts/body-bold.ttf",
-		"/System/Library/Fonts/Supplemental/Arial Black.ttf",
-		"/System/Library/Fonts/Supplemental/Arial Narrow.ttf",
-		"/System/Library/Fonts/Supplemental/Arial Narrow Bold.ttf",
-		"/System/Library/Fonts/Supplemental/Arial.ttf"
+	static const struct {
+		const char			*file, *family;
+		Rml::Style::FontWeight	weight;
+		bool				fallback;
+	} fonts[] = {
+		{ "ui/fonts/Roboto-Regular.ttf", "Roboto", Rml::Style::FontWeight::Normal, true },
+		{ "ui/fonts/Roboto-Bold.ttf", "Roboto", Rml::Style::FontWeight::Bold, false },
+		{ "ui/fonts/Roboto-Black.ttf", "Roboto Black", Rml::Style::FontWeight::Normal, false },
+		{ "ui/fonts/Roboto-Black.ttf", "Roboto Black", Rml::Style::FontWeight::Bold, false },
+		{ "ui/fonts/RobotoCondensed-Regular.ttf", "Roboto Condensed", Rml::Style::FontWeight::Normal, false },
+		{ "ui/fonts/RobotoCondensed-Bold.ttf", "Roboto Condensed", Rml::Style::FontWeight::Bold, false },
+		{ "ui/fonts/RobotoMono-Regular.ttf", "Roboto Mono", Rml::Style::FontWeight::Normal, false }
 	};
 
-	for ( const char *font : fonts ) {
-		Rml::FileHandle	f = fileInterface.Open( font );
+	for ( const auto &font : fonts ) {
+		Rml::FileHandle	f = fileInterface.Open( font.file );
 
 		if ( f ) {
 			fileInterface.Close( f );
-			Rml::LoadFontFace( font, !strcmp( font, fonts[6] ) );
+			Rml::LoadFontFace( font.file, font.family, Rml::Style::FontStyle::Normal, font.weight, font.fallback );
 		}
 	}
 }

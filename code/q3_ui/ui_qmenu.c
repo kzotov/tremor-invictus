@@ -1775,6 +1775,9 @@ Menu_Cache
 void Menu_Cache( void )
 {
 	uis.charset			= trap_R_RegisterShaderNoMip( "gfx/2d/bigchars" );
+	trap_R_RegisterFont( "ui/fonts/RobotoMono-Regular.ttf", 48, &uis.fontMono );
+	trap_R_RegisterFont( "ui/fonts/Roboto-Bold.ttf", 48, &uis.fontProp );
+	trap_R_RegisterFont( "ui/fonts/Roboto-Black.ttf", 48, &uis.fontBanner );
 	uis.charsetProp		= trap_R_RegisterShaderNoMip( "menu/art/font1_prop.tga" );
 	uis.charsetPropGlow	= trap_R_RegisterShaderNoMip( "menu/art/font1_prop_glo.tga" );
 	uis.charsetPropB	= trap_R_RegisterShaderNoMip( "menu/art/font2_prop.tga" );

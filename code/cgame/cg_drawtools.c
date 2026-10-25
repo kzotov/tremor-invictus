@@ -217,6 +217,41 @@ CG_DrawChar
 Coordinates and size in 640*480 virtual screen size
 ===============
 */
+/*
+===============
+CG_DrawGlyph
+
+One glyph of a TrueType font (FIX-11) at a baseline, in virtual units:
+xs and ys the font pixels to virtual units across and down
+===============
+*/
+static void CG_DrawGlyph( const fontInfo_t *font, float x, float baseline, float xs, float ys, int ch ) {
+	const glyphInfo_t	*g = &font->glyphs[ch & 255];
+	float				ax, ay, aw, ah;
+
+	if ( !g->glyph || !g->imageWidth ) {
+		return;
+	}
+	ax = x;
+	ay = baseline - g->top * ys;
+	aw = g->imageWidth * xs;
+	ah = g->imageHeight * ys;
+	CG_AdjustFrom640( &ax, &ay, &aw, &ah );
+	trap_R_DrawStretchPic( ax, ay, aw, ah, g->s, g->t, g->s2, g->t2, g->glyph );
+}
+
+static float CG_PropFontWidth( const fontInfo_t *font, const char *str, float height );
+static void CG_DrawPropFont( const fontInfo_t *font, float x, float y, const char *str, float height, const float *color );
+
+/*
+===============
+CG_FontReady
+===============
+*/
+static qboolean CG_FontReady( const fontInfo_t *font ) {
+	return font->glyphs['A'].glyph != 0;
+}
+
 void CG_DrawChar( int x, int y, int width, int height, int ch ) {
 	int row, col;
 	float frow, fcol;
@@ -226,6 +261,20 @@ void CG_DrawChar( int x, int y, int width, int height, int ch ) {
 	ch &= 255;
 
 	if ( ch == ' ' ) {
+		return;
+	}
+
+	// Roboto Mono in the cell: capitals about three quarters of its height,
+	// the advance squeezed to the cell's width
+	if ( CG_FontReady( &cgs.fontMono ) && cgs.fontMono.glyphs[ch].xSkip > 0 ) {
+		float	ys = height * 1.05f / 48.0f;
+		float	xs = (float)width / cgs.fontMono.glyphs[ch].xSkip;
+
+		if ( xs > ys ) {
+			xs = ys;
+		}
+		CG_DrawGlyph( &cgs.fontMono, x + ( width - cgs.fontMono.glyphs[ch].xSkip * xs ) * 0.5f,
+			y + height * 0.84f, xs, ys, ch );
 		return;
 	}
 
@@ -746,6 +795,11 @@ static void UI_DrawBannerString2( int x, int y, const char* str, vec4_t color )
 	float	fwidth;
 	float	fheight;
 
+	if ( CG_FontReady( &cgs.fontBanner ) ) {
+		CG_DrawPropFont( &cgs.fontBanner, x, y, str, PROPB_HEIGHT, color );
+		return;
+	}
+
 	// draw the colored text
 	trap_R_SetColor( color );
 	
@@ -786,6 +840,10 @@ void UI_DrawBannerString( int x, int y, const char* str, int style, vec4_t color
 	// find the width of the drawn text
 	s = str;
 	width = 0;
+	if ( CG_FontReady( &cgs.fontBanner ) ) {
+		width = CG_PropFontWidth( &cgs.fontBanner, str, PROPB_HEIGHT ) + PROPB_GAP_WIDTH;
+		s = "";
+	}
 	while ( *s ) {
 		ch = *s;
 		if ( ch == ' ' ) {
@@ -822,11 +880,51 @@ void UI_DrawBannerString( int x, int y, const char* str, int style, vec4_t color
 }
 
 
+/*
+=================
+CG_PropFontWidth / CG_DrawPropFont
+
+The proportional strings in Roboto (FIX-11): a line height of height
+virtual units, the capitals about three quarters of it
+=================
+*/
+static float CG_PropFontWidth( const fontInfo_t *font, const char *str, float height ) {
+	float	scale = height * 1.0f / 48.0f, w = 0;
+
+	for ( ; *str ; str++ ) {
+		if ( Q_IsColorString( str ) ) {
+			str++;
+			continue;
+		}
+		w += font->glyphs[*str & 255].xSkip * scale;
+	}
+	return w;
+}
+
+static void CG_DrawPropFont( const fontInfo_t *font, float x, float y, const char *str, float height, const float *color ) {
+	float	scale = height * 1.0f / 48.0f;
+
+	trap_R_SetColor( color );
+	for ( ; *str ; str++ ) {
+		if ( Q_IsColorString( str ) ) {
+			str++;
+			continue;
+		}
+		CG_DrawGlyph( font, x, y + height * 0.82f, scale, scale, *str );
+		x += font->glyphs[*str & 255].xSkip * scale;
+	}
+	trap_R_SetColor( NULL );
+}
+
 int UI_ProportionalStringWidth( const char* str ) {
 	const char *	s;
 	int				ch;
 	int				charWidth;
 	int				width;
+
+	if ( CG_FontReady( &cgs.fontProp ) ) {
+		return CG_PropFontWidth( &cgs.fontProp, str, PROP_HEIGHT );
+	}
 
 	s = str;
 	width = 0;
@@ -856,6 +954,11 @@ static void UI_DrawProportionalString2( int x, int y, const char* str, vec4_t co
 	float	fcol;
 	float	fwidth;
 	float	fheight;
+
+	if ( CG_FontReady( &cgs.fontProp ) ) {
+		CG_DrawPropFont( &cgs.fontProp, x, y, str, PROP_HEIGHT * sizeScale, color );
+		return;
+	}
 
 	// draw the colored text
 	trap_R_SetColor( color );

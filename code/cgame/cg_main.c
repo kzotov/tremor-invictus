@@ -2120,6 +2120,9 @@ void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum ) {
 
 	// load a few needed things before we do any screen updates
 	cgs.media.charsetShader		= trap_R_RegisterShader( "gfx/2d/bigchars" );
+	trap_R_RegisterFont( "ui/fonts/RobotoMono-Regular.ttf", 48, &cgs.fontMono );
+	trap_R_RegisterFont( "ui/fonts/Roboto-Bold.ttf", 48, &cgs.fontProp );
+	trap_R_RegisterFont( "ui/fonts/Roboto-Black.ttf", 48, &cgs.fontBanner );
 	cgs.media.whiteShader		= trap_R_RegisterShader( "white" );
 	cgs.media.pillarSideShader	= trap_R_RegisterShader( "tremor/pillar/side" );
 	cgs.media.pillarCapShader	= trap_R_RegisterShader( "tremor/pillar/cap" );

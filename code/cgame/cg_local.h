@@ -1217,6 +1217,10 @@ typedef struct {
 	// media
 	cgMedia_t		media;
 
+	// the HUD's TrueType text (FIX-11): Roboto Mono in the fixed-width
+	// cells, Roboto Bold for the proportional strings, Roboto Black for
+	// banners; a glyph handle of 0 means not loaded (the bitmap font then)
+	fontInfo_t		fontMono, fontProp, fontBanner;
 } cgs_t;
 
 //==============================================================================
