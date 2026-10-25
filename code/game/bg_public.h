@@ -1759,6 +1759,7 @@ typedef enum {
 #define	EF_BARRIER			EF_BOUNCE_HALF	// shield up around the player
 #define	EF_DRONE			EF_MOVER_STOP	// the player is flying the drone
 #define	EF_LASER			EF_KAMIKAZE		// Clutch's Mining Laser firing (baseq3 has no kamikaze)
+#define	EF_DUALWIELD		EF_LASER		// B.J.'s second gun out (the bit read by champion)
 #define	EF_MARKED			0x00000002		// marked or caught in a storm: shown through walls to enemies (the base game leaves this bit free)
 
 // shell-shocked until this time (a powerup slot the base game doesn't use)

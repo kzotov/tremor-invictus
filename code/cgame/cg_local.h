@@ -170,6 +170,7 @@ typedef struct centity_s {
 	qboolean		currentValid;	// true if cg.frame holds this entity
 
 	int				muzzleFlashTime;	// move to playerEntity?
+	int				dualShot;			// B.J.'s Dual Wield: which gun fired last (0 right, 1 left)
 	int				triboltLeft;		// Tri-bolt bolts still to sound after the first
 	int				triboltNext;		// cg.time of the next one
 	int				previousEvent;
@@ -1654,6 +1655,7 @@ void CG_GrappleTrail( centity_t *ent, const weaponInfo_t *wi );
 void CG_AddFadingRopes( void );
 void CG_AddViewWeapon (playerState_t *ps);
 void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent, int team );
+extern int cg_dualHand;		// B.J.'s Dual Wield: the gun being added (1 right, 2 left, 0 one gun)
 void CG_DrawWeaponSelect( void );
 
 void CG_OutOfAmmoChange( void );	// should this be in pmove?

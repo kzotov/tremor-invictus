@@ -2428,6 +2428,18 @@ static void CG_LaserBeam( centity_t *cent ) {
 
 /*
 ===============
+CG_DualWielding
+
+B.J. with his second gun out (EF_DUALWIELD, the bit Clutch's laser also uses)
+===============
+*/
+static qboolean CG_DualWielding( centity_t *cent, clientInfo_t *ci ) {
+	return ( cent->currentState.eFlags & EF_DUALWIELD )
+		&& BG_Champion( CG_ClientChampion( ci ) )->active == ACTIVE_DUALWIELD;
+}
+
+/*
+===============
 CG_Player
 ===============
 */
@@ -2493,7 +2505,8 @@ void CG_Player( centity_t *cent ) {
 
 	// Clutch's Mining Laser: a steady beam where he looks and its hum
 	// (abilities-data), for everyone while EF_LASER is on
-	if ( cent->currentState.eFlags & EF_LASER ) {
+	if ( ( cent->currentState.eFlags & EF_LASER )
+		&& BG_Champion( CG_ClientChampion( ci ) )->active == ACTIVE_BARRIER ) {
 		CG_LaserBeam( cent );
 	}
 
@@ -2860,7 +2873,18 @@ void CG_Player( centity_t *cent ) {
 	//
 	// add the gun / barrel / flash
 	//
+	// B.J.'s Dual Wield: the same gun in the other hand, the torso turned
+	// over side to side for it; the guns flash by turns
+	cg_dualHand = CG_DualWielding( cent, ci ) ? 1 : 0;
 	CG_AddPlayerWeapon( &torso, NULL, cent, ci->team );
+	if ( cg_dualHand ) {
+		refEntity_t	other = torso;
+
+		VectorNegate( other.axis[1], other.axis[1] );
+		cg_dualHand = 2;
+		CG_AddPlayerWeapon( &other, NULL, cent, ci->team );
+		cg_dualHand = 0;
+	}
 
 	// add powerups floating behind the player
 	CG_PlayerPowerups( cent, &torso );

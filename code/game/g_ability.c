@@ -2542,7 +2542,14 @@ void G_AbilityClientThink( gentity_t *ent, int msec ) {
 			client->ps.eFlags &= ~EF_BARRIER;
 		}
 	}
-	if ( !G_AbilityActive( ent, ACTIVE_BARRIER ) || client->barrierMode != 2 ) {
+	if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_DUALWIELD ) {
+		// B.J.'s second gun, for everyone to see
+		if ( G_AbilityActive( ent, ACTIVE_DUALWIELD ) ) {
+			client->ps.eFlags |= EF_DUALWIELD;
+		} else {
+			client->ps.eFlags &= ~EF_DUALWIELD;
+		}
+	} else if ( !G_AbilityActive( ent, ACTIVE_BARRIER ) || client->barrierMode != 2 ) {
 		client->ps.eFlags &= ~EF_LASER;
 	}
 	if ( G_AbilityActive( ent, ACTIVE_BARRIER ) && client->barrierMode == 2 ) {

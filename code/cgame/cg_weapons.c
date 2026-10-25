@@ -1310,6 +1310,8 @@ static void CG_AddWeaponWithPowerups( refEntity_t *gun, int powerups, const enti
 }
 
 
+int cg_dualHand;		// B.J.'s Dual Wield: the gun being added (1 right, 2 left, 0 one gun)
+
 /*
 =============
 CG_AddPlayerWeapon
@@ -1378,10 +1380,11 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 
 	VectorMA(gun.origin, lerped.origin[0], parent->axis[0], gun.origin);
 
-	// Make weapon appear left-handed for 2 and centered for 3
-	if(ps && cg_drawGun.integer == 2)
+	// Make weapon appear left-handed for 2 and centered for 3 (both of
+	// B.J.'s guns keep their hands)
+	if(ps && cg_drawGun.integer == 2 && !cg_dualHand)
 		VectorMA(gun.origin, -lerped.origin[1], parent->axis[1], gun.origin);
-	else if(!ps || cg_drawGun.integer != 3)
+	else if(!ps || cg_drawGun.integer != 3 || cg_dualHand)
 	       	VectorMA(gun.origin, lerped.origin[1], parent->axis[1], gun.origin);
 
 	VectorMA(gun.origin, lerped.origin[2], parent->axis[2], gun.origin);
@@ -1440,6 +1443,10 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 	} else {
 		// impulse flash
 		if ( cg.time - cent->muzzleFlashTime > MUZZLE_FLASH_TIME ) {
+			return;
+		}
+		// B.J.'s two guns flash by turns, the one that fired
+		if ( cg_dualHand && cg_dualHand != cent->dualShot + 1 ) {
 			return;
 		}
 	}
@@ -1573,17 +1580,23 @@ void CG_AddViewWeapon( playerState_t *ps ) {
 	hand.hModel = weapon->handsModel;
 	hand.renderfx = RF_DEPTHHACK | RF_FIRST_PERSON | RF_MINLIGHT;
 
+	// B.J.'s Dual Wield: both hands hold a gun whatever cg_drawGun says
+	// (2 and 3 would put them together), flashing by turns
+	cg_dualHand = BG_Champion( ps->stats[STAT_CHAMPION] )->active == ACTIVE_DUALWIELD
+		&& BG_AbilityState( ps ) == ABILITY_ACTIVE ? 1 : 0;
+
 	// add everything onto the hand
 	CG_AddPlayerWeapon( &hand, ps, &cg.predictedPlayerEntity, ps->persistant[PERS_TEAM] );
 
-	// B.J.'s Dual Wield: the same gun mirrored into the left hand (the
-	// renderer turns the culling over for a mirrored axis)
-	if ( BG_Champion( ps->stats[STAT_CHAMPION] )->active == ACTIVE_DUALWIELD && BG_AbilityState( ps ) == ABILITY_ACTIVE ) {
+	// the same gun mirrored into the left hand (the renderer turns the
+	// culling over for a mirrored axis)
+	if ( cg_dualHand ) {
 		refEntity_t	left = hand;
 		vec3_t		d;
 		float		k;
 		int			i;
 
+		cg_dualHand = 2;
 		VectorSubtract( left.origin, cg.refdef.vieworg, d );
 		k = DotProduct( d, cg.refdef.viewaxis[1] );
 		VectorMA( left.origin, -2 * k, cg.refdef.viewaxis[1], left.origin );
@@ -1593,6 +1606,7 @@ void CG_AddViewWeapon( playerState_t *ps ) {
 			VectorMA( left.axis[i], -2 * k, cg.refdef.viewaxis[1], left.axis[i] );
 		}
 		CG_AddPlayerWeapon( &left, ps, &cg.predictedPlayerEntity, ps->persistant[PERS_TEAM] );
+		cg_dualHand = 0;
 	}
 }
 
@@ -1922,6 +1936,7 @@ void CG_FireWeapon( centity_t *cent ) {
 	// mark the entity as muzzle flashing, so when it is added it will
 	// append the flash to the weapon model
 	cent->muzzleFlashTime = cg.time;
+	cent->dualShot ^= 1;		// B.J.'s guns fire by turns
 
 	// lightning gun only does this this on initial press
 	if ( ent->weapon == WP_LIGHTNING ) {
