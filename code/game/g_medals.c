@@ -399,7 +399,9 @@ static void G_MedalsKill( gentity_t *self, gentity_t *inflictor, gentity_t *atta
 		} else {
 			G_Medal( attacker, MEDAL_FROMTHEGRAVE );
 		}
-	} else if ( attacker->health < MEDAL_DIEHARD_HEALTH ) {
+	} else if ( attacker->client->frameHealth > 0 && attacker->client->frameHealth <= MEDAL_DIEHARD_HEALTH ) {
+		// judged on the health before this frame's damage (a rocket at
+		// your own feet hits you before the kill lands)
 		G_Medal( attacker, MEDAL_DIEHARD );
 	}
 	if ( G_HasPowerup( attacker ) && ++client->powerupKills == 5 ) {

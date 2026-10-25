@@ -2412,6 +2412,14 @@ void G_RunFrame( int levelTime ) {
 	}
 
 	level.framenum++;
+	// each player's health before this frame's damage (the Die Hard medal)
+	{
+		int		c;
+
+		for ( c = 0 ; c < level.maxclients ; c++ ) {
+			level.clients[c].frameHealth = g_entities[c].health;
+		}
+	}
 	level.previousTime = level.time;
 	level.time = levelTime;
 

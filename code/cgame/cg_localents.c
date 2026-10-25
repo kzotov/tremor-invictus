@@ -760,7 +760,11 @@ void CG_AddScorePlum( localEntity_t *le ) {
 	c = ( le->endTime - cg.time ) * le->lifeRate;
 
 	score = le->radius;
-	if (score < 0) {
+	if ( le->plumTarget ) {
+		// damage numbers: one colour, white (konstantin-list-audit), with a
+		// dark edge below
+		re->shaderRGBA[0] = re->shaderRGBA[1] = re->shaderRGBA[2] = 0xff;
+	} else if (score < 0) {
 		re->shaderRGBA[0] = 0xff;
 		re->shaderRGBA[1] = 0x11;
 		re->shaderRGBA[2] = 0x11;
@@ -794,7 +798,9 @@ void CG_AddScorePlum( localEntity_t *le ) {
 	CrossProduct(dir, up, vec);
 	VectorNormalize(vec);
 
-	VectorMA(origin, -10 + 20 * sin(c * 2 * M_PI), vec, origin);
+	if ( !le->plumTarget ) {
+		VectorMA(origin, -10 + 20 * sin(c * 2 * M_PI), vec, origin);		// (damage numbers only rise)
+	}
 
 	// if the view would be "inside" the sprite, kill the sprite
 	// so it doesn't add too much overdraw
@@ -822,7 +828,25 @@ void CG_AddScorePlum( localEntity_t *le ) {
 	}
 
 	for (i = 0; i < numdigits; i++) {
-		VectorMA(origin, (float) (((float) numdigits / 2) - i) * NUMBER_SIZE, vec, re->origin);
+		if ( le->plumTarget ) {
+			// the dark edge: the digit in black, a little lower and behind
+			byte	rgba[4];
+
+			memcpy( rgba, re->shaderRGBA, sizeof( rgba ) );
+			VectorMA( origin, (float) (((float) numdigits / 2) - i) * NUMBER_SIZE * ( le->light >= 1 ? le->light : 1 ), vec, re->origin );
+			re->origin[2] -= 0.8f * ( le->light >= 1 ? le->light : 1 );
+			{
+				vec3_t	away;
+
+				VectorNormalize2( dir, away );
+				VectorMA( re->origin, -2, away, re->origin );
+			}
+			re->shaderRGBA[0] = re->shaderRGBA[1] = re->shaderRGBA[2] = 0;
+			re->customShader = cgs.media.numberShaders[digits[numdigits-1-i]];
+			trap_R_AddRefEntityToScene( re );
+			memcpy( re->shaderRGBA, rgba, sizeof( rgba ) );
+		}
+		VectorMA(origin, (float) (((float) numdigits / 2) - i) * NUMBER_SIZE * ( le->plumTarget && le->light >= 1 ? le->light : 1 ), vec, re->origin);
 		re->customShader = cgs.media.numberShaders[digits[numdigits-1-i]];
 		trap_R_AddRefEntityToScene( re );
 	}
