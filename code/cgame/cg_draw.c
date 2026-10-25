@@ -7894,7 +7894,10 @@ static void CG_DrawModernHud( void ) {
 		CG_DrawStatusRow();
 		return;
 	}
-	CG_DrawAmmoCounter();
+	// Berserk hides the ammo counter (fists only; abilities-data)
+	if ( !( BG_Champion( ps->stats[STAT_CHAMPION] )->active == ACTIVE_BERSERK && BG_AbilityState( ps ) == ABILITY_ACTIVE ) ) {
+		CG_DrawAmmoCounter();
+	}
 
 	// the crosshair arc repeats the ring
 	cg_hudAnchor = ANCHOR_CENTER;
@@ -7992,42 +7995,50 @@ static void CG_DrawDotEdge( void ) {
 
 /*
 =================
-CG_DrawBerserkCone
+CG_DrawBerserkScreen
 
-champion-audit.md: during Berserk the view is darkened outside a 95 degree
-cone around the aim
+abilities-data: Berserk's on-screen preset, a red rage over the view's
+edges fading in over 0.7 s and out over 0.4 s (the 95 degree "blind cone"
+was target selection, not the view)
 =================
 */
-#define BERSERK_CONE	95
+static void CG_DrawBerserkScreen( void ) {
+	static int			start, end;
+	static qboolean		was;
+	static qhandle_t	edge;
+	playerState_t		*ps = &cg.snap->ps;
+	qboolean			on = BG_Champion( ps->stats[STAT_CHAMPION] )->active == ACTIVE_BERSERK
+		&& BG_AbilityState( ps ) == ABILITY_ACTIVE && ps->stats[STAT_HEALTH] > 0;
+	float				f;
+	vec4_t				color = { 1, 0.25f, 0.1f, 1 };
 
-static void CG_DrawBerserkCone( void ) {
-	playerState_t	*ps = &cg.snap->ps;
-	static const vec4_t	dark = { 0, 0, 0, 0.8f };
-	float			half, frac, x0, x1, y0, y1;
-
-	if ( BG_Champion( ps->stats[STAT_CHAMPION] )->active != ACTIVE_BERSERK || BG_AbilityState( ps ) != ABILITY_ACTIVE
-		|| ps->stats[STAT_HEALTH] <= 0 || cg.refdef.fov_x <= BERSERK_CONE ) {
+	if ( on && !was ) {
+		start = cg.time;
+	} else if ( !on && was ) {
+		end = cg.time;
+	}
+	was = on;
+	if ( on ) {
+		f = ( cg.time - start ) / 700.0f;
+	} else {
+		f = end ? 1 - ( cg.time - end ) / 400.0f : 0;
+	}
+	if ( f > 1 ) {
+		f = 1;
+	}
+	if ( f <= 0 || cg.time < start ) {
 		return;
 	}
-	// the cone's edge as a share of the half screen, across and up; across
-	// on the whole screen's width (the 640 space plus the side bias)
-	{
-		float	left = -cgs.screenXBias / cgs.screenXScale, right = 640 + cgs.screenXBias / cgs.screenXScale;
-
-		half = tan( DEG2RAD( BERSERK_CONE * 0.5f ) );
-		frac = half / tan( DEG2RAD( cg.refdef.fov_x * 0.5f ) );
-		x0 = 320 - ( 320 - left ) * frac;
-		x1 = 640 - x0;
-		frac = half / tan( DEG2RAD( cg.refdef.fov_y * 0.5f ) );
-		y0 = frac < 1 ? 240 - 240 * frac : 0;
-		y1 = 480 - y0;
-		CG_FillRect( left, 0, x0 - left, 480, dark );
-		CG_FillRect( x1, 0, right - x1, 480, dark );
+	if ( !edge ) {
+		edge = trap_R_RegisterShaderNoMip( "gfx/tremor/blood_edge" );
 	}
-	if ( y0 > 0 ) {
-		CG_FillRect( x0, 0, x1 - x0, y0, dark );
-		CG_FillRect( x0, y1, x1 - x0, 480 - y1, dark );
-	}
+	color[3] = 0.75f * f;
+	trap_R_SetColor( color );
+	trap_R_DrawStretchPic( 0, 0, cgs.glconfig.vidWidth, cgs.glconfig.vidHeight, 0, 0, 1, 1, edge );
+	color[3] = 0.08f * f;
+	trap_R_SetColor( color );
+	trap_R_DrawStretchPic( 0, 0, cgs.glconfig.vidWidth, cgs.glconfig.vidHeight, 0, 0, 1, 1, cgs.media.whiteShader );
+	trap_R_SetColor( NULL );
 }
 
 /*
@@ -8060,7 +8071,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 
 	CG_HudLayout();		// every state draws from the layout
 	CG_ReadyCvars();
-	CG_DrawBerserkCone();
+	CG_DrawBerserkScreen();
 	CG_DrawInjectionTint();
 	CG_DrawDotEdge();
 

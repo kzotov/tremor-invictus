@@ -127,7 +127,7 @@ Berserk punches reach everything inside a cylinder in front of the player:
 the nearest enemy along it, if nothing solid is in the way
 ===============
 */
-#define BERSERK_PUNCH_KNOCK	132
+#define BERSERK_PUNCH_KNOCK	100		// the punch's impulse (abilities-data)
 
 static gentity_t *G_BerserkTarget( gentity_t *ent, vec3_t org, vec3_t dir, trace_t *tr ) {
 	gentity_t	*best = NULL, *other;
@@ -319,7 +319,7 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 		damage = g_berserkDamage.value;		// an ability: no Quad (champion-audit.md)
 	}
 	if ( G_AbilityActive( ent, ACTIVE_BERSERK ) ) {
-		G_NextKnockback( BERSERK_PUNCH_KNOCK );		// impulse 100 x 2, at the 132 cap
+		G_NextKnockback( BERSERK_PUNCH_KNOCK );
 	} else {
 		G_WeaponKnock( WP_GAUNTLET, traceEnt, ent );
 	}

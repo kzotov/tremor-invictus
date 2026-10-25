@@ -1424,6 +1424,17 @@ void ClientThink_real( gentity_t *ent ) {
 	// go through as an attack unless it actually hits something
 	// (the weapon time counts down inside pmove: a punch due this command
 	// is tested now)
+	// Berserk's lunge: the punch lands on arrival, as soon as the target is
+	// in the punch's reach (abilities-data); the lunge stops and the second
+	// of recovery runs from then
+	if ( ( client->ps.stats[STAT_MOVE_STATE] & 1023 ) && ( client->ps.stats[STAT_MOVE_STATE] & 1023 ) <= 251
+		&& BG_Champion( client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_BERSERK
+		&& G_AbilityActive( ent, ACTIVE_BERSERK ) && CheckGauntletAttack( ent ) ) {
+		client->ps.stats[STAT_MOVE_STATE] = ( client->ps.stats[STAT_MOVE_STATE] & ~1023 ) | 252;		// (into the stop)
+		client->ps.weaponTime = 1000;
+		client->ps.weaponstate = WEAPON_FIRING;
+	}
+
 	// (stunned, or Master of Death's first half second: no attack at all)
 	if ( client->stunEndTime > level.time ) {
 		ucmd->buttons &= ~( BUTTON_ATTACK | BUTTON_ABILITY );

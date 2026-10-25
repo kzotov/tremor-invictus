@@ -1271,6 +1271,10 @@ static qboolean PM_CheckDoubleJump( void ) {
 	if ( !( pml.champion->abilities & MOVEABIL_DOUBLEJUMP ) ) {
 		return qfalse;
 	}
+	// no double jump while Berserk (abilities-data)
+	if ( pml.champion->active == ACTIVE_BERSERK && PM_AbilityActive( ACTIVE_BERSERK ) ) {
+		return qfalse;
+	}
 	if ( pm->ps->pm_flags & ( PMF_AIRMOVE_USED | PMF_RESPAWNED ) ) {
 		return qfalse;
 	}
@@ -2584,11 +2588,33 @@ static void PM_Weapon( void ) {
 				// the distance so far, from the speed's straight build-up
 				float	dist = bg_pmoveSettings.berserkLunge * s + 0.5f * rate * s * s;
 
-				// toward the target while it's known, else where he looks
+				// toward the target while it's known, else where he looks;
+				// the view turns toward it too, from 10 deg/s gaining
+				// 800 deg/s/s up to 200 (abilities-data)
 				if ( state & LUNGE_TARGET ) {
 					VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, forward );
 					if ( VectorNormalize( forward ) < 1 ) {
 						AngleVectors( pm->ps->viewangles, forward, NULL, NULL );
+					} else {
+						vec3_t	want;
+						float	turn = 10 + 800 * s, d;
+						int		k;
+
+						if ( turn > 200 ) {
+							turn = 200;
+						}
+						turn *= pml.frametime;
+						vectoangles( forward, want );
+						for ( k = PITCH ; k <= YAW ; k++ ) {
+							d = AngleSubtract( want[k], pm->ps->viewangles[k] );
+							if ( d > turn ) {
+								d = turn;
+							} else if ( d < -turn ) {
+								d = -turn;
+							}
+							pm->ps->viewangles[k] += d;
+							pm->ps->delta_angles[k] += ANGLE2SHORT( d );
+						}
 					}
 				} else {
 					AngleVectors( pm->ps->viewangles, forward, NULL, NULL );
