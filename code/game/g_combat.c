@@ -1366,8 +1366,13 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		float	shield = G_BarrierScale( as, mod, dir );
 
 		if ( shield < 1.0f ) {
+			// the shield receives the hit: the whole of it counts toward
+			// its 200; it takes it all (g_barrierScale 0) or a share
+			G_BarrierHit( as, damage );
 			damage *= shield;
-			G_BarrierHit( as, damage );		// the break counts what gets through
+			if ( damage < 1 ) {
+				return;
+			}
 		}
 	}
 	if ( damage < 1 ) {

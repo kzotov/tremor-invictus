@@ -865,6 +865,12 @@ def sounds(out):
     put(os.path.join(out, "sound/abilities/berserk_swing.wav"),
         mix((env(noise(0.3, glide(600, 2200, 0.2), 89), attack=0.03, decay=9), 1.0, 0),
             (env(osc(glide(140, 90, 0.25), 0.3), attack=0.02, decay=10), 0.3, 0)))
+    # Clutch's Mining Laser: a searing hum (a loop: whole cycles in 1 s)
+    laser = mix((osc(110, 1.0, "saw"), 0.3, 0), (osc(220, 1.0, "square"), 0.12, 0),
+                (osc(lfo(6, 0.02, 1760), 1.0, "tri"), 0.12, 0), (noise(1.0, 4000, 101, amp=0.3), 1.0, 0))
+    n = len(laser)
+    laser = [v * min(1.0, i / (0.02 * RATE), (n - i) / (0.02 * RATE)) for i, v in enumerate(laser)]
+    write_wav(os.path.join(out, "sound/abilities/laser_loop.wav"), level(laser, db=-6))
     # the drone's gun: a light, quick zap
     put(os.path.join(out, "sound/abilities/drone_shot.wav"),
         mix((env(osc(glide(2400, 900, 0.07), 0.1, "saw"), decay=35), 0.3, 0),

@@ -362,6 +362,7 @@ struct gclient_s {
 	int			comboTime[MAX_CLIENTS];		// ... with anything but the railgun
 	int			lastEnemyHurt;		// the last enemy to hurt this one, for Ring Out
 	int			lastEnemyHurtTime;
+	int			lastShotTime;		// level.time of the last weapon shot (Clutch's shield drops)
 	int			frameHealth;		// health at the start of the frame (Die Hard)
 	int			deathTime;			// level.time and inflictor of this client's death
 	int			deathInflictor;

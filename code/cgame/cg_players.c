@@ -2395,6 +2395,42 @@ int CG_LightVerts( vec3_t normal, int numVerts, polyVert_t *verts )
 
 /*
 ===============
+CG_LaserBeam
+
+Clutch's Mining Laser: a continuous beam from his eyes along his view to
+what it meets (2000 u at most), and its loop
+===============
+*/
+static void CG_LaserBeam( centity_t *cent ) {
+	refEntity_t	beam;
+	vec3_t		start, forward, end;
+	trace_t		tr;
+
+	VectorCopy( cent->lerpOrigin, start );
+	start[2] += DEFAULT_VIEWHEIGHT - 4;
+	AngleVectors( cent->lerpAngles, forward, NULL, NULL );
+	VectorMA( start, 8, forward, start );
+	VectorMA( start, 2000, forward, end );
+	CG_Trace( &tr, start, NULL, NULL, end, cent->currentState.number, MASK_SHOT );
+	memset( &beam, 0, sizeof( beam ) );
+	beam.reType = RT_RAIL_CORE;
+	beam.customShader = cgs.media.railCoreShader;
+	VectorCopy( start, beam.origin );
+	VectorCopy( tr.endpos, beam.oldorigin );
+	beam.shaderRGBA[0] = 255;
+	beam.shaderRGBA[1] = 150 + ( rand() & 31 );
+	beam.shaderRGBA[2] = 40;
+	beam.shaderRGBA[3] = 255;
+	AxisClear( beam.axis );
+	trap_R_AddRefEntityToScene( &beam );
+	trap_R_AddLightToScene( tr.endpos, 80 + ( rand() & 31 ), 1, 0.6f, 0.2f );
+	if ( cgs.media.laserLoopSound ) {
+		trap_S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, cgs.media.laserLoopSound );
+	}
+}
+
+/*
+===============
 CG_Player
 ===============
 */
@@ -2456,6 +2492,12 @@ void CG_Player( centity_t *cent ) {
 		CG_ColorAfterDraw( &legs );
 		CG_ColorReset();
 		return;
+	}
+
+	// Clutch's Mining Laser: a steady beam where he looks and its hum
+	// (abilities-data), for everyone while EF_LASER is on
+	if ( cent->currentState.eFlags & EF_LASER ) {
+		CG_LaserBeam( cent );
 	}
 
 	// Nyx gone in Ghost Walk: nothing of her at all, no balloon, shadow,

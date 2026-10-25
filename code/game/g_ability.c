@@ -1478,6 +1478,7 @@ static void G_BarrierToLaser( gentity_t *ent ) {
 	// 8 s if need be) with the weapons locked until it ends
 	ent->client->barrierMode = 2;
 	ent->client->ps.eFlags &= ~EF_BARRIER;
+	ent->client->ps.eFlags |= EF_LASER;
 	ent->client->laserTime = level.time + g_laserDelay.integer;
 	ent->client->laserEnd = ent->client->laserTime + g_laserTime.integer;
 	if ( ent->client->ps.stats[STAT_ABILITY_TIME] < g_laserTime.integer + g_laserDelay.integer + 100 ) {
@@ -1497,7 +1498,7 @@ static void G_FireLaser( gentity_t *ent ) {
 	vec3_t		start, forward, right, end;
 	vec3_t		mins = { -LASER_RADIUS, -LASER_RADIUS, -LASER_RADIUS }, maxs = { LASER_RADIUS, LASER_RADIUS, LASER_RADIUS };
 	trace_t		tr;
-	gentity_t	*tent, *other;
+	gentity_t	*other;
 
 	G_AbilityEyes( ent, start, forward, right );
 	VectorMA( start, g_laserRange.value, forward, end );
@@ -1505,13 +1506,12 @@ static void G_FireLaser( gentity_t *ent ) {
 	G_ShotTrace( &tr, start, mins, maxs, end, ent->s.number, MASK_SHOT );		// a 10 u wide beam
 	G_RestorePlayers();
 
-	tent = G_TempEntity( tr.endpos, EV_RAILTRAIL );
-	VectorCopy( start, tent->s.origin2 );
-	tent->s.clientNum = ent->s.clientNum;
+	// (the beam itself is drawn by the clients while EF_LASER is on)
 
 	other = &g_entities[tr.entityNum];
 	if ( other->takedamage ) {
-		G_Damage( other, ent, ent, forward, tr.endpos, g_laserDamage.integer, DAMAGE_NO_KNOCKBACK, MOD_LASER );
+		G_NextKnockback( 10 );		// impulse 10 a tick (abilities-data)
+		G_Damage( other, ent, ent, forward, tr.endpos, g_laserDamage.integer, 0, MOD_LASER );
 	}
 }
 
@@ -1547,6 +1547,10 @@ Damage multiplier while the shield is up; only weapon and ability damage
 
 float G_BarrierScale( gentity_t *targ, int mod, const vec3_t dir ) {
 	if ( !targ->client || targ->client->barrierMode != 1 || !G_AbilityActive( targ, ACTIVE_BARRIER ) ) {
+		return 1.0f;
+	}
+	// down while he fires, back 1.0 s after his last shot
+	if ( level.time - targ->client->lastShotTime < 1000 ) {
 		return 1.0f;
 	}
 	// only what comes at him from the front (champion-audit.md)
@@ -2412,6 +2416,18 @@ void G_AbilityClientThink( gentity_t *ent, int msec ) {
 		}
 	}
 
+	// the shield drops while he fires and comes back 1.0 s after his last
+	// shot (abilities-data)
+	if ( G_AbilityActive( ent, ACTIVE_BARRIER ) && client->barrierMode == 1 ) {
+		if ( level.time - client->lastShotTime >= 1000 ) {
+			client->ps.eFlags |= EF_BARRIER;
+		} else {
+			client->ps.eFlags &= ~EF_BARRIER;
+		}
+	}
+	if ( !G_AbilityActive( ent, ACTIVE_BARRIER ) || client->barrierMode != 2 ) {
+		client->ps.eFlags &= ~EF_LASER;
+	}
 	if ( G_AbilityActive( ent, ACTIVE_BARRIER ) && client->barrierMode == 2 ) {
 		while ( level.time >= client->laserTime && client->laserTime < client->laserEnd ) {
 			G_FireLaser( ent );

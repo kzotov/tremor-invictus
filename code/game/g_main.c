@@ -437,7 +437,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_turretInterval, "g_turretInterval", "200", 0, 0, qtrue },
 	{ &g_turretRange, "g_turretRange", "1500", 0, 0, qtrue },
 	{ &g_turretBoltSpeed, "g_turretBoltSpeed", "1600", 0, 0, qtrue },
-	{ &g_barrierScale, "g_barrierScale", "0.5", 0, 0, qtrue },
+	{ &g_barrierScale, "g_barrierScale", "0", 0, 0, qtrue },		// the shield takes the whole hit in front (abilities-data)
 	{ &g_barrierHealth, "g_barrierHealth", "200", 0, 0, qtrue },
 	{ &g_laserTime, "g_laserTime", "3000", 0, 0, qtrue },
 	{ &g_laserDelay, "g_laserDelay", "0", 0, 0, qtrue },		// fires on the press (the gate is the 0.25 s before it)
