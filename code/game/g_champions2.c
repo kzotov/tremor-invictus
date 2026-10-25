@@ -327,6 +327,13 @@ static void G_CrateImpact( gentity_t *crate, trace_t *trace ) {
 	vec3_t	point;
 
 	VectorMA( trace->endpos, 1, trace->plane.normal, point );
+	// a wall or a ceiling: it drops on to the floor (champion-audit.md)
+	if ( trace->plane.normal[2] < 0.7f ) {
+		G_AbilityStop( crate, point );
+		crate->s.pos.trType = TR_GRAVITY;
+		crate->s.pos.trTime = level.time;
+		return;
+	}
 	G_AbilityStop( crate, point );
 	crate->abilityImpact = NULL;
 	crate->clipmask = 0;
@@ -412,7 +419,11 @@ void G_MarkPrey( gentity_t *ent ) {
 
 	G_AbilityEyes( ent, start, forward, right );
 	VectorMA( start, 2000, forward, end );
+	// players where the shooter saw them, by their shot volumes (as an
+	// instant-hit weapon: champion-audit.md)
+	G_RewindPlayers( ent );
 	trap_Trace( &tr, start, NULL, NULL, end, ent->s.number, MASK_SHOT );
+	G_RestorePlayers();
 	target = tr.entityNum < ENTITYNUM_MAX_NORMAL ? &g_entities[tr.entityNum] : NULL;
 	if ( target && G_AbilityEnemy( ent, target ) ) {
 		G_Mark( target, ent, 6000 );
@@ -459,10 +470,11 @@ void G_Downpour( gentity_t *ent ) {
 	gentity_t	*storm;
 	vec3_t		up = { 0, 0, 1 };
 
-	// the floor below where the aim meets the world, up to 1200 u away
+	// the floor below where the aim meets the world or the first player,
+	// up to 1200 u away
 	G_AbilityEyes( ent, start, forward, right );
 	VectorMA( start, 1200, forward, end );
-	trap_Trace( &tr, start, NULL, NULL, end, ent->s.number, MASK_SOLID );
+	trap_Trace( &tr, start, NULL, NULL, end, ent->s.number, MASK_SHOT );
 	VectorMA( tr.endpos, -8, forward, end );
 	VectorCopy( end, down );
 	down[2] -= 2000;
@@ -535,7 +547,8 @@ static void G_HoundThink( gentity_t *hound ) {
 	dir[2] = 0;
 	dist = VectorNormalize( dir );
 
-	if ( target != hound->parent && dist < 40 ) {
+	// it bites only what it can reach: within 48 u up or down
+	if ( target != hound->parent && dist < 40 && fabs( target->r.currentOrigin[2] - hound->r.currentOrigin[2] ) <= 48 ) {
 		if ( level.time >= hound->wait ) {
 			hound->wait = level.time + 1000;
 			G_Damage( target, hound, hound->parent, dir, target->r.currentOrigin, 35, 0, MOD_HOUND );
@@ -546,15 +559,26 @@ static void G_HoundThink( gentity_t *hound ) {
 		return;
 	}
 
-	// run along the ground
-	VectorScale( dir, 600 * CHAMP_FRAME * 0.001f, move );
-	VectorAdd( hound->r.currentOrigin, move, move );
-	trap_Trace( &tr, hound->r.currentOrigin, hound->r.mins, hound->r.maxs, move, hound->s.number, MASK_PLAYERSOLID );
-	VectorCopy( tr.endpos, move );
-	VectorCopy( move, ground );
-	ground[2] -= 64;
-	trap_Trace( &tr, move, hound->r.mins, hound->r.maxs, ground, hound->s.number, MASK_PLAYERSOLID );
-	G_SetOrigin( hound, tr.endpos );
+	// run along the ground, up steps of 18 u like a player (champion-audit.md)
+	{
+		vec3_t	from, up;
+
+		VectorCopy( hound->r.currentOrigin, from );
+		VectorCopy( from, up );
+		up[2] += 18;
+		trap_Trace( &tr, from, hound->r.mins, hound->r.maxs, up, hound->s.number, MASK_PLAYERSOLID );
+		VectorCopy( tr.endpos, up );
+		VectorScale( dir, 600 * CHAMP_FRAME * 0.001f, move );
+		VectorAdd( up, move, move );
+		trap_Trace( &tr, up, hound->r.mins, hound->r.maxs, move, hound->s.number, MASK_PLAYERSOLID );
+		VectorCopy( tr.endpos, move );
+		VectorCopy( move, ground );
+		ground[2] -= 18 + 64;
+		trap_Trace( &tr, move, hound->r.mins, hound->r.maxs, ground, hound->s.number, MASK_PLAYERSOLID );
+		// moving smoothly: the clients interpolate it between snapshots
+		G_SetOrigin( hound, tr.endpos );
+		hound->s.pos.trType = TR_INTERPOLATE;
+	}
 	vectoangles( dir, hound->s.angles );
 	trap_LinkEntity( hound );
 }
@@ -631,6 +655,29 @@ void G_RecallAnchor( gentity_t *ent ) {
 	if ( !client->anchorEnt || client->ps.powerups[PW_REDFLAG] || client->ps.powerups[PW_BLUEFLAG]
 		|| client->ps.powerups[PW_NEUTRALFLAG] ) {
 		return;
+	}
+	// someone standing on the anchor: a teammate refuses the recall, an
+	// enemy is telefragged (champion-audit.md)
+	{
+		int			touch[MAX_GENTITIES], i, num;
+		vec3_t		mins, maxs;
+		gentity_t	*other;
+
+		VectorAdd( client->anchorOrigin, ent->r.mins, mins );
+		VectorAdd( client->anchorOrigin, ent->r.maxs, maxs );
+		num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
+		for ( i = 0 ; i < num ; i++ ) {
+			other = &g_entities[touch[i]];
+			if ( other != ent && other->client && other->health > 0 && OnSameTeam( ent, other ) ) {
+				return;
+			}
+		}
+		for ( i = 0 ; i < num ; i++ ) {
+			other = &g_entities[touch[i]];
+			if ( other != ent && other->client && other->health > 0 && G_AbilityEnemy( ent, other ) ) {
+				G_Damage( other, ent, ent, NULL, NULL, 100000, DAMAGE_NO_PROTECTION, MOD_TELEFRAG );
+			}
+		}
 	}
 	tent = G_TempEntity( client->ps.origin, EV_PLAYER_TELEPORT_OUT );
 	tent->s.clientNum = ent->s.clientNum;

@@ -3309,7 +3309,8 @@ static void PM_Ability( void ) {
 			return;
 		}
 		// a flag carrier must stay visible: no ghost walk, no leaving the body for the drone
-		if ( ( active == ACTIVE_GHOSTWALK || active == ACTIVE_DRONE )
+		// (nor a Rift Anchor while carrying a flag or the soul)
+		if ( ( active == ACTIVE_GHOSTWALK || active == ACTIVE_DRONE || active == ACTIVE_RIFTANCHOR )
 			&& ( pm->ps->powerups[PW_REDFLAG] || pm->ps->powerups[PW_BLUEFLAG] || pm->ps->powerups[PW_NEUTRALFLAG] ) ) {
 			return;
 		}

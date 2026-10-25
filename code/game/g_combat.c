@@ -1092,6 +1092,11 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if ( level.warmupTime > 0 && as->client && attacker->client ) {
 		return;
 	}
+	// Sarge's crate: only enemies can break it (champion-audit.md)
+	if ( !targ->client && targ->classname && !strcmp( targ->classname, "supplydrop" ) && targ->parent
+		&& attacker->client && !G_AbilityEnemy( targ->parent, attacker ) ) {
+		return;
+	}
 	// Nyx in Ghost Walk hurts nobody (she fires nothing; a gauntlet test
 	// slipping through mustn't either)
 	if ( attacker->client && attacker != as && G_AbilityActive( attacker, ACTIVE_GHOSTWALK ) ) {
