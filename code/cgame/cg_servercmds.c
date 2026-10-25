@@ -1048,6 +1048,12 @@ static void CG_AnnounceKey( const char *key ) {
 		sounds[i] = trap_S_RegisterSound( va( "sound/feedback/%s.wav", key ), qtrue );
 		numKeys++;
 	}
+	// "Round N, fight" without its own recording: plain "fight"
+	if ( !sounds[i] && !Q_stricmpn( key, "round", 5 ) && strlen( key ) > 5
+		&& !Q_stricmp( key + strlen( key ) - 5, "fight" ) ) {
+		CG_AnnounceKey( "fight" );
+		return;
+	}
 	if ( sounds[i] ) {
 		// pre-round lines first, then power-ups and timers, then the rest
 		int		priority = 3;

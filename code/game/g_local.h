@@ -863,6 +863,7 @@ qboolean	G_RoundDuelHolds( void );
 int			G_RoundDuelChampion( gclient_t *client );
 void		G_RoundDuelKill( gentity_t *victim );
 void		G_RoundDuelCheckRules( void );
+qboolean	G_RoundDuelDrafted( void );
 void		Cmd_Pick_f( gentity_t *ent );
 void		Cmd_Next_f( gentity_t *ent );
 

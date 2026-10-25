@@ -28,12 +28,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define RD_CHAMPIONS		3
 #define RD_PICK_MSEC		10000
-#define RD_COUNTDOWN_MSEC	5000
+#define RD_COUNTDOWN_MSEC	10000	// "prepare to fight" at 10 s, "round begins in" at 5, 3-2-1
 #define RD_RESULT_MSEC		5000
 
 enum {
 	RD_WAITING,			// match not started
 	RD_DRAFT,
+	RD_DRAFTED,			// picked in the warm-up, waiting for the match
 	RD_COUNTDOWN,
 	RD_FIGHTING,
 	RD_RESULT
@@ -54,6 +55,7 @@ static struct {
 	int			current[2];			// roster index in play
 	int			dead[2];			// bit per roster index
 	int			hudTime;
+	int			said;				// countdown lines already played (bits)
 } rd;
 
 /*
@@ -110,7 +112,7 @@ The champion a duelist spawns as: the one in play from their roster
 int G_RoundDuelChampion( gclient_t *client ) {
 	int		side = G_RDSide( client );
 
-	if ( side < 0 || rd.state == RD_WAITING || rd.state == RD_DRAFT ) {
+	if ( side < 0 || level.warmupTime || rd.state == RD_WAITING || rd.state == RD_DRAFT || rd.state == RD_DRAFTED ) {
 		return client->pers.champion;
 	}
 	return rd.picks[side][rd.current[side]];
@@ -174,12 +176,15 @@ static void G_RDUpdateHud( void ) {
 			pick[s][n[s]] = rd.picks[s][n[s]];
 			n[s]++;
 		}
-		trap_SetConfigstring( CS_SACRIFICE, va( "rd|%s|%s|#%i %i %i %i %i %i %i %i %i %i %i %i %i", line[0], line[1],
+		trap_SetConfigstring( CS_SACRIFICE, va( "rd|%s|%s|#%i %i %i %i %i %i %i %i %i %i %i %i %i %i %i", line[0], line[1],
 			rd.state == RD_DRAFT, rd.player[0], rd.player[1], pick[0][0], pick[0][1], pick[0][2],
 			pick[1][0], pick[1][1], pick[1][2], rd.dead[0], rd.dead[1],
 			// round-duel.md 3: the first champion stays hidden through the countdown
 			rd.state == RD_FIGHTING || rd.state == RD_RESULT ? rd.current[0] : -1,
-			rd.state == RD_FIGHTING || rd.state == RD_RESULT ? rd.current[1] : -1 ) );
+			rd.state == RD_FIGHTING || rd.state == RD_RESULT ? rd.current[1] : -1,
+			// then whose pick it is (-1 none) and its deadline in server time
+			rd.state == RD_DRAFT && rd.numPicks < RD_CHAMPIONS * 2 ? rdPickOrder[rd.numPicks] : -1,
+			rd.state == RD_DRAFT ? rd.stateTime : 0 ) );
 	}
 }
 
@@ -338,7 +343,10 @@ static void G_RDStartRound( void ) {
 	}
 	level.abilityRefill = qfalse;
 	G_RDAnnounce( STR_RD_ROUND, va( "%i", rd.round ), NULL );
-	G_Announce( -1, "roundbegins" );
+	// the pre-round lines (konstantin-list-audit F2 1): "prepare to fight"
+	// now, 10 s out; the rest from G_RoundDuelCheckRules
+	rd.said = 0;
+	G_Announce( -1, "preparetofight" );
 	G_RDUpdateHud();
 }
 
@@ -349,8 +357,10 @@ static void G_RDEndRound( int winner ) {
 	rd.stateTime = level.time + RD_RESULT_MSEC;
 	cl->ps.persistant[PERS_SCORE]++;
 	G_RDAnnounce( STR_RD_WINS_ROUND, cl->pers.netname, NULL );
-	G_Announce( rd.player[winner], "youwintheround" );
-	G_Announce( rd.player[!winner], "youlosetheround" );
+	// "Round N complete" (the reference has no won / lost lines per round)
+	if ( rd.round >= 1 && rd.round <= 5 ) {
+		G_Announce( -1, va( "round%icomplete", rd.round ) );
+	}
 	CalculateRanks();
 }
 
@@ -389,18 +399,142 @@ void G_RoundDuelKill( gentity_t *victim ) {
 
 /*
 =================
+G_RDBeginDraft
+
+Both players found: A is whoever has been in the game longer
+=================
+*/
+static void G_RDBeginDraft( void ) {
+	memset( &rd, 0, sizeof( rd ) );
+	rd.player[0] = level.sortedClients[0];
+	rd.player[1] = level.sortedClients[1];
+	if ( level.clients[rd.player[1]].pers.enterTime < level.clients[rd.player[0]].pers.enterTime ) {
+		rd.player[0] = level.sortedClients[1];
+		rd.player[1] = level.sortedClients[0];
+	}
+	rd.state = RD_DRAFT;
+	rd.stateTime = level.time + RD_PICK_MSEC;
+	G_RDUpdateHud();
+}
+
+/*
+=================
+G_RDDraftFrame
+
+The pick whose turn it is: bots at once, people get RD_PICK_MSEC, then a
+random one. True once all six are in.
+=================
+*/
+static qboolean G_RDDraftFrame( void ) {
+	char	msg[MAX_STRING_CHARS];
+	int		side;
+
+	if ( rd.numPicks >= RD_CHAMPIONS * 2 ) {
+		return qtrue;
+	}
+	side = rdPickOrder[rd.numPicks];
+	if ( ( g_entities[rd.player[side]].r.svFlags & SVF_BOT ) || level.time >= rd.stateTime ) {
+		G_RDPickRandom( side );
+	} else if ( level.time >= rd.hudTime ) {
+		rd.hudTime = level.time + 5000;
+		Com_sprintf( msg, sizeof( msg ), BG_String( STR_RD_YOUR_PICK ), ( rd.stateTime - level.time + 999 ) / 1000 );
+		trap_SendServerCommand( rd.player[side], va( "cp \"%s\"", msg ) );
+		if ( rd.said != rd.numPicks + 1 ) {
+			rd.said = rd.numPicks + 1;		// "your pick" once a turn
+			G_Announce( rd.player[side], "yourpick" );
+		}
+	}
+	return rd.numPicks >= RD_CHAMPIONS * 2;
+}
+
+/*
+=================
+G_RDSaveDraft / G_RDLoadDraft
+
+The warm-up's draft kept across the map restart that starts the match:
+"<clientA> <clientB> <a1 a2 a3> <b1 b2 b3>"
+=================
+*/
+static void G_RDSaveDraft( void ) {
+	trap_Cvar_Set( "g_rdDraft", va( "%i %i %i %i %i %i %i %i", rd.player[0], rd.player[1],
+		rd.picks[0][0], rd.picks[0][1], rd.picks[0][2], rd.picks[1][0], rd.picks[1][1], rd.picks[1][2] ) );
+}
+
+static qboolean G_RDLoadDraft( void ) {
+	char	buf[MAX_CVAR_VALUE_STRING], *p;
+	int		v[8], i;
+
+	trap_Cvar_VariableStringBuffer( "g_rdDraft", buf, sizeof( buf ) );
+	trap_Cvar_Set( "g_rdDraft", "" );
+	if ( !buf[0] ) {
+		return qfalse;
+	}
+	p = buf;
+	for ( i = 0 ; i < 8 ; i++ ) {
+		v[i] = atoi( COM_Parse( &p ) );
+	}
+	for ( i = 0 ; i < 2 ; i++ ) {
+		if ( v[i] < 0 || v[i] >= level.maxclients || level.clients[v[i]].pers.connected != CON_CONNECTED
+			|| level.clients[v[i]].sess.sessionTeam != TEAM_FREE ) {
+			return qfalse;		// the players changed: draft again
+		}
+	}
+	for ( i = 2 ; i < 8 ; i++ ) {
+		if ( v[i] < 0 || v[i] >= bg_numChampions ) {
+			return qfalse;
+		}
+	}
+	memset( &rd, 0, sizeof( rd ) );
+	rd.player[0] = v[0];
+	rd.player[1] = v[1];
+	for ( i = 0 ; i < RD_CHAMPIONS ; i++ ) {
+		rd.picks[0][i] = v[2 + i];
+		rd.picks[1][i] = v[5 + i];
+	}
+	rd.numPicks = RD_CHAMPIONS * 2;
+	return qtrue;
+}
+
+/*
+=================
+G_RoundDuelDrafted
+
+The warm-up's ready countdown waits for the draft
+=================
+*/
+qboolean G_RoundDuelDrafted( void ) {
+	return !G_RoundDuel() || rd.state == RD_DRAFTED;
+}
+
+/*
+=================
 G_RoundDuelCheckRules
 
 Called every frame instead of the usual exit rules
 =================
 */
 void G_RoundDuelCheckRules( void ) {
-	char		msg[MAX_STRING_CHARS];
 	gentity_t	*a, *b;
 	int			side, n, stack[2];
 
+	// the draft runs in the warm-up, once both players are in, and the
+	// ready countdown waits for it (G_RoundDuelDrafted); never after "FIGHT"
 	if ( level.warmupTime ) {
-		rd.state = RD_WAITING;
+		if ( level.numPlayingClients < 2 ) {
+			if ( rd.state != RD_WAITING ) {
+				memset( &rd, 0, sizeof( rd ) );
+				G_RDUpdateHud();
+			}
+			return;
+		}
+		if ( rd.state == RD_WAITING || ( rd.state != RD_DRAFT && rd.state != RD_DRAFTED ) ) {
+			G_RDBeginDraft();
+		}
+		if ( rd.state == RD_DRAFT && G_RDDraftFrame() ) {
+			rd.state = RD_DRAFTED;
+			G_RDSaveDraft();
+			G_RDUpdateHud();
+		}
 		return;
 	}
 
@@ -409,37 +543,41 @@ void G_RoundDuelCheckRules( void ) {
 		if ( level.numPlayingClients < 2 ) {
 			return;
 		}
-		memset( &rd, 0, sizeof( rd ) );
-		// A is whoever has been in the game longer
-		rd.player[0] = level.sortedClients[0];
-		rd.player[1] = level.sortedClients[1];
-		if ( level.clients[rd.player[1]].pers.enterTime < level.clients[rd.player[0]].pers.enterTime ) {
-			rd.player[0] = level.sortedClients[1];
-			rd.player[1] = level.sortedClients[0];
+		// the warm-up's draft, across the match's map restart
+		if ( G_RDLoadDraft() ) {
+			G_RDStartRound();
+			break;
 		}
-		rd.state = RD_DRAFT;
-		rd.stateTime = level.time + RD_PICK_MSEC;
-		G_RDUpdateHud();
+		G_RDBeginDraft();		// (no warm-up: the draft before the first round)
 		break;
 
 	case RD_DRAFT:
-		side = rdPickOrder[rd.numPicks];
-		// bots pick at once, people get 10 s
-		if ( ( g_entities[rd.player[side]].r.svFlags & SVF_BOT ) || level.time >= rd.stateTime ) {
-			G_RDPickRandom( side );
-		} else if ( level.time >= rd.hudTime ) {
-			rd.hudTime = level.time + 5000;
-			Com_sprintf( msg, sizeof( msg ), BG_String( STR_RD_YOUR_PICK ), ( rd.stateTime - level.time + 999 ) / 1000 );
-			trap_SendServerCommand( rd.player[side], va( "cp \"%s\"", msg ) );
-		}
-		if ( rd.numPicks >= RD_CHAMPIONS * 2 ) {
+		if ( G_RDDraftFrame() ) {
 			G_RDStartRound();
 		}
 		break;
 
+	case RD_DRAFTED:
+		G_RDStartRound();
+		break;
+
 	case RD_COUNTDOWN:
+		{
+			static const char	*lines[] = { "roundbegins", "three", "two", "one" };
+			static const int	at[] = { 5000, 3000, 2000, 1000 };
+			int					k;
+
+			for ( k = 0 ; k < 4 ; k++ ) {
+				if ( rd.stateTime - level.time <= at[k] && !( rd.said & ( 1 << k ) ) ) {
+					rd.said |= ( 1 << k ) - 1 | ( 1 << k );		// (a late frame skips the earlier ones)
+					G_Announce( -1, lines[k] );
+					break;
+				}
+			}
+		}
 		if ( level.time >= rd.stateTime ) {
-			int		side;
+			// "Round N, fight" (the client falls back to "fight")
+			G_Announce( -1, rd.round <= 5 ? va( "round%ifight", rd.round ) : "fight" );
 
 			rd.state = RD_FIGHTING;
 			rd.roundStart = level.time;

@@ -2081,8 +2081,9 @@ void CheckTournament( void ) {
 		}
 
 		// if all players have arrived and are ready, start the countdown
+		// (round duel: once the draft is done)
 		if ( level.warmupTime < 0 ) {
-			if ( !G_DuelPlayersReady() ) {
+			if ( !G_DuelPlayersReady() || !G_RoundDuelDrafted() ) {
 				return;
 			}
 			if ( level.numPlayingClients == 2 ) {

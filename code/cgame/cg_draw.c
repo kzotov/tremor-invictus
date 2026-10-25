@@ -6521,8 +6521,33 @@ static qboolean CG_DrawDraft( void ) {
 		}
 		return qfalse;
 	}
-	if ( !shown ) {
-		trap_SendConsoleCommand( "rml_show ui/draft.rml\n" );
+	// taken champions marked on the page, shown again when a pick lands
+	{
+		static char	shownPicks[64];
+		char		sig[64];
+		int			c, s2, k2;
+
+		Com_sprintf( sig, sizeof( sig ), "%i %i %i %i %i %i", picks[0][0], picks[0][1], picks[0][2],
+			picks[1][0], picks[1][1], picks[1][2] );
+		if ( !shown ) {
+			shownPicks[0] = 0;
+		}
+		if ( strcmp( sig, shownPicks ) ) {
+			Q_strncpyz( shownPicks, sig, sizeof( shownPicks ) );
+			for ( c = 0 ; c < bg_numChampions ; c++ ) {
+				qboolean	taken = qfalse;
+
+				for ( s2 = 0 ; s2 < 2 ; s2++ ) {
+					for ( k2 = 0 ; k2 < 3 ; k2++ ) {
+						if ( picks[s2][k2] == c ) {
+							taken = qtrue;
+						}
+					}
+				}
+				trap_Cvar_Set( va( "dr_t_%s", BG_Champion( c )->name ), taken ? " - TAKEN" : "" );
+			}
+			trap_SendConsoleCommand( shown ? "rml_hide\nrml_show ui/draft.rml\n" : "rml_show ui/draft.rml\n" );
+		}
 	}
 	if ( players[1] == cg.snap->ps.clientNum ) {
 		local = 1;		// the local player on the left
@@ -6576,6 +6601,36 @@ static qboolean CG_DrawDraft( void ) {
 		if ( who >= 0 && who < MAX_CLIENTS ) {
 			CG_DrawStringExt( sx - CG_DrawStrlen( cgs.clientinfo[who].name ) * BIGCHAR_WIDTH / 2, 220,
 				cgs.clientinfo[who].name, colorWhite, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
+		}
+	}
+
+	// whose pick it is and the seconds left
+	{
+		const char	*cs = strstr( CG_ConfigString( CS_SACRIFICE ), "|#" );
+		char		*p, line[MAX_STRING_CHARS];
+		int			i, turn, deadline, secs;
+
+		if ( cs ) {
+			p = (char *)cs + 2;
+			for ( i = 0 ; i < 13 ; i++ ) {
+				COM_Parse( &p );
+			}
+			turn = atoi( COM_Parse( &p ) );
+			deadline = atoi( COM_Parse( &p ) );
+			if ( turn == 0 || turn == 1 ) {
+				secs = ( deadline - cg.snap->serverTime + 999 ) / 1000;
+				if ( secs < 0 ) {
+					secs = 0;
+				}
+				if ( players[turn] == cg.snap->ps.clientNum ) {
+					Com_sprintf( line, sizeof( line ), "YOUR PICK  %i", secs );
+				} else {
+					Com_sprintf( line, sizeof( line ), "%s^7 IS PICKING  %i", cgs.clientinfo[players[turn]].name, secs );
+				}
+				CG_DrawStringExt( 320 - CG_DrawStrlen( line ) * SMALLCHAR_WIDTH / 2, 180, line,
+					players[turn] == cg.snap->ps.clientNum ? colorYellow : colorWhite, qfalse, qtrue,
+					SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+			}
 		}
 	}
 	return qtrue;
