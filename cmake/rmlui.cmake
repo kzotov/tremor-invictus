@@ -21,6 +21,8 @@ set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(${SOURCE_DIR}/thirdparty/freetype-2.13.3 ${CMAKE_BINARY_DIR}/freetype EXCLUDE_FROM_ALL)
 set(BUILD_SHARED_LIBS ${TREMOR_SAVED_SHARED})
 target_compile_options(freetype PRIVATE -w)
+# linked into the renderer libraries as well (their TrueType HUD text)
+set_target_properties(freetype PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 set(RMLUI_DIR ${SOURCE_DIR}/thirdparty/RmlUi-6.3)
 file(GLOB_RECURSE RMLUI_SOURCES CONFIGURE_DEPENDS ${RMLUI_DIR}/Source/Core/*.cpp)

@@ -1403,7 +1403,8 @@ void ClientThink_real( gentity_t *ent ) {
 	// (the weapon time counts down inside pmove: a punch due this command
 	// is tested now)
 	if ( client->ps.weapon == WP_GAUNTLET && !( ucmd->buttons & BUTTON_TALK ) &&
-		( ucmd->buttons & BUTTON_ATTACK ) && client->ps.weaponTime <= msec ) {
+		( ucmd->buttons & BUTTON_ATTACK ) && client->ps.weaponTime <= msec
+		&& ( client->ps.weaponstate == WEAPON_READY || client->ps.weaponstate == WEAPON_FIRING ) ) {
 		pm.gauntletHit = CheckGauntletAttack( ent );
 	}
 

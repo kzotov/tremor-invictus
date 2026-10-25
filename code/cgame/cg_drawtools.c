@@ -266,7 +266,9 @@ void CG_DrawChar( int x, int y, int width, int height, int ch ) {
 
 	// Roboto Mono in the cell: capitals about three quarters of its height,
 	// the advance squeezed to the cell's width
-	if ( CG_FontReady( &cgs.fontMono ) && cgs.fontMono.glyphs[ch].xSkip > 0 ) {
+	// (control and symbol codes, and glyphs the font lacks, stay bitmap)
+	if ( CG_FontReady( &cgs.fontMono ) && ( ( ch >= 32 && ch < 127 ) || ch >= 160 )
+		&& cgs.fontMono.glyphs[ch].imageWidth > 0 ) {
 		float	ys = height * 1.05f / 48.0f;
 		float	xs = (float)width / cgs.fontMono.glyphs[ch].xSkip;
 

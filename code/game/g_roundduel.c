@@ -369,8 +369,16 @@ static void G_RDEndRound( int winner ) {
 	// "Round N complete" (the reference has no won / lost lines per round;
 	// they stand in without the recording)
 	if ( rd.round >= 1 && rd.round <= 5 ) {
+		int		i;
+
 		G_Announce( rd.player[winner], va( "round%icomplete|youwintheround", rd.round ) );
 		G_Announce( rd.player[!winner], va( "round%icomplete|youlosetheround", rd.round ) );
+		// and everyone watching
+		for ( i = 0 ; i < level.maxclients ; i++ ) {
+			if ( i != rd.player[0] && i != rd.player[1] && level.clients[i].pers.connected == CON_CONNECTED ) {
+				G_Announce( i, va( "round%icomplete", rd.round ) );
+			}
+		}
 	} else {
 		G_Announce( rd.player[winner], "youwintheround" );
 		G_Announce( rd.player[!winner], "youlosetheround" );

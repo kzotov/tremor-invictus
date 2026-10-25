@@ -1038,12 +1038,22 @@ static void CG_AnnounceKey( const char *key ) {
 	const char			*bar = strchr( key, '|' );
 
 	// "key|fallback": the fallback plays when there's no recording for key
+	// (each key is looked up once: the cache below)
 	if ( bar ) {
-		sfxHandle_t	s;
+		static char		pairs[MAX_ANNOUNCE_KEYS][64];
+		static qboolean	hasFirst[MAX_ANNOUNCE_KEYS];
+		static int		numPairs;
+		int				p;
 
 		Q_strncpyz( first, key, bar - key + 1 < (int)sizeof( first ) ? bar - key + 1 : sizeof( first ) );
-		s = trap_S_RegisterSound( va( "sound/feedback/%s.wav", first ), qtrue );
-		CG_AnnounceKey( s ? first : bar + 1 );
+		for ( p = 0 ; p < numPairs && Q_stricmp( pairs[p], key ) ; p++ ) {
+		}
+		if ( p == numPairs && numPairs < MAX_ANNOUNCE_KEYS ) {
+			Q_strncpyz( pairs[p], key, sizeof( pairs[p] ) );
+			hasFirst[p] = trap_S_RegisterSound( va( "sound/feedback/%s.wav", first ), qtrue ) != 0;
+			numPairs++;
+		}
+		CG_AnnounceKey( p < numPairs && hasFirst[p] ? first : bar + 1 );
 		return;
 	}
 

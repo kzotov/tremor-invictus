@@ -48,6 +48,13 @@ if(TREMOR_PYTHON3)
     # every misc/art/make-*.py, run again when any script there changes
     file(GLOB TREMOR_ART_SCRIPTS ${CMAKE_SOURCE_DIR}/misc/art/make-*.py)
     file(GLOB TREMOR_ART_SOURCES ${CMAKE_SOURCE_DIR}/misc/art/*.py)
+    # the Roboto fonts packed into the art (make-models.py): new ones redraw it
+    if(DEFINED ENV{TREMOR_FONTS})
+        file(GLOB TREMOR_FONT_FILES $ENV{TREMOR_FONTS}/*.ttf)
+    else()
+        file(GLOB TREMOR_FONT_FILES $ENV{HOME}/projects/quake/fonts/*.ttf)
+    endif()
+    list(APPEND TREMOR_ART_SOURCES ${TREMOR_FONT_FILES})
     set(TREMOR_ART_STAMP ${CMAKE_BINARY_DIR}/generated/gfx/tremor/art.stamp)
     set(TREMOR_ART_STALE FALSE)
     foreach(src ${TREMOR_ART_SOURCES})

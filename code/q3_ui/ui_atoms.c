@@ -745,7 +745,9 @@ static void UI_DrawString2( int x, int y, const char* str, vec4_t color, int cha
 		}
 
 		ch = *s & 255;
-		if ( ch != ' ' && UI_FontReady( &uis.fontMono ) && uis.fontMono.glyphs[ch & 255].xSkip > 0 ) {
+		// (the cursor, arrows, slider and other symbol codes stay bitmap)
+		if ( ch != ' ' && UI_FontReady( &uis.fontMono ) && ( ( ( ch & 255 ) >= 32 && ( ch & 255 ) < 127 ) || ( ch & 255 ) >= 160 )
+			&& uis.fontMono.glyphs[ch & 255].imageWidth > 0 ) {
 			// Roboto Mono in the cell, as the cgame's CG_DrawChar
 			float	ys = charh * 1.05f / 48.0f;
 			float	xs = (float)charw / uis.fontMono.glyphs[ch & 255].xSkip;
