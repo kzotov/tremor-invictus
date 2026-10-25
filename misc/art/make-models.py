@@ -879,6 +879,20 @@ def sounds(out):
     put(os.path.join(out, "sound/abilities/totem_heal.wav"),
         mix((env(osc(glide(660, 990, 0.25), 0.4, "tri"), attack=0.02, decay=6), 0.5, 0),
             (env(osc(1320, 0.3), attack=0.03, decay=8), 0.25, 0.08)))
+    # Sorlag's acid: a wet spit per blob, a splash where it lands, a pool's
+    # sizzle (a loop); shell shock: the ears ringing (a loop)
+    put(os.path.join(out, "sound/abilities/acid_spit.wav"),
+        mix((env(noise(0.25, glide(2500, 900, 0.2), 103), attack=0.01, decay=12), 1.0, 0),
+            (env(osc(glide(300, 120, 0.15), 0.2), decay=15), 0.5, 0)))
+    put(os.path.join(out, "sound/abilities/acid_splash.wav"),
+        mix((env(noise(0.35, glide(4000, 700, 0.3), 104), decay=9), 1.0, 0),
+            (env(noise(0.2, 1200, 105), decay=14), 0.6, 0.04)))
+    sizzle = noise(1.0, lfo(3, 0.3, 3500), 106)
+    n = len(sizzle)
+    sizzle = [v * min(1.0, i / (0.02 * RATE), (n - i) / (0.02 * RATE)) for i, v in enumerate(sizzle)]
+    write_wav(os.path.join(out, "sound/abilities/acid_pool.wav"), level(sizzle, db=-14))
+    ring = mix((osc(3000, 1.0), 0.5, 0), (osc(3010, 1.0), 0.5, 0), (osc(4500, 1.0, amp=0.15), 1.0, 0))
+    write_wav(os.path.join(out, "sound/abilities/shock_ring.wav"), level(ring, db=-16))
     # the drone's gun: a light, quick zap
     put(os.path.join(out, "sound/abilities/drone_shot.wav"),
         mix((env(osc(glide(2400, 900, 0.07), 0.1, "saw"), decay=35), 0.3, 0),

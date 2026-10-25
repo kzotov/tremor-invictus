@@ -907,6 +907,7 @@ typedef struct {
 	qhandle_t	droneBlastShader;
 	qhandle_t	pieShader;			// the world item timers' slices (vertex colour and alpha)
 	sfxHandle_t	laserLoopSound;		// Clutch's Mining Laser
+	sfxHandle_t	shockRingSound;		// shell-shocked: the ears ringing
 	qhandle_t	turretModel;		// Eisen's, told apart from other general entities
 	sfxHandle_t	dodgeSound;		// generated; 0 when missing
 	sfxHandle_t	berserkSwingSound;

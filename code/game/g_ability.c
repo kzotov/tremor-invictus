@@ -896,6 +896,8 @@ static void G_AcidImpact( gentity_t *blob, trace_t *trace ) {
 	VectorSet( blob->r.mins, -size, -size, -size );
 	VectorSet( blob->r.maxs, size, size, size );
 	blob->abilityTime = level.time + g_acidPoolTime.integer;
+	blob->s.loopSound = G_SoundIndex( "sound/abilities/acid_pool.wav" );		// the pool sizzles
+	G_AddEvent( blob, EV_GENERAL_SOUND, G_SoundIndex( "sound/abilities/acid_splash.wav" ) );		// and splashes on landing
 	blob->think = G_AcidPoolThink;
 	blob->nextthink = level.time + ABILITY_FRAME;
 	trap_LinkEntity( blob );
@@ -907,6 +909,12 @@ static void G_SpitAcid( gentity_t *ent ) {
 
 	G_AbilityEyes( ent, start, forward, right );
 	blob = G_AbilityMissile( ent, "acid", start, forward, g_acidSpeed.value, TR_GRAVITY_ACID, WP_PLASMAGUN );	// gravity 600
+	// each blob its own spit (abilities-data)
+	{
+		gentity_t	*tent = G_TempEntity( start, EV_GENERAL_SOUND );
+
+		tent->s.eventParm = G_SoundIndex( "sound/abilities/acid_spit.wav" );
+	}
 	blob->s.generic1 = AV_ACID;
 	blob->abilityImpact = G_AcidImpact;
 	blob->think = G_FreeEntity;

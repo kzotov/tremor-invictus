@@ -1132,6 +1132,7 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.droneBlastShader = trap_R_RegisterShader( "gfx/abilities/drone_blast" );
 	cgs.media.pieShader = trap_R_RegisterShader( "gfx/tremor/pie" );
 	cgs.media.laserLoopSound = trap_S_RegisterSound( "sound/abilities/laser_loop.wav", qfalse );
+	cgs.media.shockRingSound = trap_S_RegisterSound( "sound/abilities/shock_ring.wav", qfalse );
 	if ( !cgs.media.railCoreShader ) {
 		cgs.media.railCoreShader = trap_R_RegisterShader( "railCore" );		// (the laser's beam)
 	}

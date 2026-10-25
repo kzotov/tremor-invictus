@@ -7654,7 +7654,7 @@ fades in over 0.34 s and out over 0.38 s
 #define STATUS_SLOTS	9
 
 static void CG_DrawStatusRow( void ) {
-	static const int	effects[] = { PW_QUAD, PW_BATTLESUIT, PW_HASTE, PW_INVIS, PW_REGEN, PW_FLIGHT, PW_BURNING, PW_POISONED };
+	static const int	effects[] = { PW_QUAD, PW_BATTLESUIT, PW_HASTE, PW_INVIS, PW_REGEN, PW_FLIGHT, PW_BURNING, PW_POISONED, PW_SHELLSHOCK };
 	static int			total[PW_NUM_POWERUPS], seen[PW_NUM_POWERUPS], gone[PW_NUM_POWERUPS], lastEnd[PW_NUM_POWERUPS];
 	static qhandle_t	icons[PW_NUM_POWERUPS];
 	static qboolean		loaded;
@@ -7672,6 +7672,7 @@ static void CG_DrawStatusRow( void ) {
 		}
 		icons[PW_BURNING] = trap_R_RegisterShaderNoMip( "gfx/tremor/abilities/flamestrike" );
 		icons[PW_POISONED] = trap_R_RegisterShaderNoMip( "gfx/tremor/abilities/acidspit" );
+		icons[PW_SHELLSHOCK] = trap_R_RegisterShaderNoMip( "gfx/tremor/abilities/shellshock" );		// stunned
 		loaded = qtrue;
 	}
 	cg_hudAnchor = ANCHOR_LEFT;

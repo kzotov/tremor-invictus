@@ -833,9 +833,14 @@ static void CG_PowerupTimerSounds( void ) {
 	int		i;
 	int		t;
 
+	// shell-shocked: a ringing in the ears while it lasts (abilities-data)
+	if ( cg.snap->ps.powerups[PW_SHELLSHOCK] > cg.time && cgs.media.shockRingSound ) {
+		trap_S_AddLoopingSound( cg.snap->ps.clientNum, cg.refdef.vieworg, vec3_origin, cgs.media.shockRingSound );
+	}
+
 	// powerup timers going away
 	for ( i = 0 ; i < MAX_POWERUPS ; i++ ) {
-		if ( i == PW_BURNING || i == PW_POISONED ) {
+		if ( i == PW_BURNING || i == PW_POISONED || i == PW_SHELLSHOCK || i == PW_ZOOMLOCK ) {
 			continue;		// not power-ups: no wear-off ticks
 		}
 		t = cg.snap->ps.powerups[i];
