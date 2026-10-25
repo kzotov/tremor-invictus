@@ -6276,8 +6276,9 @@ CG_DrawTeamStandoff
 menu-style.md 4.2, team stand-off (konstantin-list-audit F1 4): blue on
 the left, red on the right, up to 4 pillars a side in an arc (the inner
 ones 80 u from the middle, 56 u apart, each step out 25 u further back,
-turned 25 degrees inward), 5-8 a side on a row 60 u further back and 24 u
-higher; a team plate over each side, VS in the middle
+turned 25 degrees inward), 5-8 a side on a row 60 u further back and 72 u
+higher in the gaps between them, named over their heads; a team plate
+over each side (no VS between them)
 =================
 */
 #define STANDOFF_INNER		80
@@ -6285,6 +6286,18 @@ higher; a team plate over each side, VS in the middle
 #define STANDOFF_BACK		25
 #define STANDOFF_TURN		25
 #define STANDOFF_DIST		540		// the outermost of four inside 0.83 of a 4:3 half-width
+#define STANDOFF_ROW_BACK	60		// the second row: further back,
+#define STANDOFF_ROW_UP		72		// higher,
+#define STANDOFF_ROW_NAME	72		// and named this far over its pillar tops
+
+// a stand-off place: how far, how far to the side and how high
+static void CG_StandoffSpot( int side, int i, vec3_t base ) {
+	int		k = i & 3, row = i >> 2;
+
+	base[0] = STANDOFF_DIST + k * STANDOFF_BACK + row * STANDOFF_ROW_BACK;
+	base[1] = ( side ? -1 : 1 ) * ( STANDOFF_INNER + k * STANDOFF_STEP + row * STANDOFF_STEP / 2 );
+	base[2] = PILLAR_TOP * base[0] / PILLAR_DIST + row * STANDOFF_ROW_UP;
+}
 
 static void CG_DrawTeamStandoff( const int *blue, int nBlue, const int *red, int nRed, int readyBits ) {
 	static const byte	glows[2][4] = { { 40, 90, 220, 255 }, { 208, 26, 26, 255 } };
@@ -6292,7 +6305,7 @@ static void CG_DrawTeamStandoff( const int *blue, int nBlue, const int *red, int
 	refdef_t	refdef;
 	vec3_t		base;
 	float		tx, ty, sx, sy;
-	int			side, i, k, row, n;
+	int			side, i, n;
 	const int	*list;
 
 	memset( &refdef, 0, sizeof( refdef ) );
@@ -6311,10 +6324,7 @@ static void CG_DrawTeamStandoff( const int *blue, int nBlue, const int *red, int
 		list = side ? red : blue;
 		n = side ? nRed : nBlue;
 		for ( i = 0 ; i < n && i < 8 ; i++ ) {
-			k = i & 3;
-			row = i >> 2;
-			VectorSet( base, STANDOFF_DIST + k * STANDOFF_BACK + row * 60, ( side ? -1 : 1 ) * ( STANDOFF_INNER + k * STANDOFF_STEP ), 0 );
-			base[2] = PILLAR_TOP * base[0] / PILLAR_DIST + row * 24;
+			CG_StandoffSpot( side, i, base );
 			CG_AddPillar( base, glows[side], 0 );
 			CG_AddPillarPlayerTurned( list[i], base, side ? STANDOFF_TURN : -STANDOFF_TURN );
 		}
@@ -6322,30 +6332,35 @@ static void CG_DrawTeamStandoff( const int *blue, int nBlue, const int *red, int
 	trap_R_AddLightToScene( vec3_origin, 600, 1, 1, 1 );
 	trap_R_RenderScene( &refdef );
 
-	// the names under the front row's feet (the row behind only by face)
+	// the names under the front row's feet, over the heads of the row
+	// behind (its lines going up from there)
 	for ( side = 0 ; side < 2 ; side++ ) {
 		list = side ? red : blue;
 		n = side ? nRed : nBlue;
-		for ( i = 0 ; i < n && i < 4 ; i++ ) {
+		for ( i = 0 ; i < n && i < 8 ; i++ ) {
 			clientInfo_t	*ci = &cgs.clientinfo[list[i]];
 			int				ch = BG_ChampionForModel( ci->modelName );
-			float			x = STANDOFF_DIST + i * STANDOFF_BACK, y = ( side ? -1 : 1 ) * ( STANDOFF_INNER + i * STANDOFF_STEP );
+			float			step = i < 4 ? 1 : -1;
+			float			size = i < 4 ? 1 : 0.8f;
 
-			sx = 320 - y / ( x * tx ) * 0.5f * cgs.glconfig.vidWidth * 480 / cgs.glconfig.vidHeight;
-			sy = 240 - ( PILLAR_TOP * x / PILLAR_DIST ) / ( x * ty ) * 240 + 6;
-			CG_HudText( sx, sy, 26, ci->name, list[i] == cg.snap->ps.clientNum ? colorYellow : colorWhite, 1, 1 );
-			if ( ch >= 0 ) {
-				CG_HudText( sx, sy + 13, 20, BG_String( BG_Champion( ch )->nameString ), champ, 1, 1 );
+			CG_StandoffSpot( side, i, base );
+			if ( i >= 4 ) {
+				base[2] += STANDOFF_ROW_NAME;
 			}
+			sx = 320 - base[1] / ( base[0] * tx ) * 0.5f * cgs.glconfig.vidWidth * 480 / cgs.glconfig.vidHeight;
+			sy = 240 - base[2] / ( base[0] * ty ) * 240 + ( i < 4 ? 6 : -8 );
 			if ( readyBits & ( 1 << list[i] ) ) {
-				CG_HudText( sx, sy + 24, 20, BG_String( STR_LINEUP_READY ), colorGreen, 1, 1 );
+				CG_HudText( sx, sy + step * 24 * size, 20 * size, BG_String( STR_LINEUP_READY ), colorGreen, 1, 1 );
 			}
+			if ( ch >= 0 ) {
+				CG_HudText( sx, sy + step * 13 * size, 20 * size, BG_String( BG_Champion( ch )->nameString ), champ, 1, 1 );
+			}
+			CG_HudText( sx, sy, 26 * size, ci->name, list[i] == cg.snap->ps.clientNum ? colorYellow : colorWhite, 1, 1 );
 		}
 	}
-	// the team plates and VS
-	CG_HudText( 180, 100, 44, cgs.blueTeam[0] ? cgs.blueTeam : "BLUE", blueText, 1, 1 );
-	CG_HudText( 460, 100, 44, cgs.redTeam[0] ? cgs.redTeam : "RED", redText, 1, 1 );
-	CG_HudText( 320, 170, 90, "VS", colorWhite, 1, 1 );
+	// the team plates
+	CG_HudText( 180, 100, 44, cgs.blueTeam[0] ? cgs.blueTeam : BG_String( STR_HUD_BLUE ), blueText, 1, 1 );
+	CG_HudText( 460, 100, 44, cgs.redTeam[0] ? cgs.redTeam : BG_String( STR_HUD_RED ), redText, 1, 1 );
 }
 #endif
 
