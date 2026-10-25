@@ -481,14 +481,14 @@ GRENADE SWARM
 ================
 G_GrenadeImpact
 
-The first wall or floor bounces it; the second hit, or any player, bursts it
+Walls and floors bounce it, and its second bounce bursts it
+(G_BounceMissile counts them); any player bursts it
 ================
 */
 static void G_GrenadeImpact( gentity_t *gren, trace_t *trace ) {
 	gentity_t	*other = &g_entities[trace->entityNum];
 
-	if ( !other->takedamage && !gren->count ) {
-		gren->count = 1;
+	if ( !other->takedamage ) {
 		G_BounceMissile( gren, trace );
 		G_AddEvent( gren, EV_GRENADE_BOUNCE, 0 );
 		return;
@@ -503,6 +503,8 @@ static void G_ThrowGrenade( gentity_t *ent ) {
 	gentity_t	*gren;
 
 	G_AbilityEyes( ent, start, forward, right );
+	forward[2] += 0.1f;		// the aim lifted a little (champion-audit.md)
+	VectorNormalize( forward );
 	gren = fire_grenade( ent, start, forward );
 	gren->classname = "swarm";		// bursts on its second bounce (G_BounceMissile)
 	gren->count = 0;
@@ -516,9 +518,11 @@ static void G_ThrowGrenade( gentity_t *ent ) {
 	gren->wpTuned = qtrue;
 	gren->splashMin = g_swarmDamage.integer * 0.2f;		// full to 12 u, then down to 20%
 	gren->splashFull = 12;
-	gren->splashSparesOwner = qtrue;
+	// the splash hits Keel too, pushing him three times as hard, so
+	// grenade jumps work (champion-audit.md, from the data)
+	gren->splashSparesOwner = qfalse;
 	gren->wpKnock = g_swarmKnock.value;
-	gren->wpKnockSelf = 0;		// they never hit Keel (splashSparesOwner)
+	gren->wpKnockSelf = g_swarmKnock.value * 3.0f;
 	gren->abilityImpact = G_GrenadeImpact;
 	gren->count = 0;
 }

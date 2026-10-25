@@ -3225,7 +3225,9 @@ static void PM_Ability( void ) {
 			time += pml.msec;
 			pm->ps->stats[STAT_ABILITY_TIME] = time;
 		}
-		if ( !pressed || charges <= 0 || ( pm->ps->pm_flags & PMF_RESPAWNED ) || time < gap ) {
+		// Keel keeps throwing while the key is held, one each 400 ms
+		if ( !( pressed || ( active == ACTIVE_GRENADES && pml.abilityHeld ) )
+			|| charges <= 0 || ( pm->ps->pm_flags & PMF_RESPAWNED ) || time < gap ) {
 			return;
 		}
 		// shell-shocked: no ability can be started
