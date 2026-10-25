@@ -858,6 +858,35 @@ def sounds(out):
         mix((env(osc(glide(2400, 900, 0.07), 0.1, "saw"), decay=35), 0.3, 0),
             (env(osc(glide(1200, 450, 0.07), 0.1), decay=35), 0.4, 0),
             (env(noise(0.04, 6000, 88), decay=90), 0.5, 0)))
+    # the Peeker drone, a machine (abilities.md "Peeker drone: HUD and
+    # sounds"): metal clanks on a hit (three takes), the pilot's glitch, a
+    # hovering hum and a motion whirr (loops: whole cycles in one second),
+    # a bolt pinging off it, a detection blip and its own blast
+    for n in range(3):
+        f = (1900, 2350, 2700)[n]
+        put(os.path.join(out, "sound/abilities/drone_hit%i.wav" % (n + 1)),
+            mix((env(osc(f, 0.25, "tri"), decay=22), 0.4, 0),
+                (env(osc(f * 1.51, 0.2), decay=28), 0.25, 0),
+                (env(noise(0.08, 5000, 90 + n), decay=50), 0.8, 0),
+                (env(noise(0.12, 2500, 93 + n), decay=30), 0.25, 0.03)))
+    put(os.path.join(out, "sound/abilities/drone_glitch.wav"),
+        mix(*[(env(osc(400 + 900 * (k % 3), 0.04, "square"), decay=40), 0.25, k * 0.035) for k in range(6)]
+            + [(env(noise(0.22, 7000, 97), decay=10), 0.5, 0)]))
+    hum = mix((osc(90, 1.0, "saw"), 0.25, 0), (osc(180, 1.0), 0.35, 0),
+              (osc(1260, 1.0, "tri", amp=lambda t: 0.06 * (1 + math.sin(2 * math.pi * 4 * t))), 1.0, 0))
+    write_wav(os.path.join(out, "sound/abilities/drone_hum.wav"), level(hum, db=-12))
+    whirr = mix((osc(lfo(3, 0.05, 340), 1.0, "saw"), 0.2, 0), (noise(1.0, 1500, 98, amp=0.4), 1.0, 0))
+    n = len(whirr)
+    whirr = [v * min(1.0, i / (0.02 * RATE), (n - i) / (0.02 * RATE)) for i, v in enumerate(whirr)]
+    write_wav(os.path.join(out, "sound/abilities/drone_move.wav"), level(whirr, db=-14))
+    put(os.path.join(out, "sound/abilities/drone_bolt_hit.wav"),
+        mix((env(osc(3100, 0.12, "tri"), decay=40), 0.35, 0), (env(noise(0.05, 6000, 99), decay=70), 0.7, 0)))
+    write_wav(os.path.join(out, "sound/abilities/drone_detect.wav"), level(
+        mix((env(osc(1568, 0.06, "square"), decay=35), 0.3, 0), (env(osc(2093, 0.08, "square"), decay=30), 0.3, 0.07)), db=-8))
+    put(os.path.join(out, "sound/abilities/drone_explode.wav"),
+        mix((env(noise(0.9, glide(6000, 500, 0.7), 100), decay=4.5), 1.0, 0),
+            (env(osc(glide(120, 45, 0.5), 0.8), decay=5), 0.9, 0),
+            (env(osc(glide(2400, 600, 0.3), 0.4, "square"), decay=9), 0.15, 0)))
     # Eisen's turret at work (konstantin-list-audit 2: deploy, coming online,
     # target acquired, each shot, an idle hum, destroyed)
     put(os.path.join(out, "sound/abilities/turret_deploy.wav"),

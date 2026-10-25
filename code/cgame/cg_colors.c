@@ -137,8 +137,17 @@ void CG_PlayerColors( centity_t *cent, clientInfo_t *ci ) {
 		chest[2] += 16;
 		CG_Trace( &tr, cg.refdef.vieworg, NULL, NULL, chest, ps->clientNum, MASK_SOLID );
 		if ( tr.fraction == 1.0f ) {
+			static int	seen[MAX_CLIENTS];
+			int			n = cent->currentState.clientNum & ( MAX_CLIENTS - 1 );
+
 			outlineOn = qtrue;
 			CG_ParseColor( &cg_enemyOutlineColor, "0xFF2020FF", outlineColor );
+			// the drone's pilot: a blip for an enemy newly outlined
+			if ( ( ps->eFlags & EF_DRONE ) && cgs.media.droneDetectSound
+				&& ( !seen[n] || cg.time - seen[n] > 1000 || cg.time < seen[n] ) ) {
+				trap_S_StartLocalSound( cgs.media.droneDetectSound, CHAN_LOCAL_SOUND );
+			}
+			seen[n] = cg.time;
 		}
 	}
 

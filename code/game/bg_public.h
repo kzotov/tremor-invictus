@@ -1283,6 +1283,8 @@ typedef enum {
 	STR_SET_COUNTDOWN,
 	STR_SET_COUNTUP,
 	STR_HUD_HOLD_SWING,				// Athena on the hook: the key's name
+	STR_HUD_DRONE_CHARGE,			// under the ability ring while the drone flies
+	STR_HUD_DRONE_ARMED,
 
 	STR_NUM_STRINGS
 } stringId_t;
@@ -1585,7 +1587,8 @@ typedef enum {
 #endif
 	STAT_WEAPONS,					// 16 bit fields
 	STAT_ARMOR,				
-	STAT_DEAD_YAW,					// look this direction when dead (FIXME: get rid of?)
+	STAT_DEAD_YAW,					// look this direction when dead; while flying the drone, the
+									// body's health (low byte) and armour (high byte)
 	STAT_CLIENTS_READY,				// bit mask of clients wishing to exit the intermission (FIXME: configstring?)
 	STAT_MAX_HEALTH,				// health / armor limit, changeable by handicap
 	STAT_CHAMPION,					// index into bg_championList
@@ -1964,7 +1967,9 @@ typedef enum {
 	EV_DODGE,						// Clutch's dodge: a whoosh, not the jump voice
 	EV_ABILITY_END,					// an ability ended, for any reason: its end sound
 	EV_HOOK_ATTACH,					// Athena's hook bit into something
-	EV_BERSERK_SWING				// a Berserk punch that missed: a swing
+	EV_BERSERK_SWING,				// a Berserk punch that missed: a swing
+	EV_DRONE_HIT,					// a hit on the flying drone: a clank, never a pain voice
+	EV_DRONE_EXPLODE				// the charging drone's blast: its own flash and sound
 } entity_event_t;
 
 

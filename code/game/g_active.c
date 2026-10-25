@@ -69,8 +69,15 @@ void P_DamageFeedback( gentity_t *player ) {
 		client->ps.damageYaw = angles[YAW]/360.0 * 256;
 	}
 
-	// play an appropriate pain sound
-	if ( (level.time > player->pain_debounce_time) && !(player->flags & FL_GODMODE) ) {
+	// play an appropriate pain sound; the drone is a machine: a clank at
+	// most each 100 ms and no pain voice (abilities.md, Peeker drone)
+	if ( client->droneBody ) {
+		if ( level.time > player->pain_debounce_time ) {
+			player->pain_debounce_time = level.time + 100;
+			G_AddEvent( player, EV_DRONE_HIT, 0 );
+			client->ps.damageEvent++;
+		}
+	} else if ( (level.time > player->pain_debounce_time) && !(player->flags & FL_GODMODE) ) {
 		player->pain_debounce_time = level.time + 700;
 		G_AddEvent( player, EV_PAIN, player->health );
 		client->ps.damageEvent++;
@@ -1697,6 +1704,14 @@ while a slow client may have multiple ClientEndFrame between ClientThink.
 */
 void ClientEndFrame( gentity_t *ent ) {
 	int			i;
+
+	// the drone's HUD shows Strogg's own body: its health and his armour,
+	// in STAT_DEAD_YAW while flying (health in the low byte, armour above)
+	if ( ent->client->droneBody ) {
+		int		h = ent->client->droneBody->health, a = ent->client->droneArmor;
+
+		ent->client->ps.stats[STAT_DEAD_YAW] = ( h < 0 ? 0 : h > 255 ? 255 : h ) | ( ( a < 0 ? 0 : a > 255 ? 255 : a ) << 8 );
+	}
 
 	if ( ent->client->sess.sessionTeam == TEAM_SPECTATOR ) {
 		SpectatorClientEndFrame( ent );

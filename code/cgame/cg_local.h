@@ -686,6 +686,8 @@ typedef struct {
 	int			damageArcNext;		// the slot the next hit takes
 	int			lowHealthBeat;		// cg.time of the last low-health heartbeat
 	int			lowHealthLastHealth;	// for a beat on each hit while low
+	int			droneGlitchTime;		// the pilot's view glitching from a hit
+	int			droneGlitchSound;
 	int			lowHealthStep;		// LH_* of the viewed player
 	int			lowHealthSince;		// cg.time they reached LH_LOW
 	int			lowHealthClient;	// whose health it is
@@ -894,6 +896,13 @@ typedef struct {
 	qhandle_t	ringShader;
 	qhandle_t	droneModel;
 	sfxHandle_t	droneShotSound;
+	sfxHandle_t	droneHitSounds[3];		// a hit on the drone: metal clanks
+	sfxHandle_t	droneGlitchSound;		// the pilot's view glitching on a hit
+	sfxHandle_t	droneHumSound;			// the drone's loops: hovering, moving
+	sfxHandle_t	droneMoveSound;
+	sfxHandle_t	droneBoltHitSound;
+	sfxHandle_t	droneDetectSound;		// an enemy newly outlined, for the pilot
+	sfxHandle_t	droneExplodeSound;		// the charge blast
 	qhandle_t	turretModel;		// Eisen's, told apart from other general entities
 	sfxHandle_t	dodgeSound;		// generated; 0 when missing
 	sfxHandle_t	berserkSwingSound;

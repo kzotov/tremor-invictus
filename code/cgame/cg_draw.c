@@ -4623,8 +4623,24 @@ static void CG_DrawDamageArc( void ) {
 CG_LowHealthStep
 =================
 */
+/*
+=================
+CG_OwnHealth / CG_OwnArmor
+
+The player's health and armour; while flying the drone, those of Strogg's
+body (the game sends them in STAT_DEAD_YAW), never the drone's
+=================
+*/
+static int CG_OwnHealth( const playerState_t *ps ) {
+	return ( ps->eFlags & EF_DRONE ) ? ps->stats[STAT_DEAD_YAW] & 255 : ps->stats[STAT_HEALTH];
+}
+
+static int CG_OwnArmor( const playerState_t *ps ) {
+	return ( ps->eFlags & EF_DRONE ) ? ( ps->stats[STAT_DEAD_YAW] >> 8 ) & 255 : ps->stats[STAT_ARMOR];
+}
+
 static int CG_LowHealthStep( const playerState_t *ps ) {
-	int		health = ps->stats[STAT_HEALTH];
+	int		health = CG_OwnHealth( ps );
 
 	if ( health <= 0 || ps->pm_type == PM_SPECTATOR || ps->pm_type == PM_INTERMISSION
 		|| ps->persistant[PERS_TEAM] == TEAM_SPECTATOR && !( ps->pm_flags & PMF_FOLLOW ) ) {
@@ -4704,7 +4720,7 @@ void CG_LowHealthFrame( void ) {
 			due = !cg.lowHealthBeat || cg.time - cg.lowHealthBeat >= ( step == LH_CRITICAL ? 700 : 1000 );
 		} else {
 			due = !cg.lowHealthBeat || ( step == LH_CRITICAL && old < LH_CRITICAL )
-				|| ( ps->stats[STAT_HEALTH] < cg.lowHealthLastHealth && cg.time - cg.lowHealthBeat >= 300 );
+				|| ( CG_OwnHealth( ps ) < cg.lowHealthLastHealth && cg.time - cg.lowHealthBeat >= 300 );
 		}
 		if ( due ) {
 			cg.lowHealthBeat = cg.time;
@@ -4712,7 +4728,7 @@ void CG_LowHealthFrame( void ) {
 				trap_S_StartLocalSound( beat, CHAN_HEARTBEAT );		// (replaces the beat still sounding)
 			}
 		}
-		cg.lowHealthLastHealth = ps->stats[STAT_HEALTH];
+		cg.lowHealthLastHealth = CG_OwnHealth( ps );
 	}
 
 	if ( !own ) {
@@ -7319,9 +7335,9 @@ static void CG_DrawVitals( void ) {
 		armorIcon = trap_R_RegisterShaderNoMip( "icons/tremor_armor" );
 	}
 	cg_hudAnchor = ANCHOR_LEFT;
-	CG_DrawVitalsSide( &health, ps, ps->stats[STAT_HEALTH], 100, 100 + ci->maxHealthBonus,
+	CG_DrawVitalsSide( &health, ps, CG_OwnHealth( ps ), 100, 100 + ci->maxHealthBonus,
 		HX_L( 249 ), HY( 891 ), HX_L( 278 ), HY( 829 ), HX_L( 278 ), HY( 895 ), HX_L( 528 ), HY( 846 ), healthIcon, qtrue, qfalse );
-	CG_DrawVitalsSide( &armor, ps, ps->stats[STAT_ARMOR], ci->baseArmor, ci->maxArmor,
+	CG_DrawVitalsSide( &armor, ps, CG_OwnArmor( ps ), ci->baseArmor, ci->maxArmor,
 		HX_L( 221 ), HY( 981 ), HX_L( 250 ), HY( 919 ), HX_L( 250 ), HY( 985 ), HX_L( 500 ), HY( 935 ), armorIcon, spawnArmor > 0, qtrue );
 }
 
@@ -7541,6 +7557,15 @@ static void CG_DrawAbilityBlock( void ) {
 	left = ps->stats[STAT_ABILITY_RECHARGE] * 100;
 	ready = BG_AbilityCharges( ps ) > 0;
 	frac = ready && left <= 0 ? 1.0f : recharge > 0 ? 1.0f - (float)left / recharge : 0;
+	// flying the drone: the ring drains with the flight time left, seconds
+	// in the middle (abilities.md, Peeker drone)
+	if ( ps->eFlags & EF_DRONE ) {
+		int		total = BG_AbilityParam( ACTIVE_DRONE, AP_DURATION );
+
+		left = ps->stats[STAT_ABILITY_TIME] * BG_AbilityTimeUnit( ACTIVE_DRONE );
+		frac = total > 0 ? (float)left / total : 0;
+		ready = qfalse;
+	}
 
 	// the ring: a dark track and the fill
 	if ( off ) {
@@ -7727,6 +7752,118 @@ static void CG_DrawStatusRow( void ) {
 
 /*
 =================
+CG_DrawDroneHud
+
+abilities.md, "Peeker drone: HUD and sounds": a thin blue frame with corner
+brackets and faint scanlines, orange accents; the drone's 26-segment health
+bar (x 760-1160, top 845, segments 13 x 18 on a 15.4 pitch), lost segments
+flashing red, the rest blinking red at 8 or fewer, the number at 20 dp;
+under the ability ring CHARGE (from 0.5 s) or IMPACT ARMED
+=================
+*/
+#define DRONE_SEGMENTS		26
+#define DRONE_MAX_HEALTH	90
+
+static void CG_DrawDroneHud( void ) {
+	static int			lastSegs = -1, lostAt, lostFrom;
+	static const vec4_t	frame = { 90 / 255.0f, 170 / 255.0f, 1, 0.35f };
+	static const vec4_t	scan = { 90 / 255.0f, 170 / 255.0f, 1, 0.05f };
+	static const vec4_t	orange = { 1, 140 / 255.0f, 40 / 255.0f, 1 };
+	static const vec4_t	lost = { 0.16f, 0.16f, 0.16f, 0.4f };
+	static const vec4_t	red = { 1, 0.15f, 0.1f, 1 };
+	playerState_t		*ps = &cg.snap->ps;
+	int					hp = ps->stats[STAT_HEALTH], segs, i, t;
+	float				x, l = 40 * DP, w = 3 * DP;
+	vec4_t				c;
+
+	cg_hudAnchor = ANCHOR_CENTER;
+	// the frame: thin edges, brackets at the corners, scanlines
+	CG_FillRect( HX_C( 30 ), HY( 30 ), ( 1860 ) * DP, 1 * DP, frame );
+	CG_FillRect( HX_C( 30 ), HY( 1049 ), ( 1860 ) * DP, 1 * DP, frame );
+	CG_FillRect( HX_C( 30 ), HY( 30 ), 1 * DP, 1020 * DP, frame );
+	CG_FillRect( HX_C( 1889 ), HY( 30 ), 1 * DP, 1020 * DP, frame );
+	for ( i = 0 ; i < 4 ; i++ ) {
+		float	bx = i & 1 ? HX_C( 1890 ) - l : HX_C( 30 ), by = i & 2 ? HY( 1050 ) - w : HY( 30 );
+		float	vx = i & 1 ? HX_C( 1890 ) - w : HX_C( 30 ), vy = i & 2 ? HY( 1050 ) - l : HY( 30 );
+
+		CG_FillRect( bx, by, l, w, orange );
+		CG_FillRect( vx, vy, w, l, orange );
+	}
+	for ( i = 0 ; i < 1080 ; i += 6 ) {
+		CG_FillRect( HX_C( 30 ), HY( i ), 1860 * DP, 1 * DP, scan );
+	}
+
+	// the health bar
+	segs = ( hp * DRONE_SEGMENTS + DRONE_MAX_HEALTH - 1 ) / DRONE_MAX_HEALTH;
+	if ( segs < 0 ) {
+		segs = 0;
+	} else if ( segs > DRONE_SEGMENTS ) {
+		segs = DRONE_SEGMENTS;
+	}
+	if ( lastSegs >= 0 && segs < lastSegs ) {
+		lostAt = cg.time;
+		lostFrom = lastSegs;
+	}
+	lastSegs = segs;
+	t = cg.time - lostAt;
+	for ( i = 0 ; i < DRONE_SEGMENTS ; i++ ) {
+		x = HX_C( 760 + i * 15.4f );
+		if ( i < segs ) {
+			if ( segs <= 8 && ( cg.time / 250 ) & 1 ) {
+				Vector4Copy( red, c );
+			} else {
+				Vector4Copy( orange, c );
+			}
+		} else if ( i < lostFrom && t >= 0 && t < 300 ) {
+			Vector4Copy( red, c );		// just lost: a red flash
+		} else {
+			Vector4Copy( lost, c );
+		}
+		CG_FillRect( x, HY( 845 ), 13 * DP, 18 * DP, c );
+	}
+	CG_HudText( HX_C( 1172 ), HY( 843 ), 20, va( "%i", hp > 0 ? hp : 0 ), segs <= 8 ? red : orange, 0, 1 );
+
+	// under the ability ring: CHARGE, or IMPACT ARMED while charging
+	if ( ps->pm_flags & PMF_DRONE_CHARGE ) {
+		CG_HudText( HX_C( 961 ), HY( 1012 ), 16.5f, BG_String( STR_HUD_DRONE_ARMED ), red, 1, 1 );
+	} else if ( BG_AbilityParam( ACTIVE_DRONE, AP_DURATION ) / BG_AbilityTimeUnit( ACTIVE_DRONE )
+		- ps->stats[STAT_ABILITY_TIME] >= 500 / BG_AbilityTimeUnit( ACTIVE_DRONE ) ) {
+		Vector4Copy( orange, c );
+		c[3] = 0.6f + 0.4f * sin( cg.time * 0.008f );
+		CG_HudText( HX_C( 961 ), HY( 1012 ), 16.5f, BG_String( STR_HUD_DRONE_CHARGE ), c, 1, 1 );
+	}
+}
+
+/*
+=================
+CG_DrawDroneGlitch
+
+The pilot's view glitching on a hit: static and tearing at 0.8 fading over
+0.2 s (abilities.md)
+=================
+*/
+static void CG_DrawDroneGlitch( void ) {
+	int		t = cg.time - cg.droneGlitchTime, i;
+	float	f;
+	vec4_t	c;
+
+	if ( !cg.droneGlitchTime || t < 0 || t >= 200 || !( cg.snap->ps.eFlags & EF_DRONE ) ) {
+		return;
+	}
+	f = 0.8f * ( 1.0f - t / 200.0f );
+	cg_hudAnchor = ANCHOR_CENTER;
+	for ( i = 0 ; i < 24 ; i++ ) {
+		float	y = random() * 480, h = 2 + random() * 10, x = -100 + random() * 80;
+
+		c[0] = c[1] = c[2] = 0.6f + random() * 0.4f;
+		c[2] = 1.0f;
+		c[3] = f * ( 0.25f + random() * 0.5f );
+		CG_FillRect( x, y, 840, h, c );
+	}
+}
+
+/*
+=================
 CG_DrawModernHud
 
 The modern layout's own elements: you bottom left, the ability bottom
@@ -7790,6 +7927,13 @@ static void CG_DrawModernHud( void ) {
 		CG_DrawVitals();
 	}
 	CG_DrawAbilityBlock();
+	// the drone: its own frame and health bar; no ammo, weapons or speed
+	// (abilities.md, Peeker drone)
+	if ( ps->eFlags & EF_DRONE ) {
+		CG_DrawDroneHud();
+		CG_DrawStatusRow();
+		return;
+	}
 	CG_DrawAmmoCounter();
 
 	// the crosshair arc repeats the ring
@@ -8162,7 +8306,10 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	cg_hudAnchor = ANCHOR_CENTER;
 	CG_DrawDuelBars();
 	CG_DrawTimeout();
-	CG_DrawAccuracy();
+	if ( !( cg.snap->ps.eFlags & EF_DRONE ) ) {
+		CG_DrawAccuracy();		// (not for the drone's gun)
+	}
+	CG_DrawDroneGlitch();
 #endif
 
 	if ( !CG_DrawFollow() ) {

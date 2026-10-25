@@ -654,6 +654,18 @@ This is the spurt of blood when a character gets hit
 void CG_Bleed( vec3_t origin, int entityNum ) {
 	localEntity_t	*ex;
 
+	// the drone is a machine: metal sparks and a ping, no blood
+	if ( entityNum >= 0 && entityNum < MAX_CLIENTS
+		&& ( cg_entities[entityNum].currentState.eFlags & EF_DRONE ) ) {
+		vec3_t	up = { 0, 0, 1 };
+
+		CG_MissileHitWall( WP_MACHINEGUN, 0, origin, up, IMPACTSOUND_METAL );
+		if ( cgs.media.droneBoltHitSound ) {
+			trap_S_StartSound( origin, ENTITYNUM_WORLD, CHAN_AUTO, cgs.media.droneBoltHitSound );
+		}
+		return;
+	}
+
 	if ( !cg_blood.integer ) {
 		return;
 	}

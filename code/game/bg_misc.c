@@ -2032,7 +2032,9 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Time left, or time played from 0:00.",
 	"Counts down",
 	"Counts up",
-	"HOLD %s TO SWING"
+	"HOLD %s TO SWING",
+	"CHARGE",
+	"IMPACT ARMED"
 };
 
 /*
@@ -3139,7 +3141,9 @@ char *eventnames[] = {
 	"EV_DODGE",
 	"EV_ABILITY_END",
 	"EV_HOOK_ATTACH",
-	"EV_BERSERK_SWING"
+	"EV_BERSERK_SWING",
+	"EV_DRONE_HIT",
+	"EV_DRONE_EXPLODE"
 };
 
 /*

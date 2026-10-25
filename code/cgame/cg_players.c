@@ -2434,6 +2434,13 @@ void CG_Player( centity_t *cent ) {
 
 	// a player flying the drone is drawn as the drone
 	if ( cent->currentState.eFlags & EF_DRONE ) {
+		// its hum, and a motion loop above 100 u/s (the pilot hears them too)
+		if ( cgs.media.droneHumSound ) {
+			trap_S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, cgs.media.droneHumSound );
+		}
+		if ( cgs.media.droneMoveSound && VectorLength( cent->currentState.pos.trDelta ) > 100 ) {
+			trap_S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, cgs.media.droneMoveSound );
+		}
 		if ( cent->currentState.number == cg.snap->ps.clientNum && !cg.renderingThirdPerson ) {
 			return;
 		}

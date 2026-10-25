@@ -1737,6 +1737,11 @@ static void G_DroneBodyDie( gentity_t *body, gentity_t *inflictor, gentity_t *at
 // a hit flashes the body for the client (abilities.md: Strogg's body)
 static void G_DroneBodyPain( gentity_t *body, gentity_t *attacker, int damage ) {
 	body->s.time = level.time;
+	// Strogg's own pain voice, at his body
+	if ( level.time > body->pain_debounce_time ) {
+		body->pain_debounce_time = level.time + 700;
+		G_AddEvent( body, EV_PAIN, body->health );
+	}
 }
 
 /*
@@ -2071,8 +2076,7 @@ void G_DroneEnd( gentity_t *ent, qboolean launch ) {
 	if ( launch ) {
 		// champion-audit.md: the charging drone blows up where it is (75
 		// within 120 u, never hurting Strogg or his body, credited to him)
-		tent = G_TempEntity( client->ps.origin, EV_MISSILE_MISS );
-		tent->s.weapon = WP_ROCKET_LAUNCHER;
+		tent = G_TempEntity( client->ps.origin, EV_DRONE_EXPLODE );		// (its own blast, not a rocket's)
 		tent->s.eventParm = DirToByte( vec3_origin );
 		body->takedamage = qfalse;		// the blast spares his own body
 		G_RadiusDamage( client->ps.origin, ent, g_droneRocketDamage.integer, g_droneRocketRadius.integer, ent, MOD_DRONE );
@@ -2153,8 +2157,7 @@ qboolean G_DroneAbsorbDamage( gentity_t *ent, int take ) {
 
 		tent->s.weapon = WP_PLASMAGUN;
 		tent->s.eventParm = DirToByte( vec3_origin );
-		tent = G_TempEntity( ent->client->ps.origin, EV_GENERAL_SOUND );
-		tent->s.eventParm = G_SoundIndex( "sound/abilities/drone_end.wav" );
+		// (its end sound comes once, with the ability's end)
 	}
 	G_DroneEnd( ent, qfalse );
 	return qtrue;

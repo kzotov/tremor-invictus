@@ -362,8 +362,10 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 		cg.pendingHitBeep = cgs.media.hitTeamSound;
 	}
 
-	// health changes of more than -1 should make pain sounds
-	if ( ps->stats[STAT_HEALTH] < ops->stats[STAT_HEALTH] - 1 ) {
+	// health changes of more than -1 should make pain sounds (not the
+	// drone's, nor its launch or return: it is a machine)
+	if ( ps->stats[STAT_HEALTH] < ops->stats[STAT_HEALTH] - 1
+		&& !( ps->eFlags & EF_DRONE ) && !( ops->eFlags & EF_DRONE ) ) {
 		if ( ps->stats[STAT_HEALTH] > 0 ) {
 			CG_PainEvent( &cg.predictedPlayerEntity, ps->stats[STAT_HEALTH] );
 		}
@@ -547,7 +549,8 @@ void CG_TransitionPlayerState( playerState_t *ps, playerState_t *ops ) {
 	}
 
 	// damage events (player is getting wounded)
-	if ( ps->damageEvent != ops->damageEvent && ps->damageCount ) {
+	// (the drone's pilot gets the glitch instead: EV_DRONE_HIT)
+	if ( ps->damageEvent != ops->damageEvent && ps->damageCount && !( ps->eFlags & EF_DRONE ) ) {
 		CG_DamageFeedback( ps->damageYaw, ps->damagePitch, ps->damageCount );
 	}
 

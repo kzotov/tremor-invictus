@@ -600,13 +600,15 @@ Also called by playerstate transition
 */
 void CG_PainEvent( centity_t *cent, int health ) {
 	char	*snd;
+	// Strogg's body during the drone is his own (its clientNum)
+	int		who = cent->currentState.eType == ET_PLAYER ? cent->currentState.number : cent->currentState.clientNum;
 
 	// don't do more than two pain sounds a second; your own while low,
 	// one each 0.8 s (calmer, konstantin-list-audit)
 	if ( cg.time - cent->pe.painTime < 500 ) {
 		return;
 	}
-	if ( health < 25 && cent->currentState.number == cg.snap->ps.clientNum && cg.time - cent->pe.painTime < 800 ) {
+	if ( health < 25 && who == cg.snap->ps.clientNum && cg.time - cent->pe.painTime < 800 ) {
 		return;
 	}
 
@@ -622,12 +624,12 @@ void CG_PainEvent( centity_t *cent, int health ) {
 	// play a gurp sound instead of a normal pain sound
 	if (CG_WaterLevel(cent) == 3) {
 		if (rand()&1) {
-			trap_S_StartSound(NULL, cent->currentState.number, CHAN_VOICE, CG_CustomSound(cent->currentState.number, "sound/player/gurp1.wav"));
+			trap_S_StartSound(NULL, cent->currentState.number, CHAN_VOICE, CG_CustomSound(who, "sound/player/gurp1.wav"));
 		} else {
-			trap_S_StartSound(NULL, cent->currentState.number, CHAN_VOICE, CG_CustomSound(cent->currentState.number, "sound/player/gurp2.wav"));
+			trap_S_StartSound(NULL, cent->currentState.number, CHAN_VOICE, CG_CustomSound(who, "sound/player/gurp2.wav"));
 		}
 	} else {
-		trap_S_StartSound(NULL, cent->currentState.number, CHAN_VOICE, CG_CustomSound(cent->currentState.number, snd));
+		trap_S_StartSound(NULL, cent->currentState.number, CHAN_VOICE, CG_CustomSound(who, snd));
 	}
 	// save pain time for programitic twitch animation
 	cent->pe.painTime = cg.time;
@@ -1454,8 +1456,44 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		// local player sounds are triggered in CG_CheckLocalSounds,
 		// so ignore events on the player
 		DEBUGNAME("EV_PAIN");
-		if ( cent->currentState.number != cg.snap->ps.clientNum ) {
+		if ( cent->currentState.number != cg.snap->ps.clientNum && !( es->eType == ET_PLAYER && ( es->eFlags & EF_DRONE ) ) ) {
 			CG_PainEvent( cent, es->eventParm );
+		}
+		break;
+
+	case EV_DRONE_EXPLODE:
+		// the charging drone blowing up: a blue-white flash, its own sound
+		DEBUGNAME("EV_DRONE_EXPLODE");
+		{
+			vec3_t			up = { 0, 0, 1 };
+			localEntity_t	*le;
+
+			if ( cgs.media.rocketExplosionShader ) {
+				le = CG_MakeExplosion( position, up, cgs.media.dishFlashModel, cgs.media.rocketExplosionShader, 600, qtrue );
+				le->light = 260;
+				le->lightColor[0] = 0.45f;
+				le->lightColor[1] = 0.7f;
+				le->lightColor[2] = 1.0f;
+			}
+			if ( cgs.media.droneExplodeSound ) {
+				trap_S_StartSound( position, ENTITYNUM_WORLD, CHAN_AUTO, cgs.media.droneExplodeSound );
+			}
+		}
+		break;
+
+	case EV_DRONE_HIT:
+		// a hit on the drone: a metal clank, one of three, never a pain voice
+		DEBUGNAME("EV_DRONE_HIT");
+		if ( cgs.media.droneHitSounds[0] ) {
+			trap_S_StartSound( NULL, es->number, CHAN_BODY, cgs.media.droneHitSounds[rand() % 3] );
+		}
+		// the pilot's view glitches (abilities.md: 0.8 fading over 0.2 s)
+		if ( es->number == cg.snap->ps.clientNum ) {
+			cg.droneGlitchTime = cg.time;
+			if ( cgs.media.droneGlitchSound && cg.time - cg.droneGlitchSound >= 300 ) {
+				cg.droneGlitchSound = cg.time;
+				trap_S_StartLocalSound( cgs.media.droneGlitchSound, CHAN_LOCAL_SOUND );
+			}
 		}
 		break;
 

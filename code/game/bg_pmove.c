@@ -1806,6 +1806,10 @@ static void PM_CrashLand( void ) {
 	float		t;
 	float		a, b, c, den;
 
+	if ( pm->ps->eFlags & EF_DRONE ) {
+		return;		// the drone doesn't land, fall or hurt itself (abilities.md)
+	}
+
 	// decide which landing animation to use
 	if ( pm->ps->pm_flags & PMF_BACKWARDS_JUMP ) {
 		PM_ForceLegsAnim( LEGS_LANDB );
@@ -2283,6 +2287,11 @@ static void PM_Footsteps( void ) {
 	int			old;
 	qboolean	footstep;
 
+	if ( pm->ps->eFlags & EF_DRONE ) {
+		pm->xyspeed = 0;
+		return;		// no steps from the drone
+	}
+
 	//
 	// calculate speed and cycle to be used for
 	// all cyclic walking effects
@@ -2398,6 +2407,9 @@ Generate sound events for entering and leaving water
 ==============
 */
 static void PM_WaterEvents( void ) {		// FIXME?
+	if ( pm->ps->eFlags & EF_DRONE ) {
+		return;		// no splashes or gasps from the drone
+	}
 	//
 	// if just entered a water volume, play a sound
 	//
@@ -2806,6 +2818,9 @@ PM_Animate
 */
 
 static void PM_Animate( void ) {
+	if ( pm->ps->eFlags & EF_DRONE ) {
+		return;		// no taunt from the drone
+	}
 	if ( pm->cmd.buttons & BUTTON_GESTURE ) {
 		if ( pm->ps->torsoTimer == 0 ) {
 			PM_StartTorsoAnim( TORSO_GESTURE );

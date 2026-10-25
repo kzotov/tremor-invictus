@@ -1120,6 +1120,15 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.ringShader = trap_R_RegisterShader( "tremor/fx/ring" );
 	cgs.media.droneModel = trap_R_RegisterModel( "models/abilities/drone/drone.md3" );		// generated: a small sphere
 	cgs.media.droneShotSound = trap_S_RegisterSound( "sound/abilities/drone_shot.wav", qfalse );
+	for ( i = 0 ; i < 3 ; i++ ) {
+		cgs.media.droneHitSounds[i] = trap_S_RegisterSound( va( "sound/abilities/drone_hit%i.wav", i + 1 ), qfalse );
+	}
+	cgs.media.droneGlitchSound = trap_S_RegisterSound( "sound/abilities/drone_glitch.wav", qfalse );
+	cgs.media.droneHumSound = trap_S_RegisterSound( "sound/abilities/drone_hum.wav", qfalse );
+	cgs.media.droneMoveSound = trap_S_RegisterSound( "sound/abilities/drone_move.wav", qfalse );
+	cgs.media.droneBoltHitSound = trap_S_RegisterSound( "sound/abilities/drone_bolt_hit.wav", qfalse );
+	cgs.media.droneDetectSound = trap_S_RegisterSound( "sound/abilities/drone_detect.wav", qfalse );
+	cgs.media.droneExplodeSound = trap_S_RegisterSound( "sound/abilities/drone_explode.wav", qfalse );
 	cgs.media.turretModel = trap_R_RegisterModel( "models/abilities/turret/turret.md3" );
 	cgs.media.droneShimmerShader = trap_R_RegisterShader( "tremor/droneshimmer" );
 	cgs.media.brightShader = trap_R_RegisterShader( "tremor/bright" );
