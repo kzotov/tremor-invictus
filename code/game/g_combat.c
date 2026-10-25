@@ -347,7 +347,8 @@ char	*modNames[] = {
 	"MOD_GHOSTWALK",
 	"MOD_ORBTELEFRAG",
 	"MOD_BERSERK",
-	"MOD_LEAPINGKICK"
+	"MOD_LEAPINGKICK",
+	"MOD_RINGOUT"
 };
 
 #ifdef MISSIONPACK
@@ -480,7 +481,8 @@ isn't a weapon's: abilities, telefrags and the grapple
 static int G_StatWeapon( gentity_t *inflictor, gentity_t *attacker, int mod ) {
 	int		w;
 
-	if ( ( mod >= MOD_HEAVYWEIGHT && mod <= MOD_LEAPINGKICK ) || mod == MOD_TELEFRAG || mod == MOD_GRAPPLE ) {
+	if ( ( mod >= MOD_HEAVYWEIGHT && mod <= MOD_LEAPINGKICK ) || mod == MOD_TELEFRAG || mod == MOD_GRAPPLE
+		|| mod == MOD_RINGOUT ) {
 		return WP_NONE;
 	}
 	w = inflictor && inflictor != attacker && inflictor->s.eType == ET_MISSILE ? inflictor->s.weapon : attacker->s.weapon;
@@ -515,6 +517,25 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 		Weapon_HookFree(self->client->hook);
 	}
 	G_EndRush( self );
+
+	// a ring-out: a fall or hazard within 3 s of an enemy's hit or push is
+	// that enemy's kill (gaps.md GAP-17)
+	if ( ( !attacker || !attacker->client ) && self->client->lastEnemyHurtTime
+		&& level.time - self->client->lastEnemyHurtTime <= RINGOUT_TIME ) {
+		gentity_t	*enemy = &g_entities[self->client->lastEnemyHurt];
+
+		switch ( meansOfDeath ) {
+		case MOD_TRIGGER_HURT: case MOD_FALLING: case MOD_LAVA: case MOD_SLIME: case MOD_WATER: case MOD_CRUSH:
+			if ( enemy->inuse && enemy->client && enemy->client->pers.connected == CON_CONNECTED
+				&& enemy != self && !OnSameTeam( self, enemy ) ) {
+				attacker = enemy;
+				meansOfDeath = MOD_RINGOUT;
+			}
+			break;
+		default:
+			break;
+		}
+	}
 	{
 		int		state = BG_AbilityState( &self->client->ps );
 
@@ -1172,6 +1193,13 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			targ->client->ps.pm_time = t;
 			targ->client->ps.pm_flags |= PMF_TIME_KNOCKBACK;
 		}
+	}
+
+	// the last enemy to hit or push a player, for ring-outs (any push, even
+	// with no damage; Strogg's body counts as him)
+	if ( knockback && as->client && attacker->client && attacker != as && !OnSameTeam( as, attacker ) ) {
+		as->client->lastEnemyHurt = attacker->s.number;
+		as->client->lastEnemyHurtTime = level.time;
 	}
 
 	// Strogg's body during the drone takes knockback as a player (no timer)

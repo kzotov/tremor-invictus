@@ -365,6 +365,9 @@ static void CG_Obituary( entityState_t *ent ) {
 		case MOD_LEAPINGKICK:
 			message = (char *)BG_String( STR_OBIT_LEAPINGKICK );
 			break;
+		case MOD_RINGOUT:
+			message = (char *)BG_String( STR_OBIT_RINGOUT );
+			break;
 		case MOD_GAUNTLET:
 			message = "was pummeled by";
 			break;

@@ -34,7 +34,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define MEDAL_COMBO_TIME		1000	// msec from a hit to a railgun finish
 #define MEDAL_POINT_BLANK		64		// shotgun gap between bodies
 #define MEDAL_PRECISE_RANGE		1000	// rocket flight for Precise
-#define MEDAL_RINGOUT_TIME		3000	// msec an enemy's hit still counts for a fall
 #define MEDAL_STOPWATCH_TIME	1000	// msec after an item appears
 #define MEDAL_DIEHARD_HEALTH	25
 #define MEDAL_ASSIST_TIME		3000	// msec a teammate's hit counts as an assist
@@ -445,13 +444,16 @@ whether their active ability was running
 */
 void G_MedalsDeath( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int mod, qboolean abilityOn ) {
 	gclient_t	*victim = self->client;
-	gentity_t	*enemy;
 
 	victim->deathTime = level.time;
 	victim->deathInflictor = inflictor ? inflictor->s.number : ENTITYNUM_NONE;
 
 	if ( attacker && attacker->client && attacker != self && !OnSameTeam( self, attacker ) ) {
 		G_MedalsKill( self, inflictor, attacker, mod, abilityOn );
+		// knocked into a pit or off the map (player_die made it the pusher's kill)
+		if ( mod == MOD_RINGOUT ) {
+			G_Medal( attacker, MEDAL_RINGOUT );
+		}
 		if ( victim->killedBy == attacker->s.number ) {
 			victim->killedByStreak++;
 		} else {
@@ -461,17 +463,6 @@ void G_MedalsDeath( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, 
 	} else if ( attacker == self && inflictor && inflictor->s.eType == ET_MISSILE && inflictor->medalKills > 0 ) {
 		// blew up with the enemy it killed
 		G_Medal( self, MEDAL_KAMIKAZE );
-	} else if ( ( !attacker || !attacker->client ) && victim->lastEnemyHurtTime
-		&& level.time - victim->lastEnemyHurtTime <= MEDAL_RINGOUT_TIME ) {
-		// knocked into a pit or off the map
-		switch ( mod ) {
-		case MOD_TRIGGER_HURT: case MOD_FALLING: case MOD_LAVA: case MOD_SLIME: case MOD_WATER:
-			enemy = &g_entities[victim->lastEnemyHurt];
-			if ( enemy->inuse && enemy->client ) {
-				G_Medal( enemy, MEDAL_RINGOUT );
-			}
-			break;
-		}
 	}
 	victim->streak = 0;
 }

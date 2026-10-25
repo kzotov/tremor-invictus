@@ -912,6 +912,8 @@ void G_AbilityEnded( gentity_t *ent );
 void G_DroneEnd( gentity_t *ent, qboolean launch );
 void G_RemoveAbilityObjects( gentity_t *owner, int keepActive );
 void G_ClearRoundObjects( void );
+
+#define RINGOUT_TIME	3000	// msec an enemy's hit or push still owns a fall
 void G_DroneBodyPush( gentity_t *body, const vec3_t kvel );
 #define DRONE_INPUT_WAIT	250		// msec of no input after the drone ends
 float G_BarrierScale( gentity_t *targ, int mod );

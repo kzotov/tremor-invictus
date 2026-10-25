@@ -1272,6 +1272,7 @@ typedef enum {
 	STR_EV_HAS_QUAD,
 	STR_EV_HAS_PROTECTION,			// last of the power-ups
 	STR_SYS_FIGHT,				// keep last of the system-message range
+	STR_OBIT_RINGOUT,
 
 	STR_NUM_STRINGS
 } stringId_t;
@@ -2115,7 +2116,8 @@ typedef enum {
 	MOD_GHOSTWALK,			// Nyx coming out of Ghost Walk inside someone
 	MOD_ORBTELEFRAG,		// Ranger teleporting to his orb onto someone
 	MOD_BERSERK,			// Doom Slayer's Berserk punches
-	MOD_LEAPINGKICK			// Xaero's Leaping Kick
+	MOD_LEAPINGKICK,		// Xaero's Leaping Kick
+	MOD_RINGOUT				// a fall or hazard within 3 s of an enemy's push (the pusher's kill)
 } meansOfDeath_t;
 
 

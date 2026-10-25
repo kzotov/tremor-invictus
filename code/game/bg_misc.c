@@ -2021,7 +2021,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"PROTECTION",
 	"%s^7 HAS QUAD DAMAGE",
 	"%s^7 HAS PROTECTION",
-	"FIGHT!"
+	"FIGHT!",
+	"was knocked into the void by"
 };
 
 /*
