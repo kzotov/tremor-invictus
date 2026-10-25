@@ -6746,27 +6746,72 @@ heights 3, 2 and 1, the winner in the middle
 */
 static void CG_DrawPodium( void ) {
 	static const vec4_t	dim = { 0.05f, 0.05f, 0.06f, 1.0f };		// a screen of its own
-	int		clients[3], heights[3], teams[3], ranks[3], count = 0, order[3] = { 1, 0, 2 }, i, n;
-	const char	*labels[3];
+	// konstantin-list-audit F1 1: duel 2 pillars, FFA 3, team modes the
+	// winners' top 4 (on a tie the top 2 of each); never spectators.
+	// Left to right by place: 2-1 / 2-1-3 / 3-1-2-4
+	static const int	order2[2] = { 1, 0 }, order3[3] = { 1, 0, 2 }, order4[4] = { 2, 0, 1, 3 };
+	static const int	height2[2] = { 40, 60 }, height3[3] = { 40, 60, 20 }, height4[4] = { 40, 60, 40, 20 };
+	int		clients[4], heights[4], teams[4], ranks[4], count = 0, i, n, places, picked[4], numPicked = 0;
+	const int	*order, *height;
+	const char	*labels[4];
+	int		winner = TEAM_FREE;
 
-	static char	scoreText[3][16];
+	static char	scoreText[4][16];
 
-	n = cg.numScores < 3 ? cg.numScores : 3;
+	if ( cgs.gametype >= GT_TEAM ) {
+		winner = cg.teamScores[0] > cg.teamScores[1] ? TEAM_RED : cg.teamScores[1] > cg.teamScores[0] ? TEAM_BLUE : TEAM_FREE;
+		places = 4;
+		order = order4;
+		height = height4;
+	} else if ( cgs.gametype == GT_TOURNAMENT ) {
+		places = 2;
+		order = order2;
+		height = height2;
+	} else {
+		places = 3;
+		order = order3;
+		height = height3;
+	}
+	// the players to show, best first (cg.scores is sorted)
+	for ( i = 0 ; i < cg.numScores && numPicked < places ; i++ ) {
+		int		team = cg.scores[i].team, k, ofTeam = 0;
+
+		if ( team == TEAM_SPECTATOR ) {
+			continue;
+		}
+		if ( cgs.gametype >= GT_TEAM ) {
+			if ( winner != TEAM_FREE && team != winner ) {
+				continue;
+			}
+			if ( winner == TEAM_FREE ) {
+				for ( k = 0 ; k < numPicked ; k++ ) {
+					if ( cg.scores[picked[k]].team == team ) {
+						ofTeam++;
+					}
+				}
+				if ( ofTeam >= 2 ) {
+					continue;		// a tie: two of each
+				}
+			}
+		}
+		picked[numPicked++] = i;
+	}
+	n = numPicked;
 	if ( n < 1 ) {
 		return;
 	}
-	// left: second, middle: first, right: third
-	for ( i = 0 ; i < 3 ; i++ ) {
-		int		rank = order[i];
+	for ( i = 0 ; i < places ; i++ ) {
+		int		rank = order[i], s;
 
 		if ( rank >= n ) {
 			continue;
 		}
-		clients[count] = cg.scores[rank].client;
-		heights[count] = ( 3 - rank ) * 20;
+		s = picked[rank];
+		clients[count] = cg.scores[s].client;
+		heights[count] = height[i];
 		ranks[count] = rank + 1;
-		teams[count] = cg.scores[rank].team == TEAM_RED ? 1 : cg.scores[rank].team == TEAM_BLUE ? 2 : 0;
-		Com_sprintf( scoreText[count], sizeof( scoreText[count] ), "%i", cg.scores[rank].score );
+		teams[count] = cg.scores[s].team == TEAM_RED ? 1 : cg.scores[s].team == TEAM_BLUE ? 2 : 0;
+		Com_sprintf( scoreText[count], sizeof( scoreText[count] ), "%i", cg.scores[s].score );
 		labels[count] = scoreText[count];
 		count++;
 	}
