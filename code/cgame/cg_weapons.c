@@ -1575,6 +1575,25 @@ void CG_AddViewWeapon( playerState_t *ps ) {
 
 	// add everything onto the hand
 	CG_AddPlayerWeapon( &hand, ps, &cg.predictedPlayerEntity, ps->persistant[PERS_TEAM] );
+
+	// B.J.'s Dual Wield: the same gun mirrored into the left hand (the
+	// renderer turns the culling over for a mirrored axis)
+	if ( BG_Champion( ps->stats[STAT_CHAMPION] )->active == ACTIVE_DUALWIELD && BG_AbilityState( ps ) == ABILITY_ACTIVE ) {
+		refEntity_t	left = hand;
+		vec3_t		d;
+		float		k;
+		int			i;
+
+		VectorSubtract( left.origin, cg.refdef.vieworg, d );
+		k = DotProduct( d, cg.refdef.viewaxis[1] );
+		VectorMA( left.origin, -2 * k, cg.refdef.viewaxis[1], left.origin );
+		VectorCopy( left.origin, left.oldorigin );
+		for ( i = 0 ; i < 3 ; i++ ) {
+			k = DotProduct( left.axis[i], cg.refdef.viewaxis[1] );
+			VectorMA( left.axis[i], -2 * k, cg.refdef.viewaxis[1], left.axis[i] );
+		}
+		CG_AddPlayerWeapon( &left, ps, &cg.predictedPlayerEntity, ps->persistant[PERS_TEAM] );
+	}
 }
 
 /*

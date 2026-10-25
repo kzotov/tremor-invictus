@@ -74,6 +74,7 @@ typedef struct {
 	vec3_t		ambientLight;	// color normalized to 0-255
 	int			ambientLightInt;	// 32 bit rgba packed
 	vec3_t		directedLight;
+	qboolean	mirrored;		// a mirrored axis (B.J.'s left gun): culling turned over
 } trRefEntity_t;
 
 
@@ -844,6 +845,7 @@ typedef struct {
 	qboolean	finishCalled;
 	int			texEnv[2];
 	int			faceCulling;
+	qboolean	faceCullMirrored;		// (the entity's mirroring the cull was set for)
 	unsigned long	glStateBits;
 } glstate_t;
 

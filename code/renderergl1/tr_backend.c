@@ -124,11 +124,15 @@ void GL_BindMultitexture( image_t *image0, GLuint env0, image_t *image1, GLuint 
 ** GL_Cull
 */
 void GL_Cull( int cullType ) {
-	if ( glState.faceCulling == cullType ) {
+	qboolean	mirrored = backEnd.currentEntity && backEnd.currentEntity != &tr.worldEntity
+		&& backEnd.currentEntity->mirrored;
+
+	if ( glState.faceCulling == cullType && glState.faceCullMirrored == mirrored ) {
 		return;
 	}
 
 	glState.faceCulling = cullType;
+	glState.faceCullMirrored = mirrored;
 
 	if ( cullType == CT_TWO_SIDED ) 
 	{
@@ -141,6 +145,10 @@ void GL_Cull( int cullType ) {
 
 		cullFront = (cullType == CT_FRONT_SIDED);
 		if ( backEnd.viewParms.isMirror )
+		{
+			cullFront = !cullFront;
+		}
+		if ( mirrored )
 		{
 			cullFront = !cullFront;
 		}
