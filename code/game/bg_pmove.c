@@ -3395,10 +3395,10 @@ static void PM_Ability( void ) {
 				if ( ( pm->ps->stats[STAT_MOVE_STATE] & HOOK_SWINGING ) && time >= HOOK_SWING_TIME ) {
 					arrived = qtrue;
 				}
-				// a landing from the air (a hook thrown from the ground stays)
+				// a landing lets go only while swinging (abilities-data)
 				if ( pm->ps->groundEntityNum == ENTITYNUM_NONE ) {
 					hook |= HOOK_AIRBORNE;
-				} else if ( hook & HOOK_AIRBORNE ) {
+				} else if ( ( hook & HOOK_AIRBORNE ) && ( pm->ps->stats[STAT_MOVE_STATE] & HOOK_SWINGING ) ) {
 					arrived = qtrue;
 				}
 				// a new press of jump
@@ -3431,8 +3431,32 @@ static void PM_Ability( void ) {
 				pm->ps->stats[STAT_HOOK] = hook;
 			}
 		}
-		if ( ( pressed && time >= BG_AbilityParam( active, AP_DELAY ) ) || arrived
-			|| !( pm->ps->pm_flags & PMF_GRAPPLE_PULL ) ) {
+		// the button during the pull (abilities-data): a fresh press starts a
+		// hold; let go of it within 0.05 s (a tap) and the hook lets go, at
+		// any time; held, it swings from 0.1 s into the pull (on the ground
+		// it lets go instead); letting go of the button mid-swing lets go
+		{
+			int		hs = pm->ps->stats[STAT_MOVE_STATE];
+
+			if ( hs & HOOK_SWINGING ) {
+				if ( !pml.abilityHeld ) {
+					arrived = qtrue;
+				}
+			} else if ( pressed ) {
+				pm->ps->stats[STAT_MOVE_STATE] = ( hs & HOOK_ON_PLAYER ) | HOOK_PRESSED;
+			} else if ( hs & HOOK_PRESSED ) {
+				if ( !pml.abilityHeld ) {
+					if ( ( hs & HOOK_ROPE_MASK ) < HOOK_SWING_HOLD ) {
+						arrived = qtrue;		// a tap
+					}
+					pm->ps->stats[STAT_MOVE_STATE] = hs & HOOK_ON_PLAYER;
+				} else if ( ( hs & HOOK_ROPE_MASK ) >= HOOK_SWING_HOLD && time >= HOOK_SWING_AFTER
+					&& !( hs & HOOK_ON_PLAYER ) && pm->ps->groundEntityNum != ENTITYNUM_NONE ) {
+					arrived = qtrue;		// a swing asked for on the ground
+				}
+			}
+		}
+		if ( arrived || !( pm->ps->pm_flags & PMF_GRAPPLE_PULL ) ) {
 			// let go and keep the momentum
 			BG_SetAbility( pm->ps, ABILITY_IDLE, charges );
 			PM_EndAbility();
@@ -3731,17 +3755,18 @@ static void PM_HookMove( void ) {
 	// pull), then holds the rope length beside HOOK_SWINGING; the ability
 	// timer restarts with the swing (it ends at 3 s, in the ability code).
 	// HOOK_ON_PLAYER comes from the game when the hook bites a player
-	if ( pml.abilityHeld && !( state & HOOK_SWINGING ) ) {
+	// (only a fresh press during the pull counts: HOOK_PRESSED, set in the
+	// ability code, which also lets go on a tap or a swing on the ground)
+	if ( pml.abilityHeld && ( state & HOOK_PRESSED ) && !( state & HOOK_SWINGING ) ) {
 		int		held = ( state & HOOK_ROPE_MASK ) + pml.msec;
 
 		if ( held > HOOK_ROPE_MASK ) {
 			held = HOOK_ROPE_MASK;
 		}
-		state = ( state & HOOK_ON_PLAYER ) | held;
+		state = ( state & ( HOOK_ON_PLAYER | HOOK_PRESSED ) ) | held;
 		if ( held >= HOOK_SWING_HOLD && time >= HOOK_SWING_AFTER ) {
-			// on the ground the hold keeps pulling (the swing starts once
-			// off it); on a player, too
-			if ( pm->ps->groundEntityNum == ENTITYNUM_NONE && !( state & HOOK_ON_PLAYER ) ) {		// no swing on a player: keep pulling
+			// no swing on a player: keep pulling
+			if ( pm->ps->groundEntityNum == ENTITYNUM_NONE && !( state & HOOK_ON_PLAYER ) ) {
 				state = HOOK_SWINGING | (int)( dist < 1 ? 1 : dist > HOOK_ROPE_MASK ? HOOK_ROPE_MASK : dist );
 				pm->ps->stats[STAT_ABILITY_TIME] = time = 0;
 			}

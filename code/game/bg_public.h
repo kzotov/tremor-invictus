@@ -1623,6 +1623,7 @@ typedef enum {
 #define	HOOK_JUMP_DOWN			0x8000
 // STAT_MOVE_STATE on Athena's hook: the hold time or the swing's rope in
 // bits 0-11, and these
+#define	HOOK_PRESSED			0x1000		// a fresh press during the pull: its hold is counting
 #define	HOOK_SWINGING			0x2000
 #define	HOOK_ON_PLAYER			0x4000		// set by the game when the hook bites a player
 
