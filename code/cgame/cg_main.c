@@ -1113,7 +1113,7 @@ static void CG_RegisterGraphics( void ) {
 	}
 	cgs.media.barrierShader = trap_R_RegisterShader( "tremor/fx/barrier" );
 	cgs.media.ringShader = trap_R_RegisterShader( "tremor/fx/ring" );
-	cgs.media.droneModel = trap_R_RegisterModel( "models/powerups/holdable/teleporter.md3" );
+	cgs.media.droneModel = trap_R_RegisterModel( "models/abilities/drone/drone.md3" );		// generated: a small sphere
 	cgs.media.turretModel = trap_R_RegisterModel( "models/abilities/turret/turret.md3" );
 	cgs.media.droneShimmerShader = trap_R_RegisterShader( "tremor/droneshimmer" );
 	cgs.media.brightShader = trap_R_RegisterShader( "tremor/bright" );

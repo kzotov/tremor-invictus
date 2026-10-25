@@ -59,6 +59,7 @@ static void UI_Stage_Load( playerInfo_t *pi, int champion, weapon_t weapon ) {
 	angles[YAW] = 180;
 	UI_PlayerInfo_SetInfo( pi, LEGS_IDLE, TORSO_STAND, angles, vec3_origin, weapon, qfalse );
 	pi->onPillar = qtrue;
+	pi->champion = champion;
 }
 
 /*

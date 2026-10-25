@@ -1042,6 +1042,37 @@ addBody:
 		UI_PlayerFloatSprite( pi, origin, trap_R_RegisterShaderNoMip( "sprites/balloon3" ) );
 	}
 
+	// Strogg on a pillar: his Peeker hovers beside him at head height,
+	// toward the middle (the face-off) or to his side, bobbing gently
+	if ( pi->onPillar && pi->champion >= 0 && pi->champion < bg_numChampions
+		&& BG_Champion( pi->champion )->active == ACTIVE_DRONE ) {
+		static qhandle_t	droneModel;
+		refEntity_t			drone;
+
+		if ( !droneModel ) {
+			droneModel = trap_R_RegisterModel( "models/abilities/drone/drone.md3" );
+		}
+		memset( &drone, 0, sizeof( drone ) );
+		// at 0.6 size beside him, its eye toward the camera
+		{
+			vec3_t	ang = { 0, 180, 0 };
+
+			AnglesToAxis( ang, drone.axis );
+			VectorScale( drone.axis[0], 0.6f, drone.axis[0] );
+			VectorScale( drone.axis[1], 0.6f, drone.axis[1] );
+			VectorScale( drone.axis[2], 0.6f, drone.axis[2] );
+			drone.nonNormalizedAxes = qtrue;
+		}
+		VectorCopy( origin, drone.origin );
+		drone.origin[1] += pi->sharedScene && origin[1] > 0 ? -24 : 24;
+		drone.origin[2] += 34 + 3 * sin( dp_realtime * 0.0038f );
+		VectorCopy( drone.origin, drone.oldorigin );
+		VectorCopy( drone.origin, drone.lightingOrigin );
+		drone.hModel = droneModel;
+		drone.renderfx = RF_LIGHTING_ORIGIN | RF_NOSHADOW;
+		trap_R_AddRefEntityToScene( &drone );
+	}
+
 	if ( pi->sharedScene ) {
 		return;		// the caller lights and renders
 	}

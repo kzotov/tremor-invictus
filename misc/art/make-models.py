@@ -38,6 +38,7 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
   models/abilities/totem/totem.md3          the Unholy Totem: a bone post with a
                                             skull knob and a glowing ring
   models/abilities/turret/turret.md3        the sentry: a tripod, a turning head
+  models/abilities/drone/drone.md3          Strogg's Peeker: a small sphere with a red eye
                                             and a barrel along +x
   models/abilities/barrier/barrier.md3      the barrier: a faceted shell around a
                                             standing player
@@ -333,6 +334,28 @@ def turret(out):
     write_md3(os.path.join(out, "models/abilities/turret/turret.md3"), "turret", [m])
     texture(os.path.join(out, "models/abilities/turret/turret.tga"), 64, 64,
             lambda u, v, n=Fbm(61, 4, 8): [0.42 * (0.75 + 0.4 * n.at(u * 4, v * 4))] * 3 + [1], False)
+
+
+def drone(out):
+    """Strogg's Peeker: a small sphere (radius 10, the drone's box) of dark
+    metal with a lit band and a red eye facing forward (+x)."""
+    m = Mesh("ability/drone")
+    lathe(m, [(10 * math.sin(math.pi * k / 12), -10 * math.cos(math.pi * k / 12)) for k in range(13)], 20)
+    write_md3(os.path.join(out, "models/abilities/drone/drone.md3"), "drone", [m])
+
+    def body(u, v, n=Fbm(83, 4, 8)):
+        k = 0.32 * (0.8 + 0.4 * n.at(u * 4, v * 4))
+        if abs(v - 0.5) < 0.04:
+            k = 0.6                                   # the band round its middle
+        return [k, k, k * 1.08, 1]
+
+    def eye(u, v):
+        d = math.hypot(min(u, 1 - u) * 2.2, (v - 0.5) * 1.4)   # u 0 and 1 are both the front
+        g = max(0.0, 1 - d / 0.16) ** 1.5
+        return [g, 0.12 * g, 0.08 * g, 1]
+
+    texture(os.path.join(out, "models/abilities/drone/drone.tga"), 64, 64, body, False)
+    texture(os.path.join(out, "models/abilities/drone/drone_eye.tga"), 64, 64, eye, False)
 
 
 def barrier(out):
@@ -914,6 +937,19 @@ ability/totemring
 	}
 }
 
+ability/drone
+{
+	{
+		map models/abilities/drone/drone.tga
+		rgbGen lightingDiffuse
+	}
+	{
+		map models/abilities/drone/drone_eye.tga
+		blendFunc GL_ONE GL_ONE
+		rgbGen identity
+	}
+}
+
 ability/turret
 {
 	{
@@ -1025,6 +1061,7 @@ def main():
     claw(src)
     totem(src)
     turret(src)
+    drone(src)
     barrier(src)
     acid(src)
     os.makedirs(os.path.join(src, "icons"), exist_ok=True)

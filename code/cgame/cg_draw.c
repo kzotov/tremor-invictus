@@ -6113,6 +6113,32 @@ static void CG_AddPillarInfo( clientInfo_t *ci, const vec3_t feet, float yaw ) {
 	CG_PositionRotatedEntityOnTag( &head, &torso, ci->torsoModel, "tag_head" );
 	CG_PillarSilhouette( &head );
 	trap_R_AddRefEntityToScene( &head );
+
+	// Strogg: his Peeker hovers beside him at head height, toward the middle
+	// of the screen, bobbing gently (never for a hidden blind pick)
+	if ( !pillarSilhouette && BG_Champion( CG_ClientChampion( ci ) )->active == ACTIVE_DRONE ) {
+		refEntity_t	drone;
+
+		memset( &drone, 0, sizeof( drone ) );
+		// at 0.6 size beside him, its eye toward the camera
+		{
+			vec3_t	ang = { 0, 180, 0 };
+
+			AnglesToAxis( ang, drone.axis );
+			VectorScale( drone.axis[0], 0.6f, drone.axis[0] );
+			VectorScale( drone.axis[1], 0.6f, drone.axis[1] );
+			VectorScale( drone.axis[2], 0.6f, drone.axis[2] );
+			drone.nonNormalizedAxes = qtrue;
+		}
+		VectorCopy( feet, drone.origin );
+		drone.origin[1] += feet[1] > 0 ? -24 : 24;
+		drone.origin[2] += 58 + 3 * sin( cg.time * 0.0038f );
+		VectorCopy( drone.origin, drone.oldorigin );
+		VectorCopy( drone.origin, drone.lightingOrigin );
+		drone.hModel = cgs.media.droneModel;
+		drone.renderfx = RF_LIGHTING_ORIGIN | RF_NOSHADOW;
+		trap_R_AddRefEntityToScene( &drone );
+	}
 }
 
 /*

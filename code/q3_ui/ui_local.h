@@ -592,6 +592,7 @@ typedef struct {
 	qboolean		sharedScene;	// added to a scene the caller renders (the duel face-off),
 	vec3_t			stageTop;		// standing on its pillar's top here
 	qboolean		blueSide;		// its pillar's light strip blue (the face-off's left), else red
+	int				champion;		// the champion shown, or -1 (Strogg's Peeker hovers by him)
 	float			rise;			// units above the pillar while champions swap
 	float			flash;			// 0-1, a light burst as a champion arrives
 	int				tintMode;		// 0 none, 1 bright, 2 sport (player colours preview)
