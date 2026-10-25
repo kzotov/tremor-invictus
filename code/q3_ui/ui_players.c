@@ -1073,6 +1073,31 @@ addBody:
 		trap_R_AddRefEntityToScene( &drone );
 	}
 
+	// Eisen's turret and Galena's totem stand beside them on the pillar
+	if ( pi->onPillar && pi->champion >= 0 && pi->champion < bg_numChampions
+		&& ( BG_Champion( pi->champion )->active == ACTIVE_TURRET
+		|| BG_Champion( pi->champion )->active == ACTIVE_TOTEM ) ) {
+		static qhandle_t	turretModel, totemModel;
+		refEntity_t			prop;
+		vec3_t				ang = { 0, 180, 0 };
+
+		if ( !turretModel ) {
+			turretModel = trap_R_RegisterModel( "models/abilities/turret/turret.md3" );
+			totemModel = trap_R_RegisterModel( "models/abilities/totem/totem.md3" );
+		}
+		memset( &prop, 0, sizeof( prop ) );
+		AnglesToAxis( ang, prop.axis );
+		VectorCopy( origin, prop.origin );
+		prop.origin[1] += pi->sharedScene && origin[1] > 0 ? -18 : 18;
+		prop.origin[2] -= 24;		// on the pillar's top, at his feet
+		VectorCopy( prop.origin, prop.oldorigin );
+		VectorCopy( prop.origin, prop.lightingOrigin );
+		prop.lightingOrigin[2] += 24;
+		prop.hModel = BG_Champion( pi->champion )->active == ACTIVE_TURRET ? turretModel : totemModel;
+		prop.renderfx = RF_LIGHTING_ORIGIN | RF_NOSHADOW;
+		trap_R_AddRefEntityToScene( &prop );
+	}
+
 	if ( pi->sharedScene ) {
 		return;		// the caller lights and renders
 	}

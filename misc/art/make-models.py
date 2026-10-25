@@ -38,8 +38,12 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
   models/abilities/totem/totem.md3          the Unholy Totem: a bone post with a
                                             skull knob and a glowing ring
   models/abilities/turret/turret.md3        the sentry: a tripod, a turning head
-  models/abilities/drone/drone.md3          Strogg's Peeker: a small sphere with a red eye
                                             and a barrel along +x
+  models/abilities/drone/drone.md3          Strogg's Peeker: a small sphere with a red eye
+  sound/abilities/turret_*.wav, drone_shot.wav
+                                            the turret's deploy, online, target,
+                                            shot, idle hum and destroyed; the
+                                            drone gun's zap
   models/abilities/barrier/barrier.md3      the barrier: a faceted shell around a
                                             standing player
   gfx/abilities/acid_ball.tga, acid_mark.tga

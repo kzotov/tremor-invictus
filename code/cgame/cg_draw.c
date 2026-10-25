@@ -6149,6 +6149,26 @@ static void CG_AddPillarInfo( clientInfo_t *ci, const vec3_t feet, float yaw ) {
 		drone.renderfx = RF_LIGHTING_ORIGIN | RF_NOSHADOW;
 		trap_R_AddRefEntityToScene( &drone );
 	}
+
+	// Eisen's turret and Galena's totem stand beside them on the pillar
+	// (konstantin-list-audit "Pillar props")
+	if ( !pillarSilhouette && ( BG_Champion( CG_ClientChampion( ci ) )->active == ACTIVE_TURRET
+		|| BG_Champion( CG_ClientChampion( ci ) )->active == ACTIVE_TOTEM ) ) {
+		refEntity_t	prop;
+		vec3_t		ang = { 0, 180, 0 };
+
+		memset( &prop, 0, sizeof( prop ) );
+		AnglesToAxis( ang, prop.axis );
+		VectorCopy( feet, prop.origin );
+		prop.origin[1] += feet[1] > 0 ? -18 : 18;
+		VectorCopy( prop.origin, prop.oldorigin );
+		VectorCopy( prop.origin, prop.lightingOrigin );
+		prop.lightingOrigin[2] += 24;
+		prop.hModel = BG_Champion( CG_ClientChampion( ci ) )->active == ACTIVE_TURRET
+			? cgs.media.turretModel : trap_R_RegisterModel( "models/abilities/totem/totem.md3" );
+		prop.renderfx = RF_LIGHTING_ORIGIN | RF_NOSHADOW;
+		trap_R_AddRefEntityToScene( &prop );
+	}
 }
 
 /*
