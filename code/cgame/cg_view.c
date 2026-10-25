@@ -616,7 +616,11 @@ static int CG_CalcFov( void ) {
 			zoomFov = 160;
 		}
 
-		if ( cg.zoomed ) {
+		// an ability's zoom lock holds the view out (PW_ZOOMLOCK); the
+		// held key zooms once it ends
+		if ( cg.zoomed && cg.predictedPlayerState.powerups[PW_ZOOMLOCK] > cg.time ) {
+			cg.zoomTime = cg.time;
+		} else if ( cg.zoomed ) {
 			f = ( cg.time - cg.zoomTime ) / (float)ZOOM_TIME;
 			if ( f > 1.0 ) {
 				fov_x = zoomFov;

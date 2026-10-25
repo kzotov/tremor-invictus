@@ -1483,9 +1483,12 @@ static void G_BarrierToLaser( gentity_t *ent ) {
 	if ( ent->client->ps.stats[STAT_ABILITY_TIME] < g_laserTime.integer + g_laserDelay.integer + 100 ) {
 		ent->client->ps.stats[STAT_ABILITY_TIME] = g_laserTime.integer + g_laserDelay.integer + 100;
 	}
+	// firing, zoom and switching locked until the laser ends (the data)
 	if ( ent->client->ps.weaponTime < g_laserTime.integer + g_laserDelay.integer ) {
 		ent->client->ps.weaponTime = g_laserTime.integer + g_laserDelay.integer;
 	}
+	ent->client->ps.weaponstate = WEAPON_FIRING;
+	ent->client->ps.powerups[PW_ZOOMLOCK] = ent->client->laserEnd;
 }
 
 #define LASER_RADIUS	10		// the beam's sweep, abilities.md

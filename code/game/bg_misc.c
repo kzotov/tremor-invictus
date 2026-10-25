@@ -2398,7 +2398,7 @@ const abilityInfo_t bg_abilityInfo[ACTIVE_NUM_ABILITIES] = {
 	{ "bullrush",		STR_ABILITY_BULLRUSH,		qfalse,	{ "1", "60000", "0", "3000", "400" } },
 	{ "injection",		STR_ABILITY_INJECTION,		qfalse,	{ "1", "60000", "0", "5000", "1200" } },
 	{ "dualwield",		STR_ABILITY_DUALWIELD,		qfalse,	{ "1", "60000", "0", "5500", "400" } },
-	{ "barrier",		STR_ABILITY_BARRIER,		qfalse,	{ "1", "60000", "250", "8000", "400" } },
+	{ "barrier",		STR_ABILITY_BARRIER,		qfalse,	{ "1", "60000", "250", "8000", "0" } },	// no lock on the shield; the laser locks to its end (game)
 	{ "flamestrike",	STR_ABILITY_FLAMESTRIKE,	qfalse,	{ "1", "60000", "125", "10000", "1000" } },	// active until the last fireball is gone (the game ends it)
 	{ "berserk",		STR_ABILITY_BERSERK,		qtrue,	{ "1", "60000", "0", "3000", "400" } },	// 0.4 s firing lock at the end
 	{ "turret",			STR_ABILITY_TURRET,			qfalse,	{ "1", "60000", "0", "0", "400" } },

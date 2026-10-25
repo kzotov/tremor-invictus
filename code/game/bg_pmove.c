@@ -3158,10 +3158,24 @@ PM_WeaponLockout
 */
 static void PM_WeaponLockout( int active ) {
 	int		lockout = BG_AbilityParam( active, AP_LOCKOUT );
+	int		zoom = lockout;
 
-	// firing (and zoom) only: switching stays free (the data)
+	// abilities-data: every lock preset locks firing and zooming; Death
+	// Knight's and Anarki's switching too (a weapon can't change while it
+	// counts as firing); Sorlag's spit all three for its 1.0 s, then firing
+	// 0.4 s more
+	if ( active == ACTIVE_ACIDSPIT ) {
+		zoom = BG_AbilityParam( active, AP_DURATION );
+		lockout = zoom + 400;
+	}
 	if ( pm->ps->weaponTime < lockout ) {
 		pm->ps->weaponTime = lockout;
+	}
+	if ( zoom > 0 && pm->ps->powerups[PW_ZOOMLOCK] < pm->cmd.serverTime + zoom ) {
+		pm->ps->powerups[PW_ZOOMLOCK] = pm->cmd.serverTime + zoom;
+	}
+	if ( active == ACTIVE_FLAMESTRIKE || active == ACTIVE_INJECTION || active == ACTIVE_ACIDSPIT ) {
+		pm->ps->weaponstate = WEAPON_FIRING;
 	}
 }
 
@@ -3945,6 +3959,11 @@ void PmoveSingle (pmove_t *pmove) {
 
 	if ( pm->ps->stats[STAT_HEALTH] <= 0 ) {
 		pm->tracemask &= ~CONTENTS_BODY;	// corpses can fly through bodies
+	}
+
+	// an ability's zoom lock (PW_ZOOMLOCK): no zooming meanwhile
+	if ( pm->ps->powerups[PW_ZOOMLOCK] > pm->cmd.serverTime ) {
+		pm->cmd.buttons &= ~BUTTON_ZOOM;
 	}
 
 	// make sure walking button is clear if they are running, to avoid

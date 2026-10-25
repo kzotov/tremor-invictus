@@ -1755,6 +1755,8 @@ typedef enum {
 
 // shell-shocked until this time (a powerup slot the base game doesn't use)
 #define	PW_SHELLSHOCK		PW_SCOUT
+// an ability's lock on zooming until this time (Team Arena's Guard rune slot)
+#define	PW_ZOOMLOCK			PW_GUARD
 // burning and poisoned (end times), shown to everyone (Team Arena runes only)
 #define	PW_BURNING			PW_DOUBLER
 #define	PW_POISONED			PW_AMMOREGEN
