@@ -544,6 +544,7 @@ static void G_SacrificeStartRound( void ) {
 
 	sac.round++;
 	G_RoundInfo( sac.round, 0, qfalse );
+	G_ClearRoundObjects();		// the last round's missiles and ability objects
 	sac.state = SAC_PLAYING;
 	G_Announce( -1, "roundbegins" );
 	sac.roundStart = level.time;

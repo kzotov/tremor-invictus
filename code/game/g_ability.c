@@ -668,6 +668,9 @@ static void G_FireballThink( gentity_t *ball ) {
 		return;
 	}
 	ball->nextthink = level.time + GROUNDFIRE_STEP;
+	if ( ball->nextthink > ball->abilityTime ) {
+		ball->nextthink = ball->abilityTime;		// (a converging one bursts on time)
+	}
 	BG_EvaluateTrajectory( &ball->s.pos, level.time, origin );
 	VectorCopy( origin, down );
 	down[2] -= GROUNDFIRE_REACH;
@@ -713,6 +716,9 @@ static void G_FireFlameStrike( gentity_t *ent ) {
 	float		spread;
 
 	G_AbilityEyes( ent, start, forward, right );
+	VectorCopy( start, ent->client->flameStart );
+	VectorCopy( forward, ent->client->flameDir );
+	ent->client->flameTime = level.time;
 	spread = tan( DEG2RAD( g_fireballSpread.value ) );
 	for ( i = 0 ; i < 3 ; i++ ) {
 		VectorMA( forward, ( i - 1 ) * spread, right, dir );
@@ -731,43 +737,44 @@ static void G_FireFlameStrike( gentity_t *ent ) {
 ================
 G_FlameConverge
 
-Re-press: all fireballs meet at the middle one and explode together
+Re-press (champion-audit.md, deep audit): every fireball flies over 0.5 s
+to the point on the cast's aim line where the straight one would be 0.5 s
+later, and each explodes there as usual; the ability lasts until the last
+one is gone
 ================
 */
+#define CONVERGE_MSEC	500
+
 static void G_FlameConverge( gentity_t *ent ) {
+	gclient_t	*client = ent->client;
 	gentity_t	*ball;
 	vec3_t		point, origin;
-	int			i, count;
+	int			i, count = 0;
 
-	count = 0;
-	VectorClear( point );
+	VectorMA( client->flameStart, g_fireballSpeed.value * ( level.time + CONVERGE_MSEC - client->flameTime ) * 0.001f,
+		client->flameDir, point );
 	for ( i = 0 ; i < 3 ; i++ ) {
-		ball = ent->client->fireballs[i];
-		if ( ball ) {
-			BG_EvaluateTrajectory( &ball->s.pos, level.time, origin );
-			VectorAdd( point, origin, point );
-			count++;
+		ball = client->fireballs[i];
+		if ( !ball ) {
+			continue;
+		}
+		count++;
+		BG_EvaluateTrajectory( &ball->s.pos, level.time, origin );
+		VectorCopy( origin, ball->s.pos.trBase );
+		VectorSubtract( point, origin, ball->s.pos.trDelta );
+		VectorScale( ball->s.pos.trDelta, 1000.0f / CONVERGE_MSEC, ball->s.pos.trDelta );
+		SnapVector( ball->s.pos.trDelta );
+		ball->s.pos.trType = TR_LINEAR;
+		ball->s.pos.trTime = level.time;
+		VectorCopy( origin, ball->r.currentOrigin );
+		ball->abilityTime = level.time + CONVERGE_MSEC;
+		if ( ball->nextthink > ball->abilityTime ) {
+			ball->nextthink = ball->abilityTime;
 		}
 	}
 	if ( !count ) {
 		G_AbilityDone( ent );
-		return;
 	}
-	VectorScale( point, 1.0f / count, point );
-
-	ball = NULL;
-	for ( i = 0 ; i < 3 ; i++ ) {
-		if ( ent->client->fireballs[i] ) {
-			if ( !ball ) {
-				ball = ent->client->fireballs[i];
-			} else {
-				G_FreeEntity( ent->client->fireballs[i] );
-				ent->client->fireballs[i] = NULL;
-			}
-		}
-	}
-	G_FireballBurst( ball, point, g_flameConvergeDamage.integer, g_flameConvergeRadius.integer, NULL );
-	G_FireballFinish( ball, point );
 }
 
 /*
@@ -1117,9 +1124,12 @@ static void G_TurretThink( gentity_t *turret ) {
 		best = other;
 		bestDist = dist;
 	}
-	// a new target: the acquire beeps
+	// a new target: the acquire beeps (its own entity, so the first shot's
+	// sound in the same frame doesn't replace it)
 	if ( best && best != turret->enemy ) {
-		G_AddEvent( turret, EV_GENERAL_SOUND, G_SoundIndex( "sound/abilities/turret_target.wav" ) );
+		gentity_t	*tent = G_TempEntity( turret->r.currentOrigin, EV_GENERAL_SOUND );
+
+		tent->s.eventParm = G_SoundIndex( "sound/abilities/turret_target.wav" );
 	}
 	turret->enemy = best;
 	if ( !best ) {
@@ -1170,6 +1180,67 @@ static void G_TurretThink( gentity_t *turret ) {
 	}
 }
 
+static void G_TurretLost( gentity_t *turret );
+
+/*
+================
+G_TurretRoom
+
+The turret's box at spot: clear of the world and of players
+================
+*/
+static qboolean G_TurretRoom( gentity_t *turret, vec3_t spot, vec3_t mins, vec3_t maxs ) {
+	trace_t		tr;
+	vec3_t		absmin, absmax;
+	int			touch[MAX_GENTITIES], i, num;
+
+	trap_Trace( &tr, spot, mins, maxs, spot, turret->s.number, MASK_PLAYERSOLID );
+	if ( tr.startsolid || tr.allsolid ) {
+		return qfalse;
+	}
+	VectorAdd( spot, mins, absmin );
+	VectorAdd( spot, maxs, absmax );
+	num = trap_EntitiesInBox( absmin, absmax, touch, MAX_GENTITIES );
+	for ( i = 0 ; i < num ; i++ ) {
+		if ( touch[i] < MAX_CLIENTS && g_entities[touch[i]].inuse && g_entities[touch[i]].health > 0 ) {
+			return qfalse;
+		}
+	}
+	return qtrue;
+}
+
+/*
+================
+G_TurretSpot
+
+Where a turret that landed at land stands: there, or dropped onto the
+floor below a step's lip, or up to 16 u aside onto floor
+================
+*/
+static qboolean G_TurretSpot( gentity_t *turret, vec3_t land, vec3_t mins, vec3_t maxs, vec3_t spot ) {
+	static const float	aside[9][2] = { { 0, 0 }, { 16, 0 }, { -16, 0 }, { 0, 16 }, { 0, -16 },
+		{ 12, 12 }, { -12, 12 }, { 12, -12 }, { -12, -12 } };
+	trace_t		tr;
+	vec3_t		start, down;
+	int			i;
+
+	for ( i = 0 ; i < 9 ; i++ ) {
+		// from 18 u up, down onto the floor (a step's lip, a slope)
+		VectorSet( start, land[0] + aside[i][0], land[1] + aside[i][1], land[2] + 18 );
+		VectorCopy( start, down );
+		down[2] -= 64;
+		trap_Trace( &tr, start, mins, maxs, down, turret->s.number, MASK_SOLID );
+		if ( tr.startsolid || tr.allsolid || tr.fraction >= 1.0f || tr.plane.normal[2] < 0.7f ) {
+			continue;
+		}
+		if ( G_TurretRoom( turret, tr.endpos, mins, maxs ) ) {
+			VectorCopy( tr.endpos, spot );
+			return qtrue;
+		}
+	}
+	return qfalse;
+}
+
 /*
 ================
 G_TurretImpact
@@ -1180,7 +1251,6 @@ steep slope it drops on down
 */
 static void G_TurretImpact( gentity_t *turret, trace_t *trace ) {
 	vec3_t		point, mins, maxs;
-	trace_t		tr;
 
 	VectorMA( trace->endpos, 2, trace->plane.normal, point );
 	if ( trace->plane.normal[2] < 0.7f ) {
@@ -1189,26 +1259,14 @@ static void G_TurretImpact( gentity_t *turret, trace_t *trace ) {
 		turret->s.pos.trTime = level.time;
 		return;
 	}
-	// the 24 u box on the floor, a step edge or a low ceiling allowing
+	// the 24 u box on the floor: a step's lip settles onto the floor below
+	// its middle; beside a wall or on a player it moves aside up to 16 u;
+	// no room anywhere and the charge comes back
 	VectorSet( mins, -12, -12, 0 );
 	VectorSet( maxs, 12, 12, 24 );
-	VectorCopy( trace->endpos, point );
-	point[2] += 1;
-	trap_Trace( &tr, point, mins, maxs, point, turret->s.number, MASK_PLAYERSOLID );
-	if ( tr.startsolid ) {
-		// on a step's lip: settle onto the floor below its middle
-		vec3_t	down;
-
-		VectorCopy( trace->endpos, point );
-		point[2] += 18;
-		VectorCopy( point, down );
-		down[2] -= 64;
-		trap_Trace( &tr, point, mins, maxs, down, turret->s.number, MASK_PLAYERSOLID );
-		if ( !tr.startsolid && !tr.allsolid && tr.fraction < 1.0f ) {
-			VectorCopy( tr.endpos, point );
-		} else {
-			VectorCopy( trace->endpos, point );
-		}
+	if ( !G_TurretSpot( turret, trace->endpos, mins, maxs, point ) ) {
+		G_TurretLost( turret );
+		return;
 	}
 
 	turret->abilityImpact = NULL;
@@ -1284,6 +1342,47 @@ static void G_ThrowTurret( gentity_t *ent ) {
 	turret->abilityImpact = G_TurretImpact;
 	turret->think = G_TurretLost;
 	turret->nextthink = level.time + 10000;
+}
+
+/*
+================
+G_ClearRoundObjects
+
+A new round starts clean (FIX-12): every flying missile and every
+ability object left from the last round goes
+================
+*/
+void G_ClearRoundObjects( void ) {
+	static const char *names[] = { "sentry_turret", "turret_thrown", "totem", "acid", "stroyent_cell",
+		"supplydrop", "hound", "ground_fire", "shellshock", "downpour", "riftanchor", "plasma_trail", NULL };
+	gentity_t	*ent;
+	int			i, n;
+
+	for ( i = MAX_CLIENTS, ent = &g_entities[MAX_CLIENTS] ; i < level.num_entities ; i++, ent++ ) {
+		if ( !ent->inuse ) {
+			continue;
+		}
+		if ( ent->parent && ent->parent->client && ent->parent->client->hook == ent ) {
+			continue;		// a hook in use goes with its player
+		}
+		if ( ent->s.eType == ET_MISSILE ) {
+			G_FreeEntity( ent );
+			continue;
+		}
+		for ( n = 0 ; ent->classname && names[n] ; n++ ) {
+			if ( !strcmp( ent->classname, names[n] ) ) {
+				G_FreeEntity( ent );
+				break;
+			}
+		}
+	}
+	for ( i = 0 ; i < level.maxclients ; i++ ) {
+		gclient_t	*cl = &level.clients[i];
+
+		cl->turret = NULL;
+		cl->abilityEnt = NULL;
+		cl->fireballs[0] = cl->fireballs[1] = cl->fireballs[2] = NULL;
+	}
 }
 
 /*

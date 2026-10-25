@@ -542,6 +542,11 @@ void G_RunMissile( gentity_t *ent ) {
 			if (ent->parent && ent->parent->client && ent->parent->client->hook == ent) {
 				ent->parent->client->hook = NULL;
 			}
+			// a thrown turret lost in the sky gives its charge back
+			if ( ent->think && ent->classname && !strcmp( ent->classname, "turret_thrown" ) ) {
+				ent->think( ent );
+				return;
+			}
 			G_FreeEntity( ent );
 			return;
 		}

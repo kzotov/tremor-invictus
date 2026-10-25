@@ -412,6 +412,8 @@ struct gclient_s {
 
 	gentity_t	*abilityEnt;		// orb in flight
 	gentity_t	*fireballs[3];		// flame strike fireballs in flight
+	vec3_t		flameStart, flameDir;	// the cast's aim line (the converge point)
+	int			flameTime;
 	gentity_t	*turret;			// placed sentry turret
 	int			abilityShots;		// acid blobs spat so far
 	int			abilityShotTime;	// level.time of the next blob
@@ -908,6 +910,7 @@ void G_AbilityStarted( gentity_t *ent );
 void G_AbilityEnded( gentity_t *ent );
 void G_DroneEnd( gentity_t *ent, qboolean launch );
 void G_RemoveAbilityObjects( gentity_t *owner, int keepActive );
+void G_ClearRoundObjects( void );
 void G_DroneBodyPush( gentity_t *body, const vec3_t kvel );
 #define DRONE_INPUT_WAIT	250		// msec of no input after the drone ends
 float G_BarrierScale( gentity_t *targ, int mod );

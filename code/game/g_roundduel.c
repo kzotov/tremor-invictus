@@ -329,6 +329,7 @@ static void G_RDStartRound( void ) {
 	rd.stateTime = level.time + RD_COUNTDOWN_MSEC;
 	rd.suddenDeath = qfalse;
 	G_ResetMapItems();
+	G_ClearRoundObjects();		// the last round's missiles and ability objects
 	level.abilityRefill = qtrue;		// every champion's first life starts ready
 	for ( side = 0 ; side < 2 ; side++ ) {
 		rd.dead[side] = 0;

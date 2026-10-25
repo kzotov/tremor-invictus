@@ -867,10 +867,11 @@ def sounds(out):
         mix((env(osc(880, 0.12, "square"), decay=18), 0.25, 0),
             (env(osc(1320, 0.18, "square"), decay=14), 0.25, 0.1),
             (env(noise(0.05, 4000, 84), decay=70), 0.6, 0)))
-    put(os.path.join(out, "sound/abilities/turret_target.wav"),
+    # (a short square beep: quieter than the rest, -9 dBFS peak)
+    write_wav(os.path.join(out, "sound/abilities/turret_target.wav"), level(
         mix((env(osc(2093, 0.07, "square"), decay=30), 0.3, 0),
             (env(osc(2093, 0.07, "square"), decay=30), 0.3, 0.1),
-            (env(osc(2637, 0.1, "square"), decay=25), 0.3, 0.2)))
+            (env(osc(2637, 0.1, "square"), decay=25), 0.3, 0.2)), db=-9))
     put(os.path.join(out, "sound/abilities/turret_shot.wav"),
         mix((env(osc(glide(1700, 500, 0.09), 0.12, "square"), decay=28), 0.35, 0),
             (env(noise(0.06, 5000, 85), decay=70), 0.7, 0),

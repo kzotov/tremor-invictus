@@ -122,13 +122,8 @@ static void G_CAStartRound( void ) {
 	level.caState = CA_COUNTDOWN;
 	level.caStateTime = level.time + CA_COUNTDOWN_MSEC;
 
-	// leftover rockets and grenades from the last round
-	for ( i = MAX_CLIENTS ; i < level.num_entities ; i++ ) {
-		ent = &g_entities[i];
-		if ( ent->inuse && ent->s.eType == ET_MISSILE ) {
-			G_FreeEntity( ent );
-		}
-	}
+	// leftover rockets, grenades, turrets, totems, pools from the last round
+	G_ClearRoundObjects();
 
 	level.caSpawning = qtrue;
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
