@@ -338,8 +338,19 @@ static void G_OrbThink( gentity_t *orb ) {
 		G_Damage( other, orb, orb->parent, NULL, NULL, g_orbContactDamage.integer, DAMAGE_NO_KNOCKBACK, MOD_ORB );
 	}
 
-	// abilityTime: end of the flight, then end of the fuse once stopped
+	// abilityTime: end of the flight, then end of the fuse once stopped; an
+	// orb that never met a surface is just gone at 15 s (abilities-data)
 	if ( level.time >= orb->abilityTime ) {
+		if ( orb->abilityImpact ) {
+			gentity_t	*owner = orb->parent;
+
+			if ( owner && owner->client && owner->client->abilityEnt == orb ) {
+				owner->client->abilityEnt = NULL;
+				G_AbilityDone( owner );
+			}
+			G_FreeEntity( orb );
+			return;
+		}
 		G_OrbExplode( orb );
 		return;
 	}
@@ -367,7 +378,7 @@ static void G_OrbDestroyed( gentity_t *orb, gentity_t *inflictor, gentity_t *att
 		return;		// only an enemy's shots count (champion-audit.md)
 	}
 	// the death blast: the same falloff, wider, and Ranger isn't spared
-	G_OrbBurst( orb->r.currentOrigin, attacker, g_orbShotDamage.value, g_orbShotRadius.value, qtrue );		// (sparing the shooter)
+	G_OrbBurst( orb->r.currentOrigin, attacker, g_orbShotDamage.value, g_orbShotRadius.value, qfalse );		// (everyone within 300 u, the shooter too)
 	G_CutAbilityCooldown( owner, 0.5f );
 	if ( owner->client->abilityEnt == orb ) {
 		owner->client->abilityEnt = NULL;
@@ -1685,7 +1696,8 @@ static void G_TrailBurst( gentity_t *seg ) {
 	at[2] += 20;
 	G_SetOrigin( seg, at );
 	if ( seg->parent ) {
-		G_SplashParams( 10, 0, 0 );		// down to 10 at the edge, no push
+		G_SplashParams( 10, 0, 0 );		// full 25 out to 48 u, down to 10 at 120 u, no push (abilities-data)
+		G_SplashShape( 48, qtrue );
 		// the detonation spares Slash (champion-audit.md)
 		G_RadiusDamage( at, seg->parent, g_trailBlast.integer, g_trailRadius.integer, seg->parent, MOD_PLASMATRAIL );
 	}
@@ -2542,7 +2554,11 @@ void G_AbilityClientDied( gentity_t *ent ) {
 	G_ChampionClientDied( ent );
 	G_AbilityEnded( ent );
 	if ( client->abilityEnt ) {
-		G_FreeEntity( client->abilityEnt );
+		// Ranger's orb outlives him and goes off on its own fuse
+		// (abilities-data); anything else goes with its owner
+		if ( !client->abilityEnt->classname || strcmp( client->abilityEnt->classname, "dire_orb" ) ) {
+			G_FreeEntity( client->abilityEnt );
+		}
 		client->abilityEnt = NULL;
 	}
 	for ( i = 0 ; i < 3 ; i++ ) {

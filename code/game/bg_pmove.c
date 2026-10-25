@@ -74,7 +74,7 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_acAirControl",		"150",	&bg_pmoveSettings.acAirControl },
 	{ {0}, "pm_hopAccel",			"240",	&bg_pmoveSettings.hopAccel },
 	{ {0}, "pm_hopMaxSpeed",		"500",	&bg_pmoveSettings.hopMaxSpeed },
-	{ {0}, "pm_easyStrafeAccel",	"0.08",	&bg_pmoveSettings.easyStrafeAccel },
+	{ {0}, "pm_easyStrafeAccel",	"0.1",	&bg_pmoveSettings.easyStrafeAccel },
 	{ {0}, "pm_easyStrafeMaxSpeed",	"400",	&bg_pmoveSettings.easyStrafeMaxSpeed },
 	{ {0}, "pm_isoAirAccel",		"2.5",	&bg_pmoveSettings.isoAirAccel },
 	{ {0}, "pm_isoAirControl",		"1",	&bg_pmoveSettings.isoAirControl },
@@ -4064,6 +4064,12 @@ void PmoveSingle (pmove_t *pmove) {
 	memset (&pml, 0, sizeof(pml));
 
 	pml.champion = BG_Champion( pm->ps->stats[STAT_CHAMPION] );
+
+	// Slash laying the Plasma Trail runs forward at full speed; strafing
+	// and aiming stay free (abilities-data)
+	if ( pml.champion->active == ACTIVE_PLASMATRAIL && PM_AbilityActive( ACTIVE_PLASMATRAIL ) ) {
+		pm->cmd.forwardmove = 127;
+	}
 	pml.runSpeed = pm->ps->speed;
 
 	// determine the time
