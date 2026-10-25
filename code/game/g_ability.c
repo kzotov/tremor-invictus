@@ -2248,6 +2248,8 @@ can pick it up, for health up to the maximum (it stays at full health).
 ==============================================================================
 */
 
+static int G_StroyentSeers( void );
+
 static void G_CellThink( gentity_t *cell ) {
 	gentity_t	*other;
 	int			i, max;
@@ -2255,6 +2257,13 @@ static void G_CellThink( gentity_t *cell ) {
 	if ( level.time >= cell->abilityTime ) {
 		G_FreeEntity( cell );
 		return;
+	}
+	if ( !G_StroyentSeers() ) {
+		G_FreeEntity( cell );
+		return;
+	}
+	if ( cell->r.svFlags & SVF_CLIENTMASK ) {
+		cell->r.singleClient = G_StroyentSeers();		// (who plays Strogg can change)
 	}
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
 		other = &g_entities[i];
@@ -2290,16 +2299,48 @@ static void G_CellThink( gentity_t *cell ) {
 	cell->nextthink = level.time + ABILITY_FRAME * 2;
 }
 
+/*
+================
+G_StroyentSeers
+
+The clients that may see and take Stroyent cells: Strogg players (a bit
+each, for SVF_CLIENTMASK); 0 with none in the match
+================
+*/
+static int G_StroyentSeers( void ) {
+	int		i, mask = 0;
+
+	for ( i = 0 ; i < level.maxclients && i < 32 ; i++ ) {
+		gclient_t	*cl = &level.clients[i];
+
+		if ( cl->pers.connected == CON_CONNECTED && cl->sess.sessionTeam != TEAM_SPECTATOR
+			&& ( BG_Champion( cl->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_STROYENT ) ) {
+			mask |= 1 << i;
+		}
+	}
+	return mask;
+}
+
+/*
+================
+G_DropStroyentCell
+
+abilities-data: every player death drops a cell while a Strogg is in the
+match (the mode's "players drop health"), seen and taken by Strogg only
+================
+*/
 void G_DropStroyentCell( gentity_t *victim, gentity_t *attacker ) {
 	gentity_t	*cell;
+	int			seers = G_StroyentSeers();
 
-	if ( !attacker || !attacker->client || attacker == victim ) {
-		return;
-	}
-	if ( !( BG_Champion( attacker->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_STROYENT ) ) {
+	if ( !seers || !victim->client ) {
 		return;
 	}
 	cell = G_Spawn();
+	if ( level.maxclients <= 32 ) {		// (the mask covers 32 clients)
+		cell->r.svFlags |= SVF_CLIENTMASK;		// only Strogg players are sent it
+		cell->r.singleClient = seers;
+	}
 	cell->classname = "stroyent_cell";
 	cell->s.eType = ET_GENERAL;
 	cell->s.modelindex = G_ModelIndex( "models/powerups/health/small_cross.md3" );
