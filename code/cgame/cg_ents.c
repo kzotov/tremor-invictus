@@ -791,6 +791,17 @@ static void CG_AbilityVisual( centity_t *cent ) {
 		CG_AbilityLight( cent->lerpOrigin, 140, 1.0f, 0.5f, 0.15f );
 		break;
 
+	case AV_THROWN:
+		memset( &ent, 0, sizeof( ent ) );
+		VectorCopy( cent->lerpOrigin, ent.origin );
+		VectorCopy( cent->lerpOrigin, ent.oldorigin );
+		ent.hModel = cgs.gameModels[s1->modelindex];
+		VectorSet( a, cg.time * 0.4f, s1->angles[YAW], 0 );
+		AnglesToAxis( a, ent.axis );
+		ent.renderfx = RF_NOSHADOW;
+		trap_R_AddRefEntityToScene( &ent );
+		break;
+
 	case AV_ACID:
 		if ( cgs.media.acidBallShader ) {
 			CG_VfxSprite( cent->lerpOrigin, 12, cgs.media.acidBallShader, 255, 255, 255, cg.time * 0.3f );

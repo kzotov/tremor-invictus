@@ -189,6 +189,7 @@ typedef enum {
 	AV_ACID,			// Acid Spit's blob
 	AV_TRAIL,			// a piece of the plasma trail; otherEntityNum is its owner
 	AV_GROUNDFIRE,		// Flame Strike's fire on the floor
+	AV_THROWN,			// a thrown turret or totem: modelindex tumbling
 	AV_NUM
 } abilityVisual_t;
 

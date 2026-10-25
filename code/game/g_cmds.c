@@ -353,6 +353,12 @@ void Cmd_Give_f (gentity_t *ent)
 			return;
 	}
 
+	// a full ability, for testing
+	if (Q_stricmp(name, "ability") == 0) {
+		BG_SetAbility( &ent->client->ps, BG_AbilityState( &ent->client->ps ),
+			BG_AbilityParam( BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->active, AP_CHARGES ) );
+		return;
+	}
 	if (Q_stricmp(name, "excellent") == 0) {
 		ent->client->ps.persistant[PERS_EXCELLENT_COUNT]++;
 		return;
@@ -724,6 +730,9 @@ void SetTeam( gentity_t *ent, const char *s ) {
 	}
 
 	BroadcastTeamChange( client, oldTeam );
+
+	// a turret or totem doesn't change sides
+	G_RemoveAbilityObjects( ent, -1 );
 
 	ClientBegin( clientNum );
 }

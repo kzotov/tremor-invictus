@@ -845,6 +845,36 @@ def sounds(out):
     put(os.path.join(out, "sound/abilities/drone_charge.wav"),
         mix((env(osc(glide(400, 1800, 0.5), 0.7, "square"), attack=0.02, decay=2.5), 0.15, 0),
             (env(noise(0.7, glide(800, 5000, 0.5), 47), attack=0.05, decay=2.2), 0.8, 0)))
+    # Eisen's turret at work (konstantin-list-audit 2: deploy, coming online,
+    # target acquired, each shot, an idle hum, destroyed)
+    put(os.path.join(out, "sound/abilities/turret_deploy.wav"),
+        mix((env(osc(glide(120, 60, 0.15), 0.3), decay=14), 1.0, 0),
+            (env(noise(0.1, 2500, 81), decay=40), 0.8, 0),
+            (env(osc(1900, 0.2, "tri"), decay=25), 0.25, 0.02),
+            (env(osc(glide(220, 660, 0.45), 0.55, "saw"), attack=0.05, decay=3), 0.2, 0.12),
+            (env(noise(0.06, 3500, 82), decay=60), 0.7, 0.62),
+            (env(noise(0.06, 3000, 83), decay=60), 0.6, 0.74)))
+    put(os.path.join(out, "sound/abilities/turret_online.wav"),
+        mix((env(osc(880, 0.12, "square"), decay=18), 0.25, 0),
+            (env(osc(1320, 0.18, "square"), decay=14), 0.25, 0.1),
+            (env(noise(0.05, 4000, 84), decay=70), 0.6, 0)))
+    put(os.path.join(out, "sound/abilities/turret_target.wav"),
+        mix((env(osc(2093, 0.07, "square"), decay=30), 0.3, 0),
+            (env(osc(2093, 0.07, "square"), decay=30), 0.3, 0.1),
+            (env(osc(2637, 0.1, "square"), decay=25), 0.3, 0.2)))
+    put(os.path.join(out, "sound/abilities/turret_shot.wav"),
+        mix((env(osc(glide(1700, 500, 0.09), 0.12, "square"), decay=28), 0.35, 0),
+            (env(noise(0.06, 5000, 85), decay=70), 0.7, 0),
+            (env(osc(140, 0.1), decay=40), 0.6, 0)))
+    # the hum loops: whole cycles in its one second, so it repeats cleanly
+    hum = mix((osc(60, 1.0, "saw"), 0.3, 0), (osc(120, 1.0), 0.4, 0),
+              (osc(1500, 1.0, "tri", amp=lambda t: 0.05 * (1 + math.sin(2 * math.pi * 2 * t))), 1.0, 0))
+    write_wav(os.path.join(out, "sound/abilities/turret_idle.wav"), level(hum, db=-14))
+    put(os.path.join(out, "sound/abilities/turret_destroyed.wav"),
+        mix((env(noise(0.7, glide(4000, 400, 0.6), 86), decay=5), 1.0, 0),
+            (env(osc(glide(90, 40, 0.4), 0.6), decay=6), 0.9, 0),
+            (env(osc(glide(1200, 300, 0.5), 0.6, "tri"), decay=6), 0.3, 0.03),
+            (env(noise(0.05, 3000, 87), decay=60), 0.6, 0.35)))
     # each ability: its own cast and end (ABILITY_SOUNDS), levelled to -1 dBFS
     for name in ABILITIES:
         cast, end = ABILITY_SOUNDS[name]

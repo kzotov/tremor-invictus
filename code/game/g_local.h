@@ -907,6 +907,7 @@ void G_ShotTrace( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3
 void G_AbilityStarted( gentity_t *ent );
 void G_AbilityEnded( gentity_t *ent );
 void G_DroneEnd( gentity_t *ent, qboolean launch );
+void G_RemoveAbilityObjects( gentity_t *owner, int keepActive );
 void G_DroneBodyPush( gentity_t *body, const vec3_t kvel );
 #define DRONE_INPUT_WAIT	250		// msec of no input after the drone ends
 float G_BarrierScale( gentity_t *targ, int mod );

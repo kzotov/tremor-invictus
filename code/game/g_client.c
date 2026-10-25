@@ -1310,6 +1310,8 @@ void ClientSpawn(gentity_t *ent) {
 		ent->r.maxs[0] = ent->r.maxs[1] = bg_classInfo[BG_Champion( client->ps.stats[STAT_CHAMPION] )->bodyClass].halfWidth;
 	}
 	G_RewindReset( ent );
+	// a turret or totem stays only while its champion does
+	G_RemoveAbilityObjects( ent, BG_Champion( client->ps.stats[STAT_CHAMPION] )->active );
 	ClientUserinfoChanged( index );		// show this champion's model
 	if ( kept && client->pers.keptChampion == client->ps.stats[STAT_CHAMPION] ) {
 		int		active = BG_Champion( client->ps.stats[STAT_CHAMPION] )->active;

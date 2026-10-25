@@ -974,6 +974,7 @@ static void G_TotemImpact( gentity_t *totem, trace_t *trace ) {
 	G_AbilityStop( totem, point );
 	totem->abilityImpact = NULL;
 	totem->s.eType = ET_GENERAL;
+	totem->s.generic1 = AV_NONE;
 	totem->s.modelindex = G_ModelIndex( "models/abilities/totem/totem.md3" );
 	totem->r.contents = CONTENTS_CORPSE;
 	VectorSet( totem->r.mins, -8, -8, -8 );
@@ -997,6 +998,8 @@ static void G_ThrowTotem( gentity_t *ent ) {
 	G_AbilityEyes( ent, start, forward, right );
 	totem = G_AbilityMissile( ent, "totem", start, forward, g_totemSpeed.value, TR_GRAVITY, WP_GRENADE_LAUNCHER );
 	totem->clipmask = MASK_SOLID;
+	totem->s.generic1 = AV_THROWN;
+	totem->s.modelindex = G_ModelIndex( "models/abilities/totem/totem.md3" );
 	totem->abilityImpact = G_TotemImpact;
 	totem->abilityTime = level.time;
 	totem->think = G_FreeEntity;
@@ -1014,11 +1017,39 @@ bolts at it until destroyed.
 ==============================================================================
 */
 
+/*
+================
+G_OwnTurrets
+
+Each Eisen's turrets, standing or still in the air, found by owner (a
+client's own pointer would be lost on respawn)
+================
+*/
+static int G_OwnTurrets( gentity_t *owner, gentity_t **oldest ) {
+	gentity_t	*ent;
+	int			i, count = 0;
+
+	*oldest = NULL;
+	for ( i = MAX_CLIENTS, ent = &g_entities[MAX_CLIENTS] ; i < level.num_entities ; i++, ent++ ) {
+		if ( ent->inuse && ent->parent == owner && ent->classname
+			&& ( !strcmp( ent->classname, "sentry_turret" ) || !strcmp( ent->classname, "turret_thrown" ) ) ) {
+			if ( !*oldest || ent->s.time < ( *oldest )->s.time ) {
+				*oldest = ent;
+			}
+			count++;
+		}
+	}
+	return count;
+}
+
 static void G_TurretDie( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, int mod ) {
 	gentity_t	*tent;
 
+	tent = G_TempEntity( self->r.currentOrigin, EV_GENERAL_SOUND );
+	tent->s.eventParm = G_SoundIndex( "sound/abilities/turret_destroyed.wav" );
 	tent = G_TempEntity( self->r.currentOrigin, EV_MISSILE_MISS );
-	tent->s.weapon = WP_ROCKET_LAUNCHER;
+	tent->s.weapon = WP_PLASMAGUN;		// a small flash, not a rocket's blast
+	tent->s.eventParm = DirToByte( vec3_origin );
 	if ( self->parent && self->parent->client && self->parent->client->turret == self ) {
 		self->parent->client->turret = NULL;
 	}
@@ -1028,6 +1059,7 @@ static void G_TurretDie( gentity_t *self, gentity_t *inflictor, gentity_t *attac
 #define TURRET_FOV		140
 #define TURRET_IMPULSE	10
 #define TURRET_ARMOR	50		// absorbs two thirds of each hit until spent
+#define TURRET_EYE_UP	14		// thrown from 0.35 m above the eye
 
 static void G_TurretThink( gentity_t *turret ) {
 	gentity_t	*other, *best = NULL;
@@ -1037,8 +1069,18 @@ static void G_TurretThink( gentity_t *turret ) {
 	int			i;
 
 	turret->nextthink = level.time + ABILITY_FRAME;
-	if ( !turret->parent || !turret->parent->client || !turret->parent->inuse ) {
+	// it outlives Eisen's death; it goes when he leaves the game
+	if ( !turret->parent || !turret->parent->client || !turret->parent->inuse
+		|| turret->parent->client->pers.connected != CON_CONNECTED ) {
 		G_TurretDie( turret, NULL, NULL, 0, 0 );
+		return;
+	}
+	// armed: a chirp, then it hums while it stands
+	if ( !turret->s.loopSound && level.time >= turret->s.time + g_turretDeployTime.integer ) {
+		G_AddEvent( turret, EV_GENERAL_SOUND, G_SoundIndex( "sound/abilities/turret_online.wav" ) );
+		turret->s.loopSound = G_SoundIndex( "sound/abilities/turret_idle.wav" );
+	}
+	if ( level.time < turret->s.time + g_turretDeployTime.integer ) {
 		return;
 	}
 
@@ -1071,6 +1113,11 @@ static void G_TurretThink( gentity_t *turret ) {
 		best = other;
 		bestDist = dist;
 	}
+	// a new target: the acquire beeps
+	if ( best && best != turret->enemy ) {
+		G_AddEvent( turret, EV_GENERAL_SOUND, G_SoundIndex( "sound/abilities/turret_target.wav" ) );
+	}
+	turret->enemy = best;
 	if ( !best ) {
 		return;
 	}
@@ -1115,79 +1162,154 @@ static void G_TurretThink( gentity_t *turret ) {
 		bolt->splashMethodOfDeath = MOD_TURRET;
 		VectorScale( dir, g_turretBoltSpeed.value, bolt->s.pos.trDelta );
 		SnapVector( bolt->s.pos.trDelta );
+		G_AddEvent( turret, EV_GENERAL_SOUND, G_SoundIndex( "sound/abilities/turret_shot.wav" ) );
 	}
 }
 
 /*
 ================
-G_PlaceTurret
+G_TurretImpact
 
-Puts a turret on the ground in front of the player. It may not stand on
-an item; then the charge comes back.
+The thrown turret stands up where it lands on a floor; on a wall or a
+steep slope it drops on down
 ================
 */
-static void G_PlaceTurret( gentity_t *ent ) {
-	vec3_t		start, forward, right, end, mins, maxs;
+static void G_TurretImpact( gentity_t *turret, trace_t *trace ) {
+	vec3_t		point, mins, maxs;
 	trace_t		tr;
-	gentity_t	*turret;
-	int			touch[MAX_GENTITIES];
-	int			i, num;
 
+	VectorMA( trace->endpos, 2, trace->plane.normal, point );
+	if ( trace->plane.normal[2] < 0.7f ) {
+		G_AbilityStop( turret, point );
+		turret->s.pos.trType = TR_GRAVITY;
+		turret->s.pos.trTime = level.time;
+		return;
+	}
+	// the 24 u box on the floor, a step edge or a low ceiling allowing
 	VectorSet( mins, -12, -12, 0 );
 	VectorSet( maxs, 12, 12, 24 );
+	VectorCopy( trace->endpos, point );
+	point[2] += 1;
+	trap_Trace( &tr, point, mins, maxs, point, turret->s.number, MASK_PLAYERSOLID );
+	if ( tr.startsolid ) {
+		// on a step's lip: settle onto the floor below its middle
+		vec3_t	down;
 
-	G_AbilityEyes( ent, start, forward, right );
-	forward[2] = 0;
-	VectorNormalize( forward );
-	VectorCopy( ent->client->ps.origin, start );
-	VectorMA( start, 48, forward, end );
-	trap_Trace( &tr, start, mins, maxs, end, ent->s.number, MASK_PLAYERSOLID );
-	VectorCopy( tr.endpos, start );
-	VectorCopy( start, end );
-	end[2] -= 256;
-	trap_Trace( &tr, start, mins, maxs, end, ent->s.number, MASK_PLAYERSOLID );
-	if ( tr.allsolid || tr.startsolid || tr.fraction == 1.0f ) {
-		goto refund;
-	}
-
-	VectorAdd( tr.endpos, mins, mins );
-	VectorAdd( tr.endpos, maxs, maxs );
-	num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
-	for ( i = 0 ; i < num ; i++ ) {
-		if ( g_entities[touch[i]].s.eType == ET_ITEM ) {
-			goto refund;
+		VectorCopy( trace->endpos, point );
+		point[2] += 18;
+		VectorCopy( point, down );
+		down[2] -= 64;
+		trap_Trace( &tr, point, mins, maxs, down, turret->s.number, MASK_PLAYERSOLID );
+		if ( !tr.startsolid && !tr.allsolid && tr.fraction < 1.0f ) {
+			VectorCopy( tr.endpos, point );
+		} else {
+			VectorCopy( trace->endpos, point );
 		}
 	}
 
-	if ( ent->client->turret ) {
-		G_TurretDie( ent->client->turret, NULL, NULL, 0, 0 );
-	}
-	turret = G_Spawn();
+	turret->abilityImpact = NULL;
 	turret->classname = "sentry_turret";
 	turret->s.eType = ET_GENERAL;
-	turret->s.modelindex = G_ModelIndex( "models/abilities/turret/turret.md3" );
-	turret->parent = ent;
-	turret->r.ownerNum = ent->s.number;
-	turret->s.otherEntityNum = ent->s.number;		// drawn in its owner's colours
+	turret->s.generic1 = AV_NONE;
+	turret->s.otherEntityNum = turret->parent->s.number;		// drawn in its owner's colours
 	turret->r.contents = CONTENTS_CORPSE;
-	VectorSet( turret->r.mins, -12, -12, 0 );
-	VectorSet( turret->r.maxs, 12, 12, 24 );
+	VectorCopy( mins, turret->r.mins );
+	VectorCopy( maxs, turret->r.maxs );
 	turret->takedamage = qtrue;
 	turret->health = g_turretHealth.integer;
 	turret->count = TURRET_ARMOR;		// its armour (G_Damage)
 	turret->die = G_TurretDie;
 	turret->think = G_TurretThink;
 	turret->nextthink = level.time + ABILITY_FRAME;
-	turret->abilityTime = level.time + g_turretDeployTime.integer;	// deploying
-	G_SetOrigin( turret, tr.endpos );
-	G_AbilitySetAngles( turret, ent->client->ps.viewangles );
-	VectorCopy( ent->client->ps.viewangles, turret->movedir );	// the middle of its view
-	trap_LinkEntity( turret );
-	ent->client->turret = turret;
-	return;
+	turret->s.time = level.time;		// deploying until s.time + g_turretDeployTime
+	turret->abilityTime = 0;
+	turret->enemy = NULL;
+	G_AbilityStop( turret, point );
+	{
+		vec3_t	angles;
 
-refund:
-	BG_SetAbility( &ent->client->ps, BG_AbilityState( &ent->client->ps ), BG_AbilityCharges( &ent->client->ps ) + 1 );
+		VectorSet( angles, 0, turret->movedir[YAW], 0 );
+		G_AbilitySetAngles( turret, angles );
+	}
+	trap_LinkEntity( turret );
+	G_AddEvent( turret, EV_GENERAL_SOUND, G_SoundIndex( "sound/abilities/turret_deploy.wav" ) );
+	turret->parent->client->turret = turret;
+}
+
+/*
+================
+G_TurretLost
+
+Thrown and never landed: the charge comes back
+================
+*/
+static void G_TurretLost( gentity_t *turret ) {
+	gentity_t	*owner = turret->parent;
+
+	if ( owner && owner->inuse && owner->client ) {
+		BG_SetAbility( &owner->client->ps, BG_AbilityState( &owner->client->ps ),
+			BG_AbilityCharges( &owner->client->ps ) + 1 );
+	}
+	G_FreeEntity( turret );
+}
+
+/*
+================
+G_ThrowTurret
+
+Thrown from the eye like the totem; deploys where it lands (konstantin-list-
+audit 2). One per Eisen: the next replaces it.
+================
+*/
+static void G_ThrowTurret( gentity_t *ent ) {
+	vec3_t		start, forward, right;
+	gentity_t	*turret, *oldest;
+
+	while ( G_OwnTurrets( ent, &oldest ) >= 1 && oldest ) {
+		G_TurretDie( oldest, NULL, NULL, 0, 0 );
+	}
+	G_AbilityEyes( ent, start, forward, right );
+	start[2] += TURRET_EYE_UP;
+	turret = G_AbilityMissile( ent, "turret_thrown", start, forward, g_totemSpeed.value, TR_GRAVITY, WP_GRENADE_LAUNCHER );
+	turret->clipmask = MASK_SOLID;
+	turret->s.generic1 = AV_THROWN;
+	turret->s.modelindex = G_ModelIndex( "models/abilities/turret/turret.md3" );
+	turret->s.angles[YAW] = ent->client->ps.viewangles[YAW];
+	VectorCopy( ent->client->ps.viewangles, turret->movedir );	// the middle of its view
+	turret->s.time = level.time;
+	turret->abilityImpact = G_TurretImpact;
+	turret->think = G_TurretLost;
+	turret->nextthink = level.time + 10000;
+}
+
+/*
+================
+G_RemoveAbilityObjects
+
+The turrets and totems a player has out (all of them on a team change;
+on a champion change all but keepActive's; owner NULL: everyone's)
+================
+*/
+void G_RemoveAbilityObjects( gentity_t *owner, int keepActive ) {
+	static const char *names[] = { "sentry_turret", "turret_thrown", "totem", NULL };
+	static const int actives[] = { ACTIVE_TURRET, ACTIVE_TURRET, ACTIVE_TOTEM };
+	gentity_t	*ent;
+	int			i, n;
+
+	for ( i = MAX_CLIENTS, ent = &g_entities[MAX_CLIENTS] ; i < level.num_entities ; i++, ent++ ) {
+		if ( !ent->inuse || !ent->classname || ( owner && ent->parent != owner ) ) {
+			continue;
+		}
+		for ( n = 0 ; names[n] ; n++ ) {
+			if ( !strcmp( ent->classname, names[n] ) && actives[n] != keepActive ) {
+				if ( owner && owner->client && owner->client->turret == ent ) {
+					owner->client->turret = NULL;
+				}
+				G_FreeEntity( ent );
+				break;
+			}
+		}
+	}
 }
 
 /*
@@ -2021,7 +2143,7 @@ void G_AbilityFire( gentity_t *ent ) {
 	case ACTIVE_GRENADES:		G_ThrowGrenade( ent ); break;
 	case ACTIVE_FLAMESTRIKE:	G_FireFlameStrike( ent ); break;
 	case ACTIVE_TOTEM:			G_ThrowTotem( ent ); break;
-	case ACTIVE_TURRET:			G_PlaceTurret( ent ); break;
+	case ACTIVE_TURRET:			G_ThrowTurret( ent ); break;
 	case ACTIVE_ACIDSPIT:
 		ent->client->abilityShots = 0;
 		ent->client->abilityShotTime = level.time;
