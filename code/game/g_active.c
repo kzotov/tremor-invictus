@@ -572,11 +572,13 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 		charges = maxCharges = 0;
 	}
 
-	// one charge recharges at a time; shell shock runs it backwards; Strogg's
-	// drone recharges only once the flight is over (champion-audit.md)
+	// one charge recharges at a time; shell shock runs it backwards; the
+	// cooldown starts only once the ability is over: timed abilities, the
+	// hook, the rush, fireballs and the orb in flight, Strogg's drone
+	// (champion-audit.md, deep audit: the data spends the charge at the end)
 	if ( charges < maxCharges && G_ShellShockRecharge( client, msec ) ) {
 		// held back by the shock
-	} else if ( charges < maxCharges && client->droneBody ) {
+	} else if ( charges < maxCharges && ( client->droneBody || state != ABILITY_IDLE ) ) {
 		client->abilityRecharge = 0;
 	} else if ( charges < maxCharges && !level.timeoutEnd ) {
 		client->abilityRecharge += msec;
