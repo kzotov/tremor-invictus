@@ -4655,6 +4655,7 @@ void CG_LowHealthFrame( void ) {
 		// stops the voice and the breathing (low-health.md "Voice at low health")
 		if ( old >= LH_LOW ) {
 			trap_S_StartLocalSound( 0, CHAN_LOWVOICE );
+			trap_S_StartLocalSound( 0, CHAN_LOWLINE );
 			if ( cg.lowHealthBreathing && CG_OwnHealth( ps ) > 0 && ci->breatheStopSound ) {
 				trap_S_StartLocalSound( ci->breatheStopSound, CHAN_LOWVOICE );
 			}
@@ -4692,13 +4693,14 @@ void CG_LowHealthFrame( void ) {
 		return;
 	}
 	// the breathing: one take, 3 s after reaching Low (1 s without the
-	// voice line); counted as playing for 9 s (the exhale on healing)
+	// voice line); playing for its own length (the exhale on healing)
 	if ( cg_heavyBreathing.integer && ci->breatheSound && !cg.lowHealthBreathTime
 		&& cg.time - cg.lowHealthSince >= ( cg_championVO.integer ? 3000 : 1000 ) ) {
 		cg.lowHealthBreathTime = cg.time;
 		trap_S_StartLocalSound( ci->breatheSound, CHAN_LOWVOICE );
 	}
-	cg.lowHealthBreathing = cg.lowHealthBreathTime && cg.time - cg.lowHealthBreathTime < 9000;
+	cg.lowHealthBreathing = cg.lowHealthBreathTime && ci->breatheSound
+		&& cg.time - cg.lowHealthBreathTime < trap_S_SoundDuration( ci->breatheSound );
 	// the voice line 1 s after each time reaching Low, at least 10 s apart
 	if ( cg_championVO.integer && cg.time - cg.lowHealthSince >= 1000 && cg.lowHealthVoiceSince != cg.lowHealthSince
 		&& ( !cg.lowHealthVoiceTime || cg.time - cg.lowHealthVoiceTime >= 10000 ) ) {
@@ -4713,7 +4715,7 @@ void CG_LowHealthFrame( void ) {
 		cg.lowHealthVoiceSince = cg.lowHealthSince;
 		if ( n ) {
 			cg.lowHealthVoiceTime = cg.time;
-			trap_S_StartLocalSound( lines[rand() % n], CHAN_LOWVOICE );
+			trap_S_StartLocalSound( lines[rand() % n], CHAN_LOWLINE );		// (its own channel: the breathing goes on)
 		}
 	}
 }

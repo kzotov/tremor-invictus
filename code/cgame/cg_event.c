@@ -609,9 +609,7 @@ void CG_PainEvent( centity_t *cent, int health ) {
 	if ( cg.time - cent->pe.painTime < 500 ) {
 		return;
 	}
-	if ( health <= 25 && who == cg.snap->ps.clientNum && cg.time - cent->pe.painTime < 800 ) {
-		return;
-	}
+
 
 	// (25 and below is the Low step's tier)
 	if ( health <= 25 ) {

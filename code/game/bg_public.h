@@ -1624,6 +1624,8 @@ typedef enum {
 // STAT_MOVE_STATE on Athena's hook: the hold time or the swing's rope in
 // bits 0-11, and these
 #define	HOOK_PRESSED			0x1000		// a fresh press during the pull: its hold is counting
+#define	HOOK_THROW_GAP			1000		// msec from a throw to the next
+#define	HOOK_MISS_GAP			2000		// and after a hook that never bit
 #define	HOOK_SWINGING			0x2000
 #define	HOOK_ON_PLAYER			0x4000		// set by the game when the hook bites a player
 

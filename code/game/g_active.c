@@ -549,6 +549,10 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 			client->hookDamageTaken = 0;
 		}
 		if ( !client->hook && ( state == ABILITY_HOOK_FLYING || state == ABILITY_HOOK_PULL ) ) {
+			// a hook that missed blocks the next throw 2.0 s (abilities-data)
+			if ( state == ABILITY_HOOK_FLYING ) {
+				client->ps.stats[STAT_ABILITY_TIME] = HOOK_THROW_GAP - HOOK_MISS_GAP;
+			}
 			state = ABILITY_IDLE;
 			client->ps.stats[STAT_ABILITY_TIME] = 0;
 			client->ps.stats[STAT_MOVE_STATE] = 0;		// (the swing's rope)
@@ -678,10 +682,15 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed, c
 	if ( client->ps.stats[STAT_HEALTH] <= 0 ) {
 		return;
 	}
-	// movement.md: Athena's contact hit while hooked and in the air (pulled
-	// or swinging), from 480 u/s
-	swinging = BG_AbilityState( &client->ps ) == ABILITY_HOOK_PULL
-		&& client->ps.groundEntityNum == ENTITYNUM_NONE;
+	// Athena's contact hit in the air while hooked (pulled or swinging),
+	// and after letting go until she lands (abilities-data), from 480 u/s
+	if ( BG_AbilityState( &client->ps ) == ABILITY_HOOK_PULL ) {
+		client->hookImpactLive = qtrue;
+	} else if ( client->ps.groundEntityNum != ENTITYNUM_NONE ) {
+		client->hookImpactLive = qfalse;
+	}
+	swinging = client->hookImpactLive && client->ps.groundEntityNum == ENTITYNUM_NONE
+		&& champ->active == ACTIVE_HOOK;
 	if ( !( champ->abilities & MOVEABIL_HEAVYWEIGHT ) && !swinging ) {
 		return;
 	}
@@ -709,11 +718,9 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed, c
 		} else if ( champ->abilities & MOVEABIL_HEAVYWEIGHT ) {
 			damage = G_HeavyweightDamage( impactSpeed );
 		} else {
-			// the swing hurts only when fast enough across the ground
-			// (champion-audit.md: 480 u/s horizontal)
-			float	h = sqrt( preVelocity[0] * preVelocity[0] + preVelocity[1] * preVelocity[1] );
-
-			damage = h >= g_hookSwingSpeed.value ? g_hookSwingDamage.integer : 0;
+			// the swing hurts only when fast enough: last frame's full
+			// speed, 480 u/s (abilities-data)
+			damage = VectorLength( preVelocity ) >= g_hookSwingSpeed.value ? g_hookSwingDamage.integer : 0;
 		}
 		if ( damage <= 0 ) {
 			continue;

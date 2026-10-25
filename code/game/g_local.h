@@ -363,6 +363,7 @@ struct gclient_s {
 	int			lastEnemyHurt;		// the last enemy to hurt this one, for Ring Out
 	int			lastEnemyHurtTime;
 	int			lastShotTime;		// level.time of the last weapon shot (Clutch's shield drops)
+	qboolean	hookImpactLive;		// Athena's impact hit: from the pull until she lands
 	int			frameHealth;		// health at the start of the frame (Die Hard)
 	int			deathTime;			// level.time and inflictor of this client's death
 	int			deathInflictor;

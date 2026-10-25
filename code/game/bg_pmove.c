@@ -3219,13 +3219,21 @@ static void PM_EndAbility( void ) {
 	pm->ps->stats[STAT_ABILITY_TIME] = 0;
 	if ( active == ACTIVE_HOOK ) {
 		pm->ps->stats[STAT_MOVE_STATE] = 0;		// the swing's rope, not a climb speed for the ramp jump
+		// the 1 s between throws ran from the throw, not from now (a hook
+		// that bit has been out longer than that, near enough)
+		pm->ps->stats[STAT_ABILITY_TIME] = HOOK_THROW_GAP;
 	}
 	if ( active == ACTIVE_BERSERK ) {
 		pm->ps->stats[STAT_MOVE_STATE] &= ~1023;	// a lunge in progress ends with Berserk
 	}
 	pm->ps->pm_flags &= ~PMF_GRAPPLE_PULL;
-	if ( bg_abilityInfo[active].lockoutAtEnd ) {
-		PM_WeaponLockout( active );
+	// the end lock is firing only (abilities-data)
+	if ( bg_abilityInfo[active].lockoutAtEnd && pm->ps->weaponTime < BG_AbilityParam( active, AP_LOCKOUT ) ) {
+		pm->ps->weaponTime = BG_AbilityParam( active, AP_LOCKOUT );
+	}
+	// Sorlag's spit: switching is free again as it ends, firing waits 0.4 s
+	if ( active == ACTIVE_ACIDSPIT && pm->ps->weaponstate == WEAPON_FIRING ) {
+		pm->ps->weaponstate = WEAPON_READY;
 	}
 }
 
@@ -3293,7 +3301,6 @@ the game; effects outside movement (projectiles, heals, the hook entity)
 happen in the game on EV_USE_ABILITY and EV_ABILITY_REPRESS.
 ================
 */
-#define HOOK_THROW_GAP		1000	// msec between hook throws
 #define GRENADE_THROW_GAP	400		// msec between Keel's grenades
 #define KEEL_HOLD_ARMED		0x4000	// STAT_MOVE_STATE: the held key keeps throwing
 #define BERSERK_MIN_TIME	2000	// Berserk can be ended after this long
@@ -3394,8 +3401,11 @@ static void PM_Ability( void ) {
 			if ( time > STAT_TIME_CAP ) {
 				time = STAT_TIME_CAP;
 			}
-			if ( pressed && time >= BG_AbilityParam( active, AP_DELAY ) ) {
+			// a second press calls it back at any time; a hook that never
+			// bit waits 2.0 s for the next throw (abilities-data)
+			if ( pressed ) {
 				state = ABILITY_IDLE;
+				time = HOOK_THROW_GAP - HOOK_MISS_GAP;
 			}
 		}
 	} else if ( state == ABILITY_HOOK_PULL ) {
@@ -4064,6 +4074,19 @@ void PmoveSingle (pmove_t *pmove) {
 	memset (&pml, 0, sizeof(pml));
 
 	pml.champion = BG_Champion( pm->ps->stats[STAT_CHAMPION] );
+
+	// zoom stays locked from the press to the end of the Bull Rush (its
+	// landing wait too), Ghost Walk, Berserk and the drone (abilities-data)
+	{
+		int		st = BG_AbilityState( pm->ps );
+
+		if ( ( pml.champion->active == ACTIVE_BULLRUSH && ( st == ABILITY_RUSH || st == ABILITY_WINDUP ) )
+			|| ( ( pml.champion->active == ACTIVE_GHOSTWALK || pml.champion->active == ACTIVE_BERSERK
+			|| pml.champion->active == ACTIVE_DRONE ) && st == ABILITY_ACTIVE ) ) {
+			pm->ps->powerups[PW_ZOOMLOCK] = pm->cmd.serverTime + 50;
+			pm->cmd.buttons &= ~BUTTON_ZOOM;
+		}
+	}
 
 	// Slash laying the Plasma Trail runs forward at full speed; strafing
 	// and aiming stay free (abilities-data)

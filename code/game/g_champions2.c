@@ -422,7 +422,7 @@ void G_MarkPrey( gentity_t *ent ) {
 	// players where the shooter saw them, by their shot volumes (as an
 	// instant-hit weapon: champion-audit.md)
 	G_RewindPlayers( ent );
-	trap_Trace( &tr, start, NULL, NULL, end, ent->s.number, MASK_SHOT );
+	G_ShotTrace( &tr, start, NULL, NULL, end, ent->s.number, MASK_SHOT );
 	G_RestorePlayers();
 	target = tr.entityNum < ENTITYNUM_MAX_NORMAL ? &g_entities[tr.entityNum] : NULL;
 	if ( target && G_AbilityEnemy( ent, target ) ) {

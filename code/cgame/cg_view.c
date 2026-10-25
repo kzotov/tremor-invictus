@@ -665,8 +665,8 @@ static int CG_CalcFov( void ) {
 	cg.refdef.fov_x = fov_x;
 	cg.refdef.fov_y = fov_y;
 
-	if ( !cg.zoomed ) {
-		cg.zoomSensitivity = 1;
+	if ( !cg.zoomed || cg.predictedPlayerState.powerups[PW_ZOOMLOCK] > cg.time ) {
+		cg.zoomSensitivity = 1;		// (not zoomed, or an ability holds the zoom out)
 	} else if ( cg_zoomSensitivity.value > 0 ) {
 		cg.zoomSensitivity = cg_zoomSensitivity.value;		// the player's own scale
 	} else {
