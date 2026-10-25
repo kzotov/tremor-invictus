@@ -1595,7 +1595,7 @@ static void CG_PieSlice( const vec3_t centre, float a0, float a1, const byte rgb
 	VectorCopy( centre, verts[0].xyz );
 	for ( k = 0 ; k < 2 ; k++ ) {
 		VectorCopy( centre, verts[k + 1].xyz );
-		VectorMA( verts[k + 1].xyz, PIE_RADIUS * sin( a[k] ), cg.refdef.viewaxis[1], verts[k + 1].xyz );
+		VectorMA( verts[k + 1].xyz, -PIE_RADIUS * sin( a[k] ), cg.refdef.viewaxis[1], verts[k + 1].xyz );		// (clockwise: axis 1 is left)
 		VectorMA( verts[k + 1].xyz, PIE_RADIUS * cos( a[k] ), cg.refdef.viewaxis[2], verts[k + 1].xyz );
 	}
 	for ( i = 0 ; i < 3 ; i++ ) {
@@ -1634,6 +1634,10 @@ void CG_AddWorldItemTimers( void ) {
 			continue;
 		}
 		cls = BG_ItemTimerClass( &bg_itemlist[item] );
+		// of the power-ups, Quad and Protection only (hud.md 9.4)
+		if ( cls == 1 && bg_itemlist[item].giTag != PW_QUAD && bg_itemlist[item].giTag != PW_BATTLESUIT ) {
+			continue;
+		}
 		left = time - cg.time;
 		VectorSubtract( spot, cg.refdef.vieworg, d );
 		if ( !cls || left <= -PIE_FADE_MSEC || VectorLength( d ) > PIE_RANGE ) {

@@ -2065,9 +2065,15 @@ static void G_StartDrone( gentity_t *ent ) {
 		trace_t	tr;
 		vec3_t	up;
 
-		VectorCopy( origin, up );
+		// (with the drone's own box, from 4 u lower: a crouched launch under
+		// a low ceiling doesn't start it inside the ceiling)
+		vec3_t	dmins = { -14, -14, -DRONE_HALF_HEIGHT }, dmaxs = { 14, 14, DRONE_HALF_HEIGHT }, from;
+
+		VectorCopy( origin, from );
+		from[2] -= 4;
+		VectorCopy( from, up );
 		up[2] += DRONE_TAKEOFF;
-		trap_Trace( &tr, origin, ent->r.mins, ent->r.maxs, up, ent->s.number, MASK_PLAYERSOLID );
+		trap_Trace( &tr, from, dmins, dmaxs, up, ent->s.number, MASK_PLAYERSOLID );
 		VectorCopy( tr.endpos, client->ps.origin );
 		VectorClear( client->ps.velocity );
 		client->ps.eFlags ^= EF_TELEPORT_BIT;

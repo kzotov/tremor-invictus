@@ -344,6 +344,10 @@ void CG_AddFadeRGB( localEntity_t *le ) {
 	re->shaderRGBA[3] = le->color[3] * c;
 
 	trap_R_AddRefEntityToScene( re );
+	// a fading light with it (the drone's blast)
+	if ( le->light > 0 ) {
+		trap_R_AddLightToScene( re->origin, le->light * c / 255.0f, le->lightColor[0], le->lightColor[1], le->lightColor[2] );
+	}
 }
 
 /*

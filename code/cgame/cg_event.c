@@ -747,7 +747,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		case EV_JUMP: case EV_JUMP_PAD: case EV_CHANGE_WEAPON: case EV_NOAMMO: case EV_TAUNT:
 		case EV_WATER_TOUCH: case EV_WATER_LEAVE: case EV_WATER_UNDER: case EV_WATER_CLEAR:
 		case EV_FALL_SHORT: case EV_FALL_MEDIUM: case EV_FALL_FAR: case EV_STEP_4: case EV_STEP_8:
-		case EV_STEP_12: case EV_STEP_16: case EV_SWIM:
+		case EV_STEP_12: case EV_STEP_16: case EV_SWIM: case EV_ITEM_PICKUP:
 			return;
 		default:
 			break;
@@ -1499,7 +1499,10 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			le->refEntity.rotation = rand() % 360;
 			le->refEntity.customShader = cgs.media.droneBlastShader;
 			VectorCopy( position, le->refEntity.origin );
-			trap_R_AddLightToScene( position, 300, 0.45f, 0.7f, 1.0f );
+			le->light = 300;		// fading with it
+			le->lightColor[0] = 0.45f;
+			le->lightColor[1] = 0.7f;
+			le->lightColor[2] = 1.0f;
 			(void)up;
 			if ( cgs.media.droneExplodeSound ) {
 				trap_S_StartSound( position, ENTITYNUM_WORLD, CHAN_AUTO, cgs.media.droneExplodeSound );
