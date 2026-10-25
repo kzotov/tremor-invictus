@@ -47,6 +47,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define SVF_CAPSULE				0x00000400	// use capsule for collision detection instead of bbox
 #define SVF_NOTSINGLECLIENT		0x00000800	// send entity to everyone but one client
 											// (entityShared_t->singleClient)
+#define SVF_BROADCASTMASK		0x00001000	// sent through walls to the clients in the
+											// singleClient bitmask (0-31), by sight to the rest
+											// (Visor's Piercing Sight, marks)
 
 
 

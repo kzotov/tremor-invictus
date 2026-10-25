@@ -323,6 +323,13 @@ static void G_OrbThink( gentity_t *orb ) {
 	gentity_t	*other;
 	int			i, num;
 
+	// Ranger gone from the game: so is his orb
+	if ( !orb->parent || !orb->parent->inuse || !orb->parent->client
+		|| orb->parent->client->pers.connected != CON_CONNECTED ) {
+		G_FreeEntity( orb );
+		return;
+	}
+
 	// contact damage on enemies it passes through
 	VectorSet( mins, -16, -16, -16 );
 	VectorSet( maxs, 16, 16, 16 );
@@ -378,7 +385,8 @@ static void G_OrbDestroyed( gentity_t *orb, gentity_t *inflictor, gentity_t *att
 		return;		// only an enemy's shots count (champion-audit.md)
 	}
 	// the death blast: the same falloff, wider, and Ranger isn't spared
-	G_OrbBurst( orb->r.currentOrigin, attacker, g_orbShotDamage.value, g_orbShotRadius.value, qfalse );		// (everyone within 300 u, the shooter too)
+	// the orb's own blast (Ranger's), everyone within 300 u, the shooter too
+	G_OrbBurst( orb->r.currentOrigin, owner, g_orbShotDamage.value, g_orbShotRadius.value, qfalse );
 	G_CutAbilityCooldown( owner, 0.5f );
 	if ( owner->client->abilityEnt == orb ) {
 		owner->client->abilityEnt = NULL;
@@ -1209,7 +1217,8 @@ static void G_TurretThink( gentity_t *turret ) {
 	if ( best ) {
 		turret->timestamp = level.time;
 	} else if ( turret->enemy && turret->enemy->inuse && turret->enemy->client && turret->enemy->health > 0
-		&& level.time - turret->timestamp < 1000 ) {
+		&& level.time - turret->timestamp < 1000
+		&& !turret->enemy->client->ps.powerups[PW_INVIS] && !G_AbilityActive( turret->enemy, ACTIVE_GHOSTWALK ) ) {
 		best = turret->enemy;
 	}
 	// a new target: the acquire beeps (its own entity, so the first shot's
@@ -1459,6 +1468,10 @@ void G_ClearRoundObjects( void ) {
 		}
 		for ( n = 0 ; ent->classname && names[n] ; n++ ) {
 			if ( !strcmp( ent->classname, names[n] ) ) {
+				if ( n == 0 && ent->parent && ent->parent->client
+					&& BG_Champion( ent->parent->client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_TURRET ) {
+					ent->parent->client->ps.stats[STAT_TURRET] = 0;		// (Eisen's HUD: none out)
+				}
 				G_FreeEntity( ent );
 				break;
 			}
@@ -1495,6 +1508,11 @@ void G_RemoveAbilityObjects( gentity_t *owner, int keepActive ) {
 			if ( !strcmp( ent->classname, names[n] ) && actives[n] != keepActive ) {
 				if ( owner && owner->client && owner->client->turret == ent ) {
 					owner->client->turret = NULL;
+				}
+				// (Eisen's HUD: none out; the stat is someone else's otherwise)
+				if ( ent->parent && ent->parent->client && !strcmp( ent->classname, "sentry_turret" )
+					&& BG_Champion( ent->parent->client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_TURRET ) {
+					ent->parent->client->ps.stats[STAT_TURRET] = 0;
 				}
 				G_FreeEntity( ent );
 				break;

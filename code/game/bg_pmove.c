@@ -3234,9 +3234,7 @@ static void PM_EndAbility( void ) {
 	pm->ps->stats[STAT_ABILITY_TIME] = 0;
 	if ( active == ACTIVE_HOOK ) {
 		pm->ps->stats[STAT_MOVE_STATE] = 0;		// the swing's rope, not a climb speed for the ramp jump
-		// the 1 s between throws ran from the throw, not from now (a hook
-		// that bit has been out longer than that, near enough)
-		pm->ps->stats[STAT_ABILITY_TIME] = HOOK_THROW_GAP;
+		// (the wait for the next throw, from this throw, is set by the game)
 	}
 	if ( active == ACTIVE_BERSERK ) {
 		pm->ps->stats[STAT_MOVE_STATE] &= ~1023;	// a lunge in progress ends with Berserk
@@ -3420,7 +3418,7 @@ static void PM_Ability( void ) {
 			// bit waits 2.0 s for the next throw (abilities-data)
 			if ( pressed ) {
 				state = ABILITY_IDLE;
-				time = HOOK_THROW_GAP - HOOK_MISS_GAP;
+				time = 0;		// (the game sets the wait, from the throw)
 			}
 		}
 	} else if ( state == ABILITY_HOOK_PULL ) {

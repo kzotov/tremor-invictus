@@ -501,23 +501,27 @@ to all clients so it can be shown through walls
 */
 void G_UpdateRevealedPlayers( void ) {
 	gentity_t	*ent;
-	qboolean	reveal = qfalse;
-	int			i;
+	int			visors = 0, i, seers;
 
-	for ( i = 0, ent = g_entities ; i < level.maxclients ; i++, ent++ ) {
+	// Piercing Sight shows everyone to the Visor using it, and to nobody
+	// else (abilities-data); a mark only to who marked (s.time2's seers)
+	for ( i = 0, ent = g_entities ; i < level.maxclients && i < 32 ; i++, ent++ ) {
 		if ( ent->inuse && G_AbilityActive( ent, ACTIVE_PIERCINGSIGHT ) ) {
-			reveal = qtrue;
-			break;
+			visors |= 1 << i;
 		}
 	}
 	for ( i = 0, ent = g_entities ; i < level.maxclients ; i++, ent++ ) {
 		if ( !ent->inuse || !ent->client ) {
 			continue;
 		}
-		if ( reveal || ( ent->client->ps.eFlags & EF_MARKED ) ) {
-			ent->r.svFlags |= SVF_BROADCAST;
-		} else {
-			ent->r.svFlags &= ~SVF_BROADCAST;
+		ent->r.svFlags &= ~( SVF_BROADCAST | SVF_BROADCASTMASK );
+		seers = visors & ~( i < 32 ? 1 << i : 0 );
+		if ( ent->client->ps.eFlags & EF_MARKED ) {
+			seers |= ent->s.time2;
+		}
+		if ( seers ) {
+			ent->r.svFlags |= SVF_BROADCASTMASK;
+			ent->r.singleClient = seers;
 		}
 	}
 }
@@ -563,12 +567,7 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 			client->hookDamageTaken = 0;
 		}
 		if ( !client->hook && ( state == ABILITY_HOOK_FLYING || state == ABILITY_HOOK_PULL ) ) {
-			// a hook that missed blocks the next throw 2.0 s (abilities-data)
-			if ( state == ABILITY_HOOK_FLYING ) {
-				client->ps.stats[STAT_ABILITY_TIME] = HOOK_THROW_GAP - HOOK_MISS_GAP;
-			}
 			state = ABILITY_IDLE;
-			client->ps.stats[STAT_ABILITY_TIME] = 0;
 			client->ps.stats[STAT_MOVE_STATE] = 0;		// (the swing's rope)
 			client->ps.pm_flags &= ~PMF_GRAPPLE_PULL;
 		}
@@ -579,6 +578,16 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 	if ( champ->active == ACTIVE_HOOK && client->abilityPrevState == ABILITY_HOOK_FLYING
 		&& state == ABILITY_IDLE && charges < maxCharges ) {
 		charges++;
+	}
+	// the wait for the next throw counts from this throw (abilities-data):
+	// 1.0 s, 2.0 s after a hook that never bit. The idle time counts up to
+	// HOOK_THROW_GAP, so it starts where that leaves it
+	if ( champ->active == ACTIVE_HOOK && state == ABILITY_IDLE
+		&& ( client->abilityPrevState == ABILITY_HOOK_FLYING || client->abilityPrevState == ABILITY_HOOK_PULL ) ) {
+		int		gap = client->abilityPrevState == ABILITY_HOOK_FLYING ? HOOK_MISS_GAP : HOOK_THROW_GAP;
+		int		t = HOOK_THROW_GAP - gap + ( level.time - client->hookThrowTime );
+
+		client->ps.stats[STAT_ABILITY_TIME] = t > HOOK_THROW_GAP ? HOOK_THROW_GAP : t;
 	}
 
 	// timed abilities starting and ending
@@ -1041,6 +1050,9 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 
 		switch ( event ) {
 		case EV_USE_ABILITY:
+			if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_HOOK ) {
+				client->hookThrowTime = level.time;		// (the next throw's wait counts from here)
+			}
 			G_UseAbility( ent );
 			break;
 

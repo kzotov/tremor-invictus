@@ -366,6 +366,12 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 			SV_AddEntToSnapshot( svEnt, ent, eNums );
 			continue;
 		}
+		// and these to some clients only (the rest see them as usual)
+		if ( ( ent->r.svFlags & SVF_BROADCASTMASK ) && frame->ps.clientNum < 32
+			&& ( ent->r.singleClient & ( 1 << frame->ps.clientNum ) ) ) {
+			SV_AddEntToSnapshot( svEnt, ent, eNums );
+			continue;
+		}
 
 		// ignore if not touching a PV leaf
 		// check area
