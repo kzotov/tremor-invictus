@@ -136,7 +136,7 @@ static pmoveCvar_t pmoveCvars[] = {
 	{ {0}, "pm_hookSwingGravity",	"800",	&bg_pmoveSettings.hookSwingGravity },
 
 	{ {0}, "pm_rampJumpScale",		"1",	&bg_pmoveSettings.rampJumpScale },
-	{ {0}, "pm_rampJumpMax",		"600",	&bg_pmoveSettings.rampJumpMax },
+	{ {0}, "pm_rampJumpMax",		"640",	&bg_pmoveSettings.rampJumpMax },
 
 	{ {0}, "pm_airAccelLight",		"1",	&bg_pmoveSettings.airAccelLight },	// 1.0 for every class
 	{ {0}, "pm_airAccelMedium",		"1",	&bg_pmoveSettings.airAccelMedium },

@@ -7518,6 +7518,14 @@ static void CG_DrawAbilityBlock( void ) {
 	}
 	state = BG_AbilityState( ps );
 	active = state == ABILITY_ACTIVE || state == ABILITY_RUSH || state == ABILITY_HOOK_FLYING || state == ABILITY_HOOK_PULL;
+
+	// Athena pulled by the hook: holding the key swings (the reference's
+	// HOLD TO SWING prompt), under the crosshair until she does
+	if ( champ->active == ACTIVE_HOOK && state == ABILITY_HOOK_PULL && !( ps->stats[STAT_MOVE_STATE] & HOOK_SWINGING ) ) {
+		const char	*key = CG_BindName( "+button12" );
+
+		CG_HudText( 320, 300, 18, va( (char *)BG_String( STR_HUD_HOLD_SWING ), key[0] ? key : "?" ), colorWhite, 1, 1 );
+	}
 	if ( ps->clientNum != lastClient ) {
 		lastClient = ps->clientNum;
 		lastState = state;

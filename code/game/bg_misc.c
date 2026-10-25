@@ -2031,7 +2031,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Match clock",
 	"Time left, or time played from 0:00.",
 	"Counts down",
-	"Counts up"
+	"Counts up",
+	"HOLD %s TO SWING"
 };
 
 /*

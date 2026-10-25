@@ -1282,6 +1282,7 @@ typedef enum {
 	STR_SET_CLOCKDIR_HELP,
 	STR_SET_COUNTDOWN,
 	STR_SET_COUNTUP,
+	STR_HUD_HOLD_SWING,				// Athena on the hook: the key's name
 
 	STR_NUM_STRINGS
 } stringId_t;

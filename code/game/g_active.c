@@ -548,6 +548,13 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 		}
 	}
 
+	// a hook that never bit (missed, expired or called back) costs nothing
+	// (champion-audit.md)
+	if ( champ->active == ACTIVE_HOOK && client->abilityPrevState == ABILITY_HOOK_FLYING
+		&& state == ABILITY_IDLE && charges < maxCharges ) {
+		charges++;
+	}
+
 	// timed abilities starting and ending
 	if ( client->abilityPrevState != ABILITY_ACTIVE && state == ABILITY_ACTIVE ) {
 		G_AbilityStarted( ent );
@@ -699,8 +706,11 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed, c
 		} else if ( champ->abilities & MOVEABIL_HEAVYWEIGHT ) {
 			damage = G_HeavyweightDamage( impactSpeed );
 		} else {
-			// the swing hurts only when fast enough
-			damage = impactSpeed >= g_hookSwingSpeed.value ? g_hookSwingDamage.integer : 0;
+			// the swing hurts only when fast enough across the ground
+			// (champion-audit.md: 480 u/s horizontal)
+			float	h = sqrt( preVelocity[0] * preVelocity[0] + preVelocity[1] * preVelocity[1] );
+
+			damage = h >= g_hookSwingSpeed.value ? g_hookSwingDamage.integer : 0;
 		}
 		if ( damage <= 0 ) {
 			continue;
