@@ -7822,7 +7822,27 @@ static void CG_DrawDroneGlitch( void ) {
 	float	f;
 	vec4_t	c;
 
-	if ( !cg.droneGlitchTime || t < 0 || t >= 200 || !( cg.snap->ps.eFlags & EF_DRONE ) ) {
+	// the flight running out (abilities-data): a warning flicker over its
+	// last 0.8 s; and a 0.2 s burst as it ends
+	{
+		static qboolean	flying;
+		static int		endedAt;
+		qboolean		now = ( cg.snap->ps.eFlags & EF_DRONE ) != 0;
+
+		if ( flying && !now ) {
+			endedAt = cg.time;
+		}
+		flying = now;
+		if ( now && cg.snap->ps.stats[STAT_ABILITY_TIME] * BG_AbilityTimeUnit( ACTIVE_DRONE ) < 800
+			&& ( ( cg.time / 60 ) & 1 ) ) {
+			cg.droneGlitchTime = cg.time - 100;		// (half strength)
+			t = 100;
+		} else if ( endedAt && cg.time - endedAt < 200 && cg.time >= endedAt ) {
+			t = 0;
+			cg.droneGlitchTime = cg.time;
+		}
+	}
+	if ( !cg.droneGlitchTime || t < 0 || t >= 200 ) {
 		return;
 	}
 	f = 0.8f * ( 1.0f - t / 200.0f );
