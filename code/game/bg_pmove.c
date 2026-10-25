@@ -2500,7 +2500,8 @@ Generates weapon events and modifes the weapon counter
 #define LUNGE_REACH		200		// and at most this far
 #define LUNGE_STOP_SPEED	100	// then held under this speed
 #define LUNGE_STOP_MSEC	200		// for this long
-#define LUNGE_USED		0x4000	// this airtime's lunge is spent
+#define LUNGE_HIT_REACH	128		// a target this close is punched, not lunged at
+#define BERSERK_SPEED_CAP	1000	// u/s across the ground while Berserk
 #define BERSERK_RAISE	800		// no punches while the fists come up
 #define RUSH_LAND_WAIT		1000	// a Bull Rush pressed in the air waits this long for the ground
 #define RUSH_CANCEL_AFTER	1000	// and can be cancelled after this long
@@ -2530,22 +2531,29 @@ static void PM_Weapon( void ) {
 		&& ( PM_AbilityActive( ACTIVE_BERSERK ) || BG_AbilityState( pm->ps ) == ABILITY_WINDUP ) ) {
 		pm->cmd.weapon = WP_GAUNTLET;
 
-		// the jump strike (champion-audit.md): a punch in the air lunges where
-		// the player looks, building from 666 to 800 u/s over 0.25 s and at
-		// most 200 u, then held under 100 u/s for 0.2 s; once per time off the
-		// ground, apart from the double jump. STAT_MOVE_STATE: msec into the
-		// lunge + 1 (bits 0-9), LUNGE_USED (bit 14)
+		// the guided lunge (champion-audit.md, deep audit): a punch with an
+		// enemy on the aim line (a 12 u guidance cylinder, 200 u long) but
+		// beyond the punch's own 128 u lunges toward it, building from 666
+		// to 800 u/s over 0.25 s and at most 200 u, then held under 100 u/s
+		// for 0.2 s; on the ground or in the air. STAT_MOVE_STATE: msec into
+		// the lunge + 1 (bits 0-9)
 		{
 			int		state = pm->ps->stats[STAT_MOVE_STATE] & 0xffff, t = state & 1023;
 			vec3_t	forward;
 
-			if ( pm->ps->groundEntityNum != ENTITYNUM_NONE ) {
-				state = 0;		// landed: the next airtime has its own lunge
-				t = 0;
-			} else if ( !t && !( state & LUNGE_USED ) && PM_AbilityActive( ACTIVE_BERSERK )
+			if ( !t && PM_AbilityActive( ACTIVE_BERSERK )
 				&& ( pm->cmd.buttons & BUTTON_ATTACK ) && pm->ps->weaponTime <= 0 ) {
-				t = 1;
-				state |= LUNGE_USED;
+				trace_t	tr;
+				vec3_t	start, end, mins = { -12, -12, -12 }, maxs = { 12, 12, 12 };
+
+				VectorCopy( pm->ps->origin, start );
+				start[2] += pm->ps->viewheight;
+				AngleVectors( pm->ps->viewangles, forward, NULL, NULL );
+				VectorMA( start, LUNGE_REACH, forward, end );
+				pm->trace( &tr, start, mins, maxs, end, pm->ps->clientNum, MASK_PLAYERSOLID );
+				if ( tr.entityNum < MAX_CLIENTS && tr.fraction * LUNGE_REACH + 16 > LUNGE_HIT_REACH ) {
+					t = 1;
+				}
 			} else if ( t ) {
 				t += pml.msec;
 			}
@@ -2573,7 +2581,16 @@ static void PM_Weapon( void ) {
 					}
 				}
 			}
-			pm->ps->stats[STAT_MOVE_STATE] = ( state & LUNGE_USED ) | ( t > 1023 ? 1023 : t );
+			pm->ps->stats[STAT_MOVE_STATE] = ( state & ~1023 ) | ( t > 1023 ? 1023 : t );
+		}
+		// while Berserk: at most 1000 u/s across the ground
+		if ( PM_AbilityActive( ACTIVE_BERSERK ) ) {
+			float	h = sqrt( pm->ps->velocity[0] * pm->ps->velocity[0] + pm->ps->velocity[1] * pm->ps->velocity[1] );
+
+			if ( h > BERSERK_SPEED_CAP ) {
+				pm->ps->velocity[0] *= BERSERK_SPEED_CAP / h;
+				pm->ps->velocity[1] *= BERSERK_SPEED_CAP / h;
+			}
 		}
 	}
 
@@ -2654,8 +2671,15 @@ static void PM_Weapon( void ) {
 
 	// start the animation even if out of ammo
 	if ( pm->ps->weapon == WP_GAUNTLET ) {
-		// the guantlet only "fires" when it actually hits something
+		// the guantlet only "fires" when it actually hits something; a
+		// Berserk punch takes its second hit or miss (champion-audit.md)
 		if ( !pm->gauntletHit ) {
+			if ( PM_AbilityActive( ACTIVE_BERSERK ) ) {
+				PM_StartTorsoAnim( TORSO_ATTACK2 );
+				pm->ps->weaponstate = WEAPON_FIRING;
+				pm->ps->weaponTime += 1000;
+				return;
+			}
 			pm->ps->weaponTime = 0;
 			pm->ps->weaponstate = WEAPON_READY;
 			return;
