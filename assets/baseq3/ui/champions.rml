@@ -147,6 +147,11 @@
 		<div class="ability" data-when="ui_chAbility!=">
 			<span class="aname" data-text-cvar="ui_chAbility"></span> <span class="label" data-text-cvar="ui_chAbilityEvery"></span>
 			<div data-text-cvar="ui_chAbilityDesc"></div>
+			<div class="credit" data-when="ui_chCredit=xaero">
+				<span class="link" data-when="ui_link_xaero_concept=1" onclick="ui_openLink xaero_concept">[ch_credit_xaero]</span>
+				<span data-when="ui_link_xaero_concept!=1">[ch_credit_xaero]</span>
+				<span class="ask" data-when="ui_linkAsk=xaero_concept">[link_ask]</span>
+			</div>
 		</div>
 		<div class="ability" data-when="ui_chPassive!=">
 			<span class="aname">[ch_passive]</span>

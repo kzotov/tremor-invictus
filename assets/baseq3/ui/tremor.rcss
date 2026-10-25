@@ -1529,3 +1529,21 @@ scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc {
 	font-size: 16dp;
 	color: #FF764F;
 }
+
+/* an outside credit under an ability (Xaero's concept): a link once it has
+   an address, plain text until then */
+.chinfo .credit {
+	margin-top: 4dp;
+	color: #c8c8c8;
+}
+.chinfo .credit .link {
+	color: #FF764F;
+	text-decoration: underline;
+}
+.chinfo .credit .link:hover {
+	color: #FFA98F;
+}
+.chinfo .credit .ask {
+	display: block;
+	color: #e8e4dc;
+}

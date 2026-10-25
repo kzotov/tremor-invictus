@@ -48,6 +48,21 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "sys_local.h"
 #include "sys_loadlib.h"
 
+/*
+=================
+Sys_OpenURL
+
+A web page in the user's browser (the client's ui_openLink checks it)
+=================
+*/
+qboolean Sys_OpenURL( const char *url ) {
+#ifndef DEDICATED
+	return SDL_OpenURL( url ) == 0;
+#else
+	return qfalse;
+#endif
+}
+
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
 

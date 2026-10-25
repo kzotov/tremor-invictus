@@ -58,6 +58,7 @@ char *Sys_StripAppBundle( char *pwd );
 #endif
 
 void Sys_GLimpSafeInit( void );
+qboolean Sys_OpenURL( const char *url );
 void Sys_GLimpInit( void );
 void Sys_PlatformInit( void );
 void Sys_PlatformExit( void );

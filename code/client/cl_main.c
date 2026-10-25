@@ -3299,6 +3299,67 @@ static void CL_RmlShow_f( void ) {
 static void CL_RmlHide_f( void ) {
 	RML_Hide();
 }
+
+/*
+=================
+CL_OpenLink_f
+
+ui_openLink <key>: a page from our own table, never a URL from a document
+or a server (both can send commands). Only https pages on YouTube; an
+empty entry does nothing. The first click asks (ui_linkAsk shows the
+question), a second one within 5 s opens it in the browser.
+=================
+*/
+static const struct {
+	const char	*key, *url;
+} clLinks[] = {
+	{ "xaero_concept", "" }		// Xaero's concept video: Konstantin fills in the address
+};
+
+static void CL_OpenLink_f( void ) {
+	static int	askedAt;
+	static char	asked[32];
+	const char	*key = Cmd_Argv( 1 ), *url = NULL;
+	int			i;
+
+	for ( i = 0; i < ARRAY_LEN( clLinks ); i++ ) {
+		if ( !Q_stricmp( key, clLinks[i].key ) ) {
+			url = clLinks[i].url;
+		}
+	}
+	if ( !url || !url[0] ) {
+		return;
+	}
+	if ( Q_stricmpn( url, "https://www.youtube.com/", 24 ) && Q_stricmpn( url, "https://youtu.be/", 17 ) ) {
+		return;
+	}
+	if ( Q_stricmp( asked, key ) || Sys_Milliseconds() - askedAt > 5000 ) {
+		Q_strncpyz( asked, key, sizeof( asked ) );
+		askedAt = Sys_Milliseconds();
+		Cvar_Set( "ui_linkAsk", key );		// "Open in your browser? Click again."
+		return;
+	}
+	asked[0] = 0;
+	Cvar_Set( "ui_linkAsk", "" );
+	Sys_OpenURL( url );
+}
+
+/*
+=================
+CL_LinkCvars
+
+Which links have an address: ui_link_<key> 1 shows a link as one
+=================
+*/
+static void CL_LinkCvars( void ) {
+	int		i;
+
+	for ( i = 0; i < ARRAY_LEN( clLinks ); i++ ) {
+		Cvar_Get( va( "ui_link_%s", clLinks[i].key ), "", CVAR_ROM );
+		Cvar_Set( va( "ui_link_%s", clLinks[i].key ), clLinks[i].url[0] ? "1" : "" );
+	}
+	Cvar_Get( "ui_linkAsk", "", CVAR_ROM );
+}
 static void CL_RmlReload_f( void ) {
 	RML_Reload();
 }
@@ -3345,6 +3406,8 @@ static void CL_RmlStart( void ) {
 	Cvar_Get( "rml_active", "0", CVAR_ROM );
 	Cvar_Get( "rml_overlay", "", CVAR_TEMP );
 	Cmd_AddCommand( "rml_show", CL_RmlShow_f );
+	Cmd_AddCommand( "ui_openLink", CL_OpenLink_f );
+	CL_LinkCvars();
 	Cmd_AddCommand( "rml_hide", CL_RmlHide_f );
 	Cmd_AddCommand( "rml_reload", CL_RmlReload_f );
 	Cmd_AddCommand( "rml_capture", CL_RmlCapture_f );

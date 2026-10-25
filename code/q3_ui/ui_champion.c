@@ -687,6 +687,9 @@ static void Champion_Publish( int i ) {
 	// the stat bars, ten segments against the best of the roster
 	Champion_Bars( c );
 
+	// an outside credit under the ability (Xaero's concept, a link)
+	trap_Cvar_Set( "ui_chCredit", !Q_stricmp( c->name, "xaero" ) ? "xaero" : "" );
+
 	// recreated champions: where each part came from
 	trap_Cvar_Set( "ui_chNote", "" );
 	trap_Cvar_Set( "ui_chNoteEnd", "" );
