@@ -1643,8 +1643,7 @@ static void G_TrailThink( gentity_t *seg ) {
 
 static void G_TrailBurnOne( gentity_t *seg, gentity_t *other ) {
 	// once per 200 ms however many points overlap
-	other->client->trailBurnTime = level.time + TRAIL_BURN_MSEC;
-	G_Slow( other, 0.75f, TRAIL_BURN_MSEC + 50 );		// slowed while in it
+	other->client->trailBurnTime = level.time + TRAIL_BURN_MSEC;		// (no slow: the data turns it off)
 	G_Damage( other, seg, seg->parent, NULL, NULL, g_trailDamage.integer, DAMAGE_NO_KNOCKBACK, MOD_PLASMATRAIL );
 }
 
@@ -1653,14 +1652,14 @@ static void G_DropTrail( gentity_t *ent ) {
 	gentity_t	*seg;
 
 	VectorCopy( ent->client->ps.origin, point );
-	point[2] += MINS_Z + 8;
+	point[2] += MINS_Z + 4;		// the charges 4 u up (champion-audit.md)
 	seg = G_AbilityMissile( ent, "plasma_trail", point, dir, 0, TR_STATIONARY, WP_PLASMAGUN );
 	seg->s.generic1 = AV_TRAIL;
 	seg->s.otherEntityNum = ent->s.number;
 	seg->clipmask = 0;
-	// 32 units around a line 20 over the floor (the point sits 8 over it)
-	VectorSet( seg->r.mins, -32, -32, 12 - 32 );
-	VectorSet( seg->r.maxs, 32, 32, 12 + 32 );
+	// 32 units around a line 20 over the floor (the point sits 4 over it)
+	VectorSet( seg->r.mins, -32, -32, 16 - 32 );
+	VectorSet( seg->r.maxs, 32, 32, 16 + 32 );
 	seg->abilityTime = level.time + g_trailLife.integer;
 	seg->target_ent = ent->client->lastTrailSeg;		// the line back to the last point
 	ent->client->lastTrailSeg = seg;
@@ -1671,12 +1670,16 @@ static void G_DropTrail( gentity_t *ent ) {
 
 // one segment bursting, its turn in the chain
 static void G_TrailBurst( gentity_t *seg ) {
-	vec3_t	dir = { 0, 0, 1 };
+	vec3_t	dir = { 0, 0, 1 }, at;
 
+	// each burst 20 u above its charge (champion-audit.md)
+	VectorCopy( seg->r.currentOrigin, at );
+	at[2] += 20;
+	G_SetOrigin( seg, at );
 	if ( seg->parent ) {
 		G_SplashParams( 10, 0, 0 );		// down to 10 at the edge, no push
 		// the detonation spares Slash (champion-audit.md)
-		G_RadiusDamage( seg->r.currentOrigin, seg->parent, g_trailBlast.integer, g_trailRadius.integer, seg->parent, MOD_PLASMATRAIL );
+		G_RadiusDamage( at, seg->parent, g_trailBlast.integer, g_trailRadius.integer, seg->parent, MOD_PLASMATRAIL );
 	}
 	seg->s.eType = ET_GENERAL;
 	G_AddEvent( seg, EV_MISSILE_MISS, DirToByte( dir ) );
