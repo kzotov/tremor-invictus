@@ -892,6 +892,7 @@ typedef struct {
 	qhandle_t	barrierShader;
 	qhandle_t	ringShader;
 	qhandle_t	droneModel;
+	sfxHandle_t	droneShotSound;
 	qhandle_t	turretModel;		// Eisen's, told apart from other general entities
 	sfxHandle_t	dodgeSound;		// generated; 0 when missing
 	sfxHandle_t	hookAttachSound;	// generated

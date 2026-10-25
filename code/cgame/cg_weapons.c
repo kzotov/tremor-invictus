@@ -1907,6 +1907,12 @@ void CG_FireWeapon( centity_t *cent ) {
 		cent->pe.railFireTime = cg.time;
 	}
 
+	// the drone's own gun: its own shot, no machinegun sound or brass
+	if ( ent->eFlags & EF_DRONE ) {
+		trap_S_StartSound( NULL, ent->number, CHAN_WEAPON, cgs.media.droneShotSound );
+		return;
+	}
+
 	// play quad sound if needed
 	if ( cent->currentState.powerups & ( 1 << PW_QUAD ) ) {
 		trap_S_StartSound (NULL, cent->currentState.number, CHAN_ITEM, cgs.media.quadSound );

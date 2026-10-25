@@ -845,6 +845,11 @@ def sounds(out):
     put(os.path.join(out, "sound/abilities/drone_charge.wav"),
         mix((env(osc(glide(400, 1800, 0.5), 0.7, "square"), attack=0.02, decay=2.5), 0.15, 0),
             (env(noise(0.7, glide(800, 5000, 0.5), 47), attack=0.05, decay=2.2), 0.8, 0)))
+    # the drone's gun: a light, quick zap
+    put(os.path.join(out, "sound/abilities/drone_shot.wav"),
+        mix((env(osc(glide(2400, 900, 0.07), 0.1, "saw"), decay=35), 0.3, 0),
+            (env(osc(glide(1200, 450, 0.07), 0.1), decay=35), 0.4, 0),
+            (env(noise(0.04, 6000, 88), decay=90), 0.5, 0)))
     # Eisen's turret at work (konstantin-list-audit 2: deploy, coming online,
     # target acquired, each shot, an idle hum, destroyed)
     put(os.path.join(out, "sound/abilities/turret_deploy.wav"),

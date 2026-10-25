@@ -1073,7 +1073,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 #endif
 	// reduce damage by the attacker's handicap value
 	// unless they are rocket jumping
-	if ( attacker->client && attacker != targ ) {
+	if ( attacker->client && attacker != as ) {
 		max = attacker->client->ps.stats[STAT_MAX_HEALTH];
 #ifdef MISSIONPACK
 		if( bg_itemlist[attacker->client->ps.stats[STAT_PERSISTANT_POWERUP]].giTag == PW_GUARD ) {
@@ -1247,11 +1247,12 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	}
 
 	// add to the attacker's hit counter (if the target isn't a general entity like a prox mine)
-	if ( attacker->client && client
-			&& targ != attacker && targ->health > 0
+	// (Strogg's body during the drone counts as him)
+	if ( attacker->client && as->client
+			&& as != attacker && targ->health > 0
 			&& targ->s.eType != ET_MISSILE
-			&& targ->s.eType != ET_GENERAL) {
-		if ( OnSameTeam( targ, attacker ) ) {
+			&& ( targ->s.eType != ET_GENERAL || as != targ ) ) {
+		if ( OnSameTeam( as, attacker ) ) {
 			attacker->client->ps.persistant[PERS_HITS]--;
 		} else {
 			attacker->client->ps.persistant[PERS_HITS]++;
@@ -1262,7 +1263,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			attacker->client->hitFrameDamage = 0;
 			attacker->client->ps.persistant[PERS_ATTACKEE_ARMOR] = 0;
 		}
-		hitArmorBefore = client->ps.stats[STAT_ARMOR];
+		hitArmorBefore = as != targ ? as->client->droneArmor : client->ps.stats[STAT_ARMOR];
 		hitAttacker = attacker;
 	}
 
@@ -1290,7 +1291,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		damage = 1;
 	}
 	// unreleased champions' abilities and passives
-	damage = G_ChampionDamageScale( targ, attacker, damage, dflags, mod );
+	damage = G_ChampionDamageScale( as, attacker, damage, dflags, mod );
 	if ( damage <= 0 ) {
 		return;
 	}
@@ -1298,7 +1299,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	damage = G_ArcadeDamage( targ, attacker, damage, mod );
 
 	// just spawned: less damage until the protection runs out or the player fires
-	if ( client && level.time < client->spawnProtectEnd && attacker && attacker->client && attacker != targ && mod != MOD_TELEFRAG ) {
+	if ( as->client && level.time < as->client->spawnProtectEnd && attacker && attacker->client && attacker != as && mod != MOD_TELEFRAG ) {
 		// 67% off, nearly all in the arcade modes
 		take = damage * ( g_instagib.integer || g_unholyTrinity.integer ? 0.01f : g_spawnProtectionScale.value );
 		damage = take < 1 ? 1 : take;
@@ -1306,11 +1307,11 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
 	// barrier shield
 	{
-		float	shield = G_BarrierScale( targ, mod );
+		float	shield = G_BarrierScale( as, mod );
 
 		if ( shield < 1.0f ) {
 			damage *= shield;
-			G_BarrierHit( targ, damage );		// the break counts what gets through
+			G_BarrierHit( as, damage );		// the break counts what gets through
 		}
 	}
 	if ( damage < 1 ) {
@@ -1318,7 +1319,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	}
 
 	// bull rush shrugs off part of the damage
-	if ( client && BG_AbilityState( &client->ps ) == ABILITY_RUSH ) {
+	if ( as->client && BG_AbilityState( &as->client->ps ) == ABILITY_RUSH ) {
 		take = damage * g_rushDamageScale.value;
 		damage = take < 1 ? 1 : take;
 	}
@@ -1381,9 +1382,10 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	// the attacker's hit beep (PERS_ATTACKEE_ARMOR: the damage dealt this
 	// frame, capped at 511, so a shotgun volley is one sum; 0x200 the hit was
 	// on armour, 0x400 the armour broke)
-	if ( hitAttacker && client ) {
+	if ( hitAttacker && as->client ) {
 		gclient_t	*hc = hitAttacker->client;
-		int			armorAfter = client->ps.stats[STAT_ARMOR] > 0 ? client->ps.stats[STAT_ARMOR] : 0;
+		int			armorLeft = as != targ ? as->client->droneArmor : client->ps.stats[STAT_ARMOR];
+		int			armorAfter = armorLeft > 0 ? armorLeft : 0;
 
 		if ( hc->hitFrameTime != level.time ) {
 			hc->hitFrameTime = level.time;
@@ -1399,6 +1401,40 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		G_ArcadeDamageDealt( attacker, targ, take + asave );
 	}
 
+	// match stats: damage between enemies (on Strogg's body too)
+	if ( as->client && attacker && attacker->client && attacker != as && !OnSameTeam( as, attacker ) ) {
+		int		dealt = take + asave;
+
+		// a telefrag counts what the victim had left, not its huge damage
+		if ( mod == MOD_TELEFRAG && dealt > ( targ->health > 0 ? targ->health : 0 ) + asave ) {
+			dealt = ( targ->health > 0 ? targ->health : 0 ) + asave;
+		}
+		attacker->client->pers.damageGiven += dealt;
+		as->client->pers.damageTaken += dealt;
+		// and per weapon, for the duel board
+		if ( G_StatWeapon( inflictor, attacker, mod ) != WP_NONE ) {
+			attacker->client->pers.weaponDamage[G_StatWeapon( inflictor, attacker, mod )] += dealt;
+		}
+		if ( attacker->s.number < MAX_CLIENTS && as->s.number < MAX_CLIENTS ) {
+			attacker->client->pers.lifeDealt[as->s.number] += dealt;
+			as->client->pers.lifeTaken[attacker->s.number] += dealt;
+		}
+
+		// the number over the target, for the attacker alone
+		if ( dealt > 0 ) {
+			gentity_t	*plum = G_TempEntity( targ->r.currentOrigin, EV_DAMAGEPLUM );
+
+			plum->s.origin[2] += 40;
+			plum->s.pos.trBase[2] += 40;
+			plum->s.time = dealt;
+			plum->s.otherEntityNum = attacker->s.number;
+			plum->s.otherEntityNum2 = targ->s.number;	// for summing (cg_damagePlumSum)
+			plum->s.generic1 = mod;
+			plum->r.svFlags |= SVF_SINGLECLIENT;
+			plum->r.singleClient = attacker->s.number;
+		}
+	}
+
 	// add to the damage inflicted on a player this frame
 	// the total will be turned into screen blends and view angle kicks
 	// at the end of the frame
@@ -1410,40 +1446,6 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		}
 		client->damage_armor += asave;
 		client->damage_blood += take;
-
-		// match stats: damage between enemies
-		if ( attacker && attacker->client && attacker != targ && !OnSameTeam( targ, attacker ) ) {
-			int		dealt = take + asave;
-
-			// a telefrag counts what the victim had left, not its huge damage
-			if ( mod == MOD_TELEFRAG && dealt > ( targ->health > 0 ? targ->health : 0 ) + asave ) {
-				dealt = ( targ->health > 0 ? targ->health : 0 ) + asave;
-			}
-			attacker->client->pers.damageGiven += dealt;
-			client->pers.damageTaken += dealt;
-			// and per weapon, for the duel board
-			if ( G_StatWeapon( inflictor, attacker, mod ) != WP_NONE ) {
-				attacker->client->pers.weaponDamage[G_StatWeapon( inflictor, attacker, mod )] += dealt;
-			}
-			if ( attacker->s.number < MAX_CLIENTS && targ->s.number < MAX_CLIENTS ) {
-				attacker->client->pers.lifeDealt[targ->s.number] += dealt;
-				client->pers.lifeTaken[attacker->s.number] += dealt;
-			}
-
-			// the number over the target, for the attacker alone
-			if ( dealt > 0 ) {
-				gentity_t	*plum = G_TempEntity( targ->r.currentOrigin, EV_DAMAGEPLUM );
-
-				plum->s.origin[2] += 40;
-				plum->s.pos.trBase[2] += 40;
-				plum->s.time = dealt;
-				plum->s.otherEntityNum = attacker->s.number;
-				plum->s.otherEntityNum2 = targ->s.number;	// for summing (cg_damagePlumSum)
-				plum->s.generic1 = mod;
-				plum->r.svFlags |= SVF_SINGLECLIENT;
-				plum->r.singleClient = attacker->s.number;
-			}
-		}
 
 		// enough damage while on the hook breaks the rope
 		if ( client->hook && targ != attacker ) {

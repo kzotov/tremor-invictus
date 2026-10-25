@@ -1574,6 +1574,7 @@ rocket. Killing the body kills the player.
 
 static void G_DroneBodyDie( gentity_t *body, gentity_t *inflictor, gentity_t *attacker, int damage, int mod ) {
 	gentity_t	*owner = body->parent;
+	int			health = body->health;		// (G_DroneEnd frees the body)
 
 	body->takedamage = qfalse;
 	if ( !owner || !owner->client || owner->client->droneBody != body ) {
@@ -1581,7 +1582,17 @@ static void G_DroneBodyDie( gentity_t *body, gentity_t *inflictor, gentity_t *at
 		return;
 	}
 	G_DroneEnd( owner, qfalse );
-	G_Damage( owner, inflictor, attacker, NULL, NULL, 100000, DAMAGE_NO_PROTECTION, mod );
+	// he dies as the body did: the hit was already counted against the body,
+	// so no second, huge damage for the stats
+	owner->health = owner->client->ps.stats[STAT_HEALTH] = health < 0 ? health : 0;
+	owner->client->ps.stats[STAT_ARMOR] = 0;
+	if ( attacker ) {
+		owner->client->lasthurt_client = attacker->s.number;
+		owner->client->lasthurt_mod = mod;
+	}
+	owner->enemy = attacker;
+	owner->flags |= FL_NO_KNOCKBACK;
+	owner->die( owner, inflictor, attacker, damage, mod );
 }
 
 // a hit flashes the body for the client (abilities.md: Strogg's body)
@@ -1889,6 +1900,10 @@ static void G_StartDrone( gentity_t *ent ) {
 	client->droneWeapon = client->ps.weapon;
 	client->ps.weapon = WP_MACHINEGUN;
 	client->ps.weaponstate = WEAPON_READY;
+	// a slow weapon's refire (a rail's 1.5 s) doesn't carry over to it
+	if ( client->ps.weaponTime > BG_AbilityParam( ACTIVE_DRONE, AP_LOCKOUT ) ) {
+		client->ps.weaponTime = BG_AbilityParam( ACTIVE_DRONE, AP_LOCKOUT );
+	}
 	client->droneArmor = client->ps.stats[STAT_ARMOR];
 	VectorCopy( client->ps.viewangles, client->droneBodyAngles );
 

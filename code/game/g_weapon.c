@@ -346,7 +346,7 @@ A hit counted for accuracy, overall and for the weapon
 ===============
 */
 void G_LogAccuracyHit( gclient_t *client, int weapon ) {
-	if ( !client ) {
+	if ( !client || weapon < 0 ) {		// (-1: the drone's gun isn't a weapon)
 		return;
 	}
 	client->accuracy_hits++;
@@ -1150,6 +1150,15 @@ qboolean LogAccuracyHit( gentity_t *target, gentity_t *attacker ) {
 		return qfalse;
 	}
 
+	// Strogg's body during the drone counts as Strogg
+	if ( !target->client && target->parent && target->parent->client
+		&& target->parent->client->droneBody == target ) {
+		target = target->parent;
+		if ( target == attacker ) {
+			return qfalse;
+		}
+	}
+
 	if( !target->client ) {
 		return qfalse;
 	}
@@ -1253,7 +1262,7 @@ void FireWeapon( gentity_t *ent ) {
 		ent->client->pers.accShots[WP_GAUNTLET]++;
 		ent->client->pers.accHits[WP_GAUNTLET]++;
 	}
-	if( ent->s.weapon != WP_GRAPPLING_HOOK && ent->s.weapon != WP_GAUNTLET ) {
+	if( ent->s.weapon != WP_GRAPPLING_HOOK && ent->s.weapon != WP_GAUNTLET && !( ent->client->ps.eFlags & EF_DRONE ) ) {
 #ifdef MISSIONPACK
 		if( ent->s.weapon == WP_NAILGUN ) {
 			ent->client->accuracy_shots += NUM_NAILSHOTS;
