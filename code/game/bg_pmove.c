@@ -2808,7 +2808,12 @@ static void PM_Weapon( void ) {
 		addTime /= 1.3;
 	}
 
-	pm->ps->weaponTime += (int)( addTime * PM_WeaponTimeScale() + 0.5f );		// rounded (LG 50 -> 38 at x1.333)
+	if ( pm->ps->weapon == WP_GAUNTLET && PM_AbilityActive( ACTIVE_DUALWIELD ) ) {
+		addTime *= 2;		// Dual Wield's Gauntlet: both fists at once, half as often (champion-audit.md)
+	} else {
+		addTime = (int)( addTime * PM_WeaponTimeScale() + 0.5f );		// rounded (LG 50 -> 38 at x1.333)
+	}
+	pm->ps->weaponTime += addTime;
 }
 
 /*

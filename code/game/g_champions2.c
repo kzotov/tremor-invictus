@@ -162,9 +162,12 @@ static void G_ShockZoneThink( gentity_t *zone ) {
 				&& BG_AbilityState( &other->client->ps ) == ABILITY_IDLE ) {
 				int	recharge = BG_AbilityParam( active, AP_RECHARGE );
 
+				// champion-audit.md: the ready ability counts back up from 0
+				// for as long as the shock lasts (at most a full cooldown),
+				// rather than jumping a whole cooldown back
 				BG_SetAbility( &other->client->ps, ABILITY_IDLE, charges - 1 );
-				other->client->abilityRecharge = recharge - other->client->shockBudget > 0 ? recharge - other->client->shockBudget : 0;
-				other->client->shockBudget = 0;
+				other->client->abilityRecharge = recharge - 1;
+				other->client->shockBudget = recharge;
 			}
 		}
 		other->client->ps.powerups[PW_SHELLSHOCK] = level.time + g_shockTime.integer;

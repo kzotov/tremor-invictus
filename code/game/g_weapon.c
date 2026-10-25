@@ -311,6 +311,10 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 #endif
 
 	damage = BG_WeaponParam( WP_GAUNTLET, WPP_DAMAGE ) * s_quadFactor;
+	// B.J.'s Dual Wield: both fists at once (champion-audit.md)
+	if ( G_AbilityActive( ent, ACTIVE_DUALWIELD ) ) {
+		damage *= 2;
+	}
 	if ( G_AbilityActive( ent, ACTIVE_BERSERK ) ) {
 		damage = g_berserkDamage.value;		// an ability: no Quad (champion-audit.md)
 	}
