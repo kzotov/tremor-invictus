@@ -742,6 +742,19 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	}
 	ci = &cgs.clientinfo[ clientNum ];
 
+	// Nyx gone in Ghost Walk is silent but for her footsteps
+	if ( es->eType == ET_PLAYER && CG_GhostLook( es ) == GHOST_HIDDEN ) {
+		switch ( event ) {
+		case EV_JUMP: case EV_JUMP_PAD: case EV_CHANGE_WEAPON: case EV_NOAMMO: case EV_TAUNT:
+		case EV_WATER_TOUCH: case EV_WATER_LEAVE: case EV_WATER_UNDER: case EV_WATER_CLEAR:
+		case EV_FALL_SHORT: case EV_FALL_MEDIUM: case EV_FALL_FAR: case EV_STEP_4: case EV_STEP_8:
+		case EV_STEP_12: case EV_STEP_16: case EV_SWIM:
+			return;
+		default:
+			break;
+		}
+	}
+
 	switch ( event ) {
 	//
 	// movement generated events

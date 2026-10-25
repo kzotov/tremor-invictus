@@ -2244,7 +2244,7 @@ Also called by CG_Missile for quad rockets, but nobody can tell...
 ===============
 CG_InGhostWalk
 
-Nyx in Ghost Walk: the game sends when it began in s.time2 (any champion
+Nyx in Ghost Walk: the game sends when it began in s.frame (any champion
 model); the local player from the prediction
 ===============
 */
@@ -2256,7 +2256,7 @@ qboolean CG_InGhostWalk( const entityState_t *state ) {
 		return BG_Champion( cg.predictedPlayerState.stats[STAT_CHAMPION] )->active == ACTIVE_GHOSTWALK
 			&& BG_AbilityState( &cg.predictedPlayerState ) == ABILITY_ACTIVE;
 	}
-	return state->time2 != 0;
+	return state->frame != 0;
 }
 
 /*
@@ -2277,7 +2277,7 @@ int CG_GhostLook( const entityState_t *state ) {
 			|| ( cgs.gametype >= GT_TEAM && cgs.clientinfo[state->clientNum].team == cg.snap->ps.persistant[PERS_TEAM] ) ) {
 			return GHOST_SHIMMER;
 		}
-		t = cg.time - state->time2;
+		t = ( cg.time - state->frame ) & 0xffff;		// (16 bits of server time)
 		if ( t < 250 ) {
 			return GHOST_FADING;
 		}

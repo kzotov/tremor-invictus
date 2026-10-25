@@ -379,7 +379,7 @@ static void G_GhostWalkEnd( gentity_t *ent ) {
 	gentity_t	*other;
 	int			i, num;
 
-	ent->s.time2 = 0;
+	ent->s.frame = 0;
 	ent->r.contents = CONTENTS_BODY;
 
 	VectorAdd( ent->client->ps.origin, ent->r.mins, mins );
@@ -432,9 +432,10 @@ static void G_UseAbility( gentity_t *ent ) {
 		break;
 
 	case ACTIVE_GHOSTWALK:
-		// its own state, not the invisibility power-up: s.time2 is when it
-		// began, for the others' fade (CG_GhostLook)
-		ent->s.time2 = level.time;
+		// its own state, not the invisibility power-up: s.frame (16 bits,
+		// nothing else uses it on a player) is when it began, for the
+		// others' fade (CG_GhostLook); never 0
+		ent->s.frame = ( level.time & 0xffff ) ? level.time & 0xffff : 1;
 		ent->r.contents = 0;
 		break;
 

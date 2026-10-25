@@ -245,9 +245,9 @@ qboolean EntityIsInvisible(aas_entityinfo_t *entinfo) {
 	if (entinfo->powerups & (1 << PW_INVIS)) {
 		return qtrue;
 	}
-	// Nyx in Ghost Walk (g_active.c: s.time2 is when it began)
-	if ( entinfo->number >= 0 && entinfo->number < MAX_CLIENTS && g_entities[entinfo->number].s.time2
-		&& g_entities[entinfo->number].s.eType == ET_PLAYER ) {
+	// Nyx in Ghost Walk
+	if ( entinfo->number >= 0 && entinfo->number < MAX_CLIENTS && g_entities[entinfo->number].client
+		&& G_AbilityActive( &g_entities[entinfo->number], ACTIVE_GHOSTWALK ) ) {
 		return qtrue;
 	}
 	return qfalse;
