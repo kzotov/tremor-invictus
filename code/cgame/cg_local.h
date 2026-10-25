@@ -686,6 +686,7 @@ typedef struct {
 	int			damageArcValue[DAMAGE_ARCS];
 	int			damageArcNext;		// the slot the next hit takes
 	int			lowHealthBeat;		// cg.time of the last low-health heartbeat
+	int			lowHealthLastHealth;	// for a beat on each hit while low
 	int			lowHealthStep;		// LH_* of the viewed player
 	int			lowHealthSince;		// cg.time they reached LH_LOW
 	int			lowHealthClient;	// whose health it is
@@ -1405,6 +1406,8 @@ extern	vmCvar_t		cg_worldItemTimers;
 extern	vmCvar_t		cg_lowHealthWarning;
 extern	vmCvar_t		cg_lowHealthSound;
 extern	vmCvar_t		cg_heavyBreathing;
+extern	vmCvar_t		cg_lowArmorWarning;
+extern	vmCvar_t		cg_clockDirection;
 extern	vmCvar_t		cg_championVO;
 extern	vmCvar_t		cg_drawLineup;
 extern	vmCvar_t		cg_layoutDump;

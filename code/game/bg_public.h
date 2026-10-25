@@ -1276,6 +1276,12 @@ typedef enum {
 	STR_RD_DRAFT_YOURS,				// the draft view: your turn, seconds left
 	STR_RD_DRAFT_THEIRS,			// someone else's turn: name, seconds left
 	STR_RD_DRAFT_TAKEN,				// after a taken champion's name
+	STR_SET_LOWARMOR,
+	STR_SET_LOWARMOR_HELP,
+	STR_SET_CLOCKDIR,
+	STR_SET_CLOCKDIR_HELP,
+	STR_SET_COUNTDOWN,
+	STR_SET_COUNTUP,
 
 	STR_NUM_STRINGS
 } stringId_t;

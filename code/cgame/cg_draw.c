@@ -2055,13 +2055,15 @@ static void CG_DrawHudClock( void ) {
 	}
 	// past the limit (overtime) the clock counts up from it
 	overtime = limit && !cg.warmup && msec > limit * 60000;
-	if ( limit && !overtime ) {
+	// red for the last 10 s, by the time left whichever way the clock runs
+	finalSeconds = limit && !cg.warmup && !overtime && limit * 60000 - msec < 10000;
+	// cg_clockDirection 1 counts up from 0:00 (the time played)
+	if ( limit && !overtime && !cg_clockDirection.integer ) {
 		msec = limit * 60000 - msec;
 		if ( msec < 0 ) {
 			msec = 0;
 		}
 	}
-	finalSeconds = limit && !cg.warmup && !overtime && msec < 10000;		// red for the last 10 s
 	secs = msec / 1000;
 	mins = secs / 60;
 	secs %= 60;
@@ -4690,19 +4692,35 @@ void CG_LowHealthFrame( void ) {
 		return;
 	}
 
-	// the beat keeps the screen's rhythm even with its sound off
-	if ( !cg.lowHealthBeat || cg.time - cg.lowHealthBeat >= ( step == LH_CRITICAL ? 700 : 1000 ) ) {
-		cg.lowHealthBeat = cg.time;
-		if ( cg_lowHealthSound.integer && beat ) {
-			trap_S_StartLocalSound( beat, CHAN_HEARTBEAT );		// (replaces the beat still sounding)
+	// the beat (konstantin-list-audit "Low-health audio", the reference is
+	// event-driven): on reaching Low, on reaching Critical and on each
+	// further hit; cg_lowHealthSound 2 keeps the old steady beat (1.0 / 0.7 s).
+	// The screen pulses with it either way.
+	{
+		qboolean	due;
+
+		if ( cg_lowHealthSound.integer == 2 ) {
+			due = !cg.lowHealthBeat || cg.time - cg.lowHealthBeat >= ( step == LH_CRITICAL ? 700 : 1000 );
+		} else {
+			due = !cg.lowHealthBeat || ( step == LH_CRITICAL && old < LH_CRITICAL )
+				|| ( ps->stats[STAT_HEALTH] < cg.lowHealthLastHealth && cg.time - cg.lowHealthBeat >= 300 );
 		}
+		if ( due ) {
+			cg.lowHealthBeat = cg.time;
+			if ( cg_lowHealthSound.integer && beat ) {
+				trap_S_StartLocalSound( beat, CHAN_HEARTBEAT );		// (replaces the beat still sounding)
+			}
+		}
+		cg.lowHealthLastHealth = ps->stats[STAT_HEALTH];
 	}
 
 	if ( !own ) {
 		cg.lowHealthBreathing = qfalse;
 		return;
 	}
-	if ( cg_heavyBreathing.integer && ci->breatheSound && cg.time - cg.lowHealthSince >= 2000 ) {
+	// the breathing from 2 s after reaching Low, for 6 s (calmer)
+	if ( cg_heavyBreathing.integer && ci->breatheSound && cg.time - cg.lowHealthSince >= 2000
+		&& cg.time - cg.lowHealthSince < 8000 ) {
 		cg.lowHealthBreathing = qtrue;
 		trap_S_AddLoopingSound( ENTITYNUM_NONE, cg.refdef.vieworg, vec3_origin, ci->breatheSound );
 	} else {
@@ -5791,7 +5809,16 @@ static void CG_DrawAmmoWarning( void ) {
 		vec4_t	color = { 1, 0.75f, 0.2f, 1 };
 		float	ch = 26 * DP;
 
-		color[3] = 0.55f + 0.45f * cos( cg.time / 400.0f * M_PI );
+		// steady (not blinking), with a short flash when it changes
+		{
+			static int	lastState, changedAt;
+
+			if ( cg.lowAmmoWarning != lastState ) {
+				lastState = cg.lowAmmoWarning;
+				changedAt = cg.time;
+			}
+			color[3] = cg.time - changedAt < 300 && cg.time >= changedAt ? 0.4f + 0.6f * ( ( cg.time - changedAt ) / 100 & 1 ) : 1.0f;
+		}
 		cg_hudAnchor = ANCHOR_CENTER;
 		CG_DrawStringExt( 320 + 466 * DP, 686 * DP, BG_String( cg.lowAmmoWarning == 2 ? STR_HUD_NO_AMMO : STR_HUD_LOW_AMMO ),
 			color, qtrue, qtrue, ch * 0.8f, ch, 0 );
@@ -5820,11 +5847,23 @@ static void CG_DrawArmorWarning( void ) {
 	vec4_t				color = { 0.35f, 0.95f, 0.45f, 1 };
 	float				ch = 26 * DP;
 
+	// off by default (konstantin-list-audit); on, it shows steady for 2 s
+	// when armour drops from above 25 to 1-25
+	{
+		static int	lastArmor, shownAt;
+
+		if ( ps->stats[STAT_ARMOR] > 0 && ps->stats[STAT_ARMOR] <= 25 && lastArmor > 25 ) {
+			shownAt = cg.time;
+		}
+		lastArmor = ps->stats[STAT_ARMOR];
+		if ( !cg_lowArmorWarning.integer || !shownAt || cg.time - shownAt > 2000 || cg.time < shownAt ) {
+			return;
+		}
+	}
 	if ( !CG_HudModern() || ps->stats[STAT_HEALTH] <= 0 || ci->spawnArmor <= 0 || ps->stats[STAT_ARMOR] > 25
-		|| ps->persistant[PERS_TEAM] == TEAM_SPECTATOR ) {
+		|| ps->stats[STAT_ARMOR] <= 0 || ps->persistant[PERS_TEAM] == TEAM_SPECTATOR ) {
 		return;
 	}
-	color[3] = 0.55f + 0.45f * cos( cg.time / 400.0f * M_PI );
 	cg_hudAnchor = ANCHOR_CENTER;
 	CG_DrawStringExt( 320 + 466 * DP, 636 * DP, BG_String( STR_HUD_LOW_ARMOR ), color, qtrue, qtrue, ch * 0.8f, ch, 0 );
 }

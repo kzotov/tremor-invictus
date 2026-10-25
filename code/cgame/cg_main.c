@@ -260,6 +260,8 @@ vmCvar_t	cg_worldItemTimers;
 vmCvar_t	cg_lowHealthWarning;
 vmCvar_t	cg_lowHealthSound;
 vmCvar_t	cg_heavyBreathing;
+vmCvar_t	cg_lowArmorWarning;
+vmCvar_t	cg_clockDirection;
 vmCvar_t	cg_championVO;
 vmCvar_t	cg_drawLineup;
 vmCvar_t	cg_layoutDump;
@@ -480,6 +482,8 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_lowHealthWarning, "cg_lowHealthWarning", "1", CVAR_ARCHIVE},	// the red screen edge at 50 health and below
 	{ &cg_lowHealthSound, "cg_lowHealthSound", "1", CVAR_ARCHIVE},	// the heartbeat at 25 and below
 	{ &cg_heavyBreathing, "cg_heavyBreathing", "1", CVAR_ARCHIVE},	// your champion breathing hard at 25 and below
+	{ &cg_lowArmorWarning, "cg_lowArmorWarning", "0", CVAR_ARCHIVE},
+	{ &cg_clockDirection, "cg_clockDirection", "0", CVAR_ARCHIVE},	// the match clock: 0 counts down, 1 counts up from 0:00	// LOW ARMOR, steady for 2 s on dropping to 25 (off by default)
 	{ &cg_championVO, "cg_championVO", "1", CVAR_ARCHIVE},		// champion voice lines
 	{ &cg_drawLineup, "cg_drawLineup", "1", CVAR_ARCHIVE},
 	{ &cg_layoutDump, "cg_layoutDump", "0", 0}

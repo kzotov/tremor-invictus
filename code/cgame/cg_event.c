@@ -601,8 +601,12 @@ Also called by playerstate transition
 void CG_PainEvent( centity_t *cent, int health ) {
 	char	*snd;
 
-	// don't do more than two pain sounds a second
+	// don't do more than two pain sounds a second; your own while low,
+	// one each 0.8 s (calmer, konstantin-list-audit)
 	if ( cg.time - cent->pe.painTime < 500 ) {
+		return;
+	}
+	if ( health < 25 && cent->currentState.number == cg.snap->ps.clientNum && cg.time - cent->pe.painTime < 800 ) {
 		return;
 	}
 

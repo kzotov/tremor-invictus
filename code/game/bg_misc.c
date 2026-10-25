@@ -2025,7 +2025,13 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"was knocked into the void by",
 	"YOUR PICK  %i",
 	"%s^7 IS PICKING  %i",
-	" - TAKEN"
+	" - TAKEN",
+	"Low armour warning",
+	"Shows LOW ARMOR for 2 s when your armour drops to 25 or less.",
+	"Match clock",
+	"Time left, or time played from 0:00.",
+	"Counts down",
+	"Counts up"
 };
 
 /*
