@@ -4947,7 +4947,7 @@ static void CG_DrawDeathScreenModern( void ) {
 	if ( cg.deathKiller >= 0 && cg.deathKiller < MAX_CLIENTS && cg.deathKiller != cg.snap->ps.clientNum ) {
 		ci = &cgs.clientinfo[cg.deathKiller];
 		champ = BG_ChampionForModel( ci->modelName );
-		if ( cg.deathMod >= MOD_HEAVYWEIGHT && champ >= 0 && BG_Champion( champ )->active > ACTIVE_NONE ) {
+		if ( cg.deathMod >= MOD_HEAVYWEIGHT && cg.deathMod <= MOD_LEAPINGKICK && champ >= 0 && BG_Champion( champ )->active > ACTIVE_NONE ) {
 			how = BG_String( bg_abilityInfo[BG_Champion( champ )->active].nameString );
 		} else if ( cg.deathWeapon > WP_NONE && cg.deathWeapon < WP_NUM_WEAPONS && cg_weapons[cg.deathWeapon].item ) {
 			how = cg_weapons[cg.deathWeapon].item->pickup_name;
@@ -5074,7 +5074,7 @@ static void CG_DrawDeathScreen( void ) {
 		ci = &cgs.clientinfo[cg.deathKiller];
 		champ = BG_ChampionForModel( ci->modelName );
 		// a weapon, or the champion's ability for ability deaths
-		if ( cg.deathMod >= MOD_HEAVYWEIGHT && champ >= 0 && BG_Champion( champ )->active > ACTIVE_NONE ) {
+		if ( cg.deathMod >= MOD_HEAVYWEIGHT && cg.deathMod <= MOD_LEAPINGKICK && champ >= 0 && BG_Champion( champ )->active > ACTIVE_NONE ) {
 			how = BG_String( bg_abilityInfo[BG_Champion( champ )->active].nameString );
 		} else if ( cg.deathWeapon > WP_NONE && cg.deathWeapon < WP_NUM_WEAPONS && cg_weapons[cg.deathWeapon].item ) {
 			how = cg_weapons[cg.deathWeapon].item->pickup_name;

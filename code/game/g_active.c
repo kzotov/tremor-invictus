@@ -694,9 +694,8 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed, c
 		if ( other == ent || !other->client || other->health <= 0 || !other->takedamage ) {
 			continue;
 		}
-		if ( OnSameTeam( ent, other ) && ( ( swinging && !( champ->abilities & MOVEABIL_HEAVYWEIGHT ) )
-			|| BG_AbilityState( &client->ps ) == ABILITY_RUSH ) ) {
-			continue;		// Athena's impact and the Bull Rush hit enemies only (and teammates don't stop it)
+		if ( OnSameTeam( ent, other ) && ( swinging || ( champ->abilities & MOVEABIL_HEAVYWEIGHT ) ) ) {
+			continue;		// Athena's impact, the Bull Rush and the stomp hit enemies only (and teammates don't stop it)
 		}
 		if ( level.time - client->collisionTime[other->s.number]
 			< ( swinging ? g_hookSwingRepeat.integer : g_collisionRepeat.integer ) ) {
@@ -704,13 +703,9 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed, c
 		}
 
 		if ( ( champ->abilities & MOVEABIL_HEAVYWEIGHT ) && BG_AbilityState( &client->ps ) == ABILITY_RUSH ) {
-			// a rush hits from g_rushSlowDamage standing to g_rushDamage at the fast speed
-			float	f = g_rushFastSpeed.value > 0 ? impactSpeed / g_rushFastSpeed.value : 1;
-
-			if ( f > 1 ) {
-				f = 1;
-			}
-			damage = g_rushSlowDamage.integer + ( g_rushDamage.integer - g_rushSlowDamage.integer ) * f;
+			// a rush hits for g_rushSlowDamage below the fast speed and
+			// g_rushDamage at it (abilities-data: a step, 50 / 75 at 400)
+			damage = impactSpeed >= g_rushFastSpeed.value ? g_rushDamage.integer : g_rushSlowDamage.integer;
 		} else if ( champ->abilities & MOVEABIL_HEAVYWEIGHT ) {
 			damage = G_HeavyweightDamage( impactSpeed );
 		} else {
@@ -731,15 +726,14 @@ static void G_CollisionDamage( gentity_t *ent, pmove_t *pm, float impactSpeed, c
 			VectorSet( dir, 0, 0, 1 );
 		}
 		if ( champ->abilities & MOVEABIL_HEAVYWEIGHT ) {
-			// mechanics.md: the push comes from the damage through the normal
-			// knockback (the 132 cap, the knockback state; no Quad, it is an
-			// ability): a Bull Rush
-			// hit x1.5 tilted up 0.2 m, the Heavyweight stomp x0.5 flat
+			// abilities-data: the push is impulse 100 (g_hwKnockback) x1.5 for
+			// a Bull Rush hit (to the 132 cap) tilted up 0.2 m, x0.5 for the
+			// Heavyweight stomp, flat; each its own damage type
 			qboolean	rush = BG_AbilityState( &client->ps ) == ABILITY_RUSH;
 
-			G_NextKnockback( damage * ( rush ? 1.5f : 0.5f ) );
+			G_NextKnockback( g_hwKnockback.value * ( rush ? 1.5f : 0.5f ) );
 			G_NextTilt( rush ? 0.2f : 0 );
-			G_Damage( other, ent, ent, dir, other->r.currentOrigin, damage, 0, MOD_HEAVYWEIGHT );
+			G_Damage( other, ent, ent, dir, other->r.currentOrigin, damage, 0, rush ? MOD_BULLRUSH : MOD_HEAVYWEIGHT );
 		} else {
 			// abilities.md: Athena's impact, impulse 80 tilted up 12 u (0.3 m)
 			G_NextKnockback( 80 );

@@ -2542,7 +2542,9 @@ static void PM_Weapon( void ) {
 
 	// no firing or switching during a bull rush or the drone's charge (Ghost
 	// Walk: switching allowed, firing not; below)
+	// (the Bull Rush from the press, its wait for the landing too)
 	if ( BG_AbilityState( pm->ps ) == ABILITY_RUSH
+		|| ( pml.champion->active == ACTIVE_BULLRUSH && BG_AbilityState( pm->ps ) == ABILITY_WINDUP )
 		|| ( PM_DroneActive() && ( pm->ps->pm_flags & PMF_DRONE_CHARGE ) ) ) {
 		return;
 	}

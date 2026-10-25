@@ -2129,6 +2129,7 @@ typedef enum {
 #endif
 	MOD_GRAPPLE,
 	MOD_HEAVYWEIGHT,
+	MOD_BULLRUSH,			// Scalebearer's Bull Rush hit (the stomp is MOD_HEAVYWEIGHT)
 	MOD_ORB,
 	MOD_FIREBALL,
 	MOD_BURN,

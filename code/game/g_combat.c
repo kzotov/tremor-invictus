@@ -331,6 +331,7 @@ char	*modNames[] = {
 #endif
 	"MOD_GRAPPLE",
 	"MOD_HEAVYWEIGHT",
+	"MOD_BULLRUSH",
 	"MOD_ORB",
 	"MOD_FIREBALL",
 	"MOD_BURN",
