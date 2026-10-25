@@ -6268,6 +6268,87 @@ static void CG_DrawPillars( const int *clients, const int *heights, const int *t
 	}
 }
 
+#ifndef MISSIONPACK
+/*
+=================
+CG_DrawTeamStandoff
+
+menu-style.md 4.2, team stand-off (konstantin-list-audit F1 4): blue on
+the left, red on the right, up to 4 pillars a side in an arc (the inner
+ones 80 u from the middle, 56 u apart, each step out 25 u further back,
+turned 25 degrees inward), 5-8 a side on a row 60 u further back and 24 u
+higher; a team plate over each side, VS in the middle
+=================
+*/
+#define STANDOFF_INNER		80
+#define STANDOFF_STEP		56
+#define STANDOFF_BACK		25
+#define STANDOFF_TURN		25
+#define STANDOFF_DIST		540		// the outermost of four inside 0.83 of a 4:3 half-width
+
+static void CG_DrawTeamStandoff( const int *blue, int nBlue, const int *red, int nRed, int readyBits ) {
+	static const byte	glows[2][4] = { { 40, 90, 220, 255 }, { 208, 26, 26, 255 } };
+	static const vec4_t	blueText = { 0.27f, 0.84f, 1, 1 }, redText = { 1, 0.27f, 0.27f, 1 }, champ = { 1, 0.46f, 0.31f, 1 };
+	refdef_t	refdef;
+	vec3_t		base;
+	float		tx, ty, sx, sy;
+	int			side, i, k, row, n;
+	const int	*list;
+
+	memset( &refdef, 0, sizeof( refdef ) );
+	refdef.rdflags = RDF_NOWORLDMODEL;
+	AxisClear( refdef.viewaxis );
+	refdef.fov_y = PILLAR_FOV_Y;
+	refdef.fov_x = 2 * RAD2DEG( atan2( tan( DEG2RAD( PILLAR_FOV_Y * 0.5f ) ) * cgs.glconfig.vidWidth, cgs.glconfig.vidHeight ) );
+	refdef.width = cgs.glconfig.vidWidth;
+	refdef.height = cgs.glconfig.vidHeight;
+	refdef.time = cg.time;
+	tx = tan( DEG2RAD( refdef.fov_x * 0.5f ) );
+	ty = tan( DEG2RAD( refdef.fov_y * 0.5f ) );
+
+	trap_R_ClearScene();
+	for ( side = 0 ; side < 2 ; side++ ) {
+		list = side ? red : blue;
+		n = side ? nRed : nBlue;
+		for ( i = 0 ; i < n && i < 8 ; i++ ) {
+			k = i & 3;
+			row = i >> 2;
+			VectorSet( base, STANDOFF_DIST + k * STANDOFF_BACK + row * 60, ( side ? -1 : 1 ) * ( STANDOFF_INNER + k * STANDOFF_STEP ), 0 );
+			base[2] = PILLAR_TOP * base[0] / PILLAR_DIST + row * 24;
+			CG_AddPillar( base, glows[side], 0 );
+			CG_AddPillarPlayerTurned( list[i], base, side ? STANDOFF_TURN : -STANDOFF_TURN );
+		}
+	}
+	trap_R_AddLightToScene( vec3_origin, 600, 1, 1, 1 );
+	trap_R_RenderScene( &refdef );
+
+	// the names under the front row's feet (the row behind only by face)
+	for ( side = 0 ; side < 2 ; side++ ) {
+		list = side ? red : blue;
+		n = side ? nRed : nBlue;
+		for ( i = 0 ; i < n && i < 4 ; i++ ) {
+			clientInfo_t	*ci = &cgs.clientinfo[list[i]];
+			int				ch = BG_ChampionForModel( ci->modelName );
+			float			x = STANDOFF_DIST + i * STANDOFF_BACK, y = ( side ? -1 : 1 ) * ( STANDOFF_INNER + i * STANDOFF_STEP );
+
+			sx = 320 - y / ( x * tx ) * 0.5f * cgs.glconfig.vidWidth * 480 / cgs.glconfig.vidHeight;
+			sy = 240 - ( PILLAR_TOP * x / PILLAR_DIST ) / ( x * ty ) * 240 + 6;
+			CG_HudText( sx, sy, 26, ci->name, list[i] == cg.snap->ps.clientNum ? colorYellow : colorWhite, 1, 1 );
+			if ( ch >= 0 ) {
+				CG_HudText( sx, sy + 13, 20, BG_String( BG_Champion( ch )->nameString ), champ, 1, 1 );
+			}
+			if ( readyBits & ( 1 << list[i] ) ) {
+				CG_HudText( sx, sy + 24, 20, BG_String( STR_LINEUP_READY ), colorGreen, 1, 1 );
+			}
+		}
+	}
+	// the team plates and VS
+	CG_HudText( 180, 100, 44, cgs.blueTeam[0] ? cgs.blueTeam : "BLUE", blueText, 1, 1 );
+	CG_HudText( 460, 100, 44, cgs.redTeam[0] ? cgs.redTeam : "RED", redText, 1, 1 );
+	CG_HudText( 320, 170, 90, "VS", colorWhite, 1, 1 );
+}
+#endif
+
 /*
 =================
 CG_DraftState
@@ -6696,6 +6777,27 @@ static void CG_DrawLineup( void ) {
 	if ( count < 2 ) {
 		return;
 	}
+#ifndef MISSIONPACK
+	// team modes: the two sides facing each other (menu-style.md 4.2)
+	if ( cgs.gametype >= GT_TEAM ) {
+		int		blue[8], red[8], nb = 0, nr = 0;
+
+		for ( i = 0 ; i < count ; i++ ) {
+			if ( teams[i] == 2 && nb < 8 ) {
+				blue[nb++] = clients[i];
+			} else if ( teams[i] == 1 && nr < 8 ) {
+				red[nr++] = clients[i];
+			}
+		}
+		CG_FillRect( -1000, 0, 3000, 480, dim );
+		CG_DrawTeamStandoff( blue, nb, red, nr,
+			atoi( CG_ConfigString( CS_READYUP ) ) && cg.warmup ? cg.snap->ps.stats[STAT_CLIENTS_READY] : 0 );
+		UI_DrawProportionalString( 320, 26, CG_ModeString(), UI_CENTER | UI_DROPSHADOW, colorWhite );
+		UI_DrawProportionalString( 320, 52, CG_ConfigString( CS_MESSAGE )[0] ? CG_ConfigString( CS_MESSAGE ) : cgs.mapname + 5,
+			UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorLtGrey );
+		return;
+	}
+#endif
 	// each player's champion under their name
 	for ( i = 0 ; i < count ; i++ ) {
 		int		champ = BG_ChampionForModel( cgs.clientinfo[clients[i]].modelName );
