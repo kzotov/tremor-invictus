@@ -3154,13 +3154,9 @@ PM_WeaponLockout
 static void PM_WeaponLockout( int active ) {
 	int		lockout = BG_AbilityParam( active, AP_LOCKOUT );
 
+	// firing (and zoom) only: switching stays free (the data)
 	if ( pm->ps->weaponTime < lockout ) {
 		pm->ps->weaponTime = lockout;
-	}
-	// Death Knight's and Anarki's lockout also locks weapon switch
-	// (a weapon can't change while it counts as firing)
-	if ( active == ACTIVE_FLAMESTRIKE || active == ACTIVE_INJECTION ) {
-		pm->ps->weaponstate = WEAPON_FIRING;
 	}
 }
 
@@ -3313,8 +3309,9 @@ static void PM_Ability( void ) {
 			return;
 		}
 		charges--;
-		// (Unumrey's lockout follows a recall, set by the game)
-		if ( !bg_abilityInfo[active].lockoutAtEnd && active != ACTIVE_RIFTANCHOR ) {
+		// the firing lock on every press (champion-audit.md, from the data);
+		// Unumrey's follows a recall, set by the game
+		if ( active != ACTIVE_RIFTANCHOR ) {
 			PM_WeaponLockout( active );
 		}
 		PM_StartAbility( &state, &time );

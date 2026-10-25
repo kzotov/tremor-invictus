@@ -1365,7 +1365,7 @@ typedef enum {
 typedef struct {
 	char		*cvarName;			// ab_<cvarName>_<param>
 	int			nameString;			// stringId_t
-	int			lockoutAtEnd;		// qtrue: weapon lockout when it ends, else when it starts
+	int			lockoutAtEnd;		// qtrue: the firing lockout again when it ends (it always locks on the press)
 	char		*defaults[AP_NUM_PARAMS];
 } abilityInfo_t;
 
