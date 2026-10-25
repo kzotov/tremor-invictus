@@ -3050,6 +3050,20 @@ void CL_Frame ( int msec ) {
 			}
 		}
 	}
+	// a game page (map vote, lobby, draft) never outlives its map: hidden
+	// while the next one loads (konstantin-list-audit F1 2)
+	if ( clc.state >= CA_CONNECTING && clc.state < CA_ACTIVE && RML_Active() ) {
+		static const char	*gamePages[] = { "ui/mapvote.rml", "ui/lobby.rml", "ui/draft.rml", "ui/join.rml" };
+		const char			*doc = Cvar_VariableString( "rml_doc" );
+		int					i;
+
+		for ( i = 0; i < ARRAY_LEN( gamePages ); i++ ) {
+			if ( !Q_stricmp( doc, gamePages[i] ) ) {
+				RML_Hide();
+				break;
+			}
+		}
+	}
 #endif
 
 #ifdef USE_HTTP

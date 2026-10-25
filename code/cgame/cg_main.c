@@ -2228,6 +2228,17 @@ void CG_Shutdown( void ) {
 	// like closing files or archiving session data
 	trap_Cvar_Set( "rml_overlay", "" );		// the Tab board goes with the game
 	trap_Cvar_Set( "cg_turnScale", "1" );		// (a charging drone's slow turning)
+	// the map vote, lobby and draft pages go with the map
+	{
+		char	doc[MAX_QPATH], active[8];
+
+		trap_Cvar_VariableStringBuffer( "rml_doc", doc, sizeof( doc ) );
+		trap_Cvar_VariableStringBuffer( "rml_active", active, sizeof( active ) );
+		if ( atoi( active ) && ( !Q_stricmp( doc, "ui/mapvote.rml" ) || !Q_stricmp( doc, "ui/lobby.rml" )
+			|| !Q_stricmp( doc, "ui/draft.rml" ) || !Q_stricmp( doc, "ui/join.rml" ) ) ) {
+			trap_SendConsoleCommand( "rml_hide\n" );
+		}
+	}
 }
 
 

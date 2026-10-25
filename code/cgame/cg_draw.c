@@ -5602,9 +5602,18 @@ static void CG_DrawMapVote( void ) {
 	const char	*cs = CG_ConfigString( CS_MAPVOTE );
 
 	static char	shownFor[MAX_STRING_CHARS];		// the vote state the document shows
-	char		rmlOk[8];
+	char		rmlOk[8], doc[MAX_QPATH], active[8];
+	qboolean	up;
 
 	trap_Cvar_VariableStringBuffer( "rml_ok", rmlOk, sizeof( rmlOk ) );
+	// whether the page is up comes from the engine, not a memory that a
+	// new map's cgame wouldn't have
+	trap_Cvar_VariableStringBuffer( "rml_doc", doc, sizeof( doc ) );
+	trap_Cvar_VariableStringBuffer( "rml_active", active, sizeof( active ) );
+	up = atoi( active ) && !Q_stricmp( doc, "ui/mapvote.rml" );
+	if ( !up ) {
+		shownFor[0] = 0;
+	}
 	p = (char *)cs;
 	endTime = atoi( COM_Parse( &p ) );
 	for ( i = 0 ; i < 3 ; i++ ) {
@@ -5613,9 +5622,10 @@ static void CG_DrawMapVote( void ) {
 	for ( i = 0 ; i < 3 ; i++ ) {
 		votes[i] = atoi( COM_Parse( &p ) );
 	}
-	if ( !cs[0] || !maps[0][0] || cg.time >= endTime ) {
-		if ( shownFor[0] ) {
-			shownFor[0] = 0;
+	// closed as the vote ends by the server's clock (cg.time trails it)
+	if ( !cs[0] || !maps[0][0] || cg.time >= endTime || cg.snap->serverTime >= endTime - 100 ) {
+		shownFor[0] = 0;
+		if ( up ) {
 			trap_SendConsoleCommand( "rml_hide\n" );
 		}
 		return;
@@ -6308,11 +6318,10 @@ static qboolean CG_DrawLobby( void ) {
 	trap_Cvar_VariableStringBuffer( "rml_doc", doc, sizeof( doc ) );
 	trap_Cvar_VariableStringBuffer( "rml_active", active, sizeof( active ) );
 	if ( !cs[0] ) {
-		if ( lastPhase >= 0 ) {
-			lastPhase = -1;
-			if ( !Q_stricmp( doc, "ui/lobby.rml" ) && atoi( active ) ) {
-				trap_SendConsoleCommand( "rml_hide\n" );
-			}
+		// no lobby: its page goes, a previous map's too
+		lastPhase = -1;
+		if ( !Q_stricmp( doc, "ui/lobby.rml" ) && atoi( active ) ) {
+			trap_SendConsoleCommand( "rml_hide\n" );
 		}
 		return qfalse;
 	}
