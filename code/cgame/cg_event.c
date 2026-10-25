@@ -667,6 +667,11 @@ static void CG_AbilitySound( entityState_t *es, int which ) {
 		}
 		active = BG_Champion( champ )->active;
 	}
+	// Sorlag's spit: one sound per blob (the game's), nothing on the press
+	// or at the end (abilities-data)
+	if ( active == ACTIVE_ACIDSPIT ) {
+		return;
+	}
 	if ( active > 0 && active < ACTIVE_NUM_ABILITIES && cgs.media.abilitySounds[active][which] ) {
 		trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.abilitySounds[active][which] );
 	}

@@ -521,6 +521,11 @@ static qboolean PM_SlideRules( void ) {
 		&& BG_SlideAirTime( pm->ps ) <= PM_SlideAirGrace();
 }
 
+#define WRACK_STRAFE_ACCEL		2.5f	// Wrack's air control (abilities-data)
+#define WRACK_STRAFE_SPEED		30
+#define WRACK_STOP_ACCEL		1.0f
+#define WRACK_CIRCLE_FRICTION	2.0f
+
 /*
 ==================
 PM_GroundFriction
@@ -533,6 +538,10 @@ static float PM_GroundFriction( void ) {
 	if ( pml.champion->moveStyle == MOVE_AIRCONTROL ) {
 		// circling: forward and strafe both held
 		return pm->cmd.forwardmove && pm->cmd.rightmove ? bg_pmoveSettings.circleFriction : bg_pmoveSettings.acFriction;
+	}
+	// Wrack circling on the ground: friction 2.0 (abilities-data)
+	if ( ( pml.champion->abilities & MOVEABIL_ISOAIR ) && pm->cmd.forwardmove && pm->cmd.rightmove ) {
+		return WRACK_CIRCLE_FRICTION;
 	}
 	return bg_pmoveSettings.friction;
 }
@@ -1389,9 +1398,6 @@ static void PM_AirSpeedDecay( void ) {
 	pm->ps->velocity[1] *= nh / h;
 }
 
-#define WRACK_STRAFE_ACCEL		2.5f	// Wrack's air control (abilities-data)
-#define WRACK_STRAFE_SPEED		30
-#define WRACK_STOP_ACCEL		1.0f
 
 /*
 ===================
