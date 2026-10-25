@@ -940,6 +940,20 @@ def sounds(out):
 SHADERS = """// tremor-invictus generated assets (misc/art/make-models.py)
 // Replaceable: a pack loaded later may define these names again.
 
+// the world item timers' pie slices (hud.md 9.4): the client's colour and
+// alpha per vertex, hidden by walls
+gfx/tremor/pie
+{
+	nopicmip
+	cull none
+	{
+		map $whiteimage
+		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		rgbGen vertex
+		alphaGen vertex
+	}
+}
+
 // the drone's charge blast, faded by the client (additive)
 gfx/abilities/drone_blast
 {

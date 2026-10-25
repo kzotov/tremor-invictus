@@ -1569,6 +1569,130 @@ static void CG_AddCEntity( centity_t *cent ) {
 
 /*
 ===============
+CG_AddWorldItemTimers
+
+hud.md 9.4: a major item that is away shows a pie over its spot, in the
+world, so walls hide it and it shrinks with distance: one slice per 5 s of
+its cycle, a slice going every 5 s, the going one blinking; the item's
+icon in the middle; fading in and out over 0.29 s; not past 2000 u.
+Mega, heavy and light armour, Quad and Protection. Spectators always see
+them, players too unless the mode is duel (cg_worldItemTimers 0: off)
+===============
+*/
+#define PIE_RADIUS		14
+#define PIE_ICON		8
+#define PIE_SLICE_MSEC	5000
+#define PIE_FADE_MSEC	290
+#define PIE_RANGE		2000
+
+static void CG_PieSlice( const vec3_t centre, float a0, float a1, const byte rgba[4] ) {
+	polyVert_t	verts[3];
+	int			i, k;
+	float		a[2];
+
+	a[0] = a0;
+	a[1] = a1;
+	VectorCopy( centre, verts[0].xyz );
+	for ( k = 0 ; k < 2 ; k++ ) {
+		VectorCopy( centre, verts[k + 1].xyz );
+		VectorMA( verts[k + 1].xyz, PIE_RADIUS * sin( a[k] ), cg.refdef.viewaxis[1], verts[k + 1].xyz );
+		VectorMA( verts[k + 1].xyz, PIE_RADIUS * cos( a[k] ), cg.refdef.viewaxis[2], verts[k + 1].xyz );
+	}
+	for ( i = 0 ; i < 3 ; i++ ) {
+		verts[i].st[0] = verts[i].st[1] = 0.5f;
+		memcpy( verts[i].modulate, rgba, 4 );
+	}
+	trap_R_AddPolyToScene( cgs.media.pieShader, 3, verts );
+}
+
+void CG_AddWorldItemTimers( void ) {
+	char		buf[MAX_STRING_CHARS], *p, *token;
+	int			item, time, cycle, left, slices, shown, i, cls, sub;
+	vec3_t		spot, d;
+	byte		rgba[4];
+	float		fade, step, a;
+	qboolean	watching = cg.demoPlayback || ( cg.snap->ps.pm_flags & PMF_FOLLOW )
+		|| cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR;
+
+	if ( !cg_worldItemTimers.integer || ( !watching && cgs.gametype == GT_TOURNAMENT ) || !cgs.media.pieShader ) {
+		return;
+	}
+	Q_strncpyz( buf, CG_ConfigString( CS_ITEM_TIMERS ), sizeof( buf ) );
+	p = buf;
+	while ( 1 ) {
+		token = COM_Parse( &p );
+		if ( !token[0] ) {
+			break;
+		}
+		item = atoi( token );
+		time = atoi( COM_Parse( &p ) );
+		spot[0] = atoi( COM_Parse( &p ) );
+		spot[1] = atoi( COM_Parse( &p ) );
+		spot[2] = atoi( COM_Parse( &p ) ) + 20;
+		cycle = atoi( COM_Parse( &p ) );
+		if ( item <= 0 || item >= bg_numItems || !time || cycle < PIE_SLICE_MSEC ) {
+			continue;
+		}
+		cls = BG_ItemTimerClass( &bg_itemlist[item] );
+		left = time - cg.time;
+		VectorSubtract( spot, cg.refdef.vieworg, d );
+		if ( !cls || left <= -PIE_FADE_MSEC || VectorLength( d ) > PIE_RANGE ) {
+			continue;
+		}
+		// fading in as it's taken, out as it comes back
+		fade = 1.0f;
+		if ( cycle - left < PIE_FADE_MSEC ) {
+			fade = ( cycle - left ) / (float)PIE_FADE_MSEC;
+		}
+		if ( left < 0 ) {
+			fade = 1.0f + left / (float)PIE_FADE_MSEC;
+			left = 0;
+		}
+		if ( fade <= 0 ) {
+			continue;
+		}
+		// the tint: red / yellow armour, blue mega, the power-up's colour
+		switch ( cls ) {
+		case 1:		rgba[0] = 200; rgba[1] = 90; rgba[2] = 255; break;
+		case 2:		rgba[0] = 70; rgba[1] = 140; rgba[2] = 255; break;
+		case 4:		rgba[0] = 255; rgba[1] = 50; rgba[2] = 40; break;
+		default:	rgba[0] = 255; rgba[1] = 210; rgba[2] = 40; break;
+		}
+		slices = ( cycle + PIE_SLICE_MSEC - 1 ) / PIE_SLICE_MSEC;
+		shown = ( left + PIE_SLICE_MSEC - 1 ) / PIE_SLICE_MSEC;
+		step = 2 * M_PI / slices;
+		for ( i = 0 ; i < shown && i < slices ; i++ ) {
+			float	alpha = 0.75f;
+
+			if ( i == shown - 1 && ( ( cg.time / 250 ) & 1 ) ) {
+				alpha = 0.3f;		// the slice going next blinks
+			}
+			rgba[3] = (byte)( 255 * alpha * fade );
+			// clockwise from the top, a few triangles a slice
+			for ( sub = 0 ; sub < 3 ; sub++ ) {
+				a = i * step + sub * step / 3;
+				CG_PieSlice( spot, a, a + step / 3 - 0.02f, rgba );
+			}
+		}
+		// the item's icon in the middle
+		{
+			refEntity_t	ent;
+
+			CG_RegisterItemVisuals( item );
+			memset( &ent, 0, sizeof( ent ) );
+			ent.reType = RT_SPRITE;
+			VectorMA( spot, -1, cg.refdef.viewaxis[0], ent.origin );		// just in front
+			ent.radius = PIE_ICON;
+			ent.customShader = cg_items[item].icon;
+			ent.shaderRGBA[0] = ent.shaderRGBA[1] = ent.shaderRGBA[2] = 255;
+			ent.shaderRGBA[3] = (byte)( 255 * fade );
+			trap_R_AddRefEntityToScene( &ent );
+		}
+	}
+}
+
+/*
+===============
 CG_AddPacketEntities
 
 ===============

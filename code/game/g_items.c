@@ -461,6 +461,7 @@ A power-up appears after the given seconds, with a warning beforehand
 */
 void G_SchedulePowerup( gentity_t *ent, int seconds ) {
 	ent->itemDue = level.time + seconds * 1000;
+	ent->itemCycle = seconds * 1000;
 	if ( seconds > g_powerupWarning.integer && g_powerupWarning.integer > 0 ) {
 		ent->think = G_PowerupWarning;
 		ent->nextthink = level.time + ( seconds - g_powerupWarning.integer ) * 1000;
@@ -496,10 +497,12 @@ void G_UpdateItemTimers( void ) {
 		if ( !BG_ItemTimerClass( ent->item ) ) {
 			continue;
 		}
-		Q_strcat( info, sizeof( info ), va( "%i %i %i %i %i ", ent->s.modelindex,
+		// "<item> <back at> <x y z> <cycle>": the cycle, msec from taken to
+		// back, sizes the timer's pie (hud.md 9.4)
+		Q_strcat( info, sizeof( info ), va( "%i %i %i %i %i %i ", ent->s.modelindex,
 			( ent->s.eFlags & EF_NODRAW ) && ent->nextthink
 				? ( ent->item->giType == IT_POWERUP && ent->itemDue ? ent->itemDue : ent->nextthink ) : 0,
-			(int)ent->s.pos.trBase[0], (int)ent->s.pos.trBase[1], (int)ent->s.pos.trBase[2] ) );
+			(int)ent->s.pos.trBase[0], (int)ent->s.pos.trBase[1], (int)ent->s.pos.trBase[2], ent->itemCycle ) );
 	}
 	if ( strcmp( info, last ) ) {
 		Q_strncpyz( last, info, sizeof( last ) );
@@ -751,6 +754,7 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
 		G_SchedulePowerup( ent, respawn );
 	} else {
 		ent->nextthink = level.time + respawn * 1000;
+		ent->itemCycle = respawn * 1000;
 		ent->think = RespawnItem;
 	}
 	trap_LinkEntity( ent );

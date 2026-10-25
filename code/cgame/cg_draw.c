@@ -1421,7 +1421,8 @@ static void CG_DrawSpecItemTimers( void ) {
 		}
 		item = atoi( token );
 		time = atoi( COM_Parse( &p ) );
-		COM_Parse( &p );		// the spot, for the in-world timers
+		COM_Parse( &p );		// the spot and the cycle, for the in-world timers
+		COM_Parse( &p );
 		COM_Parse( &p );
 		COM_Parse( &p );
 		if ( item <= 0 || item >= bg_numItems || !( BG_ItemTimerClass( &bg_itemlist[item] ) & cg_specItemTimers.integer ) ) {
@@ -1442,55 +1443,6 @@ static void CG_DrawSpecItemTimers( void ) {
 }
 
 static qboolean CG_WorldToScreen( const vec3_t point, float *x, float *y );
-
-/*
-=================
-CG_DrawWorldItemTimers
-
-Major items that are away: a marker on their spot and the seconds until
-they return. Spectators always see them; players too unless the mode is
-duel (cg_worldItemTimers 0 turns them off)
-=================
-*/
-static void CG_DrawWorldItemTimers( void ) {
-	static vec4_t	ring = { 0.83f, 0.1f, 0.12f, 0.8f };
-	char		buf[MAX_STRING_CHARS], *p, *token;
-	int			item, time, left;
-	vec3_t		spot;
-	float		x, y;
-	qboolean	watching = cg.demoPlayback || ( cg.snap->ps.pm_flags & PMF_FOLLOW )
-		|| cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR;
-
-	if ( !cg_worldItemTimers.integer || ( !watching && cgs.gametype == GT_TOURNAMENT ) ) {
-		return;
-	}
-	Q_strncpyz( buf, CG_ConfigString( CS_ITEM_TIMERS ), sizeof( buf ) );
-	p = buf;
-	while ( 1 ) {
-		token = COM_Parse( &p );
-		if ( !token[0] ) {
-			break;
-		}
-		item = atoi( token );
-		time = atoi( COM_Parse( &p ) );
-		spot[0] = atoi( COM_Parse( &p ) );
-		spot[1] = atoi( COM_Parse( &p ) );
-		spot[2] = atoi( COM_Parse( &p ) );
-		if ( item <= 0 || item >= bg_numItems || !time ) {
-			continue;
-		}
-		left = ( time - cg.time + 999 ) / 1000;
-		if ( left <= 0 || !CG_WorldToScreen( spot, &x, &y ) ) {
-			continue;
-		}
-		// the marker: the item's icon in a red frame, the seconds under it
-		CG_DrawRect( x - 13, y - 13, 26, 26, 1, ring );
-		CG_RegisterItemVisuals( item );
-		CG_DrawPic( x - 10, y - 10, 20, 20, cg_items[item].icon );
-		CG_DrawStringExt( x - CG_DrawStrlen( va( "%i", left ) ) * SMALLCHAR_WIDTH / 2, y + 15, va( "%i", left ),
-			colorWhite, qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
-	}
-}
 
 /*
 =================
@@ -8179,9 +8131,6 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 		}
 
 		CG_DrawCrosshairNames();
-#ifndef MISSIONPACK
-		CG_DrawWorldItemTimers();
-#endif
 	} else {
 		if ( cg.snap->ps.pm_flags & PMF_FOLLOW ) {
 			CG_DrawSpecHints();
@@ -8228,9 +8177,6 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 			}
 			CG_DrawCrosshairNames();
 			CG_DrawDamageArc();
-#ifndef MISSIONPACK
-			CG_DrawWorldItemTimers();
-#endif
 			// the classic pop-up weapon row; the modern layout has its bar on the right
 			if ( !CG_HudModern() ) {
 				CG_DrawWeaponSelect();

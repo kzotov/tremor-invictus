@@ -180,6 +180,7 @@ struct gentity_s {
 	int			abilityMask[MAX_CLIENTS / 32];	// players already affected once
 	int			abilityTime;	// meaning depends on the entity
 	int			itemDue;		// a power-up: level.time it appears (its think may be the warning first)
+	int			itemCycle;		// msec from taken to back, for the timers' pies
 	int			medalKills;		// kills by this missile, for Collateral Damage
 	int			medalSpawnTime;	// level.time this item last respawned, for Stopwatch
 

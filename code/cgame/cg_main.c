@@ -1130,6 +1130,7 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.droneDetectSound = trap_S_RegisterSound( "sound/abilities/drone_detect.wav", qfalse );
 	cgs.media.droneExplodeSound = trap_S_RegisterSound( "sound/abilities/drone_explode.wav", qfalse );
 	cgs.media.droneBlastShader = trap_R_RegisterShader( "gfx/abilities/drone_blast" );
+	cgs.media.pieShader = trap_R_RegisterShader( "gfx/tremor/pie" );
 	cgs.media.turretModel = trap_R_RegisterModel( "models/abilities/turret/turret.md3" );
 	cgs.media.droneShimmerShader = trap_R_RegisterShader( "tremor/droneshimmer" );
 	cgs.media.brightShader = trap_R_RegisterShader( "tremor/bright" );

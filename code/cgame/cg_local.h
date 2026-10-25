@@ -905,6 +905,7 @@ typedef struct {
 	sfxHandle_t	droneDetectSound;		// an enemy newly outlined, for the pilot
 	sfxHandle_t	droneExplodeSound;		// the charge blast
 	qhandle_t	droneBlastShader;
+	qhandle_t	pieShader;			// the world item timers' slices (vertex colour and alpha)
 	qhandle_t	turretModel;		// Eisen's, told apart from other general entities
 	sfxHandle_t	dodgeSound;		// generated; 0 when missing
 	sfxHandle_t	berserkSwingSound;
@@ -1614,6 +1615,7 @@ void CG_PainEvent( centity_t *cent, int health );
 //
 void CG_SetEntitySoundPosition( centity_t *cent );
 void CG_AddPacketEntities( void );
+void CG_AddWorldItemTimers( void );
 void CG_Beam( centity_t *cent );
 void CG_AdjustPositionForMover(const vec3_t in, int moverNum, int fromTime, int toTime, vec3_t out, vec3_t angles_in, vec3_t angles_out);
 
