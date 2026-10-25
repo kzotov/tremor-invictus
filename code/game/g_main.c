@@ -397,15 +397,15 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_cooldownHealth, "g_cooldownHealth", "0.05", 0, 0, qtrue },
 	{ &g_cooldownMega, "g_cooldownMega", "0.2", 0, 0, qtrue },
 	{ &g_cooldownAmmo, "g_cooldownAmmo", "0.1", 0, 0, qtrue },
-	{ &g_orbSpeed, "g_orbSpeed", "1000", 0, 0, qtrue },
+	{ &g_orbSpeed, "g_orbSpeed", "900", 0, 0, qtrue },
 	{ &g_orbLife, "g_orbLife", "15000", 0, 0, qtrue },
-	{ &g_orbFuse, "g_orbFuse", "750", 0, 0, qtrue },
-	{ &g_orbShotDamage, "g_orbShotDamage", "25", 0, 0, qtrue },		// shot down by another player
-	{ &g_orbShotRadius, "g_orbShotRadius", "200", 0, 0, qtrue },
-	{ &g_orbContactDamage, "g_orbContactDamage", "15", 0, 0, qtrue },
-	{ &g_orbSplashDamage, "g_orbSplashDamage", "75", 0, 0, qtrue },
+	{ &g_orbFuse, "g_orbFuse", "500", 0, 0, qtrue },
+	{ &g_orbShotDamage, "g_orbShotDamage", "200", 0, 0, qtrue },		// shot down by another player
+	{ &g_orbShotRadius, "g_orbShotRadius", "300", 0, 0, qtrue },
+	{ &g_orbContactDamage, "g_orbContactDamage", "10", 0, 0, qtrue },
+	{ &g_orbSplashDamage, "g_orbSplashDamage", "200", 0, 0, qtrue },
 	{ &g_orbSplashRadius, "g_orbSplashRadius", "120", 0, 0, qtrue },
-	{ &g_orbTelefragDamage, "g_orbTelefragDamage", "75", 0, 0, qtrue },
+	{ &g_orbTelefragDamage, "g_orbTelefragDamage", "200", 0, 0, qtrue },
 	{ &g_swarmSpeed, "g_swarmSpeed", "960", 0, 0, qtrue },
 	{ &g_swarmFuse, "g_swarmFuse", "10000", 0, 0, qtrue },	// or the second bounce
 	{ &g_swarmDamage, "g_swarmDamage", "50", 0, 0, qtrue },

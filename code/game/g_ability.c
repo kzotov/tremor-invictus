@@ -267,21 +267,49 @@ owner to it.
 */
 
 #define ORB_TELEFRAG_RANGE		32
+#define ORB_IMPULSE				40
+#define ORB_RAMP_MSEC			1500	// the blast grows to full over this long
+
+/*
+================
+G_OrbBurst
+
+The orb's blast (champion-audit.md, the live record): full to a tenth of
+the radius, 85% at half, 50% at the edge, impulse 40
+================
+*/
+static void G_OrbBurst( vec3_t origin, gentity_t *attacker, float damage, float radius, qboolean sparesOwner ) {
+	G_SplashParams( damage * 0.5f, ORB_IMPULSE, ORB_IMPULSE );
+	G_SplashMid( 0.85f );
+	G_SplashShape( radius * 0.1f, sparesOwner );
+	G_RadiusDamage( origin, attacker, damage, radius, NULL, MOD_ORB );
+}
+
+/*
+================
+G_OrbRamp
+
+The blast's damage, grown over 1.5 s from the throw
+================
+*/
+static float G_OrbRamp( gentity_t *orb ) {
+	float	f = ( level.time - orb->timestamp ) / (float)ORB_RAMP_MSEC;
+
+	return g_orbSplashDamage.value * ( f < 1.0f ? f : 1.0f );
+}
 
 static void G_OrbExplode( gentity_t *orb ) {
 	gentity_t	*owner = orb->parent;
+	float		damage = G_OrbRamp( orb );
 
-	// no longer shootable, then full in the middle, down to 10 at the edge
+	// no longer shootable; the blast spares Ranger
 	orb->takedamage = qfalse;
 	orb->die = NULL;
 	orb->r.contents = 0;
-	orb->splashDamage = g_orbSplashDamage.integer;
-	orb->splashRadius = g_orbSplashRadius.integer;
-	orb->splashMin = 10;
-	orb->wpTuned = qtrue;
-	orb->wpKnock = orb->wpKnockSelf = -1;
-	orb->splashMethodOfDeath = MOD_ORB;
-	orb->splashSparesOwner = qtrue;
+	orb->splashDamage = 0;		// (G_ExplodeMissile only for the effect)
+	if ( owner && damage >= 1 ) {
+		G_OrbBurst( orb->r.currentOrigin, owner, damage, g_orbSplashRadius.value, qtrue );
+	}
 	if ( owner && owner->client && owner->client->abilityEnt == orb ) {
 		owner->client->abilityEnt = NULL;
 		G_AbilityDone( owner );
@@ -307,7 +335,7 @@ static void G_OrbThink( gentity_t *orb ) {
 			continue;
 		}
 		G_AbilityMark( orb, other->s.number );
-		G_Damage( other, orb, orb->parent, NULL, NULL, g_orbContactDamage.integer, 0, MOD_ORB );
+		G_Damage( other, orb, orb->parent, NULL, NULL, g_orbContactDamage.integer, DAMAGE_NO_KNOCKBACK, MOD_ORB );
 	}
 
 	// abilityTime: end of the flight, then end of the fuse once stopped
@@ -338,7 +366,8 @@ static void G_OrbDestroyed( gentity_t *orb, gentity_t *inflictor, gentity_t *att
 		orb->die = G_OrbDestroyed;
 		return;		// only an enemy's shots count (champion-audit.md)
 	}
-	G_RadiusDamage( orb->r.currentOrigin, attacker, g_orbShotDamage.integer, g_orbShotRadius.integer, NULL, MOD_ORB );
+	// the death blast: the same falloff, wider, and Ranger isn't spared
+	G_OrbBurst( orb->r.currentOrigin, attacker, g_orbShotDamage.value, g_orbShotRadius.value, qfalse );
 	G_CutAbilityCooldown( owner, 0.5f );
 	if ( owner->client->abilityEnt == orb ) {
 		owner->client->abilityEnt = NULL;
@@ -459,8 +488,10 @@ static void G_OrbTeleport( gentity_t *ent ) {
 	VectorCopy( ent->client->ps.origin, ent->r.currentOrigin );
 	trap_LinkEntity( ent );
 
+	// the orb bursts too, sparing Ranger (the second press is a telefrag
+	// plus the blast)
 	ent->client->abilityEnt = NULL;
-	G_FreeEntity( orb );
+	G_OrbExplode( orb );
 	G_AbilityDone( ent );
 
 	// the teleport starts the throw's firing lockout again

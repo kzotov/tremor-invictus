@@ -917,6 +917,7 @@ dflags		these flags are used to control how T_Damage works
 static float	nextKnockback = -1;		// set by G_NextKnockback for the next G_Damage
 static float	nextTilt = -1;			// set by G_NextTilt: the push's tilt for the next G_Damage
 static float	splashMin;				// set by G_SplashParams for the next G_RadiusDamage
+static float	splashMid;				// set by G_SplashMid: the fraction at half the radius (0: a straight fall)
 static float	splashKnock = -1, splashKnockSelf = -1;
 static float	splashFull;				// set by G_SplashShape for the next G_RadiusDamage
 static qboolean	splashSparesOwner;
@@ -987,6 +988,18 @@ void G_SplashParams( float minDamage, float knock, float knockSelf ) {
 	splashMin = minDamage;
 	splashKnock = knock;
 	splashKnockSelf = knockSelf;
+}
+
+/*
+============
+G_SplashMid
+
+For the next radius damage: the fraction of full damage at half the
+radius, the fall bending there (Ranger's orb: 85%)
+============
+*/
+void G_SplashMid( float fraction ) {
+	splashMid = fraction;
 }
 
 /*
@@ -1578,9 +1591,11 @@ qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, floa
 	qboolean	hitClient = qfalse;
 	float		minDamage = splashMin, knock = splashKnock, knockSelf = splashKnockSelf, full = splashFull;
 	qboolean	sparesOwner = splashSparesOwner;
+	float		mid = splashMid;
 
 	// the splash parameters apply to this call only
 	splashMin = 0;
+	splashMid = 0;
 	splashKnock = splashKnockSelf = -1;
 	splashFull = 0;
 	splashSparesOwner = qfalse;
@@ -1659,6 +1674,10 @@ qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, floa
 		// full out to "full", then linear to the minimum at the edge
 		if ( dist <= full ) {
 			points = damage;
+		} else if ( mid > 0 && dist <= radius * 0.5f ) {
+			points = damage * ( 1.0f - ( 1.0f - mid ) * ( dist - full ) / ( radius * 0.5f - full ) );
+		} else if ( mid > 0 ) {
+			points = minDamage + ( damage * mid - minDamage ) * ( 1.0f - ( dist - radius * 0.5f ) / ( radius * 0.5f ) );
 		} else {
 			points = minDamage + ( damage - minDamage ) * ( 1.0 - ( dist - full ) / ( radius - full ) );
 		}

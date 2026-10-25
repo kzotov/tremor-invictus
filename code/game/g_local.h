@@ -745,6 +745,7 @@ void G_WeaponTuneMissile( gentity_t *m, int weapon );
 void G_WeaponThink( gentity_t *ent );
 void G_SchedulePowerup( gentity_t *ent, int seconds );
 void G_SplashParams( float minDamage, float knock, float knockSelf );
+void G_SplashMid( float fraction );
 void G_SplashShape( float full, qboolean sparesOwner );
 
 //
