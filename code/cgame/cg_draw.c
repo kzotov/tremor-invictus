@@ -3089,7 +3089,7 @@ static void CG_DrawUpperRight(stereoFrame_t stereoFrame)
 	if (cg_drawFPS.integer && (stereoFrame == STEREO_CENTER || stereoFrame == STEREO_RIGHT)) {
 		y = CG_DrawFPS( y );
 	}
-	if ( cg_drawTimer.integer || cgs.movementPractice ) {
+	if ( cgs.movementPractice ) {		// (cg_drawTimer retired: cg_clockDirection, the top bar)
 		y = CG_DrawTimer( y );
 	}
 	if ( cg_drawAttacker.integer ) {
@@ -7766,7 +7766,7 @@ under the ability ring CHARGE (from 0.5 s) or IMPACT ARMED
 =================
 */
 #define DRONE_SEGMENTS		26
-#define DRONE_MAX_HEALTH	90
+#define DRONE_MAX_HEALTH	90		// (when the server doesn't say: g_droneHealth)
 
 static void CG_DrawDroneHud( void ) {
 	static int			lastSegs = -1, lostAt, lostFrom;
@@ -7776,7 +7776,7 @@ static void CG_DrawDroneHud( void ) {
 	static const vec4_t	lost = { 0.16f, 0.16f, 0.16f, 0.4f };
 	static const vec4_t	red = { 1, 0.15f, 0.1f, 1 };
 	playerState_t		*ps = &cg.snap->ps;
-	int					hp = ps->stats[STAT_HEALTH], segs, i, t;
+	int					hp = ps->stats[STAT_HEALTH], segs, i, t, maxHp;
 	float				x, l = 40 * DP, w = 3 * DP;
 	vec4_t				c;
 
@@ -7798,7 +7798,11 @@ static void CG_DrawDroneHud( void ) {
 	}
 
 	// the health bar
-	segs = ( hp * DRONE_SEGMENTS + DRONE_MAX_HEALTH - 1 ) / DRONE_MAX_HEALTH;
+	maxHp = atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_droneHealth" ) );
+	if ( maxHp <= 0 ) {
+		maxHp = DRONE_MAX_HEALTH;
+	}
+	segs = ( hp * DRONE_SEGMENTS + maxHp - 1 ) / maxHp;
 	if ( segs < 0 ) {
 		segs = 0;
 	} else if ( segs > DRONE_SEGMENTS ) {
@@ -7896,11 +7900,11 @@ static void CG_DrawModernHud( void ) {
 			CG_DrawPic( HX_L( 52 ), HY( 859 ), 130 * DP, 130 * DP, pic );
 		}
 		Vector4Copy( colorWhite, hc );
-		if ( ps->stats[STAT_HEALTH] <= 25 ) {
+		if ( CG_OwnHealth( ps ) <= 25 ) {
 			CG_HealthPalette( 0, hc );
 		}
-		CG_HudText( HX_L( 322 ), HY( 862 ), 55, va( "%i", ps->stats[STAT_HEALTH] ), hc, 0, 1 );
-		CG_HudText( HX_L( 322 ), HY( 931 ), 55, va( "%i", ps->stats[STAT_ARMOR] ), armorGreen, 0, 1 );
+		CG_HudText( HX_L( 322 ), HY( 862 ), 55, va( "%i", CG_OwnHealth( ps ) ), hc, 0, 1 );		// (Strogg's body while he flies)
+		CG_HudText( HX_L( 322 ), HY( 931 ), 55, va( "%i", CG_OwnArmor( ps ) ), armorGreen, 0, 1 );
 	} else {
 		// portrait under the numbers
 		size = 150 * DP * CG_HudPlace( "portrait", &x, &y );

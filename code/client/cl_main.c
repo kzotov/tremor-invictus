@@ -34,6 +34,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "libmumblelink.h"
 #endif
 
+static void CL_LinkFrame( void );
+
 #ifdef USE_MUMBLE
 cvar_t	*cl_useMumble;
 cvar_t	*cl_mumbleScale;
@@ -3031,6 +3033,7 @@ void CL_Frame ( int msec ) {
 	}
 
 	CL_MM_Frame();
+	CL_LinkFrame();
 
 #ifdef USE_RMLUI
 	// a main-menu page never stays over a game once the menus have closed,
@@ -3316,9 +3319,24 @@ static const struct {
 	{ "xaero_concept", "" }		// Xaero's concept video: Konstantin fills in the address
 };
 
+static int	clLinkAskedAt;
+static char	clLinkAsked[32];
+
+/*
+=================
+CL_LinkFrame
+
+The "Click again" question goes after 5 s
+=================
+*/
+static void CL_LinkFrame( void ) {
+	if ( clLinkAsked[0] && Sys_Milliseconds() - clLinkAskedAt > 5000 ) {
+		clLinkAsked[0] = 0;
+		Cvar_Set( "ui_linkAsk", "" );
+	}
+}
+
 static void CL_OpenLink_f( void ) {
-	static int	askedAt;
-	static char	asked[32];
 	const char	*key = Cmd_Argv( 1 ), *url = NULL;
 	int			i;
 
@@ -3333,13 +3351,13 @@ static void CL_OpenLink_f( void ) {
 	if ( Q_stricmpn( url, "https://www.youtube.com/", 24 ) && Q_stricmpn( url, "https://youtu.be/", 17 ) ) {
 		return;
 	}
-	if ( Q_stricmp( asked, key ) || Sys_Milliseconds() - askedAt > 5000 ) {
-		Q_strncpyz( asked, key, sizeof( asked ) );
-		askedAt = Sys_Milliseconds();
+	if ( Q_stricmp( clLinkAsked, key ) || Sys_Milliseconds() - clLinkAskedAt > 5000 ) {
+		Q_strncpyz( clLinkAsked, key, sizeof( clLinkAsked ) );
+		clLinkAskedAt = Sys_Milliseconds();
 		Cvar_Set( "ui_linkAsk", key );		// "Open in your browser? Click again."
 		return;
 	}
-	asked[0] = 0;
+	clLinkAsked[0] = 0;
 	Cvar_Set( "ui_linkAsk", "" );
 	Sys_OpenURL( url );
 }

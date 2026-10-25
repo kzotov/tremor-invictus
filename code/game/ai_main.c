@@ -922,6 +922,40 @@ roll scaled by skill pass? The press lasts one command.
 */
 /*
 ==============
+BotEnemyNearTrail / BotEnemyNearConverge
+
+Slash: an enemy within 120 u of one of her trail's charges. Death Knight:
+an enemy within 120 u of where the converged fireballs would burst (the
+cast's aim line half a second ahead).
+==============
+*/
+static qboolean BotEnemyNearTrail(bot_state_t *bs) {
+	gentity_t	*seg, *enemy;
+	int			i;
+
+	if (bs->enemy < 0 || bs->enemy >= MAX_CLIENTS || !g_entities[bs->enemy].inuse) return qfalse;
+	enemy = &g_entities[bs->enemy];
+	for (i = MAX_CLIENTS, seg = &g_entities[MAX_CLIENTS]; i < level.num_entities; i++, seg++) {
+		if (seg->inuse && seg->parent == &g_entities[bs->client] && seg->classname
+			&& !strcmp(seg->classname, "plasma_trail")
+			&& Distance(seg->r.currentOrigin, enemy->r.currentOrigin) < 120) {
+			return qtrue;
+		}
+	}
+	return qfalse;
+}
+
+static qboolean BotEnemyNearConverge(bot_state_t *bs) {
+	gclient_t	*cl = g_entities[bs->client].client;
+	vec3_t		point;
+
+	if (bs->enemy < 0 || bs->enemy >= MAX_CLIENTS || !g_entities[bs->enemy].inuse) return qfalse;
+	VectorMA(cl->flameStart, g_fireballSpeed.value * (level.time + 500 - cl->flameTime) * 0.001f, cl->flameDir, point);
+	return Distance(point, g_entities[bs->enemy].r.currentOrigin) < 120;
+}
+
+/*
+==============
 BotHookTarget
 
 Where the hook should bite: away from a seen enemy and upward when hurt
@@ -989,10 +1023,11 @@ static qboolean BotWantsAbility(bot_state_t *bs) {
 		if (active == ACTIVE_DRONE) return seen && !(ps->pm_flags & PMF_DRONE_CHARGE);		// (then it waits for contact)
 		// Clutch turns the Barrier into the laser at an enemy in view
 		if (active == ACTIVE_BARRIER) return seen && dist < 1200 && random() < 0.5;
-		// Slash sets the trail off with an enemy close to her
-		if (active == ACTIVE_PLASMATRAIL) return seen && dist < 160;
-		// Death Knight pulls the fireballs together on an enemy ahead
-		if (active == ACTIVE_FLAMESTRIKE) return seen && dist > 150 && dist < 500;
+		// Slash sets the trail off with an enemy within 120 u of it
+		if (active == ACTIVE_PLASMATRAIL) return BotEnemyNearTrail(bs);
+		// Death Knight pulls the fireballs together when the enemy is near
+		// the point they would meet (the aim line 0.5 s ahead)
+		if (active == ACTIVE_FLAMESTRIKE) return BotEnemyNearConverge(bs);
 		// Ranger: to the orb with an enemy beside it, or when hurt and it's far
 		// from the enemy
 		if (active == ACTIVE_ORB && g_entities[bs->client].client->abilityEnt) {

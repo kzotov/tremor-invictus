@@ -660,9 +660,6 @@ void CG_Bleed( vec3_t origin, int entityNum ) {
 		vec3_t	up = { 0, 0, 1 };
 
 		CG_MissileHitWall( WP_MACHINEGUN, 0, origin, up, IMPACTSOUND_METAL );
-		if ( cgs.media.droneBoltHitSound ) {
-			trap_S_StartSound( origin, ENTITYNUM_WORLD, CHAN_AUTO, cgs.media.droneBoltHitSound );
-		}
 		return;
 	}
 

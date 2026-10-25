@@ -1488,13 +1488,20 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			vec3_t			up = { 0, 0, 1 };
 			localEntity_t	*le;
 
-			if ( cgs.media.rocketExplosionShader ) {
-				le = CG_MakeExplosion( position, up, cgs.media.dishFlashModel, cgs.media.rocketExplosionShader, 600, qtrue );
-				le->light = 260;
-				le->lightColor[0] = 0.45f;
-				le->lightColor[1] = 0.7f;
-				le->lightColor[2] = 1.0f;
-			}
+			// its own sprite, growing as it fades, and a blue light
+			le = CG_AllocLocalEntity();
+			le->leType = LE_FADE_RGB;
+			le->startTime = cg.time;
+			le->endTime = cg.time + 450;
+			le->lifeRate = 1.0f / ( le->endTime - le->startTime );
+			le->color[0] = le->color[1] = le->color[2] = le->color[3] = 1.0f;
+			le->refEntity.reType = RT_SPRITE;
+			le->refEntity.radius = 90;
+			le->refEntity.rotation = rand() % 360;
+			le->refEntity.customShader = cgs.media.droneBlastShader;
+			VectorCopy( position, le->refEntity.origin );
+			trap_R_AddLightToScene( position, 300, 0.45f, 0.7f, 1.0f );
+			(void)up;
 			if ( cgs.media.droneExplodeSound ) {
 				trap_S_StartSound( position, ENTITYNUM_WORLD, CHAN_AUTO, cgs.media.droneExplodeSound );
 			}

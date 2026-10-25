@@ -904,6 +904,7 @@ typedef struct {
 	sfxHandle_t	droneBoltHitSound;
 	sfxHandle_t	droneDetectSound;		// an enemy newly outlined, for the pilot
 	sfxHandle_t	droneExplodeSound;		// the charge blast
+	qhandle_t	droneBlastShader;
 	qhandle_t	turretModel;		// Eisen's, told apart from other general entities
 	sfxHandle_t	dodgeSound;		// generated; 0 when missing
 	sfxHandle_t	berserkSwingSound;

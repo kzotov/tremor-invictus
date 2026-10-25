@@ -297,6 +297,13 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace ) {
 #endif
 	other = &g_entities[trace->entityNum];
 
+	// the drone's bolts land with their own ping (abilities.md)
+	if ( ent->methodOfDeath == MOD_DRONE ) {
+		gentity_t	*tent = G_TempEntity( trace->endpos, EV_GENERAL_SOUND );
+
+		tent->s.eventParm = G_SoundIndex( "sound/abilities/drone_bolt_hit.wav" );
+	}
+
 	// champion ability entities handle their own impacts
 	if ( ent->abilityImpact ) {
 		ent->abilityImpact( ent, trace );

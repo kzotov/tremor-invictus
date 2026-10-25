@@ -170,6 +170,15 @@ void CG_DamageFeedback( int yawByte, int pitchByte, int damage ) {
 	cg.damageValue = kick;
 	cg.v_dmg_time = cg.time + DAMAGE_TIME;
 	cg.damageTime = cg.snap->serverTime;
+
+	// the drone's pilot: only the arc of where it came from (the glitch,
+	// EV_DRONE_HIT, stands in for the red blend and the view kick)
+	if ( cg.snap->ps.eFlags & EF_DRONE ) {
+		cg.damageValue = 0;
+		cg.damageTime = 0;
+		cg.v_dmg_roll = cg.v_dmg_pitch = 0;
+		cg.v_dmg_time = 0;
+	}
 }
 
 
@@ -549,8 +558,7 @@ void CG_TransitionPlayerState( playerState_t *ps, playerState_t *ops ) {
 	}
 
 	// damage events (player is getting wounded)
-	// (the drone's pilot gets the glitch instead: EV_DRONE_HIT)
-	if ( ps->damageEvent != ops->damageEvent && ps->damageCount && !( ps->eFlags & EF_DRONE ) ) {
+	if ( ps->damageEvent != ops->damageEvent && ps->damageCount ) {
 		CG_DamageFeedback( ps->damageYaw, ps->damagePitch, ps->damageCount );
 	}
 

@@ -230,6 +230,18 @@ def blood_edge(u, v, n=Fbm(47, 5, 5), m=Fbm(53, 3, 14)):
     return [shade, 0.01, 0.02, min(1.0, k * 1.15)]
 
 
+def drone_blast(u, v, n=Fbm(61, 4, 6)):
+    """The drone's charge blast: a blue-white core in a ragged electric ring."""
+    dx, dy = u - 0.5, v - 0.5
+    r = math.sqrt(dx * dx + dy * dy) * 2
+    a = math.atan2(dy, dx)
+    rag = 0.12 * n.at(math.cos(a) * 3 + 3, math.sin(a) * 3 + 3)
+    core = max(0.0, 1 - r / 0.45) ** 1.5
+    ring = max(0.0, 1 - abs(r - 0.7 - rag) / 0.12)
+    k = min(1.0, core + 0.8 * ring)
+    return [0.55 + 0.45 * core, 0.75 + 0.25 * core, 1.0, k]
+
+
 def trail(u, v, n=Fbm(31, 4, 8)):
     # across the ribbon (v): a hot core with a cyan edge; along it (u): noise
     d = abs(v - 0.5) * 2
@@ -928,6 +940,18 @@ def sounds(out):
 SHADERS = """// tremor-invictus generated assets (misc/art/make-models.py)
 // Replaceable: a pack loaded later may define these names again.
 
+// the drone's charge blast, faded by the client (additive)
+gfx/abilities/drone_blast
+{
+	nopicmip
+	cull none
+	{
+		clampmap gfx/abilities/drone_blast.tga
+		blendFunc GL_ONE GL_ONE
+		rgbGen vertex
+	}
+}
+
 // the low-health overlay (hud.md 9.7), coloured and faded by the HUD
 gfx/tremor/blood_edge
 {
@@ -1169,6 +1193,7 @@ def main():
     sounds(src)
     texture(os.path.join(src, "gfx/abilities/plasmatrail.tga"), 128, 64, trail, False)
     texture(os.path.join(src, "gfx/tremor/blood_edge.tga"), 256, 256, blood_edge)
+    texture(os.path.join(src, "gfx/abilities/drone_blast.tga"), 128, 128, drone_blast)
     os.makedirs(os.path.join(src, "scripts"), exist_ok=True)
     with open(os.path.join(src, "scripts/tremor-assets.shader"), "w") as f:
         f.write(SHADERS)

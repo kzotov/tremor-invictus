@@ -3576,7 +3576,7 @@ static float PM_ClassAirAccelerate( void ) {
 		accel *= bg_pmoveSettings.isoAirAccel;
 	}
 	// Clutch behind the Barrier: 1.137778 (champion-audit.md, the data)
-	if ( pml.champion->active == ACTIVE_BARRIER && PM_AbilityActive( ACTIVE_BARRIER ) ) {
+	if ( pml.champion->active == ACTIVE_BARRIER && PM_AbilityActive( ACTIVE_BARRIER ) && ( pm->ps->eFlags & EF_BARRIER ) ) {
 		accel = 1.137778f;
 	}
 	return accel * bg_pmoveSettings.airAccelerate;

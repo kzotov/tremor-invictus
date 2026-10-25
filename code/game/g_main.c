@@ -449,7 +449,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_trailDamage, "g_trailDamage", "10", 0, 0, qtrue },	// every 200 ms
 	{ &g_trailBlast, "g_trailBlast", "25", 0, 0, qtrue },
 	{ &g_trailRadius, "g_trailRadius", "120", 0, 0, qtrue },
-	{ &g_droneHealth, "g_droneHealth", "90", 0, 0, qtrue },
+	{ &g_droneHealth, "g_droneHealth", "90", CVAR_SERVERINFO, 0, qtrue },		// (the HUD's drone bar reads it)
 	{ &g_droneDamage, "g_droneDamage", "15", 0, 0, qtrue },
 	{ &g_droneLaunchDelay, "g_droneLaunchDelay", "500", 0, 0, qtrue },
 	{ &g_droneRocketDamage, "g_droneRocketDamage", "75", 0, 0, qtrue },

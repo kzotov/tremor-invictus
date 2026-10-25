@@ -889,8 +889,9 @@ void weapon_railgun_fire (gentity_t *ent) {
 			break;		// we hit something solid enough to stop the beam
 		}
 		// a door, or an enemy's Barrier (which took the hit), stops it too
-		if ( traceEnt->s.eType == ET_MOVER || ( traceEnt->client && traceEnt->client->barrierMode == 1
-			&& G_AbilityActive( traceEnt, ACTIVE_BARRIER ) && !OnSameTeam( traceEnt, ent ) ) ) {
+		// (only a shield facing the shot: G_BarrierScale's arc)
+		if ( traceEnt->s.eType == ET_MOVER || ( traceEnt->client && !OnSameTeam( traceEnt, ent )
+			&& G_BarrierScale( traceEnt, MOD_RAILGUN, forward ) < 1.0f ) ) {
 			break;
 		}
 		// unlink this entity, so the next trace will go past it

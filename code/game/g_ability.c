@@ -2467,6 +2467,14 @@ void G_AbilityClientThink( gentity_t *ent, int msec ) {
 			}
 			trap_Trace( &tr, client->ps.origin, NULL, NULL, other->r.currentOrigin, ent->s.number, MASK_SOLID );
 			if ( tr.fraction == 1.0f && other->client->undetectedUntil <= level.time ) {
+				// newly seen: a blip for the pilot alone (abilities.md)
+				if ( other->client->revealEndTime < level.time ) {
+					gentity_t	*tent = G_TempEntity( client->ps.origin, EV_GENERAL_SOUND );
+
+					tent->s.eventParm = G_SoundIndex( "sound/abilities/drone_detect.wav" );
+					tent->r.svFlags |= SVF_SINGLECLIENT;
+					tent->r.singleClient = ent->s.number;
+				}
 				other->client->revealEndTime = level.time + 300;
 				other->client->revealTeam = g_gametype.integer >= GT_TEAM ? client->sess.sessionTeam : 1000 + ent->s.number;
 			}
