@@ -36,7 +36,8 @@ char	*cg_customSoundNames[MAX_CUSTOM_SOUNDS] = {
 	"*gasp.wav",
 	"*drown.wav",
 	"*fall1.wav",
-	"*taunt.wav"
+	"*taunt.wav",
+	"*land1.wav"		// a medium landing's grunt (a missing one plays nothing)
 };
 
 

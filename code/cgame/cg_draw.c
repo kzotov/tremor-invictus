@@ -4679,6 +4679,7 @@ void CG_LowHealthFrame( void ) {
 	if ( cg.lowHealthBeat > cg.time || cg.lowHealthSince > cg.time || cg.lowHealthVoiceTime > cg.time
 		|| cg.lowHealthClient != ps->clientNum ) {
 		cg.lowHealthBeat = cg.lowHealthSince = cg.lowHealthVoiceTime = 0;
+		cg.lowHealthBreathTime = cg.lowHealthVoiceSince = 0;
 		cg.lowHealthClient = ps->clientNum;
 		cg.lowHealthBreathing = qfalse;
 		old = LH_NONE;
@@ -4698,14 +4699,17 @@ void CG_LowHealthFrame( void ) {
 		cg.lowHealthBeat = 0;		// the first beat at once
 	}
 	if ( step < LH_LOW ) {
-		// healed above 25: an exhale; death just stops it
-		if ( cg.lowHealthBreathing && ps->stats[STAT_HEALTH] > 0 && ci->breatheStopSound ) {
-			trap_S_StartLocalSound( ci->breatheStopSound, CHAN_VOICE );
-		}
-		cg.lowHealthBreathing = qfalse;
+		// healed above 25 while breathing: it stops with an exhale; death
+		// stops the voice and the breathing (low-health.md "Voice at low health")
 		if ( old >= LH_LOW ) {
+			trap_S_StartLocalSound( 0, CHAN_LOWVOICE );
+			if ( cg.lowHealthBreathing && CG_OwnHealth( ps ) > 0 && ci->breatheStopSound ) {
+				trap_S_StartLocalSound( ci->breatheStopSound, CHAN_LOWVOICE );
+			}
 			trap_S_StartLocalSound( 0, CHAN_HEARTBEAT );		// the last beat's tail stops too
 		}
+		cg.lowHealthBreathing = qfalse;
+		cg.lowHealthBreathTime = 0;
 		return;
 	}
 
@@ -4735,16 +4739,16 @@ void CG_LowHealthFrame( void ) {
 		cg.lowHealthBreathing = qfalse;
 		return;
 	}
-	// the breathing from 2 s after reaching Low, for 6 s (calmer)
-	if ( cg_heavyBreathing.integer && ci->breatheSound && cg.time - cg.lowHealthSince >= 2000
-		&& cg.time - cg.lowHealthSince < 8000 ) {
-		cg.lowHealthBreathing = qtrue;
-		trap_S_AddLoopingSound( ENTITYNUM_NONE, cg.refdef.vieworg, vec3_origin, ci->breatheSound );
-	} else {
-		cg.lowHealthBreathing = qfalse;
+	// the breathing: one take, 3 s after reaching Low (1 s without the
+	// voice line); counted as playing for 9 s (the exhale on healing)
+	if ( cg_heavyBreathing.integer && ci->breatheSound && !cg.lowHealthBreathTime
+		&& cg.time - cg.lowHealthSince >= ( cg_championVO.integer ? 3000 : 1000 ) ) {
+		cg.lowHealthBreathTime = cg.time;
+		trap_S_StartLocalSound( ci->breatheSound, CHAN_LOWVOICE );
 	}
-	if ( cg_championVO.integer && cg.time - cg.lowHealthSince >= 1000
-		&& cg.lowHealthVoiceSpawn != ps->persistant[PERS_SPAWN_COUNT]
+	cg.lowHealthBreathing = cg.lowHealthBreathTime && cg.time - cg.lowHealthBreathTime < 9000;
+	// the voice line 1 s after each time reaching Low, at least 10 s apart
+	if ( cg_championVO.integer && cg.time - cg.lowHealthSince >= 1000 && cg.lowHealthVoiceSince != cg.lowHealthSince
 		&& ( !cg.lowHealthVoiceTime || cg.time - cg.lowHealthVoiceTime >= 10000 ) ) {
 		sfxHandle_t	lines[3];
 		int			n = 0, i;
@@ -4754,10 +4758,10 @@ void CG_LowHealthFrame( void ) {
 				lines[n++] = ci->lowHealthSounds[i];
 			}
 		}
-		cg.lowHealthVoiceSpawn = ps->persistant[PERS_SPAWN_COUNT];
+		cg.lowHealthVoiceSince = cg.lowHealthSince;
 		if ( n ) {
 			cg.lowHealthVoiceTime = cg.time;
-			trap_S_StartLocalSound( lines[rand() % n], CHAN_VOICE );
+			trap_S_StartLocalSound( lines[rand() % n], CHAN_LOWVOICE );
 		}
 	}
 }

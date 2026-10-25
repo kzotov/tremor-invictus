@@ -614,9 +614,9 @@ static void S_Base_StartSoundEx( vec3_t origin, int entityNum, int entchannel, s
 	sfx->lastTimeUsed = time;
 
 	// the heartbeat's new beat replaces the one still sounding
-	if ( entchannel == CHAN_HEARTBEAT ) {
+	if ( CHAN_REPLACES( entchannel ) ) {
 		for ( i = 0, ch = s_channels ; i < MAX_CHANNELS ; i++, ch++ ) {
-			if ( ch->thesfx && ch->entnum == entityNum && ch->entchannel == CHAN_HEARTBEAT ) {
+			if ( ch->thesfx && ch->entnum == entityNum && ch->entchannel == entchannel ) {
 				S_ChannelFree( ch );
 			}
 		}
@@ -709,12 +709,12 @@ void S_Base_StartLocalSound( sfxHandle_t sfxHandle, int channelNum ) {
 		return;
 	}
 	// no sound on CHAN_HEARTBEAT: stop the beat still sounding
-	if ( sfxHandle == 0 && channelNum == CHAN_HEARTBEAT ) {
+	if ( sfxHandle == 0 && CHAN_REPLACES( channelNum ) ) {
 		int			i;
 		channel_t	*ch;
 
 		for ( i = 0, ch = s_channels ; i < MAX_CHANNELS ; i++, ch++ ) {
-			if ( ch->thesfx && ch->entnum == listener_number && ch->entchannel == CHAN_HEARTBEAT ) {
+			if ( ch->thesfx && ch->entnum == listener_number && ch->entchannel == channelNum ) {
 				S_ChannelFree( ch );
 			}
 		}

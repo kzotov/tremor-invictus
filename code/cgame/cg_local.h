@@ -686,6 +686,8 @@ typedef struct {
 	int			damageArcNext;		// the slot the next hit takes
 	int			lowHealthBeat;		// cg.time of the last low-health heartbeat
 	int			lowHealthLastHealth;	// for a beat on each hit while low
+	int			lowHealthBreathTime;	// when this time low's breathing began, 0 not yet
+	int			lowHealthVoiceSince;	// the time low the voice line was played for
 	int			droneGlitchTime;		// the pilot's view glitching from a hit
 	int			droneGlitchSound;
 	int			lowHealthStep;		// LH_* of the viewed player
@@ -693,7 +695,6 @@ typedef struct {
 	int			lowHealthClient;	// whose health it is
 	qboolean	lowHealthBreathing;	// the breathing loop is on
 	qboolean	lowHealthDuckSet;	// s_ambientDuck set since this cgame started
-	int			lowHealthVoiceSpawn;	// PERS_SPAWN_COUNT of the life that had its voice line
 	int			lowHealthVoiceTime;	// cg.time of that line
 	sfxHandle_t	pendingHitBeep;		// this frame's hit beep, played once the frame's events are in
 	qboolean	pendingKillBeep;	// a frag this frame: the kill beep instead

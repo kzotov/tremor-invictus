@@ -1056,8 +1056,13 @@ typedef enum {
 	CHAN_BODY,
 	CHAN_LOCAL_SOUND,	// chat messages, etc
 	CHAN_ANNOUNCER,		// announcer voices, etc
-	CHAN_HEARTBEAT		// the low-health heartbeat: a new sound replaces the one still playing
+	CHAN_HEARTBEAT,		// the low-health heartbeat: a new sound replaces the one still playing
+	CHAN_LOWVOICE		// the low-health voice line and breathing: the same, and stopped on death
 } soundChannel_t;
+
+// channels whose new sound replaces the one still playing, and whose
+// sound 0 stops it
+#define CHAN_REPLACES( c )	( (c) == CHAN_HEARTBEAT || (c) == CHAN_LOWVOICE )
 
 
 /*

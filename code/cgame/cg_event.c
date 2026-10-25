@@ -608,15 +608,16 @@ void CG_PainEvent( centity_t *cent, int health ) {
 	if ( cg.time - cent->pe.painTime < 500 ) {
 		return;
 	}
-	if ( health < 25 && who == cg.snap->ps.clientNum && cg.time - cent->pe.painTime < 800 ) {
+	if ( health <= 25 && who == cg.snap->ps.clientNum && cg.time - cent->pe.painTime < 800 ) {
 		return;
 	}
 
-	if ( health < 25 ) {
+	// (25 and below is the Low step's tier)
+	if ( health <= 25 ) {
 		snd = "*pain25_1.wav";
-	} else if ( health < 50 ) {
+	} else if ( health <= 50 ) {
 		snd = "*pain50_1.wav";
-	} else if ( health < 75 ) {
+	} else if ( health <= 75 ) {
 		snd = "*pain75_1.wav";
 	} else {
 		snd = "*pain100_1.wav";
@@ -801,8 +802,14 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		break;
 	case EV_FALL_MEDIUM:
 		DEBUGNAME("EV_FALL_MEDIUM");
-		// use normal pain sound
-		trap_S_StartSound( NULL, es->number, CHAN_VOICE, CG_CustomSound( es->number, "*pain100_1.wav" ) );
+		// a landing grunt, not a pain cry (none without one of its own)
+		{
+			sfxHandle_t	grunt = CG_CustomSound( es->number, "*land1.wav" );
+
+			if ( grunt ) {
+				trap_S_StartSound( NULL, es->number, CHAN_VOICE, grunt );
+			}
+		}
 		if ( clientNum == cg.predictedPlayerState.clientNum ) {
 			// smooth landing z changes
 			cg.landChange = -16;

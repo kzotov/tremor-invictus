@@ -1067,7 +1067,7 @@ srcHandle_t S_AL_SrcAlloc( alSrcPriority_t priority, int entnum, int channel )
 	// The channel system is not actually adhered to by baseq3, and not
 	// implemented in snd_dma.c, so it is kept to CHAN_HEARTBEAT, whose new
 	// sound replaces the one still playing
-	if(channel == CHAN_HEARTBEAT)
+	if(CHAN_REPLACES(channel))
 	{
 		for(i = 0; i < srcCount; i++)
 		{
@@ -1330,7 +1330,7 @@ void S_AL_StartLocalSound(sfxHandle_t sfx, int channel)
 	int i;
 
 	// no sound on CHAN_HEARTBEAT: stop the beat still sounding
-	if(sfx == 0 && channel == CHAN_HEARTBEAT)
+	if(sfx == 0 && CHAN_REPLACES(channel))
 	{
 		for(i = 0; i < srcCount; i++)
 		{
