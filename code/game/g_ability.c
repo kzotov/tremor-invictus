@@ -997,8 +997,9 @@ static void G_TotemThink( gentity_t *totem ) {
 				return;
 			}
 		} else if ( !G_AbilityMarked( totem, other->s.number ) ) {
-			// one heal per ally per totem
-			max = other->client->ps.stats[STAT_MAX_HEALTH];
+			// one heal per ally per totem, over the maximum up to the
+			// class's overheal cap (champion-audit.md "Heal caps", Konstantin)
+			max = other->client->ps.stats[STAT_MAX_HEALTH] + G_ClassInfo( other->client )->maxHealthBonus;
 			if ( other->health >= max ) {
 				continue;
 			}
