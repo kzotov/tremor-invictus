@@ -407,7 +407,7 @@ static void G_MedalsKill( gentity_t *self, gentity_t *inflictor, gentity_t *atta
 	}
 
 	// weapon gods
-	weapon = G_MedalWeapon( inflictor, attacker );
+	weapon = mod == MOD_RINGOUT ? WP_NONE : G_MedalWeapon( inflictor, attacker );		// (a push isn't a weapon kill)
 	if ( weapon > WP_NONE && weapon < WP_NUM_WEAPONS ) {
 		client->weaponKills[weapon]++;
 		for ( i = 0 ; i < ARRAY_LEN( godKills ) ; i++ ) {

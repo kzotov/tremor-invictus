@@ -1642,6 +1642,14 @@ typedef enum {
 //   ramp jump			upward speed climbed on the last ground frame (u/s)
 //   Athena's hook		the hold ms, or the rope while swinging (bits 0-11),
 //						HOOK_SWINGING and HOOK_ON_PLAYER (bits 13, 14)
+//   Keel				KEEL_HOLD_ARMED (bit 14): the held key keeps throwing
+//   Berserk			msec into the lunge + 1 (bits 0-9), LUNGE_TARGET (bit 13):
+//						an enemy to lunge at, at ps->grapplePoint (set by the game)
+#define	LUNGE_TARGET		0x2000
+#define	LUNGE_REACH			200		// the guidance cylinder: 200 u along the aim
+#define	LUNGE_GUIDE_RADIUS	12		// and 12 u around it
+#define	LUNGE_HIT_REACH		128		// a target within the punch's 44 x 128 u is punched, not lunged at
+#define	LUNGE_HIT_RADIUS	44
 
 #define	ACCEL_BONUS_MASK	0x07ff
 #define	ACCEL_HOLD_SHIFT	11
@@ -1945,7 +1953,8 @@ typedef enum {
 	EV_DAMAGEPLUM,					// damage dealt, a number over the target for the attacker only
 	EV_DODGE,						// Clutch's dodge: a whoosh, not the jump voice
 	EV_ABILITY_END,					// an ability ended, for any reason: its end sound
-	EV_HOOK_ATTACH					// Athena's hook bit into something
+	EV_HOOK_ATTACH,					// Athena's hook bit into something
+	EV_BERSERK_SWING				// a Berserk punch that missed: a swing
 } entity_event_t;
 
 

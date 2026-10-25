@@ -2387,7 +2387,7 @@ const abilityInfo_t bg_abilityInfo[ACTIVE_NUM_ABILITIES] = {
 	{ "injection",		STR_ABILITY_INJECTION,		qfalse,	{ "1", "60000", "0", "5000", "1200" } },
 	{ "dualwield",		STR_ABILITY_DUALWIELD,		qfalse,	{ "1", "60000", "0", "5500", "400" } },
 	{ "barrier",		STR_ABILITY_BARRIER,		qtrue,	{ "1", "60000", "250", "8000", "0" } },
-	{ "flamestrike",	STR_ABILITY_FLAMESTRIKE,	qfalse,	{ "1", "60000", "125", "5000", "1000" } },
+	{ "flamestrike",	STR_ABILITY_FLAMESTRIKE,	qfalse,	{ "1", "60000", "125", "10000", "1000" } },	// active until the last fireball is gone (the game ends it)
 	{ "berserk",		STR_ABILITY_BERSERK,		qtrue,	{ "1", "60000", "0", "3000", "400" } },	// 0.4 s firing lock at the end
 	{ "turret",			STR_ABILITY_TURRET,			qfalse,	{ "1", "60000", "0", "0", "400" } },
 	{ "totem",			STR_ABILITY_TOTEM,			qfalse,	{ "1", "60000", "0", "0", "400" } },
@@ -3128,7 +3128,8 @@ char *eventnames[] = {
 	"EV_DAMAGEPLUM",
 	"EV_DODGE",
 	"EV_ABILITY_END",
-	"EV_HOOK_ATTACH"
+	"EV_HOOK_ATTACH",
+	"EV_BERSERK_SWING"
 };
 
 /*

@@ -881,6 +881,12 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.hookAttachSound );
 		}
 		break;
+	case EV_BERSERK_SWING:
+		DEBUGNAME("EV_BERSERK_SWING");
+		if ( cgs.media.berserkSwingSound ) {
+			trap_S_StartSound( NULL, es->number, CHAN_WEAPON, cgs.media.berserkSwingSound );
+		}
+		break;
 	case EV_DODGE:
 		DEBUGNAME("EV_DODGE");
 		if ( cgs.media.dodgeSound ) {

@@ -82,8 +82,6 @@ vmCvar_t	g_fireballSpread;
 vmCvar_t	g_fireballDamage;
 vmCvar_t	g_fireballSplash;
 vmCvar_t	g_fireballRadius;
-vmCvar_t	g_flameConvergeDamage;
-vmCvar_t	g_flameConvergeRadius;
 vmCvar_t	g_burnDamage;
 vmCvar_t	g_burnTime;
 vmCvar_t	g_poisonDamage;
@@ -183,7 +181,6 @@ vmCvar_t	g_specChatToPlayers;
 vmCvar_t	g_teleportKeepSpeed;
 vmCvar_t	g_injectionMaxGain;
 vmCvar_t	g_injectionMaxGainCap;
-vmCvar_t	g_berserkHitCooldown;
 vmCvar_t	g_hookBreakDamage;
 vmCvar_t	g_totemBlastRadius;
 vmCvar_t	g_turretDeployTime;
@@ -415,8 +412,6 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_fireballDamage, "g_fireballDamage", "20", 0, 0, qtrue },
 	{ &g_fireballSplash, "g_fireballSplash", "20", 0, 0, qtrue },
 	{ &g_fireballRadius, "g_fireballRadius", "128", 0, 0, qtrue },
-	{ &g_flameConvergeDamage, "g_flameConvergeDamage", "75", 0, 0, qtrue },
-	{ &g_flameConvergeRadius, "g_flameConvergeRadius", "180", 0, 0, qtrue },
 	{ &g_burnDamage, "g_burnDamage", "75", 0, 0, qtrue },
 	{ &g_burnTime, "g_burnTime", "5000", 0, 0, qtrue },
 	{ &g_poisonDamage, "g_poisonDamage", "10", 0, 0, qtrue },
@@ -517,7 +512,6 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_teleportKeepSpeed, "g_teleportKeepSpeed", "1", 0, 0, qtrue },
 	{ &g_injectionMaxGain, "g_injectionMaxGain", "1", 0, 0, qtrue },
 	{ &g_injectionMaxGainCap, "g_injectionMaxGainCap", "25", 0, 0, qtrue },
-	{ &g_berserkHitCooldown, "g_berserkHitCooldown", "1000", 0, 0, qtrue },
 	{ &g_hookBreakDamage, "g_hookBreakDamage", "75", 0, 0, qtrue },
 	{ &g_totemBlastRadius, "g_totemBlastRadius", "160", 0, 0, qtrue },
 	{ &g_turretDeployTime, "g_turretDeployTime", "1500", 0, 0, qtrue },	// arms after this

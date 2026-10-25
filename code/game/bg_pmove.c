@@ -610,6 +610,24 @@ static void PM_Friction( void ) {
 }
 
 
+static qboolean PM_AbilityActive( int active );
+
+/*
+==================
+PM_SpeedCap
+
+The champion's horizontal speed cap; 1000 while Berserk (champion-audit.md)
+==================
+*/
+#define BERSERK_SPEED_CAP	1000
+
+static float PM_SpeedCap( void ) {
+	if ( pml.champion->active == ACTIVE_BERSERK && PM_AbilityActive( ACTIVE_BERSERK ) ) {
+		return BERSERK_SPEED_CAP;
+	}
+	return pml.champion->jumpSpeedCap;
+}
+
 /*
 ==============
 PM_HorizontalSpeed
@@ -687,8 +705,8 @@ static float PM_Accelerate( vec3_t wishdir, float wishspeed, float accel ) {
 
 	// never past the cap, or past the speed already held: above it,
 	// strafing only turns
-	if ( bg_pmoveSettings.speedLimit && pml.champion->jumpSpeedCap > 0 ) {
-		limit = before > pml.champion->jumpSpeedCap ? before : pml.champion->jumpSpeedCap;
+	if ( bg_pmoveSettings.speedLimit && PM_SpeedCap() > 0 ) {
+		limit = before > PM_SpeedCap() ? before : PM_SpeedCap();
 		after = PM_HorizontalSpeed();
 		if ( after > limit ) {
 			pm->ps->velocity[0] *= limit / after;
@@ -1346,7 +1364,7 @@ static void PM_AirSpeedDecay( void ) {
 	if ( !bg_pmoveSettings.speedLimit || pm->ps->stats[STAT_LAND_TIME] < 0 ) {
 		return;		// off, or launched
 	}
-	cap = PM_SlowMoving() ? PM_SlowSpeed() : pml.champion->jumpSpeedCap;
+	cap = PM_SlowMoving() ? PM_SlowSpeed() : PM_SpeedCap();
 	if ( cap <= 0 ) {
 		return;
 	}
@@ -1449,9 +1467,9 @@ static void PM_AirMove( void ) {
 				float	before = h, limit;
 
 				VectorMA( pm->ps->velocity, gain, wishdir, pm->ps->velocity );
-				limit = before > pml.champion->jumpSpeedCap ? before : pml.champion->jumpSpeedCap;
+				limit = before > PM_SpeedCap() ? before : PM_SpeedCap();
 				h = PM_HorizontalSpeed();
-				if ( pml.champion->jumpSpeedCap > 0 && h > limit ) {
+				if ( PM_SpeedCap() > 0 && h > limit ) {
 					pm->ps->velocity[0] *= limit / h;
 					pm->ps->velocity[1] *= limit / h;
 				}
@@ -2497,11 +2515,8 @@ Generates weapon events and modifes the weapon counter
 */
 #define LUNGE_MSEC		250		// the jump strike builds over this long
 #define LUNGE_TOP		800		// to this speed
-#define LUNGE_REACH		200		// and at most this far
 #define LUNGE_STOP_SPEED	100	// then held under this speed
 #define LUNGE_STOP_MSEC	200		// for this long
-#define LUNGE_HIT_REACH	128		// a target this close is punched, not lunged at
-#define BERSERK_SPEED_CAP	1000	// u/s across the ground while Berserk
 #define BERSERK_RAISE	800		// no punches while the fists come up
 #define RUSH_LAND_WAIT		1000	// a Bull Rush pressed in the air waits this long for the ground
 #define RUSH_CANCEL_AFTER	1000	// and can be cancelled after this long
@@ -2541,19 +2556,12 @@ static void PM_Weapon( void ) {
 			int		state = pm->ps->stats[STAT_MOVE_STATE] & 0xffff, t = state & 1023;
 			vec3_t	forward;
 
-			if ( !t && PM_AbilityActive( ACTIVE_BERSERK )
-				&& ( pm->cmd.buttons & BUTTON_ATTACK ) && pm->ps->weaponTime <= 0 ) {
-				trace_t	tr;
-				vec3_t	start, end, mins = { -12, -12, -12 }, maxs = { 12, 12, 12 };
-
-				VectorCopy( pm->ps->origin, start );
-				start[2] += pm->ps->viewheight;
-				AngleVectors( pm->ps->viewangles, forward, NULL, NULL );
-				VectorMA( start, LUNGE_REACH, forward, end );
-				pm->trace( &tr, start, mins, maxs, end, pm->ps->clientNum, MASK_PLAYERSOLID );
-				if ( tr.entityNum < MAX_CLIENTS && tr.fraction * LUNGE_REACH + 16 > LUNGE_HIT_REACH ) {
-					t = 1;
-				}
+			// the game finds the enemy in the guidance cylinder and puts it
+			// in grapplePoint with LUNGE_TARGET (g_active.c); the punch goes
+			// this frame once the weapon time runs out (it counts down later)
+			if ( !t && PM_AbilityActive( ACTIVE_BERSERK ) && ( state & LUNGE_TARGET )
+				&& ( pm->cmd.buttons & BUTTON_ATTACK ) && pm->ps->weaponTime - pml.msec <= 0 ) {
+				t = 1;
 			} else if ( t ) {
 				t += pml.msec;
 			}
@@ -2563,7 +2571,15 @@ static void PM_Weapon( void ) {
 				// the distance so far, from the speed's straight build-up
 				float	dist = bg_pmoveSettings.berserkLunge * s + 0.5f * rate * s * s;
 
-				AngleVectors( pm->ps->viewangles, forward, NULL, NULL );
+				// toward the target while it's known, else where he looks
+				if ( state & LUNGE_TARGET ) {
+					VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, forward );
+					if ( VectorNormalize( forward ) < 1 ) {
+						AngleVectors( pm->ps->viewangles, forward, NULL, NULL );
+					}
+				} else {
+					AngleVectors( pm->ps->viewangles, forward, NULL, NULL );
+				}
 				if ( t <= LUNGE_MSEC + 1 && dist < LUNGE_REACH ) {
 					VectorScale( forward, bg_pmoveSettings.berserkLunge + rate * s, pm->ps->velocity );
 				} else {
@@ -2676,6 +2692,7 @@ static void PM_Weapon( void ) {
 		if ( !pm->gauntletHit ) {
 			if ( PM_AbilityActive( ACTIVE_BERSERK ) ) {
 				PM_StartTorsoAnim( TORSO_ATTACK2 );
+				PM_AddEvent( EV_BERSERK_SWING );
 				pm->ps->weaponstate = WEAPON_FIRING;
 				pm->ps->weaponTime += 1000;
 				return;
@@ -2756,7 +2773,8 @@ static void PM_Weapon( void ) {
 	}
 
 	// tuned weapons take their refire from the weapon table
-	if ( BG_WeaponTuned( pm->ps->weapon ) && !PM_DroneActive() ) {
+	if ( BG_WeaponTuned( pm->ps->weapon ) && !PM_DroneActive()
+		&& !( pm->ps->weapon == WP_GAUNTLET && PM_AbilityActive( ACTIVE_BERSERK ) ) ) {
 		addTime = BG_WeaponParam( pm->ps->weapon, WPP_REFIRE );
 		if ( pm->ps->weapon == WP_HEAVY_MACHINEGUN && ( pm->cmd.buttons & BUTTON_ZOOM ) ) {
 			addTime = bg_pmoveSettings.hmgZoomRefire;
@@ -3215,6 +3233,7 @@ happen in the game on EV_USE_ABILITY and EV_ABILITY_REPRESS.
 */
 #define HOOK_THROW_GAP		1000	// msec between hook throws
 #define GRENADE_THROW_GAP	400		// msec between Keel's grenades
+#define KEEL_HOLD_ARMED		0x4000	// STAT_MOVE_STATE: the held key keeps throwing
 #define BERSERK_MIN_TIME	2000	// Berserk can be ended after this long
 
 static void PM_Ability( void ) {
@@ -3249,8 +3268,19 @@ static void PM_Ability( void ) {
 			time += pml.msec;
 			pm->ps->stats[STAT_ABILITY_TIME] = time;
 		}
-		// Keel keeps throwing while the key is held, one each 400 ms
-		if ( !( pressed || ( active == ACTIVE_GRENADES && pml.abilityHeld ) )
+		// Keel keeps throwing while the key is held, one each 400 ms: a
+		// fresh press arms the hold; letting go or running out disarms it,
+		// so a charge coming back (or a respawn) needs a new press
+		if ( active == ACTIVE_GRENADES ) {
+			if ( pressed ) {
+				pm->ps->stats[STAT_MOVE_STATE] |= KEEL_HOLD_ARMED;
+			}
+			if ( !pml.abilityHeld || charges <= 0 ) {
+				pm->ps->stats[STAT_MOVE_STATE] &= ~KEEL_HOLD_ARMED;
+			}
+		}
+		if ( !( pressed || ( active == ACTIVE_GRENADES && pml.abilityHeld
+				&& ( pm->ps->stats[STAT_MOVE_STATE] & KEEL_HOLD_ARMED ) ) )
 			|| charges <= 0 || ( pm->ps->pm_flags & PMF_RESPAWNED ) || time < gap ) {
 			return;
 		}

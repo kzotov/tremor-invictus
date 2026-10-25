@@ -579,7 +579,7 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 	if ( charges < maxCharges && G_ShellShockRecharge( client, msec ) ) {
 		// held back by the shock
 	} else if ( charges < maxCharges && ( client->droneBody || state != ABILITY_IDLE ) ) {
-		client->abilityRecharge = 0;
+		// paused, not lost: a charge already on its way keeps its progress
 	} else if ( charges < maxCharges && !level.timeoutEnd ) {
 		client->abilityRecharge += msec;
 		if ( client->abilityRecharge >= recharge ) {
@@ -1187,6 +1187,66 @@ void SendPendingPredictableEvents( playerState_t *ps ) {
 }
 
 /*
+=================
+G_BerserkGuide
+
+champion-audit.md: Berserk's punch lunges at an enemy on the aim line (the
+12 u x 200 u guidance cylinder) who is beyond the punch's own 44 x 128 u;
+the nearest such enemy goes to pmove in grapplePoint with LUNGE_TARGET
+=================
+*/
+static void G_BerserkGuide( gentity_t *ent ) {
+	gclient_t	*client = ent->client;
+	gentity_t	*other, *best = NULL;
+	vec3_t		eye, forward, delta, side, target;
+	float		along, off, bestAlong = LUNGE_REACH + 1;
+	int			i;
+	trace_t		tr;
+
+	client->ps.stats[STAT_MOVE_STATE] &= ~LUNGE_TARGET;
+	if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active != ACTIVE_BERSERK
+		|| !G_AbilityActive( ent, ACTIVE_BERSERK ) ) {
+		return;
+	}
+	VectorCopy( client->ps.origin, eye );
+	eye[2] += client->ps.viewheight;
+	AngleVectors( client->ps.viewangles, forward, NULL, NULL );
+	for ( i = 0 ; i < level.maxclients ; i++ ) {
+		other = &g_entities[i];
+		if ( !other->inuse || !G_AbilityEnemy( ent, other ) ) {
+			continue;
+		}
+		VectorCopy( other->r.currentOrigin, target );
+		VectorSubtract( target, eye, delta );
+		along = DotProduct( delta, forward );
+		if ( along < 0 || along > LUNGE_REACH + 16 ) {
+			continue;
+		}
+		VectorMA( delta, -along, forward, side );
+		off = VectorLength( side );
+		if ( off > LUNGE_GUIDE_RADIUS + 16 ) {
+			continue;		// (to the edge of the body)
+		}
+		if ( along <= LUNGE_HIT_REACH && off <= LUNGE_HIT_RADIUS ) {
+			continue;		// in reach: punched, not lunged at
+		}
+		if ( along >= bestAlong ) {
+			continue;
+		}
+		trap_Trace( &tr, eye, NULL, NULL, target, ent->s.number, MASK_SOLID );
+		if ( tr.fraction < 1.0f ) {
+			continue;
+		}
+		best = other;
+		bestAlong = along;
+	}
+	if ( best ) {
+		VectorCopy( best->r.currentOrigin, client->ps.grapplePoint );
+		client->ps.stats[STAT_MOVE_STATE] |= LUNGE_TARGET;
+	}
+}
+
+/*
 ==============
 ClientThink
 
@@ -1332,6 +1392,8 @@ void ClientThink_real( gentity_t *ent ) {
 
 	// set up for pmove
 	oldEventSequence = client->ps.eventSequence;
+
+	G_BerserkGuide( ent );
 
 	memset (&pm, 0, sizeof(pm));
 

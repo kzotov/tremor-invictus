@@ -719,6 +719,7 @@ static void CG_RegisterSounds( void ) {
 		cgs.media.killBeepSound = trap_S_RegisterSound( "sound/tremor/killbeep.wav", qfalse );
 	}
 	cgs.media.dodgeSound = trap_S_RegisterSound( "sound/tremor/dodge.wav", qfalse );
+	cgs.media.berserkSwingSound = trap_S_RegisterSound( "sound/abilities/berserk_swing.wav", qfalse );
 	cgs.media.hookAttachSound = trap_S_RegisterSound( "sound/tremor/hook_attach.wav", qfalse );
 	for ( i = 1 ; i < ACTIVE_NUM_ABILITIES ; i++ ) {
 		cgs.media.abilitySounds[i][0] = trap_S_RegisterSound( va( "sound/abilities/%s_cast.wav", bg_abilityInfo[i].cvarName ), qfalse );

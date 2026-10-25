@@ -367,7 +367,7 @@ static void G_OrbDestroyed( gentity_t *orb, gentity_t *inflictor, gentity_t *att
 		return;		// only an enemy's shots count (champion-audit.md)
 	}
 	// the death blast: the same falloff, wider, and Ranger isn't spared
-	G_OrbBurst( orb->r.currentOrigin, attacker, g_orbShotDamage.value, g_orbShotRadius.value, qfalse );
+	G_OrbBurst( orb->r.currentOrigin, attacker, g_orbShotDamage.value, g_orbShotRadius.value, qtrue );		// (sparing the shooter)
 	G_CutAbilityCooldown( owner, 0.5f );
 	if ( owner->client->abilityEnt == orb ) {
 		owner->client->abilityEnt = NULL;
@@ -750,6 +750,7 @@ static void G_FireFlameStrike( gentity_t *ent ) {
 	VectorCopy( start, ent->client->flameStart );
 	VectorCopy( forward, ent->client->flameDir );
 	ent->client->flameTime = level.time;
+	ent->client->flameConverged = qfalse;
 	spread = tan( DEG2RAD( g_fireballSpread.value ) );
 	for ( i = 0 ; i < 3 ; i++ ) {
 		VectorMA( forward, ( i - 1 ) * spread, right, dir );
@@ -782,6 +783,10 @@ static void G_FlameConverge( gentity_t *ent ) {
 	vec3_t		point, origin;
 	int			i, count = 0;
 
+	if ( client->flameConverged ) {
+		return;		// once
+	}
+	client->flameConverged = qtrue;
 	VectorMA( client->flameStart, g_fireballSpeed.value * ( level.time + CONVERGE_MSEC - client->flameTime ) * 0.001f,
 		client->flameDir, point );
 	for ( i = 0 ; i < 3 ; i++ ) {

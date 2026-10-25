@@ -849,6 +849,10 @@ def sounds(out):
     put(os.path.join(out, "sound/abilities/drone_charge.wav"),
         mix((env(osc(glide(400, 1800, 0.5), 0.7, "square"), attack=0.02, decay=2.5), 0.15, 0),
             (env(noise(0.7, glide(800, 5000, 0.5), 47), attack=0.05, decay=2.2), 0.8, 0)))
+    # a Berserk punch that misses: a heavy swing through the air
+    put(os.path.join(out, "sound/abilities/berserk_swing.wav"),
+        mix((env(noise(0.3, glide(600, 2200, 0.2), 89), attack=0.03, decay=9), 1.0, 0),
+            (env(osc(glide(140, 90, 0.25), 0.3), attack=0.02, decay=10), 0.3, 0)))
     # the drone's gun: a light, quick zap
     put(os.path.join(out, "sound/abilities/drone_shot.wav"),
         mix((env(osc(glide(2400, 900, 0.07), 0.1, "saw"), decay=35), 0.3, 0),

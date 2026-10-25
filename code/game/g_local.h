@@ -414,6 +414,7 @@ struct gclient_s {
 	gentity_t	*fireballs[3];		// flame strike fireballs in flight
 	vec3_t		flameStart, flameDir;	// the cast's aim line (the converge point)
 	int			flameTime;
+	qboolean	flameConverged;			// the second press is used
 	gentity_t	*turret;			// placed sentry turret
 	int			abilityShots;		// acid blobs spat so far
 	int			abilityShotTime;	// level.time of the next blob
@@ -440,7 +441,6 @@ struct gclient_s {
 	int			burnEndTime, burnNextTime, burnAttacker;
 	int			poisonEndTime, poisonNextTime, poisonAttacker;
 	int			collisionTime[MAX_CLIENTS];	// level.time of the last collision hit per victim
-	int			berserkHitTime[MAX_CLIENTS];	// level.time of the last Berserk punch per victim
 
 	int			switchTeamTime;		// time the player switched teams
 
@@ -1155,8 +1155,6 @@ extern	vmCvar_t	g_fireballSpread;
 extern	vmCvar_t	g_fireballDamage;
 extern	vmCvar_t	g_fireballSplash;
 extern	vmCvar_t	g_fireballRadius;
-extern	vmCvar_t	g_flameConvergeDamage;
-extern	vmCvar_t	g_flameConvergeRadius;
 extern	vmCvar_t	g_burnDamage;
 extern	vmCvar_t	g_burnTime;
 extern	vmCvar_t	g_poisonDamage;
@@ -1257,7 +1255,6 @@ void G_SendDuelHud( void );
 extern	vmCvar_t	g_teleportKeepSpeed;
 extern	vmCvar_t	g_injectionMaxGain;
 extern	vmCvar_t	g_injectionMaxGainCap;
-extern	vmCvar_t	g_berserkHitCooldown;
 void G_BreakHook( gentity_t *ent );
 void G_UpdateItemTimers( void );
 void G_TimeoutFrame( int msec );
