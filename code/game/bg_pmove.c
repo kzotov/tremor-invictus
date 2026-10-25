@@ -3385,9 +3385,11 @@ static void PM_Ability( void ) {
 				if ( jumpDown && !( hook & HOOK_JUMP_DOWN ) && time > 0 ) {
 					arrived = qtrue;
 				}
-				// stuck: under 32 u moved in a 0.2 s window
+				// stuck: under 32 u moved in a 0.2 s window (not while
+				// swinging: a slow swing at its top isn't stuck)
 				if ( time / HOOK_STUCK_MSEC != ( time + pml.msec ) / HOOK_STUCK_MSEC ) {
-					if ( time >= HOOK_STUCK_MSEC && moved < HOOK_STUCK_DIST - 0.5f ) {		// (15 steps make 32)
+					if ( time >= HOOK_STUCK_MSEC && moved < HOOK_STUCK_DIST - 0.5f
+						&& !( pm->ps->stats[STAT_MOVE_STATE] & HOOK_SWINGING ) ) {		// (15 steps make 32)
 						arrived = qtrue;
 					}
 					hook &= ~( 15 << HOOK_MOVED_SHIFT );		// a new window
@@ -3712,11 +3714,9 @@ static void PM_HookMove( void ) {
 		}
 		state = ( state & HOOK_ON_PLAYER ) | held;
 		if ( held >= HOOK_SWING_HOLD && time >= HOOK_SWING_AFTER ) {
-			if ( pm->ps->groundEntityNum != ENTITYNUM_NONE ) {
-				PM_EndAbility();		// on the ground the hold lets go instead
-				return;
-			}
-			if ( !( state & HOOK_ON_PLAYER ) ) {		// no swing on a player: keep pulling
+			// on the ground the hold keeps pulling (the swing starts once
+			// off it); on a player, too
+			if ( pm->ps->groundEntityNum == ENTITYNUM_NONE && !( state & HOOK_ON_PLAYER ) ) {		// no swing on a player: keep pulling
 				state = HOOK_SWINGING | (int)( dist < 1 ? 1 : dist > HOOK_ROPE_MASK ? HOOK_ROPE_MASK : dist );
 				pm->ps->stats[STAT_ABILITY_TIME] = time = 0;
 			}
