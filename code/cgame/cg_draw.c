@@ -6341,7 +6341,7 @@ static void CG_DrawTeamStandoff( const int *blue, int nBlue, const int *red, int
 			clientInfo_t	*ci = &cgs.clientinfo[list[i]];
 			int				ch = BG_ChampionForModel( ci->modelName );
 			float			step = i < 4 ? 1 : -1;
-			float			size = i < 4 ? 1 : 0.8f;
+			float			size = i < 4 ? 1 : 0.8f;		// (20 / 16 dp, menu-style.md)
 
 			CG_StandoffSpot( side, i, base );
 			if ( i >= 4 ) {
@@ -6350,12 +6350,12 @@ static void CG_DrawTeamStandoff( const int *blue, int nBlue, const int *red, int
 			sx = 320 - base[1] / ( base[0] * tx ) * 0.5f * cgs.glconfig.vidWidth * 480 / cgs.glconfig.vidHeight;
 			sy = 240 - base[2] / ( base[0] * ty ) * 240 + ( i < 4 ? 6 : -8 );
 			if ( readyBits & ( 1 << list[i] ) ) {
-				CG_HudText( sx, sy + step * 24 * size, 20 * size, BG_String( STR_LINEUP_READY ), colorGreen, 1, 1 );
+				CG_HudText( sx, sy + step * 20 * size, 16 * size, BG_String( STR_LINEUP_READY ), colorGreen, 1, 1 );
 			}
 			if ( ch >= 0 ) {
-				CG_HudText( sx, sy + step * 13 * size, 20 * size, BG_String( BG_Champion( ch )->nameString ), champ, 1, 1 );
+				CG_HudText( sx, sy + step * 11 * size, 16 * size, BG_String( BG_Champion( ch )->nameString ), champ, 1, 1 );
 			}
-			CG_HudText( sx, sy, 26 * size, ci->name, list[i] == cg.snap->ps.clientNum ? colorYellow : colorWhite, 1, 1 );
+			CG_HudText( sx, sy, 20 * size, ci->name, list[i] == cg.snap->ps.clientNum ? colorYellow : colorWhite, 1, 1 );
 		}
 	}
 	// the team plates

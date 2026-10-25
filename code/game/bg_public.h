@@ -1626,6 +1626,9 @@ typedef enum {
 #define	HOOK_PRESSED			0x1000		// a fresh press during the pull: its hold is counting
 #define	HOOK_THROW_GAP			1000		// msec from a throw to the next
 #define	HOOK_MISS_GAP			2000		// and after a hook that never bit
+// msec since her last throw (capped at HOOK_MISS_GAP), in an ammo slot no
+// weapon has, so both waits are predicted from the throw
+#define	HOOK_SINCE_THROW( ps )	( (ps)->ammo[MAX_WEAPONS - 1] )
 #define	HOOK_SWINGING			0x2000
 #define	HOOK_ON_PLAYER			0x4000		// set by the game when the hook bites a player
 

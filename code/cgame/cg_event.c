@@ -1589,7 +1589,12 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		// don't play gib sound when using the kamikaze because it interferes
 		// with the kamikaze sound, downside is that the gib sound will also
 		// not be played when someone is gibbed while just carrying the kamikaze
-		if ( !(es->eFlags & EF_KAMIKAZE) ) {
+#ifdef MISSIONPACK
+		if ( !(es->eFlags & EF_KAMIKAZE) )
+#endif
+		{
+			// (baseq3 has no kamikaze: the bit is Clutch's laser and B.J.'s
+			// second gun there, which must not mute the gib)
 			trap_S_StartSound( NULL, es->number, CHAN_BODY, cgs.media.gibSound );
 		}
 		CG_GibPlayer( cent->lerpOrigin );

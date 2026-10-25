@@ -3240,7 +3240,9 @@ static void PM_EndAbility( void ) {
 	pm->ps->stats[STAT_ABILITY_TIME] = 0;
 	if ( active == ACTIVE_HOOK ) {
 		pm->ps->stats[STAT_MOVE_STATE] = 0;		// the swing's rope, not a climb speed for the ramp jump
-		// (the wait for the next throw, from this throw, is set by the game)
+		// the 1.0 s to the next throw counts from this throw (the idle
+		// time counts up to it)
+		pm->ps->stats[STAT_ABILITY_TIME] = HOOK_SINCE_THROW( pm->ps ) < HOOK_THROW_GAP ? HOOK_SINCE_THROW( pm->ps ) : HOOK_THROW_GAP;
 	}
 	if ( active == ACTIVE_BERSERK ) {
 		pm->ps->stats[STAT_MOVE_STATE] &= ~1023;	// a lunge in progress ends with Berserk
@@ -3281,6 +3283,7 @@ static void PM_StartAbility( int *state, int *time ) {
 	case ACTIVE_HOOK:
 		*state = ABILITY_HOOK_FLYING;
 		*time = 0;
+		HOOK_SINCE_THROW( pm->ps ) = 0;
 		BG_AddPredictableEventToPlayerstate( EV_USE_ABILITY, active, pm->ps );		// (the parm says whose sounds)
 		break;
 	case ACTIVE_BULLRUSH:
@@ -3348,6 +3351,14 @@ static void PM_Ability( void ) {
 	state = BG_AbilityState( pm->ps );
 	charges = BG_AbilityCharges( pm->ps );
 	time = pm->ps->stats[STAT_ABILITY_TIME];
+
+	// the hook out: the time since the throw, for the next throw's wait
+	if ( active == ACTIVE_HOOK && ( state == ABILITY_HOOK_FLYING || state == ABILITY_HOOK_PULL ) ) {
+		HOOK_SINCE_THROW( pm->ps ) += pml.msec;
+		if ( HOOK_SINCE_THROW( pm->ps ) > HOOK_MISS_GAP || HOOK_SINCE_THROW( pm->ps ) < 0 ) {
+			HOOK_SINCE_THROW( pm->ps ) = HOOK_MISS_GAP;
+		}
+	}
 
 	if ( state == ABILITY_IDLE ) {
 		// some abilities wait a moment between uses; the idle time counts up
@@ -3424,7 +3435,7 @@ static void PM_Ability( void ) {
 			// bit waits 2.0 s for the next throw (abilities-data)
 			if ( pressed ) {
 				state = ABILITY_IDLE;
-				time = 0;		// (the game sets the wait, from the throw)
+				time = HOOK_THROW_GAP - HOOK_MISS_GAP + HOOK_SINCE_THROW( pm->ps );
 			}
 		}
 	} else if ( state == ABILITY_HOOK_PULL ) {

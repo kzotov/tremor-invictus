@@ -567,6 +567,14 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 			client->hookDamageTaken = 0;
 		}
 		if ( !client->hook && ( state == ABILITY_HOOK_FLYING || state == ABILITY_HOOK_PULL ) ) {
+			// the wait for the next throw counts from this throw
+			// (abilities-data): 1.0 s, 2.0 s after a hook that never bit.
+			// The idle time counts up to HOOK_THROW_GAP, so it starts where
+			// that leaves it (pmove does the same for its own ends)
+			int		gap = state == ABILITY_HOOK_FLYING ? HOOK_MISS_GAP : HOOK_THROW_GAP;
+			int		t = HOOK_THROW_GAP - gap + HOOK_SINCE_THROW( &client->ps );
+
+			client->ps.stats[STAT_ABILITY_TIME] = t > HOOK_THROW_GAP ? HOOK_THROW_GAP : t;
 			state = ABILITY_IDLE;
 			client->ps.stats[STAT_MOVE_STATE] = 0;		// (the swing's rope)
 			client->ps.pm_flags &= ~PMF_GRAPPLE_PULL;
@@ -578,16 +586,6 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 	if ( champ->active == ACTIVE_HOOK && client->abilityPrevState == ABILITY_HOOK_FLYING
 		&& state == ABILITY_IDLE && charges < maxCharges ) {
 		charges++;
-	}
-	// the wait for the next throw counts from this throw (abilities-data):
-	// 1.0 s, 2.0 s after a hook that never bit. The idle time counts up to
-	// HOOK_THROW_GAP, so it starts where that leaves it
-	if ( champ->active == ACTIVE_HOOK && state == ABILITY_IDLE
-		&& ( client->abilityPrevState == ABILITY_HOOK_FLYING || client->abilityPrevState == ABILITY_HOOK_PULL ) ) {
-		int		gap = client->abilityPrevState == ABILITY_HOOK_FLYING ? HOOK_MISS_GAP : HOOK_THROW_GAP;
-		int		t = HOOK_THROW_GAP - gap + ( level.time - client->hookThrowTime );
-
-		client->ps.stats[STAT_ABILITY_TIME] = t > HOOK_THROW_GAP ? HOOK_THROW_GAP : t;
 	}
 
 	// timed abilities starting and ending
@@ -1050,9 +1048,6 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 
 		switch ( event ) {
 		case EV_USE_ABILITY:
-			if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_HOOK ) {
-				client->hookThrowTime = level.time;		// (the next throw's wait counts from here)
-			}
 			G_UseAbility( ent );
 			break;
 

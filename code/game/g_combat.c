@@ -551,6 +551,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	self->client->ps.stats[STAT_ABILITY_TIME] = 0;
 	self->client->abilityPrevState = ABILITY_IDLE;
 	self->s.frame = 0;		// (out of Ghost Walk)
+	self->client->ps.eFlags &= ~( EF_LASER | EF_DUALWIELD | EF_BARRIER );	// (no laser, second gun or shield on the body)
 	G_AbilityClientDied( self );
 	G_DropStroyentCell( self, attacker );
 #ifdef MISSIONPACK

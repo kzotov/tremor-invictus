@@ -644,6 +644,9 @@ localEntity_t *CG_MakeExplosion( vec3_t origin, vec3_t dir,
 }
 
 
+#define SHIELD_PANEL_DIST	22		// Clutch's front shield, ahead of him
+#define SHIELD_FRONT_DOT	0.5f	// a hit this far round to his front met it
+
 /*
 =================
 CG_Bleed
@@ -653,6 +656,8 @@ This is the spurt of blood when a character gets hit
 */
 void CG_Bleed( vec3_t origin, int entityNum ) {
 	localEntity_t	*ex;
+	centity_t		*cent;
+	vec3_t			forward, d, spot;
 
 	// the drone is a machine: metal sparks and a ping, no blood
 	if ( entityNum >= 0 && entityNum < MAX_CLIENTS
@@ -661,6 +666,28 @@ void CG_Bleed( vec3_t origin, int entityNum ) {
 
 		CG_MissileHitWall( WP_MACHINEGUN, 0, origin, up, IMPACTSOUND_METAL );
 		return;
+	}
+
+	// Clutch's front shield stopped it: the spark on the panel, where the
+	// hit met it, and no blood (the panel stands 22 u ahead, CG_Player)
+	if ( entityNum >= 0 && entityNum < MAX_CLIENTS
+		&& ( cg_entities[entityNum].currentState.eFlags & EF_BARRIER ) ) {
+		cent = &cg_entities[entityNum];
+		forward[0] = cos( DEG2RAD( cent->lerpAngles[YAW] ) );
+		forward[1] = sin( DEG2RAD( cent->lerpAngles[YAW] ) );
+		forward[2] = 0;
+		VectorSubtract( origin, cent->lerpOrigin, d );
+		d[2] = 0;
+		if ( VectorNormalize( d ) > 0 && DotProduct( d, forward ) > SHIELD_FRONT_DOT ) {
+			if ( entityNum == cg.snap->ps.clientNum && !cg.renderingThirdPerson ) {
+				return;		// (no panel in our own view)
+			}
+			VectorSubtract( origin, cent->lerpOrigin, d );
+			VectorMA( d, SHIELD_PANEL_DIST - DotProduct( d, forward ), forward, d );
+			VectorAdd( cent->lerpOrigin, d, spot );
+			CG_MissileHitWall( WP_MACHINEGUN, 0, spot, forward, IMPACTSOUND_METAL );
+			return;
+		}
 	}
 
 	if ( !cg_blood.integer ) {
