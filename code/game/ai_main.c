@@ -987,6 +987,23 @@ static qboolean BotWantsAbility(bot_state_t *bs) {
 	if (state == ABILITY_ACTIVE) {
 		// the drone's second press charges it: only at an enemy in view
 		if (active == ACTIVE_DRONE) return seen && !(ps->pm_flags & PMF_DRONE_CHARGE);		// (then it waits for contact)
+		// Clutch turns the Barrier into the laser at an enemy in view
+		if (active == ACTIVE_BARRIER) return seen && dist < 1200 && random() < 0.5;
+		// Slash sets the trail off with an enemy close to her
+		if (active == ACTIVE_PLASMATRAIL) return seen && dist < 160;
+		// Death Knight pulls the fireballs together on an enemy ahead
+		if (active == ACTIVE_FLAMESTRIKE) return seen && dist > 150 && dist < 500;
+		// Ranger: to the orb with an enemy beside it, or when hurt and it's far
+		// from the enemy
+		if (active == ACTIVE_ORB && g_entities[bs->client].client->abilityEnt) {
+			gentity_t	*orb = g_entities[bs->client].client->abilityEnt;
+
+			if (bs->enemy >= 0 && bs->enemy < MAX_CLIENTS && g_entities[bs->enemy].inuse
+				&& Distance(orb->r.currentOrigin, g_entities[bs->enemy].r.currentOrigin) < 120) {
+				return qtrue;
+			}
+			return health < 40 && (bs->enemy < 0 || Distance(orb->r.currentOrigin, g_entities[bs->enemy].r.currentOrigin) > 600);
+		}
 		return active == ACTIVE_RIFTANCHOR && health < 40;
 	}
 	if (state != ABILITY_IDLE || BG_AbilityCharges(ps) <= 0) return qfalse;

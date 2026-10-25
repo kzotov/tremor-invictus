@@ -1539,9 +1539,22 @@ G_BarrierScale
 Damage multiplier while the shield is up; only weapon and ability damage
 ================
 */
-float G_BarrierScale( gentity_t *targ, int mod ) {
+#define BARRIER_HALF_ARC	35		// the shield covers about 70 degrees around his view
+
+float G_BarrierScale( gentity_t *targ, int mod, const vec3_t dir ) {
 	if ( !targ->client || targ->client->barrierMode != 1 || !G_AbilityActive( targ, ACTIVE_BARRIER ) ) {
 		return 1.0f;
+	}
+	// only what comes at him from the front (champion-audit.md)
+	if ( dir ) {
+		vec3_t	forward, from;
+
+		AngleVectors( targ->client->ps.viewangles, forward, NULL, NULL );
+		VectorNegate( dir, from );
+		VectorNormalize( from );
+		if ( DotProduct( forward, from ) < cos( DEG2RAD( BARRIER_HALF_ARC ) ) ) {
+			return 1.0f;
+		}
 	}
 	switch ( mod ) {
 	case MOD_WATER: case MOD_SLIME: case MOD_LAVA: case MOD_CRUSH: case MOD_TELEFRAG:

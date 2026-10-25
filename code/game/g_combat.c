@@ -1357,7 +1357,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
 	// barrier shield
 	{
-		float	shield = G_BarrierScale( as, mod );
+		float	shield = G_BarrierScale( as, mod, dir );
 
 		if ( shield < 1.0f ) {
 			damage *= shield;

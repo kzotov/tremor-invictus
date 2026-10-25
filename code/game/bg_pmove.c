@@ -3223,6 +3223,9 @@ static void PM_StartAbility( int *state, int *time ) {
 		}
 		*state = ABILITY_RUSH;
 		*time = BG_AbilityParam( active, AP_DURATION );
+		// it starts at the speed he had, at least the start speed
+		// (champion-audit.md); kept in STAT_HOOK (he has no hook)
+		pm->ps->stats[STAT_HOOK] = (int)PM_HorizontalSpeed();
 		PM_AddEvent( EV_USE_ABILITY );
 		break;
 	default:
@@ -3319,8 +3322,14 @@ static void PM_Ability( void ) {
 		time -= pml.msec;
 		if ( active == ACTIVE_BULLRUSH && pm->ps->groundEntityNum != ENTITYNUM_NONE ) {
 			time = 0;		// landed: the rush goes now
+		} else if ( active == ACTIVE_BULLRUSH && time <= 0 ) {
+			// still in the air a second after the press: no rush, and the
+			// charge comes back (champion-audit.md)
+			state = ABILITY_IDLE;
+			time = 0;
+			charges++;
 		}
-		if ( time <= 0 ) {
+		if ( time <= 0 && state == ABILITY_WINDUP ) {
 			PM_StartAbility( &state, &time );
 		}
 	} else if ( state == ABILITY_HOOK_FLYING ) {
@@ -3569,6 +3578,10 @@ static float PM_ClassAirAccelerate( void ) {
 	if ( pml.champion->abilities & MOVEABIL_ISOAIR ) {
 		accel *= bg_pmoveSettings.isoAirAccel;
 	}
+	// Clutch behind the Barrier: 1.137778 (champion-audit.md, the data)
+	if ( pml.champion->active == ACTIVE_BARRIER && PM_AbilityActive( ACTIVE_BARRIER ) ) {
+		accel = 1.137778f;
+	}
 	return accel * bg_pmoveSettings.airAccelerate;
 }
 
@@ -3628,9 +3641,14 @@ static void PM_RushMove( void ) {
 	if ( elapsed < 0 ) {
 		elapsed = 0;
 	}
-	pml.rushSpeed = bg_pmoveSettings.rushStartSpeed + bg_pmoveSettings.rushAccel * elapsed;
-	if ( pml.rushSpeed > bg_pmoveSettings.rushSpeed ) {
-		pml.rushSpeed = bg_pmoveSettings.rushSpeed;
+	{
+		float	start = pm->ps->stats[STAT_HOOK] > bg_pmoveSettings.rushStartSpeed ? pm->ps->stats[STAT_HOOK] : bg_pmoveSettings.rushStartSpeed;
+		float	cap = start > bg_pmoveSettings.rushSpeed ? start : bg_pmoveSettings.rushSpeed;
+
+		pml.rushSpeed = start + bg_pmoveSettings.rushAccel * elapsed;
+		if ( pml.rushSpeed > cap ) {
+			pml.rushSpeed = cap;
+		}
 	}
 
 	PM_FlatDirection( 0, forward );

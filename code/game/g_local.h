@@ -919,7 +919,7 @@ void G_ClearRoundObjects( void );
 #define RINGOUT_TIME	3000	// msec an enemy's hit or push still owns a fall
 void G_DroneBodyPush( gentity_t *body, const vec3_t kvel );
 #define DRONE_INPUT_WAIT	250		// msec of no input after the drone ends
-float G_BarrierScale( gentity_t *targ, int mod );
+float G_BarrierScale( gentity_t *targ, int mod, const vec3_t dir );
 void G_BarrierHit( gentity_t *targ, int damage );
 qboolean G_DroneAbsorbDamage( gentity_t *ent, int take );
 void G_DropStroyentCell( gentity_t *victim, gentity_t *attacker );
