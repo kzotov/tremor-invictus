@@ -1273,6 +1273,9 @@ typedef enum {
 	STR_EV_HAS_PROTECTION,			// last of the power-ups
 	STR_SYS_FIGHT,				// keep last of the system-message range
 	STR_OBIT_RINGOUT,
+	STR_RD_DRAFT_YOURS,				// the draft view: your turn, seconds left
+	STR_RD_DRAFT_THEIRS,			// someone else's turn: name, seconds left
+	STR_RD_DRAFT_TAKEN,				// after a taken champion's name
 
 	STR_NUM_STRINGS
 } stringId_t;

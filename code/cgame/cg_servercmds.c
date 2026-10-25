@@ -1034,6 +1034,18 @@ static void CG_AnnounceKey( const char *key ) {
 	static sfxHandle_t	sounds[MAX_ANNOUNCE_KEYS];
 	static int			numKeys;
 	int					i;
+	char				first[32];
+	const char			*bar = strchr( key, '|' );
+
+	// "key|fallback": the fallback plays when there's no recording for key
+	if ( bar ) {
+		sfxHandle_t	s;
+
+		Q_strncpyz( first, key, bar - key + 1 < (int)sizeof( first ) ? bar - key + 1 : sizeof( first ) );
+		s = trap_S_RegisterSound( va( "sound/feedback/%s.wav", first ), qtrue );
+		CG_AnnounceKey( s ? first : bar + 1 );
+		return;
+	}
 
 	for ( i = 0 ; i < numKeys ; i++ ) {
 		if ( !Q_stricmp( keys[i], key ) ) {
@@ -1047,12 +1059,6 @@ static void CG_AnnounceKey( const char *key ) {
 		Q_strncpyz( keys[i], key, sizeof( keys[i] ) );
 		sounds[i] = trap_S_RegisterSound( va( "sound/feedback/%s.wav", key ), qtrue );
 		numKeys++;
-	}
-	// "Round N, fight" without its own recording: plain "fight"
-	if ( !sounds[i] && !Q_stricmpn( key, "round", 5 ) && strlen( key ) > 5
-		&& !Q_stricmp( key + strlen( key ) - 5, "fight" ) ) {
-		CG_AnnounceKey( "fight" );
-		return;
 	}
 	if ( sounds[i] ) {
 		// pre-round lines first, then power-ups and timers, then the rest

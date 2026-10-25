@@ -1394,6 +1394,11 @@ void ClientSpawn(gentity_t *ent) {
 	client->ps.pm_flags |= PMF_RESPAWNED;
 
 	trap_GetUsercmd( client - level.clients, &ent->client->pers.cmd );
+	// an ability key held through the respawn counts as already down: it
+	// takes a new press (Keel's held throws)
+	if ( ent->client->pers.cmd.buttons & BUTTON_ABILITY ) {
+		client->ps.pm_flags |= PMF_ABILITY_HELD;
+	}
 	SetClientViewAngle( ent, spawn_angles );
 	// don't allow full run speed for a bit
 	client->ps.pm_flags |= PMF_TIME_KNOCKBACK;

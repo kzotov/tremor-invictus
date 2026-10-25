@@ -1092,6 +1092,10 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if ( level.warmupTime > 0 && as->client && attacker->client ) {
 		return;
 	}
+	// round duel's draft: nobody hurts anybody while a pick is being made
+	if ( G_RoundDuelDrafting() && as->client && attacker->client ) {
+		return;
+	}
 
 	// shootable doors / buttons don't actually have any health
 	if ( targ->s.eType == ET_MOVER ) {

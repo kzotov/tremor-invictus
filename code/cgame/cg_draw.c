@@ -6529,8 +6529,8 @@ static qboolean CG_DrawDraft( void ) {
 
 		Com_sprintf( sig, sizeof( sig ), "%i %i %i %i %i %i", picks[0][0], picks[0][1], picks[0][2],
 			picks[1][0], picks[1][1], picks[1][2] );
-		if ( !shown ) {
-			shownPicks[0] = 0;
+		if ( !shown && ( players[0] == cg.clientNum || players[1] == cg.clientNum ) ) {
+			shownPicks[0] = 0;		// (put away: shown again)
 		}
 		if ( strcmp( sig, shownPicks ) ) {
 			Q_strncpyz( shownPicks, sig, sizeof( shownPicks ) );
@@ -6544,9 +6544,16 @@ static qboolean CG_DrawDraft( void ) {
 						}
 					}
 				}
-				trap_Cvar_Set( va( "dr_t_%s", BG_Champion( c )->name ), taken ? " - TAKEN" : "" );
+				trap_Cvar_Set( va( "dr_t_%s", BG_Champion( c )->name ), taken ? BG_String( STR_RD_DRAFT_TAKEN ) : "" );
 			}
-			trap_SendConsoleCommand( shown ? "rml_hide\nrml_show ui/draft.rml\n" : "rml_show ui/draft.rml\n" );
+			// the page for the two drafting; spectators only watch (their
+			// keys stay theirs). Opening it lets go of held keys.
+			if ( players[0] == cg.clientNum || players[1] == cg.clientNum ) {
+				if ( !shown ) {
+					trap_SendConsoleCommand( "-forward\n-back\n-moveleft\n-moveright\n-moveup\n-movedown\n-attack\n-button12\n-button13\n" );
+				}
+				trap_SendConsoleCommand( shown ? "rml_hide\nrml_show ui/draft.rml\n" : "rml_show ui/draft.rml\n" );
+			}
 		}
 	}
 	if ( players[1] == cg.snap->ps.clientNum ) {
@@ -6623,9 +6630,9 @@ static qboolean CG_DrawDraft( void ) {
 					secs = 0;
 				}
 				if ( players[turn] == cg.snap->ps.clientNum ) {
-					Com_sprintf( line, sizeof( line ), "YOUR PICK  %i", secs );
+					Com_sprintf( line, sizeof( line ), BG_String( STR_RD_DRAFT_YOURS ), secs );
 				} else {
-					Com_sprintf( line, sizeof( line ), "%s^7 IS PICKING  %i", cgs.clientinfo[players[turn]].name, secs );
+					Com_sprintf( line, sizeof( line ), BG_String( STR_RD_DRAFT_THEIRS ), cgs.clientinfo[players[turn]].name, secs );
 				}
 				CG_DrawStringExt( 320 - CG_DrawStrlen( line ) * SMALLCHAR_WIDTH / 2, 180, line,
 					players[turn] == cg.snap->ps.clientNum ? colorYellow : colorWhite, qfalse, qtrue,

@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "g_local.h"
 
 #define RD_CHAMPIONS		3
-#define RD_PICK_MSEC		10000
+#define RD_PICK_MSEC		15000
 #define RD_COUNTDOWN_MSEC	10000	// "prepare to fight" at 10 s, "round begins in" at 5, 3-2-1
 #define RD_RESULT_MSEC		5000
 
@@ -56,6 +56,7 @@ static struct {
 	int			dead[2];			// bit per roster index
 	int			hudTime;
 	int			said;				// countdown lines already played (bits)
+	qboolean	quickStart;			// round 1 straight after the warm-up's countdown
 } rd;
 
 /*
@@ -235,6 +236,7 @@ static qboolean G_RDPick( int side, int champion ) {
 	rd.picks[side][n] = champion;
 	rd.numPicks++;
 	rd.stateTime = level.time + RD_PICK_MSEC;
+	rd.hudTime = 0;		// the next player's prompt at once
 	G_RDAnnounce( STR_RD_PICKED, level.clients[rd.player[side]].pers.netname,
 		BG_String( BG_Champion( champion )->nameString ) );
 	G_RDUpdateHud();
@@ -276,7 +278,8 @@ void Cmd_Pick_f( gentity_t *ent ) {
 	int		side = G_RDSide( ent->client );
 	int		champion;
 
-	if ( !G_RoundDuel() || rd.state != RD_DRAFT || side < 0 || rdPickOrder[rd.numPicks] != side ) {
+	if ( !G_RoundDuel() || rd.state != RD_DRAFT || side < 0 || rd.numPicks >= RD_CHAMPIONS * 2
+		|| rdPickOrder[rd.numPicks] != side ) {
 		return;
 	}
 	trap_Argv( 1, name, sizeof( name ) );
@@ -346,7 +349,12 @@ static void G_RDStartRound( void ) {
 	// the pre-round lines (konstantin-list-audit F2 1): "prepare to fight"
 	// now, 10 s out; the rest from G_RoundDuelCheckRules
 	rd.said = 0;
-	G_Announce( -1, "preparetofight" );
+	if ( rd.quickStart ) {
+		rd.stateTime = level.time;		// (no countdown, no lines)
+		rd.said = 15;
+	} else {
+		G_Announce( -1, "preparetofight|prepare" );
+	}
 	G_RDUpdateHud();
 }
 
@@ -355,11 +363,17 @@ static void G_RDEndRound( int winner ) {
 
 	rd.state = RD_RESULT;
 	rd.stateTime = level.time + RD_RESULT_MSEC;
+	rd.quickStart = qfalse;		// later rounds count down
 	cl->ps.persistant[PERS_SCORE]++;
 	G_RDAnnounce( STR_RD_WINS_ROUND, cl->pers.netname, NULL );
-	// "Round N complete" (the reference has no won / lost lines per round)
+	// "Round N complete" (the reference has no won / lost lines per round;
+	// they stand in without the recording)
 	if ( rd.round >= 1 && rd.round <= 5 ) {
-		G_Announce( -1, va( "round%icomplete", rd.round ) );
+		G_Announce( rd.player[winner], va( "round%icomplete|youwintheround", rd.round ) );
+		G_Announce( rd.player[!winner], va( "round%icomplete|youlosetheround", rd.round ) );
+	} else {
+		G_Announce( rd.player[winner], "youwintheround" );
+		G_Announce( rd.player[!winner], "youlosetheround" );
 	}
 	CalculateRanks();
 }
@@ -399,12 +413,48 @@ void G_RoundDuelKill( gentity_t *victim ) {
 
 /*
 =================
+G_RDPairPlaying
+
+The drafting pair is still the two in the duel (always, before a draft)
+=================
+*/
+static qboolean G_RDPairPlaying( void ) {
+	int		i;
+
+	if ( rd.state == RD_WAITING ) {
+		return qtrue;
+	}
+	for ( i = 0 ; i < 2 ; i++ ) {
+		gclient_t	*cl = &level.clients[rd.player[i]];
+
+		if ( cl->pers.connected != CON_CONNECTED || cl->sess.sessionTeam != TEAM_FREE ) {
+			return qfalse;
+		}
+	}
+	return qtrue;
+}
+
+/*
+=================
+G_RoundDuelDrafting
+
+The draft is on: the players can't hurt each other (one of them is
+looking at the picking page)
+=================
+*/
+qboolean G_RoundDuelDrafting( void ) {
+	return G_RoundDuel() && rd.state == RD_DRAFT;
+}
+
+/*
+=================
 G_RDBeginDraft
 
 Both players found: A is whoever has been in the game longer
 =================
 */
 static void G_RDBeginDraft( void ) {
+	trap_Cvar_Set( "g_rdDraft", "" );		// (a draft from an earlier warm-up)
 	memset( &rd, 0, sizeof( rd ) );
 	rd.player[0] = level.sortedClients[0];
 	rd.player[1] = level.sortedClients[1];
@@ -426,7 +476,6 @@ random one. True once all six are in.
 =================
 */
 static qboolean G_RDDraftFrame( void ) {
-	char	msg[MAX_STRING_CHARS];
 	int		side;
 
 	if ( rd.numPicks >= RD_CHAMPIONS * 2 ) {
@@ -436,9 +485,9 @@ static qboolean G_RDDraftFrame( void ) {
 	if ( ( g_entities[rd.player[side]].r.svFlags & SVF_BOT ) || level.time >= rd.stateTime ) {
 		G_RDPickRandom( side );
 	} else if ( level.time >= rd.hudTime ) {
+		// (the draft view shows the turn and the seconds; a centre message
+		// would wait behind the page and show up in the fight)
 		rd.hudTime = level.time + 5000;
-		Com_sprintf( msg, sizeof( msg ), BG_String( STR_RD_YOUR_PICK ), ( rd.stateTime - level.time + 999 ) / 1000 );
-		trap_SendServerCommand( rd.player[side], va( "cp \"%s\"", msg ) );
 		if ( rd.said != rd.numPicks + 1 ) {
 			rd.said = rd.numPicks + 1;		// "your pick" once a turn
 			G_Announce( rd.player[side], "yourpick" );
@@ -460,28 +509,33 @@ static void G_RDSaveDraft( void ) {
 		rd.picks[0][0], rd.picks[0][1], rd.picks[0][2], rd.picks[1][0], rd.picks[1][1], rd.picks[1][2] ) );
 }
 
-static qboolean G_RDLoadDraft( void ) {
+static int G_RDLoadDraft( void ) {
 	char	buf[MAX_CVAR_VALUE_STRING], *p;
 	int		v[8], i;
 
 	trap_Cvar_VariableStringBuffer( "g_rdDraft", buf, sizeof( buf ) );
-	trap_Cvar_Set( "g_rdDraft", "" );
 	if ( !buf[0] ) {
-		return qfalse;
+		return 0;
 	}
 	p = buf;
 	for ( i = 0 ; i < 8 ; i++ ) {
 		v[i] = atoi( COM_Parse( &p ) );
 	}
 	for ( i = 0 ; i < 2 ; i++ ) {
+		if ( v[i] >= 0 && v[i] < level.maxclients && level.clients[v[i]].pers.connected == CON_CONNECTING ) {
+			return -1;		// still coming back from the map restart
+		}
+	}
+	trap_Cvar_Set( "g_rdDraft", "" );
+	for ( i = 0 ; i < 2 ; i++ ) {
 		if ( v[i] < 0 || v[i] >= level.maxclients || level.clients[v[i]].pers.connected != CON_CONNECTED
 			|| level.clients[v[i]].sess.sessionTeam != TEAM_FREE ) {
-			return qfalse;		// the players changed: draft again
+			return 0;		// the players changed: draft again
 		}
 	}
 	for ( i = 2 ; i < 8 ; i++ ) {
 		if ( v[i] < 0 || v[i] >= bg_numChampions ) {
-			return qfalse;
+			return 0;
 		}
 	}
 	memset( &rd, 0, sizeof( rd ) );
@@ -492,7 +546,7 @@ static qboolean G_RDLoadDraft( void ) {
 		rd.picks[1][i] = v[5 + i];
 	}
 	rd.numPicks = RD_CHAMPIONS * 2;
-	return qtrue;
+	return 1;
 }
 
 /*
@@ -520,7 +574,9 @@ void G_RoundDuelCheckRules( void ) {
 	// the draft runs in the warm-up, once both players are in, and the
 	// ready countdown waits for it (G_RoundDuelDrafted); never after "FIGHT"
 	if ( level.warmupTime ) {
-		if ( level.numPlayingClients < 2 ) {
+		// no pair yet, the pair changed (a queued player came in) or the
+		// lobby is still up: no draft (it starts again)
+		if ( level.numPlayingClients < 2 || !G_RDPairPlaying() || G_LobbyActive() ) {
 			if ( rd.state != RD_WAITING ) {
 				memset( &rd, 0, sizeof( rd ) );
 				G_RDUpdateHud();
@@ -543,9 +599,16 @@ void G_RoundDuelCheckRules( void ) {
 		if ( level.numPlayingClients < 2 ) {
 			return;
 		}
-		// the warm-up's draft, across the match's map restart
-		if ( G_RDLoadDraft() ) {
+		// the warm-up's draft, across the match's map restart: the warm-up
+		// counted down and said FIGHT, so round 1 starts at once
+		switch ( G_RDLoadDraft() ) {
+		case 1:
+			rd.quickStart = qtrue;
 			G_RDStartRound();
+			return;
+		case -1:
+			return;		// (wait for both to be back)
+		default:
 			break;
 		}
 		G_RDBeginDraft();		// (no warm-up: the draft before the first round)
@@ -576,8 +639,11 @@ void G_RoundDuelCheckRules( void ) {
 			}
 		}
 		if ( level.time >= rd.stateTime ) {
-			// "Round N, fight" (the client falls back to "fight")
-			G_Announce( -1, rd.round <= 5 ? va( "round%ifight", rd.round ) : "fight" );
+			// "Round N, fight" (the client falls back to "fight"); the first
+			// round right after the warm-up's FIGHT has none of its own
+			if ( !rd.quickStart ) {
+				G_Announce( -1, rd.round <= 5 ? va( "round%ifight|fight", rd.round ) : "fight" );
+			}
 
 			rd.state = RD_FIGHTING;
 			rd.roundStart = level.time;
