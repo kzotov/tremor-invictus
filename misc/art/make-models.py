@@ -893,6 +893,17 @@ def sounds(out):
     write_wav(os.path.join(out, "sound/abilities/acid_pool.wav"), level(sizzle, db=-14))
     ring = mix((osc(3000, 1.0), 0.5, 0), (osc(3010, 1.0), 0.5, 0), (osc(4500, 1.0, amp=0.15), 1.0, 0))
     write_wav(os.path.join(out, "sound/abilities/shock_ring.wav"), level(ring, db=-16))
+    # loops while an ability runs (whole cycles in their second): Visor's
+    # sight (a high shimmer), the Barrier's hum, the hook's rope pulling
+    def loop_fade(x):
+        n = len(x)
+        return [v * min(1.0, i / (0.02 * RATE), (n - i) / (0.02 * RATE)) for i, v in enumerate(x)]
+    write_wav(os.path.join(out, "sound/abilities/piercingsight_loop.wav"), level(loop_fade(
+        mix((osc(lfo(4, 0.01, 2400), 1.0, "tri"), 0.3, 0), (osc(1800, 1.0), 0.2, 0), (noise(1.0, 6000, 107, amp=0.15), 1.0, 0))), db=-14))
+    write_wav(os.path.join(out, "sound/abilities/barrier_loop.wav"), level(loop_fade(
+        mix((osc(100, 1.0, "saw"), 0.3, 0), (osc(200, 1.0), 0.3, 0), (osc(lfo(5, 0.03, 800), 1.0, "tri"), 0.08, 0))), db=-13))
+    write_wav(os.path.join(out, "sound/abilities/hook_loop.wav"), level(loop_fade(
+        mix((noise(1.0, lfo(8, 0.4, 2200), 108), 0.8, 0), (osc(lfo(8, 0.05, 320), 1.0, "saw"), 0.15, 0))), db=-14))
     # the drone's gun: a light, quick zap
     put(os.path.join(out, "sound/abilities/drone_shot.wav"),
         mix((env(osc(glide(2400, 900, 0.07), 0.1, "saw"), decay=35), 0.3, 0),

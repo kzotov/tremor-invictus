@@ -652,15 +652,21 @@ static void CG_AbilitySound( entityState_t *es, int which ) {
 	if ( es->number < 0 || es->number >= MAX_CLIENTS ) {
 		return;
 	}
-	if ( es->number == cg.snap->ps.clientNum ) {
-		champ = cg.snap->ps.stats[STAT_CHAMPION];
+	// the event says whose ability it is (the model can't: Wrack wears
+	// Ranger's); else the local player's own, or a guess from the model
+	if ( es->eventParm > ACTIVE_NONE && es->eventParm < ACTIVE_NUM_ABILITIES ) {
+		active = es->eventParm;
 	} else {
-		champ = BG_ChampionForModel( cgs.clientinfo[es->number].modelName );
+		if ( es->number == cg.snap->ps.clientNum ) {
+			champ = cg.snap->ps.stats[STAT_CHAMPION];
+		} else {
+			champ = BG_ChampionForModel( cgs.clientinfo[es->number].modelName );
+		}
+		if ( champ < 0 ) {
+			return;
+		}
+		active = BG_Champion( champ )->active;
 	}
-	if ( champ < 0 ) {
-		return;
-	}
-	active = BG_Champion( champ )->active;
 	if ( active > 0 && active < ACTIVE_NUM_ABILITIES && cgs.media.abilitySounds[active][which] ) {
 		trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.abilitySounds[active][which] );
 	}

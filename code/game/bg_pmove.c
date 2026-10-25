@@ -3277,7 +3277,7 @@ static void PM_StartAbility( int *state, int *time ) {
 	case ACTIVE_HOOK:
 		*state = ABILITY_HOOK_FLYING;
 		*time = 0;
-		PM_AddEvent( EV_USE_ABILITY );
+		BG_AddPredictableEventToPlayerstate( EV_USE_ABILITY, active, pm->ps );		// (the parm says whose sounds)
 		break;
 	case ACTIVE_BULLRUSH:
 		// champion-audit.md: in the air the rush waits for the landing (up
@@ -3292,10 +3292,10 @@ static void PM_StartAbility( int *state, int *time ) {
 		// it starts at the speed he had, at least the start speed
 		// (champion-audit.md); kept in STAT_HOOK (he has no hook)
 		pm->ps->stats[STAT_HOOK] = (int)PM_HorizontalSpeed();
-		PM_AddEvent( EV_USE_ABILITY );
+		BG_AddPredictableEventToPlayerstate( EV_USE_ABILITY, active, pm->ps );		// (the parm says whose sounds)
 		break;
 	default:
-		PM_AddEvent( EV_USE_ABILITY );
+		BG_AddPredictableEventToPlayerstate( EV_USE_ABILITY, active, pm->ps );		// (the parm says whose sounds)
 		*time = BG_AbilityParam( active, AP_DURATION ) / BG_AbilityTimeUnit( active );
 		*state = *time > 0 ? ABILITY_ACTIVE : ABILITY_IDLE;
 		if ( active == ACTIVE_BERSERK && pm->ps->weaponTime < BERSERK_RAISE ) {

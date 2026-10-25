@@ -191,6 +191,20 @@ void G_SetClientSound( gentity_t *ent ) {
 	} else {
 		ent->client->ps.loopSound = 0;
 	}
+	// an ability's loop while it runs (abilities-data: Visor's sight, the
+	// Barrier's hum, the hook's rope pulling)
+	if ( !ent->client->ps.loopSound && ent->client->ps.stats[STAT_HEALTH] > 0 ) {
+		int		active = BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->active;
+		int		state = BG_AbilityState( &ent->client->ps );
+
+		if ( active == ACTIVE_PIERCINGSIGHT && state == ABILITY_ACTIVE ) {
+			ent->client->ps.loopSound = G_SoundIndex( "sound/abilities/piercingsight_loop.wav" );
+		} else if ( active == ACTIVE_BARRIER && state == ABILITY_ACTIVE && ( ent->client->ps.eFlags & EF_BARRIER ) ) {
+			ent->client->ps.loopSound = G_SoundIndex( "sound/abilities/barrier_loop.wav" );
+		} else if ( active == ACTIVE_HOOK && state == ABILITY_HOOK_PULL ) {
+			ent->client->ps.loopSound = G_SoundIndex( "sound/abilities/hook_loop.wav" );
+		}
+	}
 }
 
 
@@ -578,7 +592,7 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 	if ( ( client->abilityPrevState == ABILITY_ACTIVE || client->abilityPrevState == ABILITY_RUSH
 		|| client->abilityPrevState == ABILITY_HOOK_FLYING || client->abilityPrevState == ABILITY_HOOK_PULL )
 		&& state == ABILITY_IDLE ) {
-		G_AddEvent( ent, EV_ABILITY_END, 0 );
+		G_AddEvent( ent, EV_ABILITY_END, champ->active );		// (whose end sound)
 	}
 	if ( client->abilityPrevState == ABILITY_ACTIVE && state != ABILITY_ACTIVE ) {
 		if ( champ->active == ACTIVE_GHOSTWALK ) {
