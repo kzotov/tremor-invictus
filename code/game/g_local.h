@@ -242,6 +242,7 @@ typedef struct {
 	int			wins, losses;		// tournament stats
 	qboolean	teamLeader;			// true when this client is a team leader
 	qboolean	muted;				// an admin muted their chat
+	int			duelPick;			// a duel's warm-up champion + 1 (0 none): the match starts with it
 } clientSession_t;
 
 //

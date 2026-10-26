@@ -725,6 +725,7 @@ void ClientUserinfoChanged( int clientNum ) {
 	char	redTeam[MAX_INFO_STRING];
 	char	blueTeam[MAX_INFO_STRING];
 	char	userinfo[MAX_INFO_STRING];
+	int		prevChampion;
 
 	ent = g_entities + clientNum;
 	client = ent->client;
@@ -784,6 +785,7 @@ void ClientUserinfoChanged( int clientNum ) {
 	client->ps.stats[STAT_MAX_HEALTH] = client->pers.maxHealth;
 
 	// champion, takes effect on the next spawn; bots pick the one matching their model
+	prevChampion = client->pers.champion;
 	s = Info_ValueForKey( userinfo, "champion" );
 	if ( !*s && ( ent->r.svFlags & SVF_BOT ) ) {
 		client->pers.champion = BG_ChampionForModel( Info_ValueForKey( userinfo, "model" ) );
@@ -802,16 +804,25 @@ void ClientUserinfoChanged( int clientNum ) {
 		}
 	}
 
-	// a classic duel: a new pick in the warm-up plays at once (a fresh
-	// spawn); once both are ready (the countdown) it stays
+	// a classic duel (duel.md): the warm-up's pick is kept in the session,
+	// and a new one plays at once (a fresh spawn); once both are ready (the
+	// countdown) it stays, and the match starts with it
 	if ( g_gametype.integer == GT_TOURNAMENT && !G_RoundDuel() && client->pers.connected == CON_CONNECTED
-		&& client->sess.sessionTeam == TEAM_FREE && !level.intermissiontime
-		&& client->pers.champion != client->ps.stats[STAT_CHAMPION] ) {
-		if ( level.warmupTime > 0 ) {
+		&& !level.intermissiontime ) {
+		if ( level.warmupTime == -1 ) {
+			client->sess.duelPick = client->pers.champion + 1;
+			if ( client->pers.champion != prevChampion && client->sess.sessionTeam == TEAM_FREE
+				&& client->ps.stats[STAT_HEALTH] > 0 && !G_LobbyHidesPicks() ) {
+				if ( client->hook ) {
+					Weapon_HookFree( client->hook );
+				}
+				G_RemoveAbilityObjects( ent, qfalse );
+				ClientSpawn( ent );
+			}
+		} else if ( level.warmupTime > 0 && client->sess.duelPick > 0
+			&& client->pers.champion != client->sess.duelPick - 1 ) {
 			trap_SendServerCommand( clientNum, va( "print \"%s\n\"", BG_String( STR_DUEL_CHAMPION_LOCKED ) ) );
-			client->pers.champion = client->ps.stats[STAT_CHAMPION];
-		} else if ( level.warmupTime == -1 && client->ps.stats[STAT_HEALTH] > 0 ) {
-			ClientSpawn( ent );
+			client->pers.champion = client->sess.duelPick - 1;
 		}
 	}
 

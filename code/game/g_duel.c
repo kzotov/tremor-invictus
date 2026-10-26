@@ -441,7 +441,11 @@ int G_DuelSpawnChampion( gclient_t *client ) {
 		return client->pers.champion;
 	}
 	if ( !client->pers.championLocked ) {
+		// the warm-up's pick (the session keeps it through the restart)
 		client->pers.championLocked = qtrue;
+		if ( client->sess.duelPick > 0 && client->sess.duelPick <= bg_numChampions ) {
+			client->pers.champion = client->sess.duelPick - 1;
+		}
 		client->pers.lockedChampion = client->pers.champion;
 	} else if ( client->pers.champion != client->pers.lockedChampion ) {
 		trap_SendServerCommand( client - level.clients, va( "print \"%s\n\"", BG_String( STR_DUEL_CHAMPION_LOCKED ) ) );

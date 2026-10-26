@@ -44,7 +44,7 @@ void G_WriteClientSessionData( gclient_t *client ) {
 	const char	*s;
 	const char	*var;
 
-	s = va("%i %i %i %i %i %i %i %i", 
+	s = va("%i %i %i %i %i %i %i %i %i", 
 		client->sess.sessionTeam,
 		client->sess.spectatorNum,
 		client->sess.spectatorState,
@@ -52,7 +52,8 @@ void G_WriteClientSessionData( gclient_t *client ) {
 		client->sess.wins,
 		client->sess.losses,
 		client->sess.teamLeader,
-		client->sess.muted
+		client->sess.muted,
+		client->sess.duelPick
 		);
 
 	var = va( "session%i", (int)(client - level.clients) );
@@ -79,7 +80,8 @@ void G_ReadSessionData( gclient_t *client ) {
 	trap_Cvar_VariableStringBuffer( var, s, sizeof(s) );
 
 	muted = 0;
-	sscanf( s, "%i %i %i %i %i %i %i %i",
+	client->sess.duelPick = 0;
+	sscanf( s, "%i %i %i %i %i %i %i %i %i",
 		&sessionTeam,
 		&client->sess.spectatorNum,
 		&spectatorState,
@@ -87,7 +89,8 @@ void G_ReadSessionData( gclient_t *client ) {
 		&client->sess.wins,
 		&client->sess.losses,
 		&teamLeader,
-		&muted
+		&muted,
+		&client->sess.duelPick
 		);
 	client->sess.muted = (qboolean)muted;
 
@@ -109,6 +112,7 @@ void G_InitSessionData( gclient_t *client, char *userinfo ) {
 	const char		*value;
 
 	sess = &client->sess;
+	sess->duelPick = 0;
 
 	// check for team preference, mainly for bots
 	value = Info_ValueForKey( userinfo, "teampref" );
