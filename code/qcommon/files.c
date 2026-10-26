@@ -3362,7 +3362,7 @@ hide this game's modules and data in the base folder
 ================
 */
 static void FS_SinkIdPaks( void ) {
-	searchpath_t	**prev, *sp, *sunk = NULL, **sunkTail = &sunk;
+	searchpath_t	**prev, *sp, *sunk = NULL, **at;
 	char			name[MAX_OSPATH];
 
 	prev = &fs_searchpaths;
@@ -3374,9 +3374,13 @@ static void FS_SinkIdPaks( void ) {
 		if ( sp->pack && !Q_stricmp( sp->pack->pakGamename, BASEGAME )
 			&& FS_idPak( name, BASEGAME, NUM_ID_PAKS ) ) {
 			*prev = sp->next;
-			sp->next = NULL;
-			*sunkTail = sp;
-			sunkTail = &sp->next;
+			// highest number first, as in one folder: pak8 overrides pak0;
+			// among equal names the earlier (higher) folder stays first
+			for ( at = &sunk; *at && Q_stricmp( ( *at )->pack->pakBasename, sp->pack->pakBasename ) >= 0;
+				at = &( *at )->next ) {
+			}
+			sp->next = *at;
+			*at = sp;
 		} else {
 			prev = &sp->next;
 		}
