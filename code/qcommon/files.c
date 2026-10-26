@@ -3354,6 +3354,33 @@ static void FS_InitPathVars( void ) {
 
 /*
 ================
+FS_SinkIdPaks
+
+Quake III's own paks (pak0-pak8) go to the bottom of the search order,
+wherever they are installed: a player's pak0 in the home folder must not
+hide this game's modules and data in the base folder
+================
+*/
+static void FS_SinkIdPaks( void ) {
+	searchpath_t	**prev, *sp, *sunk = NULL, **sunkTail = &sunk;
+
+	prev = &fs_searchpaths;
+	while ( ( sp = *prev ) != NULL ) {
+		if ( sp->pack && !Q_stricmp( sp->pack->pakGamename, BASEGAME )
+			&& FS_idPak( va( "%s/%s", BASEGAME, sp->pack->pakBasename ), BASEGAME, NUM_ID_PAKS ) ) {
+			*prev = sp->next;
+			sp->next = NULL;
+			*sunkTail = sp;
+			sunkTail = &sp->next;
+		} else {
+			prev = &sp->next;
+		}
+	}
+	*prev = sunk;
+}
+
+/*
+================
 FS_Startup
 ================
 */
@@ -3429,6 +3456,8 @@ static void FS_Startup( const char *gameName )
 	if ( fs_gamedirvar->string[0] && Q_stricmp( fs_gamedirvar->string, gameName ) ) {
 		FS_AddGameDirectories(fs_gamedirvar->string);
 	}
+
+	FS_SinkIdPaks();
 
 #ifndef STANDALONE
 	if (!com_standalone->integer) {
