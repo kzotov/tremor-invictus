@@ -62,13 +62,17 @@ static const csMode_t	csModes[] = {
 	{ "movement", 0, GT_FFA, qfalse, 0 }		// practice only: the map to yourself
 };
 
-static struct {
+typedef struct {
 	int		mode;
 	int		maps[CS_MAX_MAPS];		// arena numbers
 	int		numMaps;
 	int		page;
 	int		picked;					// index into maps
-} cs;
+} csState_t;
+
+static csState_t	cs;
+static csState_t	csKept;			// Create Server's own while the Call Vote page has the list
+static qboolean		csLent;
 
 static int CS_TypeBits( const char *types ) {
 	char	buffer[MAX_INFO_VALUE], *p = buffer, *token;
@@ -206,6 +210,11 @@ The call-vote page's map list: the running mode's maps in the same list
 void UI_CsShowMode( const char *preset ) {
 	int		i;
 
+	if ( !csLent ) {
+		csKept = cs;
+		csLent = qtrue;
+	}
+
 	for ( i = 0; i < ARRAY_LEN( csModes ); i++ ) {
 		if ( !Q_stricmp( preset, csModes[i].preset ) ) {
 			CS_SetMode( i );
@@ -213,6 +222,17 @@ void UI_CsShowMode( const char *preset ) {
 		}
 	}
 	CS_SetMode( 0 );
+}
+
+// Create Server's own mode and map back, with its cvars
+void UI_CsTakeBack( void ) {
+	if ( !csLent ) {
+		return;
+	}
+	cs = csKept;
+	csLent = qfalse;
+	trap_Cvar_Set( "ui_csModeShown", csModes[cs.mode].preset );
+	CS_PublishPage();
 }
 
 const char *UI_CsPickedMap( void ) {
@@ -252,6 +272,7 @@ void UI_CreateServerRml( void ) {
 	trap_Cvar_Register( NULL, "ui_csDedicated", "0", CVAR_ARCHIVE );
 	trap_Cvar_Register( NULL, "ui_csLastMode", "ffa", CVAR_ARCHIVE );
 	trap_Cvar_Register( NULL, "sv_hostname", "noname", CVAR_ARCHIVE );
+	UI_CsTakeBack();
 	for ( i = 0; i < ARRAY_LEN( csModes ); i++ ) {
 		if ( !Q_stricmp( UI_Cvar_VariableString( "ui_csLastMode" ), csModes[i].preset ) ) {
 			mode = i;

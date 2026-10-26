@@ -190,7 +190,7 @@ qboolean UI_VoteCommand( const char *cmd ) {
 	}
 	if ( !Q_stricmp( cmd, "ui_cvMap" ) ) {
 		if ( UI_CsPickedMap()[0] ) {
-			trap_Cmd_ExecuteText( EXEC_APPEND, va( "callvote map %s\n", UI_CsPickedMap() ) );
+			trap_Cmd_ExecuteText( EXEC_APPEND, va( "callvote map \"%s\"\n", UI_CsPickedMap() ) );
 		}
 		return qtrue;
 	}

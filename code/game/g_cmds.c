@@ -1814,9 +1814,11 @@ void Cmd_Vote_f( gentity_t *ent ) {
 	}
 	yes = tolower( msg[0] ) == 'y' || msg[0] == '1';
 
-	// an admin's word decides it
+	// an admin's yes passes it and no vetoes it; anything else does nothing
 	if ( G_IsAdmin( ent ) ) {
-		G_VoteForce( yes, cl->pers.netname );
+		if ( yes || !Q_stricmp( msg, "no" ) || !Q_stricmp( msg, "n" ) || msg[0] == '0' ) {
+			G_VoteForce( yes, cl->pers.netname );
+		}
 		return;
 	}
 	if ( cl->pers.voteState == VOTESTATE_NONE ) {

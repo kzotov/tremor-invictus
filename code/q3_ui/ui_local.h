@@ -366,6 +366,7 @@ void UI_Settings_Frame( void );
 qboolean UI_SettingsCommand( const char *cmd );
 qboolean UI_CreateServerCommand( const char *cmd );
 void UI_CsShowMode( const char *preset );
+void UI_CsTakeBack( void );
 const char *UI_CsPickedMap( void );
 
 //

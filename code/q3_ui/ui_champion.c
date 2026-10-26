@@ -815,6 +815,7 @@ qboolean UI_ChampionCommand( const char *cmd ) {
 	if ( !Q_stricmp( cmd, "ui_champBack" ) ) {
 		if ( trap_Cvar_VariableValue( "ui_chFromCs" ) ) {
 			trap_Cvar_Set( "ui_chFromCs", "0" );
+			UI_CsTakeBack();
 			trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/createserver.rml\n" );
 		} else {
 			trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/main.rml\n" );
