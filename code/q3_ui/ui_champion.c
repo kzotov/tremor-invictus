@@ -558,7 +558,8 @@ static qboolean Champion_Locked( void ) {
 	if ( atoi( Info_ValueForKey( info, "g_roundDuel" ) ) ) {
 		return qtrue;
 	}
-	return atoi( Info_ValueForKey( info, "g_gametype" ) ) == GT_TOURNAMENT && !warmup[0];
+	// (open in the warm-up until both are ready, the countdown)
+	return atoi( Info_ValueForKey( info, "g_gametype" ) ) == GT_TOURNAMENT && ( !warmup[0] || atoi( warmup ) > 0 );
 }
 
 static void Champion_SetText( const char *cvar, const char *text ) {

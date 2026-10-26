@@ -12,6 +12,7 @@
 			<button class="go" data-when="ui_readyShown=1&amp;ui_imReady!=1" onclick="readyup; rml_hide; ui_close">[menu_ready]</button>
 			<button data-when="ui_readyShown=1&amp;ui_imReady=1" onclick="readyup; rml_hide; ui_close">[menu_not_ready]</button>
 			<button data-when="g_gametype!=1" onclick="rml_hide; ui_champions">[menu_champion]</button>
+			<button data-when="g_gametype=1&amp;ui_duelPick=1" onclick="rml_hide; ui_champions">[menu_champion]</button>
 			<div class="starter">
 				<div class="label">[ch_weapon]</div>
 				<button class="opt" data-class="on:cg_startWeapon=mg" onclick="ui_startWeapon mg">[ch_mg_short]</button>

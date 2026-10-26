@@ -264,6 +264,18 @@ static void InGame_Draw( void ) {
 		if ( (int)trap_Cvar_VariableValue( "ui_voteRunning" ) != ( atoi( info ) != 0 ) ) {
 			trap_Cvar_SetValue( "ui_voteRunning", atoi( info ) != 0 );
 		}
+		// a classic duel's warm-up, before both are ready: the champion can change
+		{
+			char	warmup[16], sinfo[MAX_INFO_STRING];
+			int		open;
+
+			trap_GetConfigString( CS_WARMUP, warmup, sizeof( warmup ) );
+			trap_GetConfigString( CS_SERVERINFO, sinfo, sizeof( sinfo ) );
+			open = atoi( warmup ) == -1 && !atoi( Info_ValueForKey( sinfo, "g_roundDuel" ) );
+			if ( (int)trap_Cvar_VariableValue( "ui_duelPick" ) != open ) {
+				trap_Cvar_SetValue( "ui_duelPick", open );
+			}
+		}
 		if ( !trap_Cvar_VariableValue( "rml_active" ) ) {
 			static const char	*keys[] = { "duel", "tdm", "ctf", "ca", "sacrifice", "roundduel", "ffa", "instagib", "unholytrinity" };
 			static const int	names[] = { STR_MODE_DUEL, STR_MODE_TDM, STR_MODE_CTF, STR_MODE_CA, STR_MODE_SACRIFICE,

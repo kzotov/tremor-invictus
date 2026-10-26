@@ -802,6 +802,19 @@ void ClientUserinfoChanged( int clientNum ) {
 		}
 	}
 
+	// a classic duel: a new pick in the warm-up plays at once (a fresh
+	// spawn); once both are ready (the countdown) it stays
+	if ( g_gametype.integer == GT_TOURNAMENT && !G_RoundDuel() && client->pers.connected == CON_CONNECTED
+		&& client->sess.sessionTeam == TEAM_FREE && !level.intermissiontime
+		&& client->pers.champion != client->ps.stats[STAT_CHAMPION] ) {
+		if ( level.warmupTime > 0 ) {
+			trap_SendServerCommand( clientNum, va( "print \"%s\n\"", BG_String( STR_DUEL_CHAMPION_LOCKED ) ) );
+			client->pers.champion = client->ps.stats[STAT_CHAMPION];
+		} else if ( level.warmupTime == -1 && client->ps.stats[STAT_HEALTH] > 0 ) {
+			ClientSpawn( ent );
+		}
+	}
+
 	// set model
 	if( g_gametype.integer >= GT_TEAM ) {
 		Q_strncpyz( model, Info_ValueForKey (userinfo, "team_model"), sizeof( model ) );
