@@ -787,7 +787,8 @@ void Sys_SigHandler( int signal )
 
 		fprintf( stderr, "Received signal %d, backtrace:\n", signal );
 		backtrace_symbols_fd( frames, n, 2 );
-		Com_sprintf( path, sizeof( path ), "%s/crash.log", Cvar_VariableString( "fs_homepath" ) );
+		// fs_homepath is empty unless set on the command line
+		Com_sprintf( path, sizeof( path ), "%s/crash.log", Cvar_VariableString( "fs_homedatapath" ) );
 		fd = open( path, O_WRONLY | O_CREAT | O_TRUNC, 0644 );
 		if( fd >= 0 )
 		{
