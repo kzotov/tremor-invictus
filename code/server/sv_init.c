@@ -677,9 +677,11 @@ void SV_Init (void)
 	sv_allowDownload = Cvar_Get ("sv_allowDownload", "0", CVAR_SERVERINFO);
 	Cvar_Get ("sv_dlURL", "", CVAR_SERVERINFO | CVAR_ARCHIVE);
 	
-	// no master servers by default: this game's servers don't belong on
-	// Quake III's lists; set sv_master1 to this game's master when there is one
-	for(index = 0; index < MAX_MASTER_SERVERS; index++)
+	// this game's own master, never Quake III's lists. sv_master1 can be
+	// changed only on the command line, so an old config's empty value
+	// doesn't hide every server
+	sv_master[0] = Cvar_Get("sv_master1", TREMOR_MASTER, CVAR_INIT);
+	for(index = 1; index < MAX_MASTER_SERVERS; index++)
 		sv_master[index] = Cvar_Get(va("sv_master%d", index + 1), "", CVAR_ARCHIVE);
 
 	sv_reconnectlimit = Cvar_Get ("sv_reconnectlimit", "3", 0);

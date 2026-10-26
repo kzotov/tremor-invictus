@@ -270,6 +270,10 @@ extern int demo_protocols[];
 #endif
 
 #define	PORT_MASTER			27950
+// the Tremor Invictus master (scripts/build-master.sh, code/tools/master)
+#ifndef TREMOR_MASTER
+#define TREMOR_MASTER		"77.42.83.235:27975"
+#endif
 #define	PORT_UPDATE			27951
 #define	PORT_SERVER			27960
 #define	NUM_SERVER_PORTS	4		// broadcast scan this many ports after
