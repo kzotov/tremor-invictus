@@ -139,7 +139,7 @@ static void G_MapVoteName( const char *map, char *out, int size ) {
 static void G_MapVoteChoose( void ) {
 	char		pool[64][MAX_QPATH];
 	char		current[MAX_QPATH];
-	char		list[MAX_CVAR_VALUE_STRING];
+	char		list[64 * MAX_QPATH];	// a pool file may list up to 64 maps
 	char		*p, *token;
 	int			numPool = 0, i, j;
 	const char	*info;
