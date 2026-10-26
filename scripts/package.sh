@@ -146,9 +146,9 @@ Tremor Invictus is free software under the GNU General Public License v2
 (COPYING.txt), built on ioquake3 and id Software's Quake III Arena source.
 Source: https://github.com/kzotov/tremor-invictus
 This build: commit $COMMIT
-Bundled libraries and fonts: THIRD-PARTY.txt and the licenses folder;
-id's point release files (pak1-pak8): licenses/id-point-release-EULA.txt
+Bundled libraries and fonts: THIRD-PARTY.txt and the licenses folder
 (FreeType License, MIT, Apache-2.0, zlib, BSD).
+id's point release files (pak1-pak8): licenses/id-point-release-EULA.txt
 EOF
 
 case "$TARGET" in
