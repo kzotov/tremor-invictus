@@ -761,7 +761,7 @@ char *Sys_ParseProtocolUri( const char *uri )
 #	if defined(DEFAULT_RELATIVE_BASEDIR)
 #		define DEFAULT_BASEDIR Sys_BinaryPathRelative(DEFAULT_RELATIVE_BASEDIR)
 #	elif defined(__APPLE__)
-#		define DEFAULT_BASEDIR Sys_StripAppBundle(Sys_BinaryPath())
+#		define DEFAULT_BASEDIR Sys_AppBaseDir(Sys_BinaryPath())
 #	else
 #		define DEFAULT_BASEDIR Sys_BinaryPath()
 #	endif

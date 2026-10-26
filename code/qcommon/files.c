@@ -3699,37 +3699,23 @@ static void FS_CheckPak0( void )
 		char errorText[MAX_STRING_CHARS] = "";
 		char gamePath[MAX_OSPATH];
 
+		// the build carries the free point release files; only pak0 is the
+		// player's own, and it goes to the home folder, which every build
+		// searches (the macOS base folder is inside the app)
 		Com_sprintf(gamePath, sizeof(gamePath), "%s%c%s%c",
-			installPath, PATH_SEP, BASEGAME, PATH_SEP);
+			fs_homedatapath->string, PATH_SEP, BASEGAME, PATH_SEP);
 
 		Q_strcat(errorText, sizeof(errorText),
-				"Quake 3 data files are missing. Please copy");
+				"Tremor Invictus needs Quake III Arena's game data and can't find");
 
 		FS_AppendUserFriendlyPakList(errorText, sizeof(errorText), foundPak, NUM_ID_PAKS);
 
 		Q_strcat(errorText, sizeof(errorText),
-				va(" from the \"%s\" directory in your Quake 3 install or CD-ROM to:\n\n"
-				"%s\n\n", BASEGAME, gamePath));
-
-		Q_strcat(errorText, sizeof(errorText),
-				"Quake 3 must be purchased to legitimately obtain pak0. "
-				"Quake 3 1.32 point release files (pak1 through pak8) "
-				"are freely available. For details see:\n\n"
-				"https://buy.ioquake3.org\n\n");
-
-		if(installHome)
-		{
-			Q_strcat(errorText, sizeof(errorText),
-					va("Also check that every file "
-						"in the \"%s\" directory is present and readable", BASEGAME));
-		}
-		else
-		{
-			Q_strcat(errorText, sizeof(errorText),
-					va("Also check that your ioq3 executable is in "
-						"the correct place and that every file "
-						"in the \"%s\" directory is present and readable", BASEGAME));
-		}
+				va(".\n\npak1.pk3 to pak8.pk3 come with this build. pak0.pk3 comes from "
+				"your own copy of Quake III Arena (Steam: "
+				"https://store.steampowered.com/app/2200 or GOG: "
+				"https://www.gog.com/en/game/quake_iii_arena): copy it from the "
+				"\"%s\" folder of that install to:\n\n%s\n\n", BASEGAME, gamePath));
 
 		Sys_OpenFolderInFileManager(gamePath, qtrue);
 		Com_Error(ERR_FATAL, "%s", errorText);

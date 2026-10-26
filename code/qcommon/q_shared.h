@@ -44,8 +44,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
   #define BASEGAME					"baseq3"
   #define CLIENT_WINDOW_TITLE		"Tremor Invictus"
   #define CLIENT_WINDOW_MIN_TITLE	"Tremor"
-  #define HOMEPATH_NAME_UNIX_LEGACY	".q3a"
-  #define HOMEPATH_NAME				"Quake3"
+  #define HOMEPATH_NAME_UNIX_LEGACY	".tremor-invictus"
+  #define HOMEPATH_NAME				"TremorInvictus"	// its own, apart from other Quake III games
   #define GAMENAME_FOR_MASTER		"Quake3Arena"
   #define LEGACY_PROTOCOL
   #define PROTOCOL_HANDLER		"quake3"

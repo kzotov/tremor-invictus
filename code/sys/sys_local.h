@@ -55,6 +55,7 @@ char *Sys_BinaryPathRelative( const char *relative );
 
 #ifdef __APPLE__
 char *Sys_StripAppBundle( char *pwd );
+char *Sys_AppBaseDir( char *dir );
 #endif
 
 void Sys_GLimpSafeInit( void );

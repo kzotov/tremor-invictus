@@ -27,6 +27,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // Please note that this file is just some Mac-specific bits. Most of the
 // Mac OS X code is shared with other Unix platforms in sys_unix.c ...
 
+#include <sys/stat.h>
+
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
 #include "sys_local.h"
@@ -114,4 +116,27 @@ char *Sys_StripAppBundle( char *dir )
 		return dir;
 	Q_strncpyz(cwd, Sys_Dirname(cwd), sizeof(cwd));
 	return cwd;
+}
+
+/*
+=================
+Sys_AppBaseDir
+
+The default base folder: the app's Contents/Resources when the game data
+is packed inside the app (a downloaded copy that macOS starts from a hidden
+location still finds it there), else the folder that holds the app.
+=================
+*/
+char *Sys_AppBaseDir( char *dir )
+{
+	static char resources[MAX_OSPATH];
+	struct stat st;
+
+	if(!strcmp(Sys_Basename(dir), "MacOS"))
+	{
+		Com_sprintf(resources, sizeof(resources), "%s/Resources", Sys_Dirname(dir));
+		if(stat(va("%s/%s", resources, BASEGAME), &st) == 0 && S_ISDIR(st.st_mode))
+			return resources;
+	}
+	return Sys_StripAppBundle(dir);
 }

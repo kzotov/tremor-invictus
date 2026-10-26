@@ -7,8 +7,9 @@
 # Build first with scripts/build-macos.sh (into build-dist-macos, see below),
 # build-windows.sh or build-linux.sh. Extra .pk3 files (local test data from
 # outside the repo) are added as zz-local-<name>, sorting after our own data
-# as they do in the run scripts. No Quake III data is ever packed: players
-# copy their own pak0.pk3 to pak8.pk3 into baseq3.
+# as they do in the run scripts. With TREMOR_Q3 set (the folder that holds
+# baseq3), Quake III's free point release files pak1-pak8 are packed too;
+# pak0.pk3 never is: players copy their own into their home folder.
 # The macOS package is made from its own build folder so the play build is
 # never rebuilt for it:
 #   cmake -S . -B build-dist-macos -DCMAKE_BUILD_TYPE=Release && cmake --build build-dist-macos
@@ -35,7 +36,16 @@ OUT="$ROOT/build-dist"
 STAGE="$OUT/$NAME/Tremor Invictus"
 
 rm -rf "$OUT/$NAME"
-mkdir -p "$STAGE/baseq3"
+mkdir -p "$STAGE"
+if [ "$TARGET" = macos ]; then
+	# the data goes inside the app, so a downloaded copy that macOS starts
+	# from a hidden location still has it (the engine looks there first)
+	cp -R "$RELEASE/tremor-invictus.app" "$STAGE/"
+	GAMEDIR="$STAGE/tremor-invictus.app/Contents/Resources/baseq3"
+else
+	GAMEDIR="$STAGE/baseq3"
+fi
+mkdir -p "$GAMEDIR"
 
 # our loose data (shaders, menus, presets...) as one pack that sorts before
 # tremor-assets.pk3, the same order the run scripts give the loose folders
@@ -46,8 +56,8 @@ for d in scripts ui presets mappools configs hud; do
 done
 mkdir -p "$DATA/gfx"
 cp -R "$GENERATED/gfx/tremor" "$DATA/gfx/tremor"
-(cd "$DATA" && zip -qrX "$STAGE/baseq3/tremor-0data.pk3" . -x '*.DS_Store' 'gfx/tremor/art.stamp')
-cp "$GENERATED/tremor-assets.pk3" "$STAGE/baseq3/"
+(cd "$DATA" && zip -qrX "$GAMEDIR/tremor-0data.pk3" . -x '*.DS_Store' 'gfx/tremor/art.stamp')
+cp "$GENERATED/tremor-assets.pk3" "$GAMEDIR/"
 
 for f in "$@"; do
 	# only map data may ride along: never local sound, model or weapon packs,
@@ -56,8 +66,16 @@ for f in "$@"; do
 	*reference*|*sound*|*weapon*|*portrait*|*model*|*.zip)
 		echo "package: refusing $f (not a map pack)" >&2; exit 1 ;;
 	esac
-	cp "$f" "$STAGE/baseq3/zz-local-$(basename "$f")"
+	cp "$f" "$GAMEDIR/zz-local-$(basename "$f")"
 done
+
+# Quake III's free 1.32 point release files (pak1-pak8) from TREMOR_Q3,
+# the folder that holds baseq3; pak0 is the player's own and never packed
+if [ "$TARGET" != server ] && [ -n "${TREMOR_Q3:-}" ]; then
+	for n in 1 2 3 4 5 6 7 8; do
+		cp "$TREMOR_Q3/baseq3/pak$n.pk3" "$GAMEDIR/"
+	done
+fi
 
 # licence and source notices
 cp "$ROOT/COPYING.txt" "$STAGE/COPYING.txt"
@@ -70,19 +88,18 @@ unzip -p "$GENERATED/tremor-assets.pk3" ui/fonts/LICENSE-Roboto.txt > "$STAGE/li
 COMMIT=$(git -C "$ROOT" rev-parse HEAD)
 
 if [ "$TARGET" = server ]; then
-	cp "$RELEASE/baseq3/qagame.$EXT" "$STAGE/baseq3/"
+	cp "$RELEASE/baseq3/qagame.$EXT" "$GAMEDIR/"
 	cp "$RELEASE/tremor-invictus-ded" "$STAGE/" 2>/dev/null || cp "$RELEASE"/ioq3ded "$STAGE/"
 else
 	for m in cgame qagame ui; do
-		cp "$RELEASE/baseq3/$m.$EXT" "$STAGE/baseq3/"
+		cp "$RELEASE/baseq3/$m.$EXT" "$GAMEDIR/"
 	done
 	# load the native game modules above (the engine default is QVMs)
-	printf '%s\n' 'set vm_game 0' 'set vm_cgame 0' 'set vm_ui 0' > "$STAGE/baseq3/autoexec.cfg"
+	printf '%s\n' 'set vm_game 0' 'set vm_cgame 0' 'set vm_ui 0' > "$GAMEDIR/autoexec.cfg"
 fi
 
 case "$TARGET" in
 macos)
-	cp -R "$RELEASE/tremor-invictus.app" "$STAGE/"
 	# seal the whole bundle (the linker signs only the executable), or a
 	# downloaded copy is reported as damaged
 	codesign --force --deep --sign - "$STAGE/tremor-invictus.app"
@@ -97,21 +114,19 @@ esac
 cat > "$STAGE/README.txt" <<EOF
 Tremor Invictus $VERSION, test build
 
-1. Quake III Arena data (not included):
-   pak0.pk3     from your own Quake III Arena (Steam or GOG, Windows
-                version: baseq3/pak0.pk3 in the install folder; on a Mac,
-                unpack the GOG installer with innoextract)
-   pak1-pak8    id's free 1.32 patch files, quake3-latest-pk3s.zip from
-                https://ioquake3.org/extras/patch-data/
-   Put all nine into:
-   macOS:   ~/Library/Application Support/Quake3/baseq3/
-   Windows: the baseq3 folder next to tremor-invictus.exe
+1. Quake III Arena data: pak1-pak8 (id's free 1.32 point release) come
+   with this build. pak0.pk3 comes from your own Quake III Arena (Steam:
+   https://store.steampowered.com/app/2200, GOG:
+   https://www.gog.com/en/game/quake_iii_arena; it is baseq3/pak0.pk3 in
+   the install folder, and the GOG installer unpacks on a Mac with
+   innoextract). Copy it to:
+   macOS:   ~/Library/Application Support/TremorInvictus/baseq3/
+   Windows: %APPDATA%\TremorInvictus\baseq3\  (or the baseq3 folder
+            next to tremor-invictus.exe)
+   Without it the game says where it looks and opens that folder.
 2. Start the game:
-   macOS:   copy the "Tremor Invictus" folder out of the disk image, then
-            once in Terminal:
-              xattr -dr com.apple.quarantine "<that folder>"
-            (otherwise macOS runs the app from a hidden copy that can't
-            see the maps next to it), then open tremor-invictus.app
+   macOS:   drag tremor-invictus.app to Applications and open it (first
+            time: right-click, Open, as the build is not notarised)
    Windows: tremor-invictus.exe
 3. Connect from the console (~):  connect <server address>
    A password-protected server needs:  password <password>  before connect.
