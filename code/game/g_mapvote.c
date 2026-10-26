@@ -40,6 +40,7 @@ static int		mapVoteCount;		// maps on offer, 0 when no vote
 static int		mapVoteEnd;			// level.time the vote closes
 static int		mapVoteOf[MAX_CLIENTS];		// 1-3, 0 = none
 static int		mapVoteTime[MAX_CLIENTS];	// level.time of the last change
+static int		mapVoteWinner;		// 1-3 once drawn (a tie is drawn once), 0 before
 
 /*
 =================
@@ -99,8 +100,9 @@ static void G_MapVoteChoose( void );
 void G_MapVoteStart( void ) {
 	mapVoteCount = 0;
 	mapVoteEnd = 0;
+	mapVoteWinner = 0;
 	memset( mapVoteOf, 0, sizeof( mapVoteOf ) );
-	if ( !g_mapVote.integer || g_lobby.integer ) {
+	if ( !g_mapVote.integer || g_lobby.integer || ( g_voteFlags.integer & VOTEFLAG_MAPVOTE ) ) {
 		return;		// (the lobby votes before the next match instead)
 	}
 	G_MapVoteChoose();
@@ -275,6 +277,24 @@ void Cmd_MapVote_f( gentity_t *ent ) {
 	mapVoteOf[clientNum] = n;
 	mapVoteTime[clientNum] = level.time;
 	G_MapVoteSend();
+	// everyone sees it (callvote.md 5)
+	{
+		char	name[MAX_QPATH];
+
+		G_MapVoteName( mapVoteMaps[n - 1], name, sizeof( name ) );
+		G_SysMsg( -1, STR_SYS_MAPVOTE_FOR, ent->client->pers.netname, name );
+	}
+}
+
+/*
+=================
+G_MapVoteExitTime
+
+The map changes 3 s after the vote closes
+=================
+*/
+int G_MapVoteExitTime( void ) {
+	return mapVoteEnd + 3000;
 }
 
 /*
@@ -289,6 +309,10 @@ const char *G_MapVoteWinner( void ) {
 
 	if ( !mapVoteCount ) {
 		return NULL;
+	}
+	// drawn once when the vote has closed, then kept
+	if ( mapVoteWinner ) {
+		return mapVoteMaps[mapVoteWinner - 1];
 	}
 	memset( votes, 0, sizeof( votes ) );
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
@@ -307,10 +331,16 @@ const char *G_MapVoteWinner( void ) {
 	pick = rand() % tied;
 	for ( i = 0 ; i < mapVoteCount ; i++ ) {
 		if ( votes[i] == best && pick-- == 0 ) {
-			return mapVoteMaps[i];
+			break;
 		}
 	}
-	return mapVoteMaps[0];
+	if ( i == mapVoteCount ) {
+		i = 0;
+	}
+	if ( !G_MapVoteOpen() ) {
+		mapVoteWinner = i + 1;
+	}
+	return mapVoteMaps[i];
 }
 
 /*

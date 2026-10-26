@@ -197,6 +197,33 @@ static void CS_PublishChampion( void ) {
 
 /*
 =================
+UI_CsShowMode / UI_CsPickedMap
+
+The call-vote page's map list: the running mode's maps in the same list
+(ui_csMap<n>, ui_csPick, one preview); the picked map's file name
+=================
+*/
+void UI_CsShowMode( const char *preset ) {
+	int		i;
+
+	for ( i = 0; i < ARRAY_LEN( csModes ); i++ ) {
+		if ( !Q_stricmp( preset, csModes[i].preset ) ) {
+			CS_SetMode( i );
+			return;
+		}
+	}
+	CS_SetMode( 0 );
+}
+
+const char *UI_CsPickedMap( void ) {
+	if ( cs.picked < 0 || cs.picked >= cs.numMaps ) {
+		return "";
+	}
+	return Info_ValueForKey( UI_GetArenaInfoByNumber( cs.maps[cs.picked] ), "map" );
+}
+
+/*
+=================
 UI_PracticeRml
 
 Practice: Create Server with bots on both sides and no server settings

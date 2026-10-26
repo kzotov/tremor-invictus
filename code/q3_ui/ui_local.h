@@ -365,6 +365,13 @@ qboolean UI_FindServersCommand( const char *cmd );
 void UI_Settings_Frame( void );
 qboolean UI_SettingsCommand( const char *cmd );
 qboolean UI_CreateServerCommand( const char *cmd );
+void UI_CsShowMode( const char *preset );
+const char *UI_CsPickedMap( void );
+
+//
+// ui_voterml.c
+//
+qboolean UI_VoteCommand( const char *cmd );
 void UI_CreateServer_Frame( void );
 extern void UI_PlayMenu( void );
 

@@ -18,6 +18,9 @@
 				<button class="opt" data-class="on:cg_startWeapon=sg" onclick="ui_startWeapon sg">[ch_sg_short]</button>
 				<button class="opt" data-class="on:cg_startWeapon=ng" onclick="ui_startWeapon ng">[ch_ng_short]</button>
 			</div>
+			<button class="go" data-when="ui_voteRunning=1" onclick="vote yes; rml_hide; ui_close">[menu_vote_yes]</button>
+			<button data-when="ui_voteRunning=1" onclick="vote no; rml_hide; ui_close">[menu_vote_no]</button>
+			<button data-when="ui_voteRunning!=1" onclick="ui_callvote">[menu_vote]</button>
 			<button onclick="ui_colors">[menu_player_colors]</button>
 			<button onclick="rml_hide; ui_settings">[menu_settings]</button>
 			<button onclick="rml_hide; ui_team">[menu_join_team]</button>

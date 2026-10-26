@@ -282,14 +282,19 @@ typedef struct {
 	int			weaponFrags[WP_NUM_WEAPONS];	// and kills
 	int			enterTime;			// level.time the client entered the game
 	playerTeamState_t teamState;	// status in teamplay games
-	int			voteCount;			// to prevent people from constantly calling votes
-	int			lastVoteTime;		// level.time this player last called a vote
-	int			kickVotes;			// kick votes called this match
-	int			kickVoteTime;		// level.time a kick vote last named this player
+	int			voteCount;			// votes called this map (g_voteLimit)
+	int			voteState;			// in the running vote: VOTESTATE_*
 	qboolean	motdShown;
 	int			teamVoteCount;		// to prevent people from constantly calling votes
 	qboolean	teamInfo;			// send team overlay updates?
 } clientPersistant_t;
+
+// a player's part in the running vote (callvote.md 3: who may vote is fixed
+// when it is called)
+#define VOTESTATE_NONE		0		// may not vote
+#define VOTESTATE_UNCAST	1
+#define VOTESTATE_YES		2
+#define VOTESTATE_NO		3
 
 
 // this structure is cleared on each ClientSpawn(),
@@ -512,7 +517,7 @@ typedef struct {
 	char		voteDisplayString[MAX_STRING_CHARS];
 	int			voteTime;				// level.time vote was called
 	int			voteExecuteTime;		// time the vote is executed
-	qboolean	voteKick;				// the running vote is a kick: 75% to pass
+	qboolean	voteInWarmup;			// called in the warm-up: the countdown ends it
 	int			voteYes;
 	int			voteNo;
 	int			numVotingClients;		// set by CalculateRanks
@@ -796,7 +801,14 @@ void		G_LoadAccess( void );
 qboolean	G_TempBanned( const char *ipPort );
 qboolean	G_AdminConsoleCommand( void );
 qboolean	G_PresetName( const char *name );
+qboolean	G_IsAdmin( gentity_t *ent );
 void		Cmd_Admin_f( gentity_t *ent );
+
+//
+// g_cmds.c votes
+//
+void		G_VoteEnd( qboolean passed, int id, const char *name );
+void		G_VoteForce( qboolean pass, const char *name );
 
 //
 // g_mapvote.c
@@ -804,6 +816,7 @@ void		Cmd_Admin_f( gentity_t *ent );
 void		G_MapVoteStart( void );
 qboolean	G_MapVoteActive( void );
 const char	*G_MapVoteWinner( void );
+int			G_MapVoteExitTime( void );
 void		Cmd_MapVote_f( gentity_t *ent );
 void		G_LobbyInit( int restart );
 void		G_LobbyClientGone( int clientNum );
@@ -1095,7 +1108,12 @@ extern	vmCvar_t	g_unholyTrinity;
 extern	vmCvar_t	g_spawnProtection;
 extern	vmCvar_t	g_spawnProtectionScale;
 extern	vmCvar_t	g_teamSize;
-extern	vmCvar_t	g_voteTypes;
+extern	vmCvar_t	g_voteFlags;
+extern	vmCvar_t	g_voteDelay;
+extern	vmCvar_t	g_voteLimit;
+extern	vmCvar_t	g_allowSpecVote;
+extern	vmCvar_t	g_allowVoteMidGame;
+extern	vmCvar_t	g_teamSizeMin;
 extern	vmCvar_t	g_mapVote;
 extern	vmCvar_t	g_lobby;
 extern	vmCvar_t	g_lobbyVoteTime;

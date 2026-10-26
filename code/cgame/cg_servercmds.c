@@ -1397,10 +1397,11 @@ static void CG_ServerCommand( void ) {
 			} else if ( id >= STR_EV_QUAD_SOON && id <= STR_EV_HAS_PROTECTION ) {
 				CG_EventBanner( text, 3 );		// power-ups
 			} else {
-				if ( id >= STR_SYS_VOTE_PASSED && id <= STR_SYS_TEAMVOTE_FAILED ) {
+				if ( ( id >= STR_SYS_VOTE_PASSED && id <= STR_SYS_TEAMVOTE_FAILED )
+					|| id == STR_SYS_VOTE_FORCED || id == STR_SYS_VOTE_VETOED || id == STR_SYS_VOTE_EXPIRED ) {
 					CG_EventBanner( text, 5 );
 					CG_AddBufferedSoundPriority( id == STR_SYS_VOTE_PASSED || id == STR_SYS_TEAMVOTE_PASSED
-						? cgs.media.votePassed : cgs.media.voteFailed, 3 );
+						|| id == STR_SYS_VOTE_FORCED ? cgs.media.votePassed : cgs.media.voteFailed, 3 );
 				} else {
 					CG_Printf( "[skipnotify]%s\n", text );
 				}

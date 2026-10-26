@@ -514,9 +514,20 @@ qboolean	ConsoleCommand( void ) {
 	}
 
 	if ( Q_stricmp (cmd, "cointoss") == 0 ) {
-		const char	*side = BG_String( rand() & 1 ? STR_VOTE_HEADS : STR_VOTE_TAILS );
+		G_SysMsg( -1, STR_SYS_COIN, BG_String( rand() & 1 ? STR_VOTE_HEADS : STR_VOTE_TAILS ), NULL );
+		return qtrue;
+	}
 
-		trap_SendServerCommand( -1, va( "cp \"%s\"", side ) );
+	// "random <n>": a number from 1 to n for everyone (callvote.md 2)
+	if ( Q_stricmp (cmd, "random") == 0 ) {
+		char	arg[16];
+		int		n;
+
+		trap_Argv( 1, arg, sizeof( arg ) );
+		n = atoi( arg );
+		if ( n >= 2 && n <= 100 ) {
+			G_SysMsg( -1, STR_SYS_RANDOM, va( "%i", 1 + rand() % n ), NULL );
+		}
 		return qtrue;
 	}
 

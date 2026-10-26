@@ -259,6 +259,11 @@ static void InGame_Draw( void ) {
 
 	// the RmlUi menu (ui_rmlMenu) draws itself over the dimmed game
 	if ( trap_Cvar_VariableValue( "ui_rmlMenu" ) && trap_Cvar_VariableValue( "rml_ok" ) ) {
+		// a vote running: the menu's Vote entry shows Yes and No
+		trap_GetConfigString( CS_VOTE_TIME, info, sizeof( info ) );
+		if ( (int)trap_Cvar_VariableValue( "ui_voteRunning" ) != ( atoi( info ) != 0 ) ) {
+			trap_Cvar_SetValue( "ui_voteRunning", atoi( info ) != 0 );
+		}
 		if ( !trap_Cvar_VariableValue( "rml_active" ) ) {
 			static const char	*keys[] = { "duel", "tdm", "ctf", "ca", "sacrifice", "roundduel", "ffa", "instagib", "unholytrinity" };
 			static const int	names[] = { STR_MODE_DUEL, STR_MODE_TDM, STR_MODE_CTF, STR_MODE_CA, STR_MODE_SACRIFICE,

@@ -134,6 +134,8 @@ static const settingRow_t controlRows[] = {
 	BIND( STR_SET_BIND_FOLLOWNEXT, "follownext" ),
 	BIND( STR_SET_BIND_FOLLOWPREV, "followprev" ),
 	BIND( STR_SET_BIND_SCORES, "+scores" ),
+	BIND( STR_SET_BIND_VOTEYES, "vote yes" ),
+	BIND( STR_SET_BIND_VOTENO, "vote no" ),
 	BIND( STR_SET_BIND_SCREENSHOT, "screenshotJPEG" ),
 	BIND( STR_SET_BIND_CONSOLE, "toggleconsole" )
 };

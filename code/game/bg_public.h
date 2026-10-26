@@ -45,7 +45,21 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define	SCORE_NOT_PRESENT	-9999	// for the CS_SCORES[12] when only one player is present
 
 #define	VOTE_TIME			30000	// 30 seconds before vote times out
-#define	VOTE_CALL_GAP		30000	// one call per player per 30 seconds
+
+// g_voteFlags: the vote types a server switches off (callvote.md 2)
+#define	VOTEFLAG_MAP			0x0001
+#define	VOTEFLAG_MAP_RESTART	0x0002
+#define	VOTEFLAG_NEXTMAP		0x0004
+#define	VOTEFLAG_MODE			0x0008		// also a map vote with a mode
+#define	VOTEFLAG_KICK			0x0010
+#define	VOTEFLAG_TIMELIMIT		0x0020
+#define	VOTEFLAG_FRAGLIMIT		0x0040
+#define	VOTEFLAG_SHUFFLE		0x0080
+#define	VOTEFLAG_TEAMSIZE		0x0100
+#define	VOTEFLAG_COINTOSS		0x0200		// and random
+#define	VOTEFLAG_MAPVOTE		0x0800		// the end-of-match map vote
+#define	VOTEFLAG_LIMITS			0x1000		// capturelimit, roundlimit
+#define	VOTEFLAG_WEAPRESPAWN	0x4000
 
 #define PLAYER_WIDTH		18		// medium body; see bg_classInfo
 #define	MINS_Z				-24
@@ -496,6 +510,13 @@ typedef enum {
 	STR_VOTE_ESC,
 	STR_VOTE_KICKPLAYERS,
 	STR_VOTE_KICKLIMIT,
+	STR_VOTE_KICKWHO,
+	STR_VOTE_KICKADMIN,
+	STR_VOTE_COINSIDE,
+	STR_VOTE_RANDOM,
+	STR_VOTE_NOTDUEL,
+	STR_VOTE_TEAMSIZE,
+	STR_VOTE_TEAMBIGGER,
 	STR_ADMIN_MUTED,
 	STR_ADMIN_UNMUTED,
 	STR_ADMIN_BANNED,
@@ -789,6 +810,8 @@ typedef enum {
 	STR_SET_BIND_SCORES,
 	STR_SET_BIND_SCREENSHOT,
 	STR_SET_BIND_CONSOLE,
+	STR_SET_BIND_VOTEYES,
+	STR_SET_BIND_VOTENO,
 	STR_SET_BIND_CHATHISTORY,
 	STR_SET_AUTOSWITCH,
 	STR_SET_AUTOSWITCH_HELP,
@@ -1274,6 +1297,19 @@ typedef enum {
 	STR_EV_PROTECTION_SPAWN,
 	STR_EV_HAS_QUAD,
 	STR_EV_HAS_PROTECTION,			// last of the power-ups
+	STR_SYS_VOTE_DELAY,				// callvote.md 1 and 3
+	STR_SYS_VOTE_EXECUTING,
+	STR_SYS_VOTE_LIMIT,
+	STR_SYS_VOTE_WARMUP,
+	STR_SYS_VOTE_DISABLED,
+	STR_SYS_VOTE_NOT_ELIGIBLE,
+	STR_SYS_VOTE_EXPIRED,
+	STR_SYS_VOTE_FORCED,
+	STR_SYS_VOTE_VETOED,
+	STR_SYS_VOTE_INTERMISSION,
+	STR_SYS_MAPVOTE_FOR,
+	STR_SYS_COIN,
+	STR_SYS_RANDOM,
 	STR_SYS_FIGHT,				// keep last of the system-message range
 	STR_OBIT_RINGOUT,
 	STR_RD_DRAFT_YOURS,				// the draft view: your turn, seconds left

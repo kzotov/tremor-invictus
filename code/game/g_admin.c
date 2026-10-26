@@ -130,6 +130,17 @@ static accessLevel_t G_AccessLevel( gentity_t *ent ) {
 
 /*
 =================
+G_IsAdmin
+
+An admin from the access file (or the host): votes and calls by their word
+=================
+*/
+qboolean G_IsAdmin( gentity_t *ent ) {
+	return G_AccessLevel( ent ) == ACCESS_ADMIN;
+}
+
+/*
+=================
 G_AdminTarget
 
 A player by slot number or name (colours ignored)
@@ -271,6 +282,24 @@ static qboolean G_AdminRun( int first, int who ) {
 				G_Printf( "%s", line );
 			}
 		}
+		return qtrue;
+	}
+
+	// pass or veto the running vote (callvote.md 3); moderators can't
+	if ( !Q_stricmp( cmd, "passvote" ) || !Q_stricmp( cmd, "vetovote" ) ) {
+		if ( who >= 0 && G_AccessLevel( &g_entities[who] ) != ACCESS_ADMIN ) {
+			trap_SendServerCommand( who, va( "print \"%s\n\"", BG_String( STR_ADMIN_NORIGHTS ) ) );
+			return qtrue;
+		}
+		if ( !level.voteTime ) {
+			if ( who >= 0 ) {
+				G_SysMsg( who, STR_SYS_NO_VOTE, NULL, NULL );
+			} else {
+				G_Printf( "%s\n", BG_String( STR_SYS_NO_VOTE ) );
+			}
+			return qtrue;
+		}
+		G_VoteForce( !Q_stricmp( cmd, "passvote" ), who >= 0 ? level.clients[who].pers.netname : "Server" );
 		return qtrue;
 	}
 

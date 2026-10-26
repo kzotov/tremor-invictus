@@ -224,7 +224,12 @@ vmCvar_t	g_unholyTrinity;
 vmCvar_t	g_spawnProtection;
 vmCvar_t	g_spawnProtectionScale;
 vmCvar_t	g_teamSize;
-vmCvar_t	g_voteTypes;
+vmCvar_t	g_voteFlags;
+vmCvar_t	g_voteDelay;
+vmCvar_t	g_voteLimit;
+vmCvar_t	g_allowSpecVote;
+vmCvar_t	g_allowVoteMidGame;
+vmCvar_t	g_teamSizeMin;
 vmCvar_t	g_mapVote;
 vmCvar_t	g_lobby;
 vmCvar_t	g_lobbyVoteTime;
@@ -314,7 +319,15 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_spawnProtection, "g_spawnProtection", "1000", 0, 0, qtrue },		// msec after spawning, ended by firing
 	{ &g_spawnProtectionScale, "g_spawnProtectionScale", "0.33", 0, 0, qtrue },	// damage taken: 67% off
 	{ &g_teamSize, "g_teamSize", "0", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue },		// players per team, 0 = no limit
-	{ &g_voteTypes, "g_voteTypes", "map nextmap map_restart kick shuffle teamsize timelimit fraglimit capturelimit roundlimit mode cointoss", CVAR_ARCHIVE, 0, qfalse },
+	// callvote.md 6: the vote types switched off (VOTEFLAG_*, the menu reads it), the
+	// msec after the map starts before votes, the calls a player has per map
+	// (0 no limit), spectators calling and voting, calls during the match
+	{ &g_voteFlags, "g_voteFlags", "0", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qfalse },
+	{ &g_voteDelay, "g_voteDelay", "0", CVAR_ARCHIVE, 0, qfalse },
+	{ &g_voteLimit, "g_voteLimit", "0", CVAR_ARCHIVE, 0, qfalse },
+	{ &g_allowSpecVote, "g_allowSpecVote", "0", CVAR_ARCHIVE, 0, qfalse },
+	{ &g_allowVoteMidGame, "g_allowVoteMidGame", "0", CVAR_ARCHIVE, 0, qfalse },
+	{ &g_teamSizeMin, "g_teamSizeMin", "1", CVAR_ARCHIVE, 0, qfalse },
 	{ &g_mapVote, "g_mapVote", "1", CVAR_ARCHIVE, 0, qtrue },			// end-of-match map vote; 0 = the rotation decides
 	{ &g_lobby, "g_lobby", "0", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qfalse },	// 1: the pre-match lobby (lobby.md) before each match
 	{ &g_lobbyVoteTime, "g_lobbyVoteTime", "15", CVAR_ARCHIVE, 0, qfalse },
@@ -1406,6 +1419,12 @@ void BeginIntermission( void ) {
 	}
 
 	level.intermissiontime = level.time;
+	// no vote runs or waits to run through the intermission (callvote.md 3)
+	if ( level.voteTime ) {
+		level.voteTime = 0;
+		trap_SetConfigstring( CS_VOTE_TIME, "" );
+	}
+	level.voteExecuteTime = 0;
 	// move all clients to the intermission point
 	for (i=0 ; i< level.maxclients ; i++) {
 		client = g_entities + i;
@@ -1727,7 +1746,7 @@ void CheckIntermissionExit( void ) {
 
 	// a map vote decides when to go: as it closes
 	if ( G_MapVoteWinner() ) {
-		if ( !G_MapVoteActive() ) {
+		if ( level.time >= G_MapVoteExitTime() ) {
 			ExitLevel();
 		}
 		return;
@@ -2182,39 +2201,47 @@ CheckVote
 ==================
 */
 void CheckVote( void ) {
-	if ( level.voteExecuteTime && level.voteExecuteTime < level.time ) {
+	gclient_t	*cl;
+	int			i, voters = 0, yes = 0, no = 0;
+
+	// a passed vote runs 3 s later, never in the intermission
+	if ( level.voteExecuteTime && level.voteExecuteTime < level.time && !level.intermissiontime ) {
 		level.voteExecuteTime = 0;
 		trap_SendConsoleCommand( EXEC_APPEND, va("%s\n", level.voteString ) );
 	}
 	if ( !level.voteTime ) {
 		return;
 	}
-	if ( level.time - level.voteTime >= VOTE_TIME ) {
-		// time is up: more yes than no passes, a kick needs 75% of the votes
-		if ( level.voteKick ? level.voteYes * 4 >= ( level.voteYes + level.voteNo ) * 3 && level.voteYes > 0
-			: level.voteYes > level.voteNo ) {
-			G_SysMsg( -1, STR_SYS_VOTE_PASSED, NULL, NULL );
-			level.voteExecuteTime = level.time + 3000;
-		} else {
-			G_SysMsg( -1, STR_SYS_VOTE_FAILED, NULL, NULL );
+
+	// callvote.md 3: recounted every frame among the voters fixed at the
+	// call who are still here; it passes when 2Y > V and fails when 2N >= V
+	for ( i = 0, cl = level.clients ; i < level.maxclients ; i++, cl++ ) {
+		if ( cl->pers.connected != CON_CONNECTED || cl->pers.voteState == VOTESTATE_NONE ) {
+			continue;
 		}
-	} else {
-		// ATVI Q3 1.32 Patch #9, WNF
-		if ( level.voteKick ? level.voteYes * 4 >= level.numVotingClients * 3 : level.voteYes > level.numVotingClients/2 ) {
-			// execute the command, then remove the vote
-			G_SysMsg( -1, STR_SYS_VOTE_PASSED, NULL, NULL );
-			level.voteExecuteTime = level.time + 3000;
-		} else if ( level.voteKick ? level.voteNo * 4 > level.numVotingClients : level.voteNo > level.numVotingClients/2 ) {
-			// same behavior as a timeout
-			G_SysMsg( -1, STR_SYS_VOTE_FAILED, NULL, NULL );
-		} else {
-			// still waiting for a majority
-			return;
+		voters++;
+		if ( cl->pers.voteState == VOTESTATE_YES ) {
+			yes++;
+		} else if ( cl->pers.voteState == VOTESTATE_NO ) {
+			no++;
 		}
 	}
-	level.voteTime = 0;
-	trap_SetConfigstring( CS_VOTE_TIME, "" );
+	if ( yes != level.voteYes || no != level.voteNo ) {
+		level.voteYes = yes;
+		level.voteNo = no;
+		trap_SetConfigstring( CS_VOTE_YES, va( "%i", yes ) );
+		trap_SetConfigstring( CS_VOTE_NO, va( "%i", no ) );
+	}
 
+	if ( yes * 2 > voters ) {
+		G_VoteEnd( qtrue, STR_SYS_VOTE_PASSED, NULL );
+	} else if ( no * 2 >= voters ) {
+		G_VoteEnd( qfalse, STR_SYS_VOTE_FAILED, NULL );
+	} else if ( level.voteInWarmup && level.warmupTime != -1 ) {
+		G_VoteEnd( qfalse, STR_SYS_VOTE_EXPIRED, NULL );		// the countdown started
+	} else if ( level.time - level.voteTime >= VOTE_TIME ) {
+		G_VoteEnd( qfalse, STR_SYS_VOTE_FAILED, NULL );
+	}
 }
 
 /*

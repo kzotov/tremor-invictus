@@ -2372,9 +2372,9 @@ void Com_ExecuteCfg(void)
 	Cbuf_ExecuteText(EXEC_NOW, "exec default.cfg\n");
 	Cbuf_Execute(); // Always execute after exec to prevent text buffer overflowing
 
-	// our own default keys on top: the champion ability on Q, the gauntlet on 1;
-	// a player's saved config still overrides them
-	Cbuf_ExecuteText(EXEC_APPEND, "bind q +button12; bind 1 \"weapon 1\"\n");
+	// our own default keys on top: the champion ability on Q, the gauntlet on 1,
+	// votes on F1 and F2; a player's saved config still overrides them
+	Cbuf_ExecuteText(EXEC_APPEND, "bind q +button12; bind 1 \"weapon 1\"; bind F1 \"vote yes\"; bind F2 \"vote no\"\n");
 	Cbuf_Execute();
 
 	if(!Com_SafeMode())
