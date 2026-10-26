@@ -3363,11 +3363,16 @@ hide this game's modules and data in the base folder
 */
 static void FS_SinkIdPaks( void ) {
 	searchpath_t	**prev, *sp, *sunk = NULL, **sunkTail = &sunk;
+	char			name[MAX_OSPATH];
 
 	prev = &fs_searchpaths;
 	while ( ( sp = *prev ) != NULL ) {
+		// a buffer of its own: FS_idPak's own va() calls would overwrite one
+		if ( sp->pack ) {
+			Com_sprintf( name, sizeof( name ), "%s/%s", BASEGAME, sp->pack->pakBasename );
+		}
 		if ( sp->pack && !Q_stricmp( sp->pack->pakGamename, BASEGAME )
-			&& FS_idPak( va( "%s/%s", BASEGAME, sp->pack->pakBasename ), BASEGAME, NUM_ID_PAKS ) ) {
+			&& FS_idPak( name, BASEGAME, NUM_ID_PAKS ) ) {
 			*prev = sp->next;
 			sp->next = NULL;
 			*sunkTail = sp;
