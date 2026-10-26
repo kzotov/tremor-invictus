@@ -818,7 +818,7 @@ qboolean UI_ChampionCommand( const char *cmd ) {
 			UI_CsTakeBack();
 			trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/createserver.rml\n" );
 		} else {
-			trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/main.rml\n" );
+			UI_RmlBack();
 		}
 		return qtrue;
 	}

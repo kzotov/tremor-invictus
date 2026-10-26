@@ -1208,7 +1208,7 @@ void UI_SettingsRml( void ) {
 
 	rmlPage[0] = 0;
 	Rml_Add( "<rml>\n<head>\n<title>Settings</title>\n<link type=\"text/rcss\" href=\"/ui/tremor.rcss\"/>\n</head>\n" );
-	Rml_Add( "<body data-escape=\"rml_show ui/main.rml\">\n<div class=\"settings\">\n" );
+	Rml_Add( "<body data-escape=\"ui_back\">\n<div class=\"settings\">\n" );
 	Rml_Add( va( "<h1>%s</h1>\n<div class=\"tabs\">", UI_RmlText( BG_String( STR_MENU_SETTINGS ) ) ) );
 	for ( tab = 0; tab < NUM_TABS; tab++ ) {
 		Rml_Add( va( "<button class=\"tab\" data-class=\"on:ui_setTab=%i\" onclick=\"ui_setTab %i\">%s</button>", tab, tab,
@@ -1223,7 +1223,7 @@ void UI_SettingsRml( void ) {
 		Rml_Add( "</div>\n" );
 	}
 	Rml_Add( "<div class=\"sactions\">" );
-	Rml_Add( "<button onclick=\"rml_show ui/main.rml\">[menu_back]</button>" );
+	Rml_Add( "<button onclick=\"ui_back\">[menu_back]</button>" );
 	Rml_Add( va( "<button onclick=\"ui_setDefaults\">%s</button>", UI_RmlText( BG_String( STR_SET_DEFAULTS ) ) ) );
 	Rml_Add( va( "<button class=\"apply\" data-when=\"ui_setRestart=1\" onclick=\"set ui_setRestart 0; vid_restart\">%s</button>",
 		UI_RmlText( BG_String( STR_SET_APPLY ) ) ) );

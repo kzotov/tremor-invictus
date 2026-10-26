@@ -3,7 +3,7 @@
 	<title>Player colours</title>
 	<link type="text/rcss" href="tremor.rcss"/>
 </head>
-<body data-escape="rml_show ui/main.rml">
+<body data-escape="ui_back">
 	<div class="colors">
 		<h1>[col_title]</h1>
 		<div class="sub">[col_help]</div>
@@ -32,7 +32,7 @@
 			<div class="row"><span class="label">[col_lower]</span><div class="swatch" data-class="on:cg_teamLowerColor=0x00FF00FF" style="background-color: #00ff00;" onclick="set cg_teamLowerColor 0x00FF00FF; set ui_teamLowerColor 0; set ui_colorPreview team"></div><div class="swatch" data-class="on:cg_teamLowerColor=0x00FFFFFF" style="background-color: #00ffff;" onclick="set cg_teamLowerColor 0x00FFFFFF; set ui_teamLowerColor 1; set ui_colorPreview team"></div><div class="swatch" data-class="on:cg_teamLowerColor=0xFF2020FF" style="background-color: #ff2020;" onclick="set cg_teamLowerColor 0xFF2020FF; set ui_teamLowerColor 2; set ui_colorPreview team"></div><div class="swatch" data-class="on:cg_teamLowerColor=0x2040FFFF" style="background-color: #2040ff;" onclick="set cg_teamLowerColor 0x2040FFFF; set ui_teamLowerColor 3; set ui_colorPreview team"></div><div class="swatch" data-class="on:cg_teamLowerColor=0xFFFF00FF" style="background-color: #ffff00;" onclick="set cg_teamLowerColor 0xFFFF00FF; set ui_teamLowerColor 4; set ui_colorPreview team"></div><div class="swatch" data-class="on:cg_teamLowerColor=0xFF8000FF" style="background-color: #ff8000;" onclick="set cg_teamLowerColor 0xFF8000FF; set ui_teamLowerColor 5; set ui_colorPreview team"></div><div class="swatch" data-class="on:cg_teamLowerColor=0xFF00FFFF" style="background-color: #ff00ff;" onclick="set cg_teamLowerColor 0xFF00FFFF; set ui_teamLowerColor 6; set ui_colorPreview team"></div><div class="swatch" data-class="on:cg_teamLowerColor=0x8000FFFF" style="background-color: #8000ff;" onclick="set cg_teamLowerColor 0x8000FFFF; set ui_teamLowerColor 7; set ui_colorPreview team"></div><div class="swatch" data-class="on:cg_teamLowerColor=0xFF80C0FF" style="background-color: #ff80c0;" onclick="set cg_teamLowerColor 0xFF80C0FF; set ui_teamLowerColor 8; set ui_colorPreview team"></div><div class="swatch" data-class="on:cg_teamLowerColor=0xFFFFFFFF" style="background-color: #ffffff;" onclick="set cg_teamLowerColor 0xFFFFFFFF; set ui_teamLowerColor 9; set ui_colorPreview team"></div><div class="swatch" data-class="on:cg_teamLowerColor=0x80FF00FF" style="background-color: #80ff00;" onclick="set cg_teamLowerColor 0x80FF00FF; set ui_teamLowerColor 10; set ui_colorPreview team"></div><div class="swatch" data-class="on:cg_teamLowerColor=0x00A0A0FF" style="background-color: #00a0a0;" onclick="set cg_teamLowerColor 0x00A0A0FF; set ui_teamLowerColor 11; set ui_colorPreview team"></div></div>
 		</div>
 		<div class="actions">
-			<button onclick="rml_show ui/main.rml">[menu_back]</button>
+			<button onclick="ui_back">[menu_back]</button>
 		</div>
 	</div>
 	<div class="stage colorstage" data-stage="champion" data-stage-tint="ui_colorPreview"></div>

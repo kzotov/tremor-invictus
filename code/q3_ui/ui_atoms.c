@@ -1081,6 +1081,25 @@ void UI_Cache_f( void ) {
 
 /*
 =================
+UI_RmlBack
+
+Back from a page that both menus open: to the in-game menu during a game
+(the main menu there can't be closed), else to the main menu
+=================
+*/
+void UI_RmlBack( void ) {
+	uiClientState_t	cs;
+
+	trap_GetClientState( &cs );
+	if ( cs.connState == CA_ACTIVE ) {
+		trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/ingame.rml\n" );
+	} else {
+		trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/main.rml\n" );
+	}
+}
+
+/*
+=================
 UI_ConsoleCommand
 =================
 */
@@ -1203,6 +1222,12 @@ qboolean UI_ConsoleCommand( int realTime ) {
 
 	if ( Q_stricmp (cmd, "ui_play") == 0 ) {
 		UI_PlayMenu();
+		return qtrue;
+	}
+
+	// a page's Back and Esc: the in-game menu in a game, else the main menu
+	if ( Q_stricmp (cmd, "ui_back") == 0 ) {
+		UI_RmlBack();
 		return qtrue;
 	}
 

@@ -373,6 +373,7 @@ const char *UI_CsPickedMap( void );
 // ui_voterml.c
 //
 qboolean UI_VoteCommand( const char *cmd );
+void UI_RmlBack( void );
 void UI_CreateServer_Frame( void );
 extern void UI_PlayMenu( void );
 
