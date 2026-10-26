@@ -7,8 +7,9 @@
 # Build first with scripts/build-macos.sh (into build-dist-macos, see below),
 # build-windows.sh or build-linux.sh. Extra .pk3 files (local test data from
 # outside the repo) are added as zz-local-<name>, sorting after our own data
-# as they do in the run scripts. With TREMOR_Q3 set (the folder that holds
-# baseq3), Quake III's free point release files pak1-pak8 are packed too;
+# as they do in the run scripts. With TREMOR_Q3_PATCH set (see below),
+# Quake III's free point release files pak1-pak8 are packed too, with id's
+# licence for them;
 # pak0.pk3 never is: players copy their own into their home folder.
 # The macOS package is made from its own build folder so the play build is
 # never rebuilt for it:
@@ -69,12 +70,19 @@ for f in "$@"; do
 	cp "$f" "$GAMEDIR/zz-local-$(basename "$f")"
 done
 
-# Quake III's free 1.32 point release files (pak1-pak8) from TREMOR_Q3,
-# the folder that holds baseq3; pak0 is the player's own and never packed
-if [ "$TARGET" != server ] && [ -n "${TREMOR_Q3:-}" ]; then
+# Quake III's free 1.32 point release files (pak1-pak8) from TREMOR_Q3_PATCH,
+# a folder with baseq3/pak1-8.pk3 and id-point-release-EULA.txt as ioquake3
+# hands them out; id's licence must travel with them. pak0 is the player's
+# own and never packed.
+if [ "$TARGET" != server ] && [ -n "${TREMOR_Q3_PATCH:-}" ]; then
+	[ -f "$TREMOR_Q3_PATCH/id-point-release-EULA.txt" ] || {
+		echo "package: no id-point-release-EULA.txt in $TREMOR_Q3_PATCH" >&2; exit 1; }
 	for n in 1 2 3 4 5 6 7 8; do
-		cp "$TREMOR_Q3/baseq3/pak$n.pk3" "$GAMEDIR/"
+		cp "$TREMOR_Q3_PATCH/baseq3/pak$n.pk3" "$GAMEDIR/"
 	done
+	cp "$TREMOR_Q3_PATCH/id-point-release-EULA.txt" "$GAMEDIR/"
+	mkdir -p "$STAGE/licenses"
+	cp "$TREMOR_Q3_PATCH/id-point-release-EULA.txt" "$STAGE/licenses/"
 fi
 
 # licence and source notices
@@ -138,7 +146,8 @@ Tremor Invictus is free software under the GNU General Public License v2
 (COPYING.txt), built on ioquake3 and id Software's Quake III Arena source.
 Source: https://github.com/kzotov/tremor-invictus
 This build: commit $COMMIT
-Bundled libraries and fonts: THIRD-PARTY.txt and the licenses folder
+Bundled libraries and fonts: THIRD-PARTY.txt and the licenses folder;
+id's point release files (pak1-pak8): licenses/id-point-release-EULA.txt
 (FreeType License, MIT, Apache-2.0, zlib, BSD).
 EOF
 
