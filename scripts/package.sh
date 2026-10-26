@@ -50,8 +50,24 @@ cp -R "$GENERATED/gfx/tremor" "$DATA/gfx/tremor"
 cp "$GENERATED/tremor-assets.pk3" "$STAGE/baseq3/"
 
 for f in "$@"; do
+	# only map data may ride along: never local sound, model or weapon packs,
+	# nor anything from the reference folders
+	case "$f" in
+	*reference*|*sound*|*weapon*|*portrait*|*model*|*.zip)
+		echo "package: refusing $f (not a map pack)" >&2; exit 1 ;;
+	esac
 	cp "$f" "$STAGE/baseq3/zz-local-$(basename "$f")"
 done
+
+# licence and source notices
+cp "$ROOT/COPYING.txt" "$STAGE/COPYING.txt"
+cp "$ROOT/misc/THIRD-PARTY.txt" "$STAGE/THIRD-PARTY.txt"
+mkdir -p "$STAGE/licenses"
+cp "$ROOT/code/thirdparty/freetype-2.13.3/LICENSE.TXT" "$STAGE/licenses/FreeType-LICENSE.txt"
+cp "$ROOT/code/thirdparty/freetype-2.13.3/docs/FTL.TXT" "$STAGE/licenses/FreeType-FTL.txt"
+cp "$ROOT/code/thirdparty/RmlUi-6.3/LICENSE.txt" "$STAGE/licenses/RmlUi-LICENSE.txt"
+unzip -p "$GENERATED/tremor-assets.pk3" ui/fonts/LICENSE-Roboto.txt > "$STAGE/licenses/Roboto-LICENSE.txt"
+COMMIT=$(git -C "$ROOT" rev-parse HEAD)
 
 if [ "$TARGET" = server ]; then
 	cp "$RELEASE/baseq3/qagame.$EXT" "$STAGE/baseq3/"
@@ -91,6 +107,14 @@ Tremor Invictus $VERSION, test build
    A password-protected server needs:  password <password>  before connect.
 
 Bind the champion ability with:  bind e +button12
+
+Source and licences
+Tremor Invictus is free software under the GNU General Public License v2
+(COPYING.txt), built on ioquake3 and id Software's Quake III Arena source.
+Source: https://github.com/kzotov/tremor-invictus
+This build: commit $COMMIT
+Bundled libraries and fonts: THIRD-PARTY.txt and the licenses folder
+(FreeType License, MIT, Apache-2.0, zlib, BSD).
 EOF
 
 case "$TARGET" in
