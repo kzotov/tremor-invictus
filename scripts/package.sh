@@ -26,8 +26,8 @@ esac
 RELEASE="$BUILD/Release"
 # the generated art is the same on every platform; the Docker builds have no
 # Python, so they take it from a macOS build
-GENERATED="$BUILD/generated"
-[ -f "$GENERATED/tremor-assets.pk3" ] || GENERATED="$ROOT/build-dist-macos/generated"
+# (a container build may draw it too, but without the fonts)
+GENERATED="$ROOT/build-dist-macos/generated"
 [ -f "$GENERATED/tremor-assets.pk3" ] || GENERATED="$ROOT/build-macos/generated"
 VERSION=$(cat "$BUILD/version.txt" 2>/dev/null || echo dev)
 NAME="tremor-invictus-$VERSION-$TARGET"
