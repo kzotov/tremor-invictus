@@ -1306,6 +1306,18 @@ void RB_EndSurface( void ) {
 		return;
 	}
 
+	// a fog that isn't there (no world loaded, or out of its range) would
+	// read past the world's fogs: drawn unfogged, said once
+	if ( tess.fogNum && ( !tr.world || tess.fogNum < 0 || tess.fogNum >= tr.world->numfogs ) ) {
+		static qboolean	warned = qfalse;
+
+		if ( !warned ) {
+			ri.Printf( PRINT_WARNING, "RB_EndSurface: fog %i without a world fog for %s\n", tess.fogNum, tess.shader->name );
+			warned = qtrue;
+		}
+		tess.fogNum = 0;
+	}
+
 	// for debugging of sort order issues, stop rendering after a given sort value
 	if ( r_debugSort->integer && r_debugSort->integer < tess.shader->sort ) {
 		return;
