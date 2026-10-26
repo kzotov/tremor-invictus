@@ -97,11 +97,21 @@ esac
 cat > "$STAGE/README.txt" <<EOF
 Tremor Invictus $VERSION, test build
 
-1. Copy pak0.pk3 to pak8.pk3 from your own Quake III Arena install
-   (its baseq3 folder) into the baseq3 folder next to this file.
+1. Quake III Arena data (not included):
+   pak0.pk3     from your own Quake III Arena (Steam or GOG, Windows
+                version: baseq3/pak0.pk3 in the install folder; on a Mac,
+                unpack the GOG installer with innoextract)
+   pak1-pak8    id's free 1.32 patch files, quake3-latest-pk3s.zip from
+                https://ioquake3.org/extras/patch-data/
+   Put all nine into:
+   macOS:   ~/Library/Application Support/Quake3/baseq3/
+   Windows: the baseq3 folder next to tremor-invictus.exe
 2. Start the game:
-   macOS:   tremor-invictus.app (first time: right-click, Open, as the
-            build is not notarised)
+   macOS:   copy the "Tremor Invictus" folder out of the disk image, then
+            once in Terminal:
+              xattr -dr com.apple.quarantine "<that folder>"
+            (otherwise macOS runs the app from a hidden copy that can't
+            see the maps next to it), then open tremor-invictus.app
    Windows: tremor-invictus.exe
 3. Connect from the console (~):  connect <server address>
    A password-protected server needs:  password <password>  before connect.
