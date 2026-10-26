@@ -30,6 +30,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#if defined(__APPLE__) || defined(__linux__)
+#include <execinfo.h>
+#include <fcntl.h>
+#include <unistd.h>
+#define HAVE_BACKTRACE
+#endif
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -769,6 +775,31 @@ Sys_SigHandler
 void Sys_SigHandler( int signal )
 {
 	static qboolean signalcaught = qfalse;
+
+#ifdef HAVE_BACKTRACE
+	// a crash: where it happened, on stderr and in crash.log in the home
+	// folder (the handler takes the crash, so the system writes no report)
+	if( !signalcaught && signal != SIGTERM && signal != SIGINT )
+	{
+		void	*frames[64];
+		int		n = backtrace( frames, 64 ), fd;
+		char	path[MAX_OSPATH];
+
+		fprintf( stderr, "Received signal %d, backtrace:\n", signal );
+		backtrace_symbols_fd( frames, n, 2 );
+		Com_sprintf( path, sizeof( path ), "%s/crash.log", Cvar_VariableString( "fs_homepath" ) );
+		fd = open( path, O_WRONLY | O_CREAT | O_TRUNC, 0644 );
+		if( fd >= 0 )
+		{
+			char	line[64];
+
+			Com_sprintf( line, sizeof( line ), "Received signal %d\n", signal );
+			write( fd, line, strlen( line ) );
+			backtrace_symbols_fd( frames, n, fd );
+			close( fd );
+		}
+	}
+#endif
 
 	if( signalcaught )
 	{

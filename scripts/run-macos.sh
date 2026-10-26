@@ -38,6 +38,9 @@ ln -sfn "$ROOT/build-macos/generated/tremor-assets.pk3" "$HOME_DIR/baseq3/tremor
 . "$ROOT/scripts/local-assets.sh"
 LOCAL_ARGS=$(link_local_assets "$HOME_DIR/baseq3")
 
-exec "$RELEASE/tremor-invictus.app/Contents/MacOS/tremor-invictus" \
+# the console output also goes to build-macos/home/run.log (a crash's
+# backtrace with it; also in build-macos/home/crash.log)
+set +e
+"$RELEASE/tremor-invictus.app/Contents/MacOS/tremor-invictus" \
 	+set fs_basepath "$Q3" +set fs_homepath "$HOME_DIR" \
-	+set vm_game 0 +set vm_cgame 0 +set vm_ui 0 +set sv_pure 0 $LOCAL_ARGS "$@"
+	+set vm_game 0 +set vm_cgame 0 +set vm_ui 0 +set sv_pure 0 $LOCAL_ARGS "$@" 2>&1 | tee "$HOME_DIR/run.log"
