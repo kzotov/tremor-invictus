@@ -27,10 +27,11 @@ module each, each with a look():
                        (looks/galena.py): cold iron with teal seams, dark
                        robes, a charcoal hood with a teal trim, a pale face
                        with teal eyes
-  models/players/razor/*_scalebearer*.skin, visor/head_scalebearer.skin, ...
-                       Scalebearer on razor's "id" armour with visor's helm
-                       (looks/scalebearer.py): gold-rimmed red scales, bronze
-                       scales over the arms, a gold shield, a red bronze helm
+  models/players/keel/*_scalebearer*.skin, biker/head_scalebearer.skin, ...
+                       Scalebearer on keel's armour with biker's head
+                       (looks/scalebearer.py): copper-rimmed gunmetal scales,
+                       brown leather, red enamel plates, a grey-blue face with
+                       glowing blue eyes under a dark helm
   models/players/major/*_raine*.skin, ...
                        Raine on major (looks/raine.py): a slate survivor's
                        suit with blue lights, the hair darkened
