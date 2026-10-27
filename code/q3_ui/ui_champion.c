@@ -539,6 +539,8 @@ ui_champPreview <name>, ui_champWeapon <mg|sg|ng>, ui_champSelect.
 
 #define SELECTED_MSEC	900		// "Selected" shows this long before the menu goes back
 
+#define HOVER_END_MSEC	300		// off the tiles this long, the preview goes back to the pick
+static int	hoverEndTime;		// when the pointer left a tile (0: on one)
 static int	selectedTime;		// uis.realtime of the last Select, 0 when none pending
 
 /*
@@ -793,6 +795,7 @@ qboolean UI_ChampionCommand( const char *cmd ) {
 	}
 	if ( !Q_stricmp( cmd, "ui_champHover" ) ) {
 		// hovering previews without picking
+		hoverEndTime = 0;
 		i = BG_ChampionForName( UI_Argv( 1 ) );
 		if ( i >= 0 && Q_stricmp( UI_Cvar_VariableString( "ui_chShown" ), bg_championList[i].name ) ) {
 			Champion_Publish( i );
@@ -800,10 +803,9 @@ qboolean UI_ChampionCommand( const char *cmd ) {
 		return qtrue;
 	}
 	if ( !Q_stricmp( cmd, "ui_champHoverEnd" ) ) {
-		i = BG_ChampionForName( UI_Cvar_VariableString( "ui_chPicked" ) );
-		if ( i >= 0 && Q_stricmp( UI_Cvar_VariableString( "ui_chShown" ), bg_championList[i].name ) ) {
-			Champion_Publish( i );
-		}
+		// back to the picked one only once the pointer stays off the
+		// tiles a moment, so crossing the gap between two keeps the preview
+		hoverEndTime = uis.realtime;
 		return qtrue;
 	}
 	if ( !Q_stricmp( cmd, "ui_champWeapon" ) ) {
@@ -869,6 +871,14 @@ After Select has shown "Selected": back to the main menu, or into the game
 =================
 */
 void UI_Champion_Frame( void ) {
+	if ( hoverEndTime && uis.realtime - hoverEndTime > HOVER_END_MSEC ) {
+		int		i = BG_ChampionForName( UI_Cvar_VariableString( "ui_chPicked" ) );
+
+		hoverEndTime = 0;
+		if ( i >= 0 && Q_stricmp( UI_Cvar_VariableString( "ui_chShown" ), bg_championList[i].name ) ) {
+			Champion_Publish( i );
+		}
+	}
 	if ( !selectedTime || uis.realtime - selectedTime < SELECTED_MSEC ) {
 		return;
 	}

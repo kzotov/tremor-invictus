@@ -33,14 +33,14 @@ button {
 	padding: 6dp 0dp 6dp 22dp;
 	margin-bottom: 8dp;
 	border-left: 6dp transparent;
-	transition: padding-left color border-left-color 0.15s cubic-out;
+	transition: color border-left-color 0.15s cubic-out;
 	cursor: pointer;
 }
 
+/* hover only colours: nothing moves */
 button:hover, button:focus-visible {
 	color: #f2efe9;
 	border-left-color: #d3191f;
-	padding-left: 34dp;
 	background-color: #d3191f22;
 }
 
@@ -1208,9 +1208,19 @@ button.small {
 	display: none;
 }
 
+.srow {
+	position: relative;
+}
+
+/* the help line floats under its row, so the rows below don't move */
 .srow:hover .shelp {
 	display: block;
-	padding-left: 34%;
+	position: absolute;
+	left: 34%;
+	top: 100%;
+	z-index: 5;
+	background-color: #16171bf0;
+	padding: 2dp 8dp;
 	font-size: 18dp;
 	color: #c8c4bc;
 }
