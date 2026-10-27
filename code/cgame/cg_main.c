@@ -985,6 +985,30 @@ static void CG_RegisterSounds( void ) {
 
 /*
 =================
+CG_ImageExists
+
+Whether an image (path without its extension) is in the game's files
+=================
+*/
+static qboolean CG_ImageExists( const char *path ) {
+	static const char	*exts[] = { ".tga", ".png", ".jpg" };
+	fileHandle_t		f;
+	int					e, len;
+
+	for ( e = 0 ; e < ARRAY_LEN( exts ) ; e++ ) {
+		len = trap_FS_FOpenFile( va( "%s%s", path, exts[e] ), &f, FS_READ );
+		if ( f ) {
+			trap_FS_FCloseFile( f );
+		}
+		if ( len > 0 ) {
+			return qtrue;
+		}
+	}
+	return qfalse;
+}
+
+/*
+=================
 CG_RegisterGraphics
 
 This function may execute for a couple of minutes with a slow disk.
@@ -1086,25 +1110,30 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.abilityTrailShader = trap_R_RegisterShader( "ability/plasmatrail" );
 
 	// champion portraits: a portrait pack's (gfx/champions), else the model's
-	// icon, else ours (gfx/champions-generated)
+	// icon, else ours (gfx/champions-generated); an image must be there (a
+	// missing one would register as the default image: a black square)
 	for ( i = 0 ; i < bg_numChampions && i < 32 ; i++ ) {
 		const champion_t	*c = BG_Champion( i );
 		int					s;
 
 		for ( s = 0 ; s < 2 ; s++ ) {
 			const char	*path = va( "gfx/champions/%s%s", c->name, s ? "_small" : "" );
-			qhandle_t	h = trap_R_RegisterShaderNoMip( path );
+			qhandle_t	h = CG_ImageExists( path ) ? trap_R_RegisterShaderNoMip( path ) : 0;
 
 			if ( !h ) {
-				char	model[MAX_QPATH], *skin;
+				char	model[MAX_QPATH], *skin, *head;
 
 				Q_strncpyz( model, c->model, sizeof( model ) );
+				head = strchr( model, ':' );		// ("body/skin:head/skin": the body's)
+				if ( head ) {
+					*head = 0;
+				}
 				skin = strchr( model, '/' );
 				if ( skin ) {
 					*skin++ = 0;
 				}
 				path = va( "models/players/%s/icon_%s", model, skin ? skin : "default" );
-				h = trap_R_RegisterShaderNoMip( path );
+				h = CG_ImageExists( path ) ? trap_R_RegisterShaderNoMip( path ) : 0;
 			}
 			if ( !h ) {
 				path = va( "gfx/champions-generated/%s%s", c->name, s ? "_small" : "" );

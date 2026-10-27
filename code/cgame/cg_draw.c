@@ -7066,9 +7066,11 @@ static qboolean CG_DrawDraft( void ) {
 				} else {
 					Com_sprintf( line, sizeof( line ), BG_String( STR_RD_DRAFT_THEIRS ), cgs.clientinfo[players[turn]].name, secs );
 				}
-				CG_DrawStringExt( 320 - CG_DrawStrlen( line ) * SMALLCHAR_WIDTH / 2, 180, line,
-					players[turn] == cg.snap->ps.clientNum ? colorYellow : colorWhite, qfalse, qtrue,
-					SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+				if ( !shown ) {		// (the picking page shows it in its header)
+					CG_DrawStringExt( 320 - CG_DrawStrlen( line ) * SMALLCHAR_WIDTH / 2, 180, line,
+						players[turn] == cg.snap->ps.clientNum ? colorYellow : colorWhite, qfalse, qtrue,
+						SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+				}
 			} else {
 				line[0] = 0;
 			}
