@@ -1387,11 +1387,32 @@ CL_KeyEvent
 Called by the system for both key up and key down events
 ===================
 */
+#ifdef USE_RMLUI
+/*
+===================
+CL_ChatPassesPage
+
+A page shown over a running game (the draft, the join screen; not a menu)
+leaves the chat to the game: the chat keys open it, and the typed message
+goes to the chat field (chat at a match's end or in a draft works)
+===================
+*/
+static qboolean CL_ChatPassesPage( int key ) {
+	if ( clc.state != CA_ACTIVE || ( Key_GetCatcher() & KEYCATCH_UI ) ) {
+		return qfalse;
+	}
+	if ( Key_GetCatcher() & KEYCATCH_MESSAGE ) {
+		return qtrue;
+	}
+	return key >= 0 && key < MAX_KEYS && keys[key].binding && !Q_stricmpn( keys[key].binding, "messagemode", 11 );
+}
+#endif
+
 void CL_KeyEvent (int key, qboolean down, unsigned time) {
 #ifdef USE_RMLUI
-	// an RmlUi menu takes the keys, except the console's
+	// an RmlUi menu takes the keys, except the console's and the chat's
 	if ( !( Key_GetCatcher() & KEYCATCH_CONSOLE ) && key != K_CONSOLE && !( key == K_ESCAPE && keys[K_SHIFT].down )
-		&& RML_KeyEvent( key, down ) ) {
+		&& !CL_ChatPassesPage( key ) && RML_KeyEvent( key, down ) ) {
 		keys[key].down = down;
 		return;
 	}
@@ -1422,7 +1443,7 @@ void CL_CharEvent( int key ) {
 		Field_CharEvent( &g_consoleField, key );
 	}
 #ifdef USE_RMLUI
-	else if ( RML_CharEvent( key ) )
+	else if ( !CL_ChatPassesPage( -1 ) && RML_CharEvent( key ) )
 	{
 	}
 #endif
