@@ -16,8 +16,8 @@ module each, each with a look():
                        skin and leathers
   models/players/bitterman/*_bj*.skin, ...
                        B.J. on bitterman (looks/bj.py): a human skin over the
-                       hide, a blond buzz cut over the tentacles, a dark vest
-                       and fatigues
+                       hide, a blond buzz cut over the tentacles, olive vest
+                       and fatigues, a leather belt
   models/players/biker/*_eisen*.skin, ...
                        Eisen on biker (looks/eisen.py): a ginger beard, brass
                        goggles on the brow, a leather apron, work trousers, a

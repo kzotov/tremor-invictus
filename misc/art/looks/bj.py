@@ -1,7 +1,7 @@
-"""B.J. on bitterman: the green hide graded to a weathered human skin, a
-dark tactical vest over the chest, fatigues over the legs, and a blond buzz
-cut painted over the tentacles. Team versions keep the team's paint and the
-same bare head."""
+"""B.J. on bitterman: the green hide graded to a weathered human skin, an
+olive vest over the chest, olive fatigues over the legs, a brown leather
+belt, and a blond buzz cut painted over the tentacles. Team versions keep
+the team's paint and the same bare head."""
 import math
 from skins import Sheet, Look, region, inside, seg_dist
 from tremorart import Fbm, Noise, clamp, smooth, mix
@@ -18,8 +18,9 @@ GEAR = [region(p, 768, 768) for p in (
     [(300, 575), (380, 575), (380, 768), (300, 768)],
 )]
 FLESH_GRADE = (0.64, 0.5, 0.64)         # olive hide to skin
-VEST_COLOUR = (0.11, 0.12, 0.1)
-FATIGUES = (0.16, 0.17, 0.2)
+VEST_COLOUR = (0.17, 0.19, 0.11)
+FATIGUES = (0.2, 0.21, 0.13)
+LEATHER = (0.3, 0.17, 0.09)
 
 
 def body_grade(u, v):
@@ -44,6 +45,8 @@ def body_detail_fn():
             if camo.at(u * 3, v * 3) > 0.56:
                 c = [x * 0.6 for x in c]
             return c + [0.82]
+        if inside(BELT, u, v):
+            return [x * k for x in LEATHER] + [0.7]
         return [0, 0, 0, 0]
     return f
 
