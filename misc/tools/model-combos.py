@@ -125,6 +125,7 @@ def gather(packs, body, head):
 
 
 def render(meshes, W, H, yaw=-30, pitch=8):
+    """meshes: (points, normals, triangles, st, texture[, glow added unlit])"""
     img = np.zeros((H, W, 3)) + 0.12
     zb = np.full((H, W), -1e9)
     cy, sy = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
@@ -133,7 +134,8 @@ def render(meshes, W, H, yaw=-30, pitch=8):
     allp = np.concatenate([m[0] for m in meshes])
     zc = (allp[:, 2].max() + allp[:, 2].min()) / 2
     scale = H * 0.9 / (allp[:, 2].max() - allp[:, 2].min())
-    for v, nn, tris, st, t in meshes:
+    for v, nn, tris, st, t, *glow in meshes:
+        glow = glow[0] if glow else None
         x = v[:, 0] * cy - v[:, 1] * sy
         y = v[:, 0] * sy + v[:, 1] * cy
         depth = x * cp + v[:, 2] * sp
@@ -159,10 +161,13 @@ def render(meshes, W, H, yaw=-30, pitch=8):
                 continue
             u = w0 * st[a, 0] + w1 * st[b, 0] + w2 * st[c, 0]
             vv = w0 * st[a, 1] + w1 * st[b, 1] + w2 * st[c, 1]
-            col = t[np.floor(vv * th).astype(int) % th, np.floor(u * tw).astype(int) % tw]
+            ti, tj = np.floor(vv * th).astype(int) % th, np.floor(u * tw).astype(int) % tw
             k = w0 * lit[a] + w1 * lit[b] + w2 * lit[c]
+            col = t[ti, tj] * k[:, :, None]
+            if glow is not None:
+                col = col + glow[ti, tj]
             sub[ok] = z[ok]
-            img[y0:y1 + 1, x0:x1 + 1][ok] = np.clip(col[ok] * k[ok][:, None], 0, 1)
+            img[y0:y1 + 1, x0:x1 + 1][ok] = np.clip(col[ok], 0, 1)
     return img
 
 

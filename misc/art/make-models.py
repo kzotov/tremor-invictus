@@ -67,7 +67,7 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
                                             a placeholder call per ability: a
                                             swept tone pitched by its name
   scripts/tremor-assets.shader              the shaders above
-  models/players/grunt/*_strogg.skin, scripts/tremor-skins.shader
+  models/players/grunt/*_strogg.skin, mynx/*_nyx.skin, scripts/tremor-skins.shader
                                             our skins over models the player has (skins.py)
 All shapes are built here from lathes and boxes; textures from noise.
 """

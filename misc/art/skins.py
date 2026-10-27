@@ -10,7 +10,14 @@ layers ship. Called by make-models.py; by hand:
                        implant plate, staples and veins on the bare arm, a
                        steel plate over the skull, a jaw grille, a glowing
                        implant eye and cable ports
+  models/players/mynx/*_nyx[_red|_blue].skin, nyx/head_*.skin, nyx_*.tga
+                       Nyx on mynx (looks/nyx.py): blue curls painted over
+                       the hair, a violet-black suit with glowing seams, a
+                       veil over the lower face, a crescent on the shoulder
   scripts/tremor-skins.shader
+
+The champions' looks after Strogg are described as data in looks/, one
+module each (see Look and Sheet below).
 
 Every region is a polygon in the texture's 0..1 layout (u right, v down),
 traced by hand from where the model's surfaces sit; nothing is read from
@@ -331,11 +338,88 @@ def grunt_strogg(out):
                 f.write(text)
 
 
+# ---------------------------------------------------------------- looks: the same layers, described as data
+
+class Sheet:
+    """One texture sheet of a model and the layers we put over it, per
+    variant ("" for the skin itself, "_red" and "_blue" for team games):
+    base, the model's own image there; grade, a x2 multiply (0.5 keeps the
+    colour); detail, our painting blended by its alpha; glow, added unlit.
+    A layer is a function (u, v) -> rgba, or None; one given for "" alone
+    serves every variant."""
+
+    def __init__(self, base, grade=None, detail=None, glow=None, size=256, pulse=False):
+        self.base, self.size, self.pulse = base, size, pulse
+        self.layers = {"grade": grade, "detail": detail, "glow": glow}
+
+    def layer(self, kind, variant):
+        l = self.layers[kind]
+        if isinstance(l, dict):
+            return l.get(variant, l.get(""))
+        return l
+
+
+class Look:
+    """A champion's look on a model the player has: model/skin, its sheets,
+    and which sheet each surface of each part wears."""
+
+    def __init__(self, model, skin, sheets, surfaces, tags):
+        self.model, self.skin, self.sheets, self.surfaces, self.tags = model, skin, sheets, surfaces, tags
+
+
+LAYER_SHADER = {
+    "grade": "\t{\n\t\tmap %s\n\t\tblendFunc GL_DST_COLOR GL_SRC_COLOR\n\t}\n",
+    "detail": "\t{\n\t\tmap %s\n\t\tblendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA\n\t\trgbGen lightingDiffuse\n\t}\n",
+    "glow": "\t{\n\t\tmap %s\n\t\tblendFunc GL_ONE GL_ONE\n%s\t}\n",
+}
+
+
+def build_look(out, look):
+    """Write the look's layer images, shaders and skins; returns the shader text."""
+    rel = "models/players/%s/" % look.model
+    d = os.path.join(out, rel)
+    made, shaders = {}, ""
+    for name, sheet in look.sheets.items():
+        for variant, base in sheet.base.items():
+            text = "%s%s_%s%s\n{\n" % (rel, look.skin, name, variant)
+            text += "\t{\n\t\tmap %s%s.tga\n\t\trgbGen lightingDiffuse\n\t}\n" % (rel, base)
+            for kind in ("grade", "detail", "glow"):
+                fn = sheet.layer(kind, variant)
+                if fn is None:
+                    continue
+                if id(fn) not in made:
+                    img = "%s_%s_%s%s.tga" % (look.skin, name, kind, variant)
+                    w = sheet.size if kind == "detail" else max(16, sheet.size // 2)
+                    tex(os.path.join(d, img), w, w, fn, kind == "detail")
+                    made[id(fn)] = img
+                wave = "\t\trgbGen wave sin 0.85 0.15 0 1.5\n" if kind == "glow" and sheet.pulse else ""
+                text += LAYER_SHADER[kind] % ((rel + made[id(fn)],) + ((wave,) if kind == "glow" else ()))
+            shaders += text + "}\n\n"
+    variants = list(next(iter(look.sheets.values())).base)
+    for variant in variants:
+        for part, surfs in look.surfaces.items():
+            lines = ["%s," % t for t in look.tags[part]]
+            lines += ["%s,%s%s_%s%s" % (sf, rel, look.skin, sheet, variant) for sf, sheet in surfs.items()]
+            if part == "head" and variant:
+                # team heads are looked up in a folder named after the skin
+                path = os.path.join(d, look.skin, "head%s.skin" % variant)
+            else:
+                path = os.path.join(d, "%s_%s%s.skin" % (part, look.skin, variant))
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w") as f:
+                f.write("\n".join(lines) + "\n")
+    return shaders
+
+
 def build(out):
+    import looks
     grunt_strogg(out)
+    text = SHADERS
+    for look in looks.ALL():
+        text += "\n// %s/%s\n" % (look.model, look.skin) + build_look(out, look)
     os.makedirs(os.path.join(out, "scripts"), exist_ok=True)
     with open(os.path.join(out, "scripts/tremor-skins.shader"), "w") as f:
-        f.write(SHADERS)
+        f.write(text)
 
 
 if __name__ == "__main__":
