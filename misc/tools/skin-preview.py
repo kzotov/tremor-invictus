@@ -114,7 +114,7 @@ def gather(files, table, body, head, variant):
                                           ((hs, hsk), 0, headf, "head")):
         for name, shader, tris, st, xyz, n in surfs:
             tex = skin.get(name, shader)
-            if not tex or "null" in tex.lower():
+            if not tex or "null" in tex.lower() or "nodraw" in tex.lower():
                 continue
             if tex not in cache:
                 cache[tex] = surface_images(files, table, tex)

@@ -314,7 +314,17 @@ models/players/grunt/strogg_head%(suffix)s
 VARIANTS = (("", "stripe", "stripe_h", "strogg_grade"),
             ("_red", "red", "red_h", "strogg_tgrade"),
             ("_blue", "blue", "blue_h", "strogg_tgrade"))
-SHADERS = "// our skins over models the player already has (misc/art/skins.py)\n" + "".join(
+# for a surface a look leaves out (uriel's wings on Beastmaster): blends to nothing
+NODRAW = """
+tremor/nodraw
+{
+	{
+		map $whiteimage
+		blendFunc GL_ZERO GL_ONE
+	}
+}
+"""
+SHADERS = "// our skins over models the player already has (misc/art/skins.py)\n" + NODRAW + "".join(
     SHADER % {"suffix": x, "body": b, "head": h, "grade": g} for x, b, h, g in VARIANTS)
 
 
@@ -369,8 +379,10 @@ class Sheet:
 
 class Look:
     """A champion's look on a model the player has: model/skin, its sheets,
-    and which sheet each surface of each part wears. head_model is the
-    model the head comes from, for a "body/skin:head/skin" champion."""
+    and which sheet each surface of each part wears: a sheet's name, a
+    shader of the model's own (a path; "tremor/nodraw" hides the surface),
+    or a {variant: either} for one that differs in team games. head_model
+    is the model the head comes from, for a "body/skin:head/skin" champion."""
 
     def __init__(self, model, skin, sheets, surfaces, tags, head_model=None):
         self.model, self.skin, self.sheets, self.surfaces, self.tags = model, skin, sheets, surfaces, tags
@@ -413,8 +425,11 @@ def build_look(out, look, draw=True):
     for variant in variants:
         for part, surfs in look.surfaces.items():
             lines = ["%s," % t for t in look.tags[part]]
-            # a surface left as the model has it names its own shader
-            lines += ["%s,%s" % (sf, sheet if "/" in sheet else shader(sheet, variant)) for sf, sheet in surfs.items()]
+            for sf, sheet in surfs.items():
+                if isinstance(sheet, dict):          # per variant
+                    sheet = sheet.get(variant, sheet[""])
+                # a surface left as the model has it names its own shader
+                lines.append("%s,%s" % (sf, sheet if "/" in sheet else shader(sheet, variant)))
             model = look.head_model if part == "head" else look.model
             d = os.path.join(out, "models/players", model)
             if part == "head" and variant:

@@ -34,10 +34,18 @@ module each, each with a look():
   models/players/major/*_raine*.skin, ...
                        Raine on major (looks/raine.py): a slate survivor's
                        suit with blue lights, the hair darkened
+  models/players/uriel/*_beastmaster*.skin, ...
+                       Beastmaster on uriel (looks/beastmaster.py): no wings,
+                       a bronze hide with blue war paint, a dark pelt hood,
+                       amber eyes
+  models/players/orbb/*_unumrey*.skin, ...
+                       Unumrey on orbb (looks/unumrey.py): bruised violet
+                       flesh, blackened metal, an eye of our own with a
+                       glowing violet ring
 """
 import importlib
 
-MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer", "raine")
+MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer", "raine", "beastmaster", "unumrey")
 
 
 def ALL():
