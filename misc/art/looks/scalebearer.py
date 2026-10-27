@@ -280,15 +280,149 @@ LIT = [[ord(c) - 97 for c, n in re.findall(r"([a-p])(\d*)", row) for _ in range(
 )]
 
 
-def lit(u, v):
-    """0..1, smoothly sampled from LIT."""
-    n = len(LIT)
+# how open each texel is to the sky, the same way: shut in the armpits,
+# the joints and between the plates
+OPEN = [[ord(c) - 97 for c, n in re.findall(r"([a-p])(\d*)", row) for _ in range(int(n or 1))] for row in (
+    "p18onkfc2d5egkm2nop14oli2gca6cdfilno2n2ljheba7bcedcb2cehjlkj4hgedc2degi2j2k2l3jfba3cjn",
+    "p16onlhdbabc2d2c3dfhlnp15nkigca4cehjln2o4nmkifdba3b3cde4d2ehjlkj3ihged3efhij2k2l4jeba3bej",
+    "mop12o2mheba3b4cb2a2bcglo3p13nkhdc3eilno2p4o3n2lkigede2fgh3ih3g2hjlkj3ihgfe3fgij2k2l2m2lida5bc",
+    "glop10o2nkeba14cglno2p14nkihijlnop10o3n2lkj2k2l5m3ljiklkj4igf4gijk3lm4lida7",
+    "djnop8o3mkfba13beimno2p14on2mn2o3p15o2n4on2o6nlklk4jihg4hjk2l2m3n2lieba6",
+    "djnop9o2mkgca13cfjmno2p13o11p30nl3k3jih2gh2ik2l2m2n4mjfba6",
+    "flo2p9o2nlhca13dgkmno2p13o5n4o4p28oml4kji2h2ijk2l2m2n3onmkgba6",
+    "kno2p9o2nlidba11bdhlno3p13o3n4m2n3o3p26om4l2kji3j2klm3n3o3nkgca6",
+    "no3p9o2nmjfca7b4cfimno3p13o3n2ml4m2no2p26onm4lkj5kl2m2n2o5nlhda6",
+    "o4p9o3nlifcbab3c2dcefikmno2p14o3n2mk2jk2m2no2p25on3m2lk2j2k2lm2n3o6nlieba4b",
+    "o4p10o3mljgdcd3ef2ghjkmno2p15o3n2mkji2jlmno2p25on4ml2k4lm2n3o5ponmjeba3be",
+    "n2o3p11o2nmkh5gi2jklmno3p15o3n2mlji2jlmno2p25o3n2m2l5m2n3o4p3o2mjfba3bf",
+    "n4o2p11o2nmk2l6m2n2o2p16o4nm2lkjijlmno2p25o4n2ml4m2n2o4p5o2mkgca3be",
+    "m3n2o2p12o2n4on3o4p17on4ml2k2j2kmno3p27o2n2m6n3o2p8onkhda4c",
+    "l3mn2op14o4p2o2p21nml4kj5kmn2o9p18o4n2m4n3o3p9onlhda5",
+    "k2lmn2op42olk3j2i5jlmn3o9p18o4n7o3p10onlieba4",
+    "jkl2no2p41onki3h3g2hijklmn9o2p19o3n6o3p11onlieba4",
+    "iklmn2op41mkihg2f5g2ijlm2n4m2n2o2p19o4n3o4p12onmjfba4",
+    "hklmno2p41omigfed5efhjlm3n2m3n2o2p19o10p13o2mjfca4",
+    "gkm2no2p42nkjhfdcb3cegikm8no3p20o8p15omkgca3b",
+    "fln2o2p42onkjihgdc2b2dehkm7n2o2p21o7p16onkgda2b2",
+    "flno3p42omjh3i3hedcegkm3l2m2n2o2p22o5p17onlhdb2c2",
+    "fjno2p43omjhfghijk2if2hklm2lm2n2o3p25op18onlhecbcd",
+    "finop44olige2fhikl5klm5n2o2p45onlifc2d2",
+    "ehmop44nkhfd2efhjkm2n5m3n2o3p45onljfdcd2",
+    "egmo3p41omjfdc3egiklmno5nmn2o3p39o3p3onmjgede2",
+    "fhmo3p41olhecb3cegiklmnop2on4o3p35o3n4op2onmkhe4",
+    "fhlno3p22o11p7olgdba3bdfhjklno2pon4o3p33nm2lki3knp2onmkifef2",
+    "ghlmn2op16o13n2o4p5okgcba3bcegijkmnopon4o3p32okigfdc2dhmop2omkigf3",
+    "giklmno2p11o10n12o3p2onkgca5bdfgijlmopon3o3p33nhdcba3dknp3omkjhg3",
+    "hjkl2mno2p7o10n5m9n2o5nlhda5bcefhikmopon3o4p32nica5elop3nmljhg3",
+    "ij2kl2mno3p3o8n5m4l5k3lm2no4nmjda5bcdfghjmo2n3o5p18o2p12njca4bgmop2onmljih3",
+    "hi2jk2lmn2o10n4m3l3k2j3i4jklmn4mlica4b2cdfghkmo2n4o4p17o5p10nica4bgmo2ponmljih3",
+    "g2hij2k2lmn2o6n4m3l2k2ji2h2gf3ghjklm4lkhca4c3dfh2jmo2n4o5p16o6p8onica4bgmo4nmlkji2h",
+    "efgh2i2jkl2mn8m3l2kj2ihgfe2dc2defhijk5jgca3cd3eg2hjmonm2n2o5p15o8p6o2nhcab2abgmo4nmlkji2h",
+    "cdefg2h3ijklm2n4m2l2kj2ihgfedcba4cdfghi5hgcbc3e4g2hjmom3n2o5p15o2n2on2o3p4o2mhbabcb2gmo3nm2lkj2if",
+    "abcde2f4ghijlm2nm3lkjihgfecba8bcde2f3g2fcb2abcdefg2hknom2n3o5p16on5m2no5nmgba2b3flnm2lk4jigd",
+    "a3bc5d2efghjlm3lk2jhgfdcba12b2c2de3ba4bcefghilnonmn3o5p16o4n2mlmonm3lkfba2b2cej5k3j2ifb",
+    "a6b5c3dfilml2kjihfeca18bcdca5beghi2kmo2nmn3o6p16o5nm2nmj2ihgca3bc2dfghjklk2jigeb",
+    "a11b4cfjl3kjigfdba18b2cba4cehijk2ln2on5o8p19on3kigfedba2bce3fgjklk2jihgfc",
+    "a11b5ejl3kjhgeca20b2cb3dfijklm2n2on6o12p15o2n2kifdcb3a2bdf2gi3h2g5fe",
+    "ba8b5c2fjl3kjhgecba20b3cegiklm2n12o14p12on2mlifdbab2a3ce2f2edc4def3",
+    "ca5b2c3d4egjlmlkjigfeca22begjklm2n13o12p13o2nml2kgdba6bcb4a4bcefg2",
+    "eba4cd2e3f3ghklm2lkjhgfdba20bdgjklmn17o11p11o2nmlk3ieba16bdfhi2",
+    "hca3bdef2g2h3ijlm4lkihgeca18b2dfikm2n13mn6o8p11o2nmlj2i2heba16cgijk2",
+    "jda2bcefgh2i2j2klm2nm2lkjihfdba16bcdfikm3n21o6p11o2nmlkigfedca16behjklm",
+    "kfcbcdfghi2j2k2lm6lkji2hfdcba13bdefhkm5n21o4p11o2nmlm2iedcb2a16cgiklmn",
+    "mifdefghi2jk2l2m6l2kj2i2hgedcba9bcdfhikm6n22o2p12onm3nmhdb3a16cfhikmn2",
+    "nlhf2gh2ij2k2l8k2j4i2hgfedc2b5cdfg2hjlm7n22op12o2nm2o2mgdba17cehijlno2",
+    "onjh3i2j3k10j3i5h2gf2ed5eghijkl3m7n8m12n2op11o2nmnopojfca17ceghikmo2p",
+    "poki4j8i6h4g7f2e5fghjklm2l7m2n3m17nop12on3op2nheba14b2cdfgh2knop2",
+    "pomj6i2h2g4fgf3e12d2cd2efhikl2ki3j2k2lm4l2k7l5m2nop12o2n2op3nhdba9bc5d2efg2ilop3",
+    "p2nkj3i2hgfed6c5b13abcdfgijife2fgi2j2l2k2j2ih2i2j3k3l2mnp12o2n2op4ngca9cde2d2ef2g4imop3",
+    "p2oli2h2gfecb2ab2a23bcef2db2cd2e3fhih2gfe3fgh2i2jk2lnop12on2op5mfba6b2cdf2edeg2h2gfgjmop3",
+    "p2okgfe2dcba30b2cba6b4c3d2cb2cdef2gh2i2jnp12on2op6meba6cd2fg2dceghg2fegknp4",
+    "p2njfdc2ba54bcde2fg2f2gmp11on2op7mda7cefghgdcdfgf2e2gknp4",
+    "polhecb2a55bcd2efed3einp9on3p7okda7befgh2fd2ef2ed2gknp4",
+    "pnifec2ba3bc3b7a34b2c4b2cd2e3c2d2gknp7on3op7nfba7bfg2h2gede3cbcgknop3",
+    "okhfedc4dgihgfe3d3c2ba17bc4d8eghi2kied2e5c2d2ehlop5on3op8mda8bfh2i2gedc3babfjnop3",
+    "mjhfed5fklkjh2g2f3edcba14cegjkj2lm8n3o2nlkhfe3dcd3eginp4onm2op9mda8bfhi3gdb3a3beilno2p",
+    "ljhfed3e2glnmlk2j3i2hgecba12dhlmno3p13onmlife2d3e3f2hkno3nml2op9mda8ceghihfcba6dhkmno2",
+    "k2ihgf5hmo2n3m3l3kheba11bgmo3p15onlk2he2d3fh3g3iklm3lklop9mda7cde2f3ecb3a4cgjlmn2",
+    "l2kjih5inp3o7nmjgca11chnopo2p14nki2hecbc2egjkjih2ijk5lnop9mda6bcd4c3ba7cgjlmn2",
+    "nm2lkj5kop10onkhda11cino5p12omki2gdba2bdgjklk2j2k2j2i2kmo2no2p5mda5b2c2b3a11cfjlmn2",
+    "o2nm2l6op9o2nlieba10dkn5op12omjihfda4beikl4k3ji4klkjkm2op3mda23cfjlmo2",
+    "p2o3n3m2np10nm2kheba9bekm4nop11onkigfdca5cgjk3l2k3j6ie2g2mop2mfba22cgjlnop",
+    "p5o4nop9oklkigeba9chkl3mnop11omjgecb2a5bdghij2k10icbcelo2pokeba19b2dgknop2",
+    "p9o2p10nmkhfdba8beik3lmnop11nlifcb2a6bdf2gh2ijkl2m5jca2dlo2p2okda17bdefghlop3",
+    "p21onkhfeca8bfij3klnop10onlhdba8bcd4efhjkmn2on2kda2dknop2oleba14b2dgh3ilop3",
+    "p22olhf2eca7cfhi2jklmnop9onlhda8b2c5degikm2n4keb2cinop2oleba12bcdfghi3jkop3",
+    "p11o3p8omigf2ecba3b2cfg2hiklmnop9onlhda7cd8eghjkjklm2lhfe2hmo3nkdba10bcdfghijk3lmop3",
+    "p6om3lk2lmo2p5onki3hgfdc3d2ef2gijkmnop9onkhda7cefgf6g3h2jkl2mlkjk2m2lkhfba10befghijkl2m4op3",
+    "p4onkfe2f2giklmnop4o2n5mkge2d4efhjklnop9onkhca7begh2igf2e2f2ghijk2l4k2jhedcba8b2cfghijkl2m2n2o2p4",
+    "ponmkhdb2cdefhjklmnop11olhfecb2cfhiklnop9onkhca7bdfgi2gfe4fg2hi2j3k2jihfca10ce2gij2kl2mn2o3p6",
+    "mkhedcb2cdefhijklmno2p11okgdba2begiklmo2p8onkhda8cegh2ge2de3fg4h4ih2gfdba7bcfhijk2lm2n2o3p5onm",
+    "d2b4cdefghijk2m2nop13njda3bdgijlmnop8onkhda8bdefgfe2de3f6g2h4g2fdba5begikl3m2n2o3p7nhe",
+    "a3bdef2ghijk2l2mno2p13olea3bdfhjkmnop8onkhda9bd2e3d3e2f5g2h5g2fecba3cegijlm3n2o3p9meb",
+    "a2beg2hi2jk2l2m3no2p13omgba3dfhiklno2p7omkhda11b3cd5efg2h2i3h3g3fecb2cdfhjkmn3o3p11mea",
+    "bcehij2k3lm2n5o2p13omhba3cegiklno5p4omjgda15c2d3efghi6h3g3fed2eghiklmno3p13mec",
+    "cdgikl3m3n2o9p11onhca3cegijlmo6p3nlifca15bcd3efghij5i4h3g3h2jklmno2p14omfc",
+    "efhklmn5o2p6onm4no6ponjca3cdfhjlmno6ponkheba15bdef2ghij2k6j5i4j2klmnop15o2mge",
+    "ghjlmno5p7omig3fhkm2no2po2lfc4dfhikmn2ono5mjgdb2c3a12dgh2ij2kl8k9lm2nop12op2o2nmig",
+    "hjkmno2p11mifedc2dfgiknp2omlkihgfg3ijkln4o4lifb2cgigda11dhj3klm9l7mn3o2p10o2n2o3nmlig",
+    "iklno2p11njgedcb2cdegjnp2nj2m2k2l2jhg2fhkmn2o3nkhebabejida11cikl2m2n5m8l2mno4p11o6nm2lji",
+    "klmnop11njgecb4cdeginp2on2onjin2kg2fc2fjlmop2nkieba2djiea11cjlm2n3o2n7m5no4p13o4nmlkj3",
+    "klmop11nkgeca5cdfgjnp6on2onig2fb2dilmop2oliea3cj2eba10dkn3o8n5m5no3p15onljhf2gi",
+    "l2mop10nkhfca6bdegjop10mg2ihcbeikmop2omjda3cj2fba10dlno11n3m3lm2no3p15onligedeh",
+    "m2nop9oligeba7cegjop10lfhkjdbehkmop2onjda3cj2fba10dlo7nm2n5ml3m2no2p16onljgedef",
+    "lmnop9nkigdba7cfhjnp9okfimlfcehjlop3nkda3dj2fba10dlo6mlhjlmn2m2l4mno2p16onljgedc2",
+    "imop9oljigdba6bdfhjmp9mgejn2kdegjlop3olfcabek2gba10dkno2n2mjihjlm4l6mop17omligecb2",
+    "einop7omkjigecba3bcdfhijlop7olefknoledgilop3omiebchlkgba10dkmn2m3j3kl6k4lmo2p16omligecb2",
+    "cejmnp5omlk2jhgedc3defhijklop7njeglo2ledfilop4nkfd2ik2gba10cjl4k12j5kmop16nmkigecb2",
+    "bcegilmn2mkj2k3jhgf4ghi2jklmnop3onmkgehmo2kd2filop4nkge2ik2gca10cik2jifik3j5kji3h2iknp15onmkigecb2",
+    "c4de2ghg3hklk2j2i4j2kl2m4no2nligfefjmomfcdgjnp5nkhg2ijkgca10cgi2hedhjk2ji2j3ihg3f2hmop14onmkigecb2",
+    "cd2cb2cde3fhjkl9m3n4m4kife3gknolebdgknp5nkh2i2j2hda7bc2df3ed2gi3h3ijihgf3edfjnop13onmkigec2b",
+    "d4cbcde3gikl2m2lm4n2o5nml3khfe2fhknoldcehkop5mki2ji2jhda6beg3e4d2gh2gf2gi3hgf4e2ino3p11onmkigedc2",
+    "e4d4efghjklm5n3o3p3onm2l2kifefgiln2kdcehknp4omkjkji2jheba5beg3ede3dghgfdfghi2h2gfg2fgjlno2p11onlkigedc2",
+    "ef3e4fghjklm2n4o4p4o2nm2l2kigf2hjmn2kedfgjno4nmlk3ihijgca5bcd5e3dfg2fefg2hih4g2hijln2o2p10onlkiged2c",
+    "fg3f4ghiklm3n2o4p6o2nm4kigfghjmnmkedefimn2mlk3l3ji2jieba4bcde8fg2f2ghg2h8ijklmnop10onljiged3",
+    "fg7hjklm2n3o2p9o2n2m3kihghikm2ljfdc2glmlkjh2ij2l2kjkifba3bcefg3fe2d2e2f3g3f4gh2g2hj3kmnop9onljigfed2",
+    "fh4g2hjklmn5o2p9o2n3m2kjhghjkl2kjfdc2fjkji2h4il2kj2ifba4ceg4fed7f3ed4eghgf2hihikmop9omljigfed2",
+    "fhi2h3ikln6o2p10o3n3mkjh3jk4jhed2fiji3j4kmljh3fba4cefg3ed5cb2dfed3c2dfhgf2hih2kmop9omljigfed2",
+    "ghi5jlmno7p10o3n3mljihi2h2i3hgf2ghjkjk2l5kig2hfba4bdf4ed5ba2cefe2fdcdfhih2iji2lnop9omljigfe3",
+    "hij5lmno7p11o4n2mlji3hfegh3ihg2hjl9kighigca5cde4d5cbabdf2ghgf2gij3k2jkmo2p9nmljigf2e2",
+    "hj4klmno8p12o4nmlji4gegh3i3h2iklmlki2k4jihfca5bc4d6cb3cefghih2ijkl4k2mop9onmljihgf3",
+    "ijk3lmno8p12o5nmlkj4ig6hi2g2hjl2ig2ikl3jhfda9bcd6cb2cdefgij2k2lm3lk2lnop8onmljihgf3",
+    "jk3l2mo2p19o5nmlkj5hf4e3h2gfhk2jh2iklm2kigdba9cd6cb2cdefhikl3m2nmlkjkmop8onmkjihg2f2",
+    "jk2l2mnop19o6nmlk5jhed6fh3ij5kl2n2mkjgba9bd6babcdefhjlm3n3mkji2lnp8onmkjihg4",
+    "k2l2m2o2p18o7n2mlk5ifdc4def2gijihiklm2o2nmlica9cde4dba2bcdefjmn3o2nljhg2jnop7onlkjih2g3",
+    "l4mno2p4op13o8nml2kl3khdb2abcde2dfi2ghkm2noponmkda9ce5dba4bceimno4njhge2hmop7onlkjih5",
+    "l4mnop4o2p13o9nml6jfca4cde2giji2kmn2opo2nkda8bdf5edcba3bejmo3p2njgfd2gmop7onlkjih4i",
+    "l3m2nop19o9nm2l6ida5cdfhjk3lmnop3o2lda8bef7ecbabcgkno2p3nkhfd2hmop7onlkji2h2ij",
+    "l2m2no2p18o11nm2l3mlkgca5cegikl2m2nop4olda8bdfg8ec2eimo2p4olhf3jnp8omlkji2h2ij",
+    "m4nop19o8po2nm2l2m3ljeba4bcfhjmn2o2p6lda8bcfgh5i2hgfhknop6mjhikmop8onlkji5k",
+    "m3n2op10op8o5no5n2m2lm3lkgba5befimo2p8mea6bc2dfgh4ijk3jkmop7nl2m2nop7o2mlkji4jl",
+    "m3n2op10op8o4n3o2po2nm7lica4behjmop10meba5bcdefgh4ijklm3np8on4op8onmlkji4jl",
+    "m2n3op19o3n2mlmopo2n2m6lica4cfiknp11mfba5cd2e2ghi4jkmn3op9o5p8onmlji5km",
+    "n5o2p18o2nmljhjnopo2n2m5lhca3bdgh2mp11mfba5cd2e2gi5jkmn2op11o2nop7o2nmkji5km",
+    "n4o3p18o2mjhgeglopo2n7mjdbabcege2lp11mea6cd3egi5jklno2p11o2n2o9nlkjih3ikm",
+    "n4o3p18o2lhedceino4n3o4lfc3dghd2lop6o2n2lda6bcd2egij3ijklmo2p11onmn2o4n4mljih2ghikm",
+    "n3o4p19olhdcbdhmopo2n2o5mied2fjke2lo8nljica6bc2dehj4i2jlmno13mlmn5mn2mlkjhg4hln",
+    "o6p20olhecbcfkop2o5p3olgfgimlgekn8mjgda6b2c3ehj4i3kmno12nlk2mnml6kjhge4gln",
+    "o5p21omifc3fjnp2o4p4onjhijlkhfjm3l2kl3ieba5b2c4ehj3i2h2jlmno4n5onmjijklkj3k2ihg2ec4eln",
+    "o4p23njhfdegjmopo3p6oli3jihfhjkjihi2j2gda5b3c2bcdgi4hg2ijlno2n4m4ljhghjkihghi2fdefdba3dkn",
+    "o2p25oljihijknop11nki4gedfg2e3fghfca4b3cb3abdgh3ge2ghjln4m3l3ige2fhigf2ghgdbcedcbabelo",
+    "p27onm4n2op12oli4gdbcdcb4d3babc3d2cba4bdfg2fc2dfhjln2m2lk2ljfd2efghge2fgfdbce2dcbchmo",
+    "p23o13p12omji3gca2ba9bdeg3fdba5bcefecb2dfhjlml2kj3gdcdefg3f3g2ed2f2dc2ekop",
+    "p22oml3mop4o3p13nji3gca12dgjkjigdba6bdf2cbabdfhkl2kjihgec2d2efgh3i2ji2hgfdc2elop",
+)]
+
+
+def sample(grid, u, v):
+    """0..1, smoothly sampled from a grid of levels."""
+    n = len(grid)
     x, y = u * n - 0.5, v * n - 0.5
     x0, y0 = max(0, min(n - 1, int(math.floor(x)))), max(0, min(n - 1, int(math.floor(y))))
     x1, y1 = min(n - 1, x0 + 1), min(n - 1, y0 + 1)
     fx, fy = clamp(x - x0), clamp(y - y0)
-    top = LIT[y0][x0] + (LIT[y0][x1] - LIT[y0][x0]) * fx
-    bottom = LIT[y1][x0] + (LIT[y1][x1] - LIT[y1][x0]) * fx
+    top = grid[y0][x0] + (grid[y0][x1] - grid[y0][x0]) * fx
+    bottom = grid[y1][x0] + (grid[y1][x1] - grid[y1][x0]) * fx
     return (top + (bottom - top) * fy + 0.5) / 16
 
 
@@ -408,9 +542,9 @@ def detail_fn(variant):
                 col = [clamp(z * k * (0.8 + 0.4 * nf)) for z in DARK_LEATHER]
                 if (y % 10) < 2 and abs(x % 40 - 20) < 6:
                     col = [0.5, 0.45, 0.4]                    # laces
-        l = lit(u, v)
-        shine = SHINE.get(c, 0.0) * l ** 8                     # highlight where the form faces the light
-        col = [clamp(z * (0.45 + 0.85 * l) + shine) for z in col]
+        l, o = sample(LIT, u, v), 0.5 + 0.5 * sample(OPEN, u, v)
+        shine = SHINE.get(c, 0.0) * l ** 8 * o                 # highlight where the form faces the light
+        col = [clamp(z * (0.45 + 0.85 * l) * o + shine) for z in col]
         return col + [1]
     return f
 
@@ -481,7 +615,7 @@ def look():
     return Look("keel", "scalebearer", {
         "body": Sheet({"": "keel", "_red": "keel", "_blue": "keel"},
                       detail={v: detail_fn(v) for v in ENAMEL},
-                      glow={v: glow_fn(LIGHT[v]) for v in LIGHT}, size=512),
+                      glow={v: glow_fn(LIGHT[v]) for v in LIGHT}, size=1024),
         "neck": Sheet({"": "keel_h", "_red": "keel_h", "_blue": "keel_h"}, detail=neck_detail, size=64),
         "head": Sheet({"": "biker_h", "_red": "biker_h", "_blue": "biker_h"}, model="biker",
                       grade=head_grade, detail=head_detail_fn(),
