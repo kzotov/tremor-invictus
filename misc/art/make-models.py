@@ -40,6 +40,7 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
   models/abilities/turret/turret.md3        the sentry: a tripod, a turning head
                                             and a barrel along +x
   models/abilities/drone/drone.md3          Strogg's Peeker: a small sphere with a red eye
+                                            and four metal rods trailing behind it
   sound/abilities/turret_*.wav, drone_shot.wav
                                             the turret's deploy, online, target,
                                             shot, idle hum and destroyed; the
@@ -352,12 +353,74 @@ def turret(out):
             lambda u, v, n=Fbm(61, 4, 8): [0.42 * (0.75 + 0.4 * n.at(u * 4, v * 4))] * 3 + [1], False)
 
 
+def rod(mesh, root, direction, length, r0, r1, sweep, segments=8, rings=12):
+    """A thin tapered pole from root along direction, its radius falling from
+    r0 to r1, bending by sweep (a vector) times the square of the way along:
+    u runs round it, v from the root (0) to the tip (1)."""
+    d = direction
+    k = math.sqrt(sum(c * c for c in d))
+    d = tuple(c / k for c in d)
+    # two axes across the pole
+    a = (0.0, 0.0, 1.0) if abs(d[2]) < 0.9 else (1.0, 0.0, 0.0)
+    e1 = (a[1] * d[2] - a[2] * d[1], a[2] * d[0] - a[0] * d[2], a[0] * d[1] - a[1] * d[0])
+    k = math.sqrt(sum(c * c for c in e1))
+    e1 = tuple(c / k for c in e1)
+    e2 = (d[1] * e1[2] - d[2] * e1[1], d[2] * e1[0] - d[0] * e1[2], d[0] * e1[1] - d[1] * e1[0])
+    first = len(mesh.xyz)
+    for i in range(rings + 1):
+        t = i / rings
+        r = r0 + (r1 - r0) * t
+        c = tuple(root[j] + d[j] * length * t + sweep[j] * t * t for j in range(3))
+        for s in range(segments + 1):
+            ang = 2 * math.pi * s / segments
+            n = tuple(e1[j] * math.cos(ang) + e2[j] * math.sin(ang) for j in range(3))
+            mesh.vert(tuple(c[j] + n[j] * r for j in range(3)), n, (s / segments, t))
+    for i in range(rings):
+        for s in range(segments):
+            p = first + i * (segments + 1) + s
+            q = p + segments + 1
+            mesh.quad(p, p + 1, q + 1, q)
+    # a small bead closing the tip
+    tip = tuple(root[j] + d[j] * length + sweep[j] for j in range(3))
+    bead = len(mesh.xyz)
+    lat = 4
+    for i in range(lat + 1):
+        th = math.pi * i / lat
+        for s in range(segments + 1):
+            ang = 2 * math.pi * s / segments
+            n = tuple(d[j] * math.cos(th) + (e1[j] * math.cos(ang) + e2[j] * math.sin(ang)) * math.sin(th)
+                      for j in range(3))
+            mesh.vert(tuple(tip[j] + n[j] * r1 * 1.9 for j in range(3)), n, (s / segments, 0.97))
+    for i in range(lat):
+        for s in range(segments):
+            p = bead + i * (segments + 1) + s
+            q = p + segments + 1
+            mesh.quad(p, q, q + 1, p + 1)
+
+
 def drone(out):
     """Strogg's Peeker: a small sphere (radius 10, the drone's box) of dark
-    metal with a lit band and a red eye facing forward (+x)."""
+    metal with a lit band and a red eye facing forward (+x), and four thin
+    rods streaming out behind it from a collar on its back, splayed a little
+    and bending upward like a comet's tail."""
     m = Mesh("ability/drone")
     lathe(m, [(10 * math.sin(math.pi * k / 12), -10 * math.cos(math.pi * k / 12)) for k in range(13)], 20)
-    write_md3(os.path.join(out, "models/abilities/drone/drone.md3"), "drone", [m])
+    rods = Mesh("ability/drone_rods")
+    # the collar, a short sleeve round the back (-x)
+    start = len(rods.xyz)
+    lathe(rods, [(0.1, 0), (3.6, 0), (4.2, 0.8), (4.2, 3.2), (3.2, 4.2), (2.4, 4.2), (0.1, 4.2)], 16)
+    for i in range(start, len(rods.xyz)):
+        x, y, z = rods.xyz[i]
+        nx, ny, nz = rods.normal[i]
+        rods.xyz[i] = (-8.6 - z, y, x)
+        rods.normal[i] = (-nz, ny, nx)
+    # the rods, long to short, seen from behind as an X
+    for az, length, lift in ((45, 40, 7), (135, 34, 6), (225, 30, 4), (315, 26, 4)):
+        a = math.radians(az)
+        cy, cz = math.cos(a), math.sin(a)
+        root = (-12.2, 2.3 * cy, 2.3 * cz)
+        rod(rods, root, (-1, 0.14 * cy, 0.14 * cz), length, 0.75, 0.28, (0, 0, lift))
+    write_md3(os.path.join(out, "models/abilities/drone/drone.md3"), "drone", [m, rods])
 
     def body(u, v, n=Fbm(83, 4, 8)):
         k = 0.32 * (0.8 + 0.4 * n.at(u * 4, v * 4))
@@ -370,8 +433,30 @@ def drone(out):
         g = max(0.0, 1 - d / 0.16) ** 1.5
         return [g, 0.12 * g, 0.08 * g, 1]
 
+    def rods_metal(u, v, grain=Fbm(89, 3, 8), streak=Noise(97, 64, 4)):
+        """Brushed gunmetal along the rod, a polished steel ferrule at the
+        root, two blackened joints and a black tip."""
+        k = 0.26 + 0.06 * grain.at(u * 2, v * 2) + 0.10 * (streak.at(u * 64, v * 2) - 0.5)
+        tint = 1.04
+        if v < 0.07:
+            k, tint = 0.62 + 0.08 * streak.at(u * 64, 0), 1.0      # the ferrule
+        elif min(abs(v - 0.36), abs(v - 0.66)) < 0.025:
+            k, tint = 0.07, 1.0                                    # the joints
+        elif v > 0.9:
+            k, tint = 0.06 + 0.04 * (1 - (v - 0.9) / 0.1), 1.0      # the tip
+        return [k, k, k * tint, 1]
+
+    def sheen(u, v):
+        """A soft studio sky for the rods' reflection: bright overhead,
+        dark below."""
+        y = 1 - v
+        k = 0.05 + 0.5 * max(0.0, y - 0.45) ** 2 * 4 + 0.25 * math.exp(-((u - 0.3) ** 2 + (y - 0.75) ** 2) * 60)
+        return [k, k, k * 1.05, 1]
+
     texture(os.path.join(out, "models/abilities/drone/drone.tga"), 64, 64, body, False)
     texture(os.path.join(out, "models/abilities/drone/drone_eye.tga"), 64, 64, eye, False)
+    texture(os.path.join(out, "models/abilities/drone/drone_rods.tga"), 32, 128, rods_metal, False)
+    texture(os.path.join(out, "models/abilities/drone/drone_sheen.tga"), 64, 64, sheen, False)
 
 
 def barrier(out):
@@ -1096,6 +1181,21 @@ ability/drone
 	{
 		map models/abilities/drone/drone_eye.tga
 		blendFunc GL_ONE GL_ONE
+		rgbGen identity
+	}
+}
+
+// the Peeker's trailing rods: brushed gunmetal with a soft metal sheen
+ability/drone_rods
+{
+	{
+		map models/abilities/drone/drone_rods.tga
+		rgbGen lightingDiffuse
+	}
+	{
+		map models/abilities/drone/drone_sheen.tga
+		blendFunc GL_ONE GL_ONE
+		tcGen environment
 		rgbGen identity
 	}
 }
