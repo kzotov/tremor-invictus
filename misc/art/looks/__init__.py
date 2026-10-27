@@ -27,10 +27,14 @@ module each, each with a look():
                        (looks/galena.py): cold iron with teal seams, dark
                        robes, a charcoal hood with a teal trim, a pale face
                        with teal eyes
+  models/players/razor/*_scalebearer*.skin, visor/head_scalebearer.skin, ...
+                       Scalebearer on razor's "id" armour with visor's helm
+                       (looks/scalebearer.py): gold-rimmed red scales, bronze
+                       scales over the arms, a gold shield, a red bronze helm
 """
 import importlib
 
-MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena")
+MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer")
 
 
 def ALL():
