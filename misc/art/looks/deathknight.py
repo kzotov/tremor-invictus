@@ -3,14 +3,39 @@ iron with embers glowing through its cracks and a furnace grate where the
 chest eye was; the skull is charred, with fire in the sockets. Team versions
 keep the team's paint and burn in its colour."""
 import math
-from skins import Sheet, Look
+from skins import Sheet, Look, painted
 from tremorart import Fbm, clamp, smooth
 
-# ---------------------------------------------------------------- the body sheet (visor.tga, 768 px view)
+# ---------------------------------------------------------------- the body sheet (visor.tga)
 
-FURNACE = (680 / 768, 415 / 768, 84 / 768)          # over the chest eye
 IRON = (0.07, 0.065, 0.07)
 FIRE = {"": (1.0, 0.42, 0.08), "_red": (1.0, 0.3, 0.06), "_blue": (0.3, 0.6, 1.0)}
+
+
+def find_furnace(geo, n=256):
+    """The furnace sits on the shoulder pad: of the sheet's fair-sized UV
+    islands, the one riding highest on the body. (u, v, r): the disc that
+    fits its box."""
+    islands = {}
+    for y in range(n):
+        for x in range(n):
+            t = geo.at((x + 0.5) / n, (y + 0.5) / n)
+            if t is not None and t.covered:
+                s = islands.setdefault(t.island, [0, 0.0, n, n, 0, 0])
+                s[0] += 1
+                s[1] += t.z
+                s[2], s[3], s[4], s[5] = min(s[2], x), min(s[3], y), max(s[4], x + 1), max(s[5], y + 1)
+    big = [s for s in islands.values() if s[0] >= n * n // 100]
+    if not big:
+        return (0.5, 0.5, 0.0)
+    _, _, x0, y0, x1, y1 = max(big, key=lambda s: s[1] / s[0])
+    return ((x0 + x1) / 2.0 / n, (y0 + y1) / 2.0 / n, min(x1 - x0, y1 - y0) / 2.0 / n)
+
+
+def furnace(geo):
+    if not hasattr(geo, "dk_furnace"):
+        geo.dk_furnace = find_furnace(geo)
+    return geo.dk_furnace
 
 
 def body_grade(u, v):
@@ -21,9 +46,9 @@ def team_grade(u, v):
     return [0.42, 0.4, 0.4, 1]
 
 
-def grate(u, v):
-    """For the furnace: (inside the disc, on a bar, on the rim)."""
-    cu, cv, r = FURNACE
+def grate(u, v, disc):
+    """For the furnace disc (u, v, r): (inside the disc, on a bar, on the rim)."""
+    cu, cv, r = disc
     d = math.hypot(u - cu, v - cv)
     slot = abs(((v - cv) / r * 2.5 + 0.5) % 1 - 0.5) < 0.09 and abs(u - cu) < r * 0.55
     return d < r, not slot, d > r * 0.85
@@ -43,6 +68,13 @@ CRACKS = cracks_fn(911)
 
 
 def body_detail_fn(wash):
+    @painted
+    def make(geo):
+        return body_detail(wash, furnace(geo))
+    return make
+
+
+def body_detail(wash, disc):
     n = Fbm(907, 4, 6)
 
     def f(u, v):
@@ -51,7 +83,7 @@ def body_detail_fn(wash):
         crack = CRACKS(u, v)
         if crack > 0:
             c, a = [0.02, 0.01, 0.01], max(a, 0.9 * crack)
-        inside, bar, rim = grate(u, v)
+        inside, bar, rim = grate(u, v, disc)
         if inside:
             if rim:
                 c, a = [0.16, 0.15, 0.15], 1.0
@@ -64,19 +96,53 @@ def body_detail_fn(wash):
 
 
 def body_glow_fn(colour):
-    def f(u, v):
-        k = 0.8 * CRACKS(u, v)
-        inside, bar, rim = grate(u, v)
-        if inside and not rim and not bar:
-            cu, cv, r = FURNACE
-            k = max(k, 0.8 - 0.5 * abs(u - cu) / r)
-        return [colour[0] * k, colour[1] * k, colour[2] * k, 1]
-    return f
+    @painted
+    def make(geo):
+        disc = furnace(geo)
+
+        def f(u, v):
+            k = 0.8 * CRACKS(u, v)
+            inside, bar, rim = grate(u, v, disc)
+            if inside and not rim and not bar:
+                cu, cv, r = disc
+                k = max(k, 0.8 - 0.5 * abs(u - cu) / r)
+            return [colour[0] * k, colour[1] * k, colour[2] * k, 1]
+        return f
+    return make
 
 
-# ---------------------------------------------------------------- the skull (bones' stiff.tga, 768 px view)
+# ---------------------------------------------------------------- the skull (bones' stiff.tga)
 
-SOCKETS = [(38 / 768, 636 / 768, 20 / 768), (118 / 768, 630 / 768, 28 / 768), (72 / 768, 692 / 768, 11 / 768)]
+def find_sockets(geo, n=256):
+    """The sockets: patches of the face (facing forward) that the model's
+    own texture paints dark, the eyes and the nose. [(u, v, r)], each a
+    disc of its patch's size."""
+    if geo.colour(0.5, 0.5) is None:
+        return []
+    dark = set()
+    for y in range(n):
+        for x in range(n):
+            u, v = (x + 0.5) / n, (y + 0.5) / n
+            t = geo.at(u, v)
+            if t is not None and t.covered and t.part == "head" and t.nrm[0] > 0.5 and sum(geo.colour(u, v)) / 3 < 0.12:
+                dark.add((x, y))
+    out, seen = [], set()
+    for p in sorted(dark):
+        if p in seen:
+            continue
+        todo, patch = [p], []
+        seen.add(p)
+        while todo:
+            x, y = todo.pop()
+            patch.append((x, y))
+            for q in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                if q in dark and q not in seen:
+                    seen.add(q)
+                    todo.append(q)
+        if len(patch) * 1000 >= n * n:
+            out.append(((sum(x for x, _ in patch) / len(patch) + 0.5) / n, (sum(y for _, y in patch) / len(patch) + 0.5) / n,
+                        1.3 * math.sqrt(len(patch) / math.pi) / n))
+    return out
 
 
 def skull_grade(u, v):
@@ -93,13 +159,20 @@ def skull_detail_fn():
 
 
 def skull_glow_fn(colour):
-    def f(u, v):
-        k = 0.0
-        for cu, cv, r in SOCKETS:
-            k = max(k, 1 - math.hypot(u - cu, v - cv) / r)
-        k = clamp(k * 1.4) ** 0.8
-        return [colour[0] * k, colour[1] * k, colour[2] * k, 1]
-    return f
+    @painted
+    def make(geo):
+        if not hasattr(geo, "dk_sockets"):
+            geo.dk_sockets = find_sockets(geo)
+        sockets = geo.dk_sockets
+
+        def f(u, v):
+            k = 0.0
+            for cu, cv, r in sockets:
+                k = max(k, 1 - math.hypot(u - cu, v - cv) / r)
+            k = clamp(k * 1.4) ** 0.8
+            return [colour[0] * k, colour[1] * k, colour[2] * k, 1]
+        return f
+    return make
 
 
 def look():

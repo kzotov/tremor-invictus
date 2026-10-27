@@ -101,47 +101,209 @@ def edge_rivets(points, k, step):
     return out
 
 
+# ---------------------------------------------------------------- grunt: finding things on the model
+
+class Patch:
+    """The texels of a sheet that rule(texel) picks, on an n x n grid, with
+    how far each texel is from the patch's edge, for rims and rows of
+    rivets."""
+
+    def __init__(self, geo, rule, n=256, cap=16):
+        self.n = n
+        self.grid = [[bool(rule(geo.at((x + 0.5) / n, (y + 0.5) / n))) for x in range(n)] for y in range(n)]
+        self.din, self.dout = _chamfer(self.grid, True, cap), _chamfer(self.grid, False, cap)
+
+    def dist(self, u, v):
+        """Signed distance to the edge in the sheet's units, < 0 inside."""
+        n = self.n
+        x, y = u * n - 0.5, v * n - 0.5
+        x0, y0 = max(0, min(n - 1, int(math.floor(x)))), max(0, min(n - 1, int(math.floor(y))))
+        x1, y1 = min(n - 1, x0 + 1), min(n - 1, y0 + 1)
+        fx, fy = clamp(x - x0), clamp(y - y0)
+
+        def s(i, j):
+            return -self.din[j][i] if self.grid[j][i] else self.dout[j][i]
+        return mix(mix(s(x0, y0), s(x1, y0), fx), mix(s(x0, y1), s(x1, y1), fx), fy) / n
+
+    def middle(self):
+        pts = [(x, y) for y in range(self.n) for x in range(self.n) if self.grid[y][x]]
+        if not pts:
+            return (-1.0, -1.0)
+        return ((sum(p[0] for p in pts) / len(pts) + 0.5) / self.n, (sum(p[1] for p in pts) / len(pts) + 0.5) / self.n)
+
+    def studs(self, depth, step):
+        """Rivet centres in a ring depth texels in from the edge, about step
+        texels apart."""
+        ring = [(x, y) for y in range(self.n) for x in range(self.n)
+                if self.grid[y][x] and abs(self.din[y][x] - depth) < 0.75]
+        if not ring:
+            return []
+        cx, cy = sum(p[0] for p in ring) / len(ring), sum(p[1] for p in ring) / len(ring)
+        ring.sort(key=lambda p: math.atan2(p[1] - cy, p[0] - cx))
+        out = []
+        for x, y in ring:
+            if all(math.hypot(x - a, y - b) >= step for a, b in out):
+                out.append((x, y))
+        return [((x + 0.5) / self.n, (y + 0.5) / self.n) for x, y in out]
+
+
+def _chamfer(grid, inside, cap):
+    """For each texel on the given side of the patch, its distance in texels
+    to the other side (half a texel at the edge; the sheet's border counts
+    as outside the patch)."""
+    n = len(grid)
+    d = [[0.0] * n for _ in range(n)]
+    for y in range(n):
+        for x in range(n):
+            if grid[y][x] != inside:
+                continue
+            edge = False
+            for i, j in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                if 0 <= x + i < n and 0 <= y + j < n:
+                    edge = edge or grid[y + j][x + i] != inside
+                else:
+                    edge = edge or inside
+            d[y][x] = 0.5 if edge else cap
+    for _ in range(2):                      # down-right, then up-left
+        for y in range(n):
+            for x in range(n):
+                if grid[y][x] == inside:
+                    for i, j in ((-1, 0), (0, -1), (-1, -1), (1, -1)):
+                        if 0 <= x + i < n and 0 <= y + j < n and grid[y + j][x + i] == inside:
+                            d[y][x] = min(d[y][x], d[y + j][x + i] + (1.4 if i and j else 1))
+        for y in range(n - 1, -1, -1):
+            for x in range(n - 1, -1, -1):
+                if grid[y][x] == inside:
+                    for i, j in ((1, 0), (0, 1), (1, 1), (-1, 1)):
+                        if 0 <= x + i < n and 0 <= y + j < n and grid[y + j][x + i] == inside:
+                            d[y][x] = min(d[y][x], d[y + j][x + i] + (1.4 if i and j else 1))
+    return d
+
+
+def snap(geo, at, keep=lambda t: True, n=256):
+    """The (u, v) of the covered texel that keep() allows nearest the point
+    at on the model."""
+    best, uv = 1e9, (-1.0, -1.0)
+    for y in range(n):
+        for x in range(n):
+            t = geo.at((x + 0.5) / n, (y + 0.5) / n)
+            if t is not None and t.covered and keep(t):
+                d = sum((t.pos[i] - at[i]) ** 2 for i in range(3))
+                if d < best:
+                    best, uv = d, ((x + 0.5) / n, (y + 0.5) / n)
+    return uv
+
+
+def islands(geo, n=256):
+    """{island: (texels, mean height, mean brightness of the model's own
+    texture)} over the covered texels."""
+    acc = {}
+    for y in range(n):
+        for x in range(n):
+            u, v = (x + 0.5) / n, (y + 0.5) / n
+            t = geo.at(u, v)
+            if t is None or not t.covered:
+                continue
+            c = geo.colour(u, v) or (0.5, 0.5, 0.5)
+            a = acc.setdefault(t.island, [0, 0.0, 0.0])
+            a[0] += 1
+            a[1] += t.z
+            a[2] += max(c)
+    return {k: (a[0], a[1] / a[0], a[2] / a[0]) for k, a in acc.items()}
+
+
 # ---------------------------------------------------------------- grunt: the body sheet
 
-# regions of the body sheet, traced in a 768 px view of it
-FLESH = [poly([(368, 22), (562, 28), (604, 120), (594, 384), (470, 390), (368, 372), (358, 200)]),
-         poly([(370, 388), (602, 388), (602, 482), (400, 492), (366, 460)])]
-ARM_PLATE = [(468, 150), (566, 140), (580, 222), (548, 248), (474, 238)]
-ARM_SEAM = ((0.545, 0.06), (0.66, 0.42))
 PALLOR = (0.50, 0.53, 0.50)      # washed over bare skin
 GRADE_STEEL = (0.70, 1.02, 1.25)     # x2 modulate factors: orange paint to olive steel
 GRADE_FLESH = (0.80, 1.05, 1.10)     # pink to a sickly grey
+# on the model (x forward, y left, z up, units): where the arm plate sits on
+# the upper arm, its seam, the ports on the neck and the chest grille's lamps
+ARM_PLATE_AT = (-13.6, -11.1, 19.1)
+ARM_SEAM = ((-3.8, -8.5, 22.4), (-7.1, -12.4, 14.9))     # shoulder, elbow
+NECK_PORTS = ((1.7, -3.8, 27.3), (-1.3, -1.3, 28.5))
+CHEST_LAMPS = ((4.1, -4.7, 12.2), (5.2, -3.4, 12.1))
 
 
-def body_grade(u, v):
-    f = max(clamp(0.5 - p(u, v) * 120) for p in FLESH)
-    g = mix(GRADE_STEEL, GRADE_FLESH, f)
-    return [g[0] / 2, g[1] / 2, g[2] / 2, 1]
+class GruntBody:
+    """Grunt's body sheet as Strogg wears it, worked out from the model: the
+    bare skin (the arms the texture paints light, and the neck: the
+    torso's islands near its top), the plate on the upper arm and the
+    places of the seam, ports and lamps."""
+
+    def __init__(self, geo):
+        stats = islands(geo)
+        top = max((t.z for row in geo.grid for t in row if t is not None and t.surf == "u_torso"), default=0)
+
+        def flesh(t):
+            if t is None or not t.covered:
+                return False
+            s = stats.get(t.island, (0, 0, 0))
+            if t.surf in ("u_larm", "u_rarm"):
+                return s[2] > 0.3                   # the skin, not the dark gauntlets
+            return t.surf == "u_torso" and s[1] > top - 4.5
+        self.flesh = Patch(geo, flesh)
+        # the plate: a square with a corner cut, on the back of the upper arm
+        cu, cv = snap(geo, ARM_PLATE_AT, lambda t: t.surf in ("u_larm", "u_rarm"))
+        turn, h = math.radians(-6), 0.066
+        corners = [(-1, -1), (1, -1), (1, 0.5), (0.5, 1), (-1, 1)]
+        corners = [(cu + h * (x * math.cos(turn) - y * math.sin(turn)), cv + h * (x * math.sin(turn) + y * math.cos(turn)))
+                   for x, y in corners]
+        self.plate = poly(corners, 1.0)
+        self.hole = (cu, cv)
+        self.studs = edge_rivets(corners, 1.0, 0.03)
+        on_arm = lambda t: t.surf in ("u_larm", "u_rarm")
+        self.seam = tuple(snap(geo, p, on_arm) for p in ARM_SEAM)
+        self.ports = [snap(geo, p, lambda t: t.surf == "u_torso") for p in NECK_PORTS]
+        self.lamps = [snap(geo, p, lambda t: t.surf == "u_torso") for p in CHEST_LAMPS]
 
 
-def team_grade(u, v):
+def grunt_body(geo):
+    if not hasattr(geo, "strogg"):
+        geo.strogg = GruntBody(geo)
+    return geo.strogg
+
+
+def skin_amount(body, u, v):
+    """1 on bare skin (and two texels round it), 0 off it, soft over a
+    texel at the edge."""
+    return clamp(2.0 - body.flesh.dist(u, v) * 256)
+
+
+def body_grade(geo):
+    body = grunt_body(geo)
+
+    def f(u, v):
+        g = mix(GRADE_STEEL, GRADE_FLESH, skin_amount(body, u, v))
+        return [g[0] / 2, g[1] / 2, g[2] / 2, 1]
+    return f
+
+
+def team_grade(geo):
     """The team versions keep the team's paint: only the skin is graded."""
-    f = max(clamp(0.5 - p(u, v) * 120) for p in FLESH)
-    g = mix((1.0, 1.0, 1.0), GRADE_FLESH, f)
-    return [g[0] / 2, g[1] / 2, g[2] / 2, 1]
+    body = grunt_body(geo)
+
+    def f(u, v):
+        g = mix((1.0, 1.0, 1.0), GRADE_FLESH, skin_amount(body, u, v))
+        return [g[0] / 2, g[1] / 2, g[2] / 2, 1]
+    return f
 
 
-def body_detail_fn():
+def body_detail_fn(geo):
     n, veins = Fbm(701, 4, 5), Fbm(709, 4, 3)
-    plate = poly(ARM_PLATE)
-    studs = edge_rivets(ARM_PLATE, 768.0, 0.03)
+    body = grunt_body(geo)
+    hole_u, hole_v = body.hole
 
     def f(u, v):
         c, a = [0, 0, 0], 0.0
-        in_flesh = min(p(u, v) for p in FLESH) < 0
-        if in_flesh:
+        if body.flesh.dist(u, v) < 2.0 / 256:
             c, a = list(PALLOR), 0.42                       # a dead, grey pallor over the skin
             # veins: dark lines where the noise crosses its middle
             w = abs(veins.at(u * 2, v * 2) - 0.5)
             if w < 0.018:
                 c, a = [0.16, 0.12, 0.16], 0.55 * (1 - w / 0.018)
             # the stapled seam
-            d, t = seg_dist(u, v, *ARM_SEAM)
+            d, t = seg_dist(u, v, *body.seam)
             if d < 0.006:
                 c, a = [0.18, 0.05, 0.05], 0.8
             phase = (t * 26) % 1
@@ -149,21 +311,21 @@ def body_detail_fn():
                 k = 0.5 + 0.3 * (1 - d / 0.016)
                 c, a = [k, k, k * 1.05], 1.0
         # the implant plate on the upper arm, bolted on
-        pd = plate(u, v)
+        pd = body.plate(u, v)
         if pd < 0:
             c, a = list(metal(u, v, n)), 1.0
             if pd > -0.006:
                 c = [x * 0.55 for x in c]                      # shadowed rim
-            r = rivets(u, v, studs, 0.009)
+            r = rivets(u, v, body.studs, 0.009)
             if r >= 0:
                 c = [0.25 + 0.5 * r] * 3
-            hole = math.hypot(u - 0.69, v - 0.245)
+            hole = math.hypot(u - hole_u, v - hole_v)
             if hole < 0.02:
                 c = [0.05, 0.05, 0.05] if hole < 0.012 else [0.55, 0.55, 0.56]
         elif pd < 0.008:
             c, a = [0.12, 0.05, 0.05], 0.7 * (1 - pd / 0.008)   # raw flesh round its edge
-        # ports on the shoulder flesh
-        for cu, cv in ((0.56, 0.56), (0.66, 0.58)):
+        # ports in the neck
+        for cu, cv in body.ports:
             d = math.hypot(u - cu, v - cv)
             if d < 0.022:
                 c, a = ([0.04, 0.04, 0.04] if d < 0.011 else [0.5, 0.5, 0.52]), 1.0
@@ -171,23 +333,90 @@ def body_detail_fn():
     return f
 
 
-def body_glow(u, v):
+def body_glow(geo):
     """The arm plate's status light and the chest grille's lamps."""
-    k = 0.0
-    for cu, cv, r in ((0.69, 0.245, 0.011), (0.215, 0.33, 0.012), (0.255, 0.33, 0.012)):
-        k = max(k, 1 - math.hypot(u - cu, v - cv) / r)
-    k = clamp(k) ** 1.2
-    return [k, 0.12 * k, 0.05 * k, 1]
+    body = grunt_body(geo)
+    lights = [body.hole + (0.011,)] + [p + (0.012,) for p in body.lamps]
+
+    def f(u, v):
+        k = 0.0
+        for cu, cv, r in lights:
+            k = max(k, 1 - math.hypot(u - cu, v - cv) / r)
+        k = clamp(k) ** 1.2
+        return [k, 0.12 * k, 0.05 * k, 1]
+    return f
 
 
 # ---------------------------------------------------------------- grunt: the head sheet
 
-# traced in a 512 px view of the head sheet (the face on the left, the side of the head on the right)
-SKULL_PLATE = [(262, 38), (472, 58), (502, 140), (470, 222), (332, 204), (250, 150)]
-JAW = [(92, 312), (212, 312), (226, 352), (196, 400), (118, 400), (80, 352)]
-EYE = (190 / 512, 232 / 512)
-SCALP_STAPLES = ((120 / 512, 82 / 512), (252 / 512, 128 / 512))
-PORTS = [(382 / 512, 300 / 512), (424 / 512, 352 / 512)]
+class GruntHead:
+    """Grunt's head as Strogg wears it, found on the model: the face's
+    middle (the nose's tip), the eyes (the dark patches the texture paints
+    beside the nose), the skull plate over the crown and the back of the
+    head, the jaw grille over the mouth and chin, the scalp's staples and
+    the ports behind the ear."""
+
+    def __init__(self, geo, n=256):
+        ts = [t for row in geo.grid for t in row if t is not None and t.covered]
+        lo = [min(t.pos[i] for t in ts) for i in range(3)]
+        hi = [max(t.pos[i] for t in ts) for i in range(3)]
+        nose = max(ts, key=lambda t: t.x)
+        mid, zn = (lo[1] + hi[1]) / 2, nose.z
+        self.eyes = self.find_eyes(geo, mid, zn, n)
+        if len(self.eyes) < 2:                  # no texture to look at: where eyes go
+            self.eyes = sorted(snap(geo, (hi[0], mid + s * 1.1, zn), lambda t: t.nrm[0] > 0.3) for s in (-1, 1))
+        # the implant takes the eye on the model's left
+        self.implant = max(self.eyes, key=lambda e: geo.at(*e).y)
+        # the plate's front edge leans back as it climbs over the crown
+        front = lambda t: lo[0] + 0.73 * (hi[0] - lo[0]) - 0.57 * (t.z - zn - 1.7)
+        self.skull = Patch(geo, lambda t: t is not None and t.covered and t.z > zn + 0.8 and t.x < front(t))
+
+        def jaw(t):
+            if t is None or t.nrm[0] < 0.2:
+                return False
+            h = (t.z - (zn - 3.8)) - 1                # -1..1 from the chin to below the nose
+            return abs(h) < 1 and abs(t.y - mid) < 1.4 * (1 - 0.35 * max(0.0, abs(h) - 0.3) / 0.7)
+        self.jaw = Patch(geo, jaw)
+        self.studs = self.skull.studs(2.5, 12.0)
+        self.jstuds = self.jaw.studs(2.0, 14.0)
+        self.staples = (snap(geo, (hi[0] - 0.9, mid - 0.4, zn + 2.8)), snap(geo, (hi[0] - 2.2, mid + 1.5, zn + 2.3)))
+        self.ports = [snap(geo, (lo[0] + 1.4, mid + 1.6, zn - 0.9)), snap(geo, (lo[0] + 1.3, mid - 0.5, zn - 2.0))]
+
+    @staticmethod
+    def find_eyes(geo, mid, zn, n):
+        """The two biggest dark patches facing forward level with the nose."""
+        if geo.colour(0.5, 0.5) is None:
+            return []
+        dark = set()
+        for y in range(n):
+            for x in range(n):
+                u, v = (x + 0.5) / n, (y + 0.5) / n
+                t = geo.at(u, v)
+                if t is not None and t.covered and t.nrm[0] > 0.5 and abs(t.z - zn) < 1.5 and max(geo.colour(u, v)) < 0.15:
+                    dark.add((x, y))
+        found, seen = [], set()
+        for p in sorted(dark):
+            if p in seen:
+                continue
+            todo, patch = [p], []
+            seen.add(p)
+            while todo:
+                x, y = todo.pop()
+                patch.append((x, y))
+                for q in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                    if q in dark and q not in seen:
+                        seen.add(q)
+                        todo.append(q)
+            found.append((len(patch), (sum(q[0] for q in patch) / len(patch) + 0.5) / n,
+                          (sum(q[1] for q in patch) / len(patch) + 0.5) / n))
+        found.sort(reverse=True)
+        return [(u, v) for _, u, v in found[:2]] if len(found) >= 2 else []
+
+
+def grunt_head(geo):
+    if not hasattr(geo, "strogg"):
+        geo.strogg = GruntHead(geo)
+    return geo.strogg
 
 
 def head_grade(u, v):
@@ -195,39 +424,38 @@ def head_grade(u, v):
     return [g[0] / 2, g[1] / 2, g[2] / 2, 1]
 
 
-def head_detail_fn():
+def head_detail_fn(geo):
     n = Fbm(733, 4, 5)
-    skull, jaw = poly(SKULL_PLATE, 512.0), poly(JAW, 512.0)
-    studs = edge_rivets(SKULL_PLATE, 512.0, 0.05)
-    jstuds = edge_rivets(JAW, 512.0, 0.06)
+    head = grunt_head(geo)
+    eu, ev = head.implant
 
     def f(u, v):
         c, a = list(PALLOR), 0.42
         # dark, sunken skin round the eyes
-        for ex in (75 / 512, 190 / 512):
-            d = math.hypot((u - ex) * 0.8, v - 232 / 512)
+        for ex, ey in head.eyes:
+            d = math.hypot((u - ex) * 0.8, v - ey)
             if d < 0.07:
                 c, a = mix(PALLOR, (0.08, 0.06, 0.07), 1 - d / 0.07), 0.42 + 0.3 * (1 - d / 0.07)
                 c = list(c)
         # staples across the scalp
-        d, t = seg_dist(u, v, *SCALP_STAPLES)
+        d, t = seg_dist(u, v, *head.staples)
         if d < 0.005:
             c, a = [0.2, 0.05, 0.05], 0.8
         if d < 0.014 and abs((t * 9) % 1 - 0.5) < 0.12:
             c, a = [0.6, 0.6, 0.62], 1.0
         # the steel plate over the skull
-        sd = skull(u, v)
+        sd = head.skull.dist(u, v)
         if sd < 0:
             c, a = list(metal(u, v, n, 0.46)), 1.0
             if sd > -0.01:
                 c = [x * 0.55 for x in c]
-            r = rivets(u, v, studs, 0.014)
+            r = rivets(u, v, head.studs, 0.014)
             if r >= 0:
                 c = [0.25 + 0.5 * r] * 3
         elif sd < 0.012:
             c, a = [0.15, 0.05, 0.05], 0.6 * (1 - sd / 0.012)
         # the jaw grille: slats over the mouth and chin
-        jd = jaw(u, v)
+        jd = head.jaw.dist(u, v)
         if jd < 0:
             c, a = list(metal(u, v, n, 0.28)), 1.0
             slat = (v * 512 / 11) % 1
@@ -235,15 +463,15 @@ def head_detail_fn():
                 c = [0.02, 0.02, 0.02]
             if jd > -0.012:
                 c = [x * 0.6 for x in c]
-            r = rivets(u, v, jstuds, 0.016)
+            r = rivets(u, v, head.jstuds, 0.016)
             if r >= 0:
                 c = [0.25 + 0.5 * r] * 3
         # the implant eye's socket ring
-        d = math.hypot(u - EYE[0], v - EYE[1])
+        d = math.hypot(u - eu, v - ev)
         if d < 0.065:
             c, a = ([0.45, 0.45, 0.48] if d > 0.038 else [0.25, 0.02, 0.02]), 1.0
         # cable ports behind the ear
-        for p in PORTS:
+        for p in head.ports:
             d = math.hypot(u - p[0], v - p[1])
             if d < 0.035:
                 c, a = ([0.04, 0.04, 0.04] if d < 0.018 else [0.52, 0.52, 0.55]), 1.0
@@ -251,9 +479,13 @@ def head_detail_fn():
     return f
 
 
-def head_glow(u, v):
-    k = clamp(1.3 - math.hypot(u - EYE[0], v - EYE[1]) / 0.04) ** 0.6
-    return [k, 0.1 * k, 0.04 * k, 1]
+def head_glow(geo):
+    eu, ev = grunt_head(geo).implant
+
+    def f(u, v):
+        k = clamp(1.3 - math.hypot(u - eu, v - ev) / 0.04) ** 0.6
+        return [k, 0.1 * k, 0.04 * k, 1]
+    return f
 
 
 # ---------------------------------------------------------------- files
@@ -328,15 +560,22 @@ SHADERS = "// our skins over models the player already has (misc/art/skins.py)\n
     SHADER % {"suffix": x, "body": b, "head": h, "grade": g} for x, b, h, g in VARIANTS)
 
 
-def grunt_strogg(out):
+def grunt_strogg(out, ctx):
+    """Strogg's images, skins and (in SHADERS) shaders, painted from the
+    player's grunt (ctx, a geo.Context)."""
+    tags = {"lower": ["tag_torso"], "upper": ["tag_head", "tag_weapon", "tag_torso"], "head": ["tag_head"]}
+    grunt = Look("grunt", "strogg", {"body": Sheet({"": "stripe"}), "head": Sheet({"": "stripe_h"})},
+                 {"lower": {"l_legs": "body"}, "upper": {"u_torso": "body", "u_larm": "body", "u_rarm": "body"},
+                  "head": {"h_head": "head"}}, tags)
+    body, head = ctx.sheet(grunt, "body"), ctx.sheet(grunt, "head")
     d = os.path.join(out, "models/players/grunt")
-    tex(os.path.join(d, "strogg_grade.tga"), 128, 128, body_grade, False)
-    tex(os.path.join(d, "strogg_detail.tga"), 512, 512, body_detail_fn(), True)
-    tex(os.path.join(d, "strogg_glow.tga"), 128, 128, body_glow, False)
+    tex(os.path.join(d, "strogg_grade.tga"), 128, 128, body_grade(body), False)
+    tex(os.path.join(d, "strogg_detail.tga"), 512, 512, body_detail_fn(body), True)
+    tex(os.path.join(d, "strogg_glow.tga"), 128, 128, body_glow(body), False)
     tex(os.path.join(d, "strogg_hgrade.tga"), 16, 16, head_grade, False)
-    tex(os.path.join(d, "strogg_hdetail.tga"), 256, 256, head_detail_fn(), True)
-    tex(os.path.join(d, "strogg_hglow.tga"), 64, 64, head_glow, False)
-    tex(os.path.join(d, "strogg_tgrade.tga"), 128, 128, team_grade, False)
+    tex(os.path.join(d, "strogg_hdetail.tga"), 256, 256, head_detail_fn(head), True)
+    tex(os.path.join(d, "strogg_hglow.tga"), 64, 64, head_glow(head), False)
+    tex(os.path.join(d, "strogg_tgrade.tga"), 128, 128, team_grade(body), False)
     for suffix, _, _, _ in VARIANTS:
         body = "models/players/grunt/strogg_body" + suffix
         parts = {
@@ -383,6 +622,17 @@ class LabelMap:
                         if 0 <= x + i < n and 0 <= y + j < n and g[y + j][x + i] == g[y][x]:
                             d[y][x] = min(d[y][x], d[y + j][x + i] + (1.4 if i and j else 1))
         self.dist = d
+
+    @classmethod
+    def painted(cls, rule, n=128, cap=8):
+        """A layer-time LabelMap: rule(texel, u, v) -> letter for each texel
+        of the sheet's SheetGeo (geo.py) on an n x n grid. Returns a factory
+        to call with the SheetGeo."""
+        def make(geo):
+            rows = ["".join(rule(geo.at((x + 0.5) / n, (y + 0.5) / n), (x + 0.5) / n, (y + 0.5) / n)
+                            for x in range(n)) for y in range(n)]
+            return cls(rows, cap)
+        return make
 
     def label(self, u, v):
         n = self.n
@@ -551,7 +801,7 @@ def build(out, ctx, signature=b""):
     or signature (the player's files) changed since they were last drawn
     into out (the stamps sit beside out, so they stay out of the pack)."""
     import hashlib, looks
-    grunt_strogg(out)
+    grunt_strogg(out, ctx)
     text = SHADERS
     here = os.path.dirname(os.path.abspath(__file__))
     common = signature + b"".join(open(os.path.join(here, f), "rb").read()

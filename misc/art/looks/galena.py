@@ -6,145 +6,62 @@ boots; lit from the model's own form. The hood is near-black with a gold
 edge; under it a pale face framed by long black hair, with a red mark on
 the brow. Team versions dye the robes and the hood in the team's colour."""
 import math
-from skins import Sheet, Look, LabelMap, region, inside, seg_dist
+from skins import Sheet, Look, LabelMap, painted
 from tremorart import Fbm, Noise, clamp, smooth
 
 
 # ---------------------------------------------------------------- the body sheet (lucy's angel.tga)
 
-# what each texel is, 128 x 128, run-length coded rows: w ivory plate,
-# c breastplate, p pauldrons, g gauntlets, b belt, t tabard, d robes,
-# o boots, k nothing
-MAP = LabelMap((
-    "w3k4w5gw13g2w27c12o35w26",
-    "w3k4w46c15o29w31",
-    "w3k4w45c18o26w32",
-    "w3k4w43c22o23w33",
-    "w3k4w42c23k23w33",
-    "w3k4w39cwc25k22w33",
-    "w3k4w35c31k22w33",
-    "w3k4w35c32k21w33",
-    "w3k4w34c33k21w33",
-    "w3k4w33c34k21w33",
-    "w3k4w33c34k22w32",
-    "w3k4w32c35k22w32",
-    "w3k4w32c35k23w31",
-    "w3k4w31c36k23w31",
-    "w3k4w31c36k23c11w20",
-    "w3k4w31c36k23c11w20",
-    "w3k3w31c37k22c13w19",
-    "w3k2w31c38k22c13w19",
-    "w3kw31c39k21c14w19",
-    "w34c40k21c14w19",
-    "w33c41k21c14w19",
-    "w32c42k20c15w19",
-    "w31c43k20c15w19",
-    "w31c43k20c15w19",
-    "w30c44k18c17w19",
-    "w30c44k16c20w18",
-    "w29c45k15c21w18",
-    "w29c45k13c23w18",
-    "w29c45k11c25w18",
-    "w29c45k10c26w18",
-    "w28c46k10c26w18",
-    "w28c46k10c26w18",
-    "w27c46k11c26w18",
-    "w27c46k11c11d14cw18",
-    "w27c46k11d44",
-    "w26c47b11d44",
-    "w26c46b12d44",
-    "w26c45b14d43",
-    "w26c45b17d39w",
-    "w26c44b21d35w2",
-    "w4dw21c42b30d19b8dw2",
-    "w3d5w18c42b58w2",
-    "w2d10w14c42b58w2",
-    "w2d16w9c41b58w2",
-    "wd23w3c41b59w",
-    "wd28c39b59w",
-    "wd36c31b59w",
-    "d44c23b60d",
-    "d48c4dc13b61d",
-    "d50c16b62",
-    "d46c20b62",
-    "bd42c23b62",
-    "b2d24bd27c12b23d3b36",
-    "b2d21b5d6bd26c5b4d11b3td9b34",
-    "b3d20b12d27c3d16t3d11b33",
-    "d22b3d9bd28c2d17t3d16b6d5b11d5",
-    "d21b3d10bd93",
-    "d3k18d13td93",
-    "d3k18d12t2d93",
-    "d3k18d10t4d26kt2d64",
-    "d3k18d7t7d24k3t3d4t2d57",
-    "d3p13k5d36k4t5d2t3d57",
-    "d2p19d34k5dt10d57",
-    "dp21d31k7d2t10d56",
-    "dp26d24k3b6d3t9d56",
-    "dp34d16k3b7d3t8d56",
-    "dp37d12k4b8d3t8d55",
-    "dp42d6k5b9d2t8d55",
-    "dp43d5k5b10t9d55",
-    "dp44k9b10td3t5d55",
-    "dp44k9b11d3t4d56",
-    "dp44k9b12d2t5d55",
-    "dp10dp33k9b12d2t5d55",
-    "dp9d4p32k8b13dt5d55",
-    "p9d7p30k8b13dt5d51t4",
-    "p8d10p28k8b13t6d50t5",
-    "p6d14p26k8b14t6d49t5",
-    "p5d17p24dk7b14t6d48t6",
-    "pd22p22d2k7b14t6d47t7",
-    "d25p13d9k7b15t5d47t7",
-    "d26p3dp5d12k7b15t5d46t8",
-    "d30p3d14k8b15t5d44t9",
-    "d31pd15k8b15t5d44t9",
-    "d47k8b11t9d43t9d",
-    "d47k8b2t18d42t10d",
-    "d47k8bt15d3td17w3d22t10d",
-    "d47k9t15d3t2d9w20d12t9kd",
-    "d47k9t15d3w34d8t10d2",
-    "d47k9t15d2w38d5t7w3d2",
-    "d47k9t16w54d2",
-    "d47k9t16w54d2",
-    "d47k9t16w54d2",
-    "d11gd35k10t16w53d2",
-    "d11g2d33k11t15w54d2",
-    "d11gd34k11t15w55d",
-    "d11gd33k12t15w55d",
-    "d10g5d30k12t15w55d",
-    "d10g8d26k13t15w55d",
-    "d10g9d25k14t14w55d",
-    "d9g11d23k15t13w56d",
-    "d9g14d20k15t13w56d",
-    "d9g14d20k15t12w57d",
-    "d8g16d19k15t11w58d",
-    "d8g16d19k16t9w59d",
-    "d8g17d18k25w59d",
-    "d7g18d18k24w60d",
-    "d8g18d17k24w61",
-    "d8g18d17k23w62",
-    "d8g19d16k22w63",
-    "d8g19d16k21w64",
-    "wd7g20d15k21w64",
-    "wd8g19d15k14o7w64",
-    "wd8g19d15k13o9w63",
-    "wd8g19d15k13o10w27ow22o3w9",
-    "wd8g20d14k12o11w14o26w8o11w3",
-    "wkd8g18dg3d11k11o53w3o16w2",
-    "wkd8g19d14k11o73w",
-    "wk2d8g18d14k11o74",
-    "k3d9g18d12k12o74",
-    "k4d8g18d12k12o73k",
-    "k4d9g17d11k13o72k2",
-    "k4d9g19d9k13o71k3",
-    "k4d9g21d7k13o70k4",
-    "k4d9g20d8k13o69k5",
-    "k4d9g19d9w13o69k5",
-    "w3kd7g22d6w16o67w6",
-    "w3k2d5g24d3w18c4o60w9",
-    "w3k3dw3g24w21c8o41wo11w12",
-))
+# what each texel is, worked out on the player's machine from where it sits
+# on the standing model: w ivory plate, c breastplate, p pauldrons,
+# g gauntlets, b belt, t tabard, d robes, o boots, k nothing
+
+
+def sort_texels(geo, rule, rest, n=128, reach=4):
+    """A LabelMap of the sheet: rule(texel) -> letter for the texels the
+    model uses, spread reach texels into the unused ones round them (each
+    pass from the left, the right, above, then below), rest beyond."""
+    grid = [[None] * n for _ in range(n)]
+    for y in range(n):
+        for x in range(n):
+            t = geo.at((x + 0.5) / n, (y + 0.5) / n)
+            if t and t.covered:
+                grid[y][x] = rule(t)
+    for _ in range(reach):
+        for i, j in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            grid = [[grid[y][x] or (grid[y - j][x - i] if 0 <= x - i < n and 0 <= y - j < n else None)
+                     for x in range(n)] for y in range(n)]
+    return LabelMap.painted(lambda t, u, v: grid[int(v * n)][int(u * n)] or rest, n)(geo)
+
+
+def label_map(geo):
+    if hasattr(geo, "galena_map"):
+        return geo.galena_map
+
+    def rule(t):
+        x, y, z = t.pos
+        if t.part == "lower":
+            if z > 11:
+                return "b"                                   # the belt round the hips
+            if z < -19:
+                return "o"
+            if z < -6:
+                return "w"                                   # greaves
+            return "t" if x > 2.5 and abs(y) < 3.2 else "d"  # the tabard hangs down the front
+        if t.surf in ("u_larm", "u_rarm"):
+            return "p" if z > 24 else "g" if z < 16 else "d"
+        if z < 18:
+            return "d"                                       # robes below the breastplate
+        return "c" if x > 3.5 else "w"
+    geo.galena_map = sort_texels(geo, rule, "k")
+    return geo.galena_map
+
+
+@painted
+def body_label(geo):
+    return label_map(geo).label
+
+
 IVORY = (0.84, 0.82, 0.77)
 CREAM = (0.86, 0.79, 0.62)
 GOLD = (0.78, 0.6, 0.24)
@@ -153,8 +70,10 @@ SHINE = {"w": 0.35, "c": 0.35, "p": 0.4, "g": 0.35, "b": 0.5, "t": 0.1, "d": 0.0
 # the form shading over the body, worked out on the player's machine from
 # the model they have (bake-form.py): (a + b x how much a texel faces the
 # light) x (c + d x how open it is), and a highlight per material
-FORM = {"body": {"model": ("lucy", "angel", "angel.tga"), "light": (0.45, 0.85), "open": (0.55, 0.45), "shine": SHINE, "label": MAP.label}}
-CROSS = (351 / 768, 150 / 768)
+FORM = {"body": {"model": ("lucy", "angel", "angel.tga"), "light": (0.45, 0.85), "open": (0.55, 0.45), "shine": SHINE, "label": body_label}}
+# the gold cross high on the breastplate, on the body's middle line: (y, z)
+# bounds of its upright and of its arms
+CROSS = (((-0.3, 0.7), (23.7, 26.1)), ((-1.4, 1.8), (24.7, 25.4)))
 
 
 def gold(k, nf):
@@ -162,6 +81,13 @@ def gold(k, nf):
 
 
 def detail_fn(variant):
+    @painted
+    def make(geo):
+        return paint(variant, label_map(geo), geo)
+    return make
+
+
+def paint(variant, MAP, geo):
     n, fine, weave = Fbm(1311, 4, 5), Noise(1323, 256, 256), Noise(1325, 64, 512)
 
     def f(u, v):
@@ -188,8 +114,8 @@ def detail_fn(variant):
             elif abs(math.sin(x * 0.11) * 6 + math.sin(y * 0.07) * 6 - (x - y) % 24 + 12) < 0.9:
                 col = [z * 0.78 for z in col]                    # engraved scrollwork
         elif c == "c":
-            dx, dy = abs(u - CROSS[0]) * 768, abs(v - CROSS[1]) * 768
-            if (dx < 5 and dy < 26) or (dy < 5 and dx < 17 and v * 768 < CROSS[1] * 768 + 4 and v * 768 > CROSS[1] * 768 - 10):
+            t = geo.at(u, v)
+            if any(y0 < t.y < y1 and z0 < t.z < z1 for (y0, y1), (z0, z1) in CROSS):
                 col = gold(k * 1.1, nf)                          # the cross
             elif e < 1.3:
                 col = gold(k, nf)
@@ -215,50 +141,69 @@ def detail_fn(variant):
     return f
 
 
-# ---------------------------------------------------------------- the hood (uriel.tga, 768 px view)
+# ---------------------------------------------------------------- the hood (uriel.tga)
 
-TRIM = [((0.0, 0.73), (0.25, 0.62))]
+def hood_rim(geo, n=256, reach=3):
+    """The texels where the hood's cloth ends: within reach of the edge
+    between texels the model uses and texels it leaves unused."""
+    used = [[bool(geo.at((x + 0.5) / n, (y + 0.5) / n) and geo.at((x + 0.5) / n, (y + 0.5) / n).covered)
+             for x in range(n)] for y in range(n)]
+    ring = [(i, j) for i in range(-reach, reach + 1) for j in range(-reach, reach + 1) if i * i + j * j <= reach * reach]
+    return {(x, y) for y in range(n) for x in range(n)
+            if any(0 <= x + i < n and 0 <= y + j < n and used[y + j][x + i] != used[y][x] for i, j in ring)}
 
 
 def hood_detail_fn(variant):
-    n, weave = Fbm(1327, 4, 5), Noise(1329, 64, 512)
+    @painted
+    def make(geo):
+        n, weave = Fbm(1327, 4, 5), Noise(1329, 64, 512)
+        if not hasattr(geo, "galena_rim"):
+            geo.galena_rim = hood_rim(geo)
+        rim = geo.galena_rim
 
-    def f(u, v):
-        if min(seg_dist(u, v, *s)[0] for s in TRIM) < 0.012:
-            return gold(0.9, 0.5) + [1]                          # the hood's gold edge
-        fold = weave.at(u * 16, v * 4)
-        k = (0.45 + 1.0 * smooth(0.25, 0.75, fold)) * (0.85 + 0.3 * n.at(u * 4, v * 4))
-        k *= 0.7 + 0.5 * smooth(0.9, 0.1, v)                     # lit from above
-        return [clamp(z * k) for z in ROBE[variant]] + [1]
-    return f
+        def f(u, v):
+            t = geo.at(u, v)
+            if t and (t.x > 1 or t.nrm[0] > 0.45) and (int(u * 256), int(v * 256)) in rim:
+                return gold(0.9, 0.5) + [1]                      # the gold edge round the face
+            fold = weave.at(u * 16, v * 4)
+            k = (0.45 + 1.0 * smooth(0.25, 0.75, fold)) * (0.85 + 0.3 * n.at(u * 4, v * 4))
+            k *= 0.7 + 0.5 * smooth(35, 8, t.z if t else 40)     # darker toward the crown
+            return [clamp(z * k) for z in ROBE[variant]] + [1]
+        return f
+    return make
 
 
-# ---------------------------------------------------------------- the face (uriel_h.tga, mirrored about u 0.27)
+# ---------------------------------------------------------------- the face (uriel_h.tga)
 
-MID = 0.27
-EYE = (0.4, 0.38, 0.045)
+EYE = (0.69, 30.7, 0.44, 0.29)          # off the face's middle line, height; half width, half height
 
 
-def face_detail_fn():
+@painted
+def face_detail_fn(geo):
+    """Placed on the face itself: s is how far a texel is from the face's
+    middle line (half way across its width), z its height."""
     n, strands = Fbm(1321, 3, 4), Noise(1331, 64, 256)
+    ys = [t.y for t in (geo.at((x + 0.5) / 64, (y + 0.5) / 64) for y in range(64) for x in range(64)) if t and t.covered]
+    mid = (min(ys) + max(ys)) / 2 if ys else 0
 
     def f(u, v):
-        x = abs(u - MID)
-        if x > 0.19 or v < 0.08:                                 # long black hair framing the face
-            s = strands.at(u * 40, v * 140)
-            k = 0.5 + 0.8 * smooth(0.3, 0.8, s)
+        t = geo.at(u, v)
+        s, z, ahead = (abs(t.y - mid), t.z, t.nrm[0]) if t else (9, 0, 0)
+        if s > 1.06 or z > 32.4 or (ahead < 0 and s > 0.2):     # long black hair framing the face
+            h = strands.at(u * 40, v * 140)
+            k = 0.5 + 0.8 * smooth(0.3, 0.8, h)
             return [0.05 * k, 0.045 * k, 0.05 * k, 1]
         k = 0.88 + 0.16 * n.at(u * 3, v * 3)
         c = [0.86 * k, 0.8 * k, 0.78 * k]                         # pale skin
-        c = [y * (1 - 0.25 * smooth(0.06, 0.0, abs(v - 0.5)) * smooth(0.06, 0.13, x)) for y in c]
-        e = math.hypot(u - EYE[0], (v - EYE[1]) * 1.4)
-        if e < EYE[2] * 1.6:
-            c = [y * (0.3 + 0.7 * smooth(EYE[2] * 0.6, EYE[2] * 1.6, e)) for y in c]   # dark-lined eyes
-        if abs(v - 0.6) < 0.012 and x < 0.08:
+        c = [y * (1 - 0.25 * smooth(0.34, 0.0, abs(z - 30.0)) * smooth(0.25, 0.69, s)) for y in c]   # cheekbones
+        e = math.hypot((s - EYE[0]) / EYE[2], (z - EYE[1]) / EYE[3])
+        if e < 1:
+            c = [y * (0.3 + 0.7 * smooth(0.375, 1, e)) for y in c]   # dark-lined eyes
+        if abs(z - 29.43) < 0.07 and s < 0.45:
             c = [0.42, 0.14, 0.16]                               # lips
-        if x < 0.012 and 0.16 < v < 0.27:
+        if s < 0.07 and 31.3 < z < 31.93:
             c = [0.6, 0.06, 0.06]                                # the red mark on the brow
-        top = smooth(0.02, 0.22, v)                              # the hood's shadow on the brow
+        top = smooth(32.72, 31.6, z)                             # the hood's shadow on the brow
         return [y * (0.4 + 0.6 * top) for y in c] + [1.0]
     return f
 
@@ -270,7 +215,7 @@ def look():
         "hood": Sheet({"": "uriel", "_red": "uriel", "_blue": "uriel"}, model="uriel",
                       detail={v: hood_detail_fn(v) for v in ROBE}, size=256),
         "face": Sheet({"": "uriel_h", "_red": "uriel_h", "_blue": "uriel_h"}, model="uriel",
-                      detail=face_detail_fn(), size=128),
+                      detail=face_detail_fn, size=128),
     }, {"lower": {"l_legs": "body"},
         "upper": {"u_torso": "body", "u_larm": "body", "u_rarm": "body"},
         "head": {"h_hood": "hood", "h_face": "face"}},

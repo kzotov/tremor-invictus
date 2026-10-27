@@ -8,143 +8,79 @@ quilted in puffed diamonds, the shirt and trousers fold, the chaps and
 vest are stitched, and the leather and boots are scuffed. The shoulder pad is hidden. Team versions paint the vest in
 the team's colour."""
 import math
-from skins import Sheet, Look, LabelMap
+from skins import Sheet, Look, LabelMap, painted
 from tremorart import Fbm, Noise, clamp, smooth, mix
 
-# what each texel of sarge's band.tga is, 128 x 128, run-length coded rows:
-# h hair, b beard, f face, v vest, w undershirt, y shirt and sleeves, l gloves,
-# s bare skin, g belt, c chaps, k trousers, o boots
-MAP = (
-    "v13b12g23b3k37c5k11c9k4v11",
-    "v19b6g22o5k46o15k2v13",
-    "v24g22o6k46o16v14",
-    "v25g21o6k47o15v14",
-    "v25g21o7k46o15v14",
-    "v3y2v21g20o7k47o14v14",
-    "w2y3v21g20o7k47o14v14",
-    "w2y3v21g20o7k48o13v14",
-    "w2y3v21g20o7k48o14v13",
-    "w2y3v21g20o7k48o14v13",
-    "w2y3v21g20o7k48o14v13",
-    "w2y3v21g20o7k48o14v13",
-    "w2y3v21g20o7k48o13v14",
-    "w2y3v21g19o8k47v28",
-    "w2y3v21g18ko8k46v29",
-    "w2y3v22g18o8k46v29",
-    "w2y3v22g18o8k45v30",
-    "w2y3v22g18o8k45v30",
-    "w2y3v22g18o8k44v31",
-    "w2y3v23g6s11o7k45v31",
-    "w2y3v24s17o6k44v32",
-    "w2y3v24s17o6k8ok35v32",
-    "w2y3v24s17o6k7o2k11ok23v32",
-    "w2y3v24s16lo6k6o3k11o2k22v32",
-    "w2y3v25s13l3o6k6o8k6o2ko3k17v33",
-    "w2y3v25s11l6o5k5o14ko7k16v33",
-    "w2y3v25s9l9o3k5o24k15v33",
-    "w2y3v25s7l12ok5o26k14v33",
-    "w2y3v26s5l13sk4o28k12v34",
-    "w2y3v26s2l15s3o32k11v34",
-    "w2y3v26sl11g5s11os12y10o8k4v34",
-    "w2y3v25g5l3g10s24y11s2o6ks3v33",
-    "w2y3v24g19s24y11s5o2s6v32",
-    "w2y3v24g18s24y11s14v32",
-    "w2y3v23g19s24y11s14v32",
-    "w2y3v23g19s24y11s14v32",
-    "w2y3v23g19s24y10s14v33",
-    "w2y3v23g19s23y11s12v35",
-    "w2y3v22g19y2s22y11s12v35",
-    "w2y3v22g19y2s22y10s13v35",
-    "w2y3v22g19y2s21y11s13v35",
-    "w2y3v23g17y3s21y11s13v35",
-    "w2y3v41ys22y10s14v35",
-    "w2y3v40y2s21y11s14v35",
-    "w2y3v40y2sy2s18y11s14v35",
-    "w2y3v19sv20y5s18y11s14v35",
-    "w2y3v18s3v19y5s18y11s14v35",
-    "w2y3v18s4v18y5s19y10s15v34",
-    "w2y3v18s6v16y5s19y9s16v34",
-    "w2y3v17s8v15y6s18y9s16v34",
-    "w2y3v17s10v12y8s17y8s22v29",
-    "w2y3v16s13v5s6y8s18y5s25l2v25",
-    "w2y3v16s25y4s22y3s26l4v23",
-    "w2y3v16s28ys22y3s26l4v23",
-    "g9v12s52ys27l5v22",
-    "g11v9ks80l5v22",
-    "g12v8ks80l7v20",
-    "g13v7ks80l7v20",
-    "g14v6ks80l7v20",
-    "g15v5ks80l7v20",
-    "g16v5s55ys3ys20l7v20",
-    "g13v9s55y3s21l7v20",
-    "vg7v14s56ys22l8v19",
-    "v2gv20s78l8v19",
-    "v23s78l8v19",
-    "v24s77l8v19",
-    "v24s78l3s3lv19",
-    "v24s78ls5o4v16",
-    "v25s82o13v8",
-    "ov24s80h2o21",
-    "v26s69h12o21",
-    "v26s68h13o21",
-    "v26s68h13o21",
-    "v27s67h13o21",
-    "v28s67h12o21",
-    "v28s67h12o21",
-    "v27s30o2s36h12o21",
-    "v27s29o4s35h12o21",
-    "v27s29o5s34h13o19v",
-    "v27s28o15s25h13o19v",
-    "v27s28o17s23h13o8g11v",
-    "v27s28o19s21h11g2o2g17v",
-    "v27s28o22s17h12g21v",
-    "v27s27o31s5g4h7g26v",
-    "v27s27o32c5g32k4v",
-    "v28s25o32c7g26k9v",
-    "v28s25o31c9g2c3gc17k12",
-    "kv26s26o31c11g4c17k12",
-    "kv26s26o31c8g7c17k12",
-    "kv26s26o31c9g6c17k12",
-    "k2v25s25o31c11g5c17k12",
-    "k2v25s25o31c12g2c19k12",
-    "k2v25s25o31c33k12",
-    "k3v22h2s25o31c33k12",
-    "k3hv17h8s23o31c32k13",
-    "k2h10v5h35o31c32k13",
-    "k2h62g13o5c33k13",
-    "k2h62g14o2c35k13",
-    "k2fh61g15c36k13",
-    "k2f5h57g16c35k13",
-    "k2f24h38g16c35k13",
-    "kf27h36g16c35k13",
-    "kf27h36g16c35k13",
-    "kf27h36g16c35k13",
-    "kf27h36g16c35k13",
-    "kf27h36g16c35k13",
-    "f28h36g17c34k13",
-    "f29h34g18c34k13",
-    "f30h33g18c34k12f",
-    "f29h34g18c34k12f",
-    "f29h34g18c34k12f",
-    "f29h34k16g2c34k12f",
-    "f29h34k18c34k12f",
-    "f29h34k18c34k12f",
-    "f29h34k18c34k12f",
-    "fb31h30k19c34k12f",
-    "b32h30k18c34k13f",
-    "b32h30k18c34k13b",
-    "b32h2b4h2b7h15k18c35k12b",
-    "b48h14k17c4k5c27k12b",
-    "b50h11k18c3k5c6k3c19k12b",
-    "b52h9k26c6k5c17k13",
-    "b53h8k25c7k6c16k13",
-    "b54h7k25c7k8c14k13",
-    "b57h3k26c7k10c12k13",
-    "b37g3b18h2k24c9k11c11k13",
-    "v2b33g7b16k25c10k11c11k12v",
-    "v3b23g21b10k26c10k11c10k9v5",
-)
-MAP = LabelMap(MAP)
+# what each texel of sarge's band.tga is, worked out on the player's machine
+# from where it sits on the standing model: h hair, b beard, f face, v vest,
+# w undershirt, y shirt and sleeves, l gloves, s bare skin, g belt, c chaps,
+# k trousers, o boots
+TURN = math.radians(40)         # the torso is turned this far to the right in its stand frame
+
+
+def sort_texels(geo, rule, rest, n=128, reach=4):
+    """A LabelMap of the sheet: rule(texel) -> letter for the texels the
+    model uses, spread reach texels into the unused ones round them (each
+    pass from the left, the right, above, then below), rest beyond."""
+    grid = [[None] * n for _ in range(n)]
+    for y in range(n):
+        for x in range(n):
+            t = geo.at((x + 0.5) / n, (y + 0.5) / n)
+            if t and t.covered:
+                grid[y][x] = rule(t)
+    for _ in range(reach):
+        for i, j in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            grid = [[grid[y][x] or (grid[y - j][x - i] if 0 <= x - i < n and 0 <= y - j < n else None)
+                     for x in range(n)] for y in range(n)]
+    return LabelMap.painted(lambda t, u, v: grid[int(v * n)][int(u * n)] or rest, n)(geo)
+
+
+def spans(geo, n=128):
+    """The lowest and highest point of each UV island: {island: (z0, z1)}."""
+    out = {}
+    for y in range(n):
+        for x in range(n):
+            t = geo.at((x + 0.5) / n, (y + 0.5) / n)
+            if t and t.covered:
+                z0, z1 = out.get(t.island, (t.z, t.z))
+                out[t.island] = (min(z0, t.z), max(z1, t.z))
+    return out
+
+
+def label_map(geo):
+    if hasattr(geo, "eisen_map"):
+        return geo.eisen_map
+    span = spans(geo)
+    c, s = math.cos(TURN), math.sin(TURN)
+
+    def rule(t):
+        x, y, z = t.pos
+        z0, z1 = span[t.island]
+        if t.surf == "h_head":
+            if z > 31 or x < -0.5:
+                return "h"                                   # the crown and the back of the head
+            if (x > 1.5 and z < 27.5) or z < 27.1:
+                return "b"                                   # the beard round the jaw
+            return "f" if x > 2.1 else "h"                   # the face, framed by sideburns
+        if t.part == "upper":
+            if z1 > 26:                                      # pieces up to the neck: the vest
+                side, ahead = abs(x * c + y * s + 0.75), x * s - y * c
+                if ahead > 2 and side < 1.4:                 # open down the chest's middle
+                    return "w" if side < 0.6 else "y"
+                return "v"
+            if z > 22.6:
+                return "y"                                   # the sleeves
+            return "l" if x > 11.8 else "s"                  # the hand held forward is gloved
+        if z > 7.2:
+            return "g"
+        if z < -17:
+            return "o"
+        if z > -11 and z0 < -12 and z1 > 5:                  # long pieces from the knee to the hips
+            return "c"
+        return "k"
+    geo.eisen_map = sort_texels(geo, rule, "v")              # the hidden shoulder pad's texels: vest
+    return geo.eisen_map
+
 
 VEST = {"": (0.62, 0.13, 0.1), "_red": (0.66, 0.08, 0.06), "_blue": (0.12, 0.24, 0.66)}
 COLOURS = {
@@ -165,6 +101,13 @@ def quilt(x, y):
 
 
 def detail_fn(variant):
+    @painted
+    def make(geo):
+        return paint(variant, label_map(geo))
+    return make
+
+
+def paint(variant, MAP):
     n, fine, strands = Fbm(2311, 4, 6), Noise(2313, 256, 256), Noise(2317, 128, 128)
     folds = Noise(2319, 32, 32)
 
