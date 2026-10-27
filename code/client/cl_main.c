@@ -3297,6 +3297,12 @@ static void CL_RmlShow_f( void ) {
 		Com_Printf( "usage: rml_show <ui/document.rml>\n" );
 		return;
 	}
+	// the main menu never shows in a game (it can't be closed there): the
+	// in-game menu instead, whichever path asked for it
+	if ( clc.state == CA_ACTIVE && !Q_stricmp( Cmd_Argv( 1 ), "ui/main.rml" ) ) {
+		RML_Show( "ui/ingame.rml" );
+		return;
+	}
 	RML_Show( Cmd_Argv( 1 ) );
 }
 static void CL_RmlHide_f( void ) {

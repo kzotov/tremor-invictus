@@ -34,6 +34,34 @@ for the row under the cursor.
 
 #include "ui_local.h"
 
+/*
+=================
+Settings_SlotLabel
+
+A weapon key's label: its slot number and the weapons in it by their pickup
+names ("2  Machinegun / Heavy Machinegun"), so players know which is which
+=================
+*/
+static void Settings_SlotLabel( int slot, char *out, int size ) {
+	int		w, n = 0;
+	gitem_t	*it;
+
+	Com_sprintf( out, size, "%i ", slot );
+	for ( w = WP_GAUNTLET ; w < WP_NUM_WEAPONS ; w++ ) {
+		if ( BG_WeaponSlot( w ) != slot ) {
+			continue;
+		}
+		for ( it = bg_itemlist + 1 ; it->classname ; it++ ) {
+			if ( it->giType == IT_WEAPON && it->giTag == w ) {
+				Q_strcat( out, size, n++ ? " / " : " " );
+				Q_strcat( out, size, it->pickup_name );
+				break;
+			}
+		}
+	}
+}
+
+
 enum {
 	TAB_VIDEO,
 	TAB_MOUSE,
@@ -487,8 +515,8 @@ static void Settings_DrawBind( void *self ) {
 	char				name[64], text[96];
 	const char			*label = BG_String( row->label );
 
-	if ( row->slot ) {
-		Com_sprintf( text, sizeof( text ), label, row->slot );
+	if ( row->slot && row->type == ROW_BIND ) {
+		Settings_SlotLabel( row->slot, text, sizeof( text ) );
 		label = text;
 	}
 	if ( focus ) {
@@ -1034,7 +1062,12 @@ static void Rml_BindText( int tab, int r ) {
 }
 
 static void Rml_Option( const settingRow_t *row, const char *condition, const char *command, const char *label ) {
-	Rml_Add( va( "<button class=\"opt\" data-class=\"on:%s\" onclick=\"%s%s\">%s</button>", condition, command,
+	char	cond[MAX_STRING_CHARS], cmd[MAX_STRING_CHARS];
+
+	// (the callers may pass va() strings, which the next va() reuses)
+	Q_strncpyz( cond, condition, sizeof( cond ) );
+	Q_strncpyz( cmd, command, sizeof( cmd ) );
+	Rml_Add( va( "<button class=\"opt\" data-class=\"on:%s\" onclick=\"%s%s\">%s</button>", cond, cmd,
 		row->restart ? "; set ui_setRestart 1" : "", UI_RmlText( label ) ) );
 }
 
@@ -1106,8 +1139,8 @@ static void Rml_Row( int tab, int r ) {
 	int					i;
 
 	Q_strncpyz( label, BG_String( row->label ), sizeof( label ) );
-	if ( row->slot ) {
-		Com_sprintf( label, sizeof( label ), BG_String( row->label ), row->slot );
+	if ( row->slot && row->type == ROW_BIND ) {
+		Settings_SlotLabel( row->slot, label, sizeof( label ) );
 	}
 	Rml_Add( va( "<div class=\"srow\"><span class=\"slabel\">%s</span><span class=\"svalue\">", UI_RmlText( label ) ) );
 
