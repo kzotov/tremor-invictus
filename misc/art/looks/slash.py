@@ -1,10 +1,11 @@
-"""Slash in her own colours: an olive-gold corset, orange shorts, olive
-legs, dark knee pads, bracers and shoulder pad, tan skate boots, pale
-skin, dark hair and green glowing skates. Team versions paint the shorts
+"""Slash in her own colours: an olive-gold corset with boning, orange
+shorts with stitched hems, olive legs, dark knee pads, bracers and
+shoulder pad, tan skate boots, pale skin, dark hair and green glowing
+skates; the colours are tinted over the model's own shading, with
+shadows in the creases and worn edges. Team versions paint the shorts
 in the team's colour."""
-import re
-from skins import Sheet, Look, region, inside
-from tremorart import Fbm, clamp
+from skins import Sheet, Look, LabelMap, region, inside
+from tremorart import Fbm, Noise, clamp
 
 # what each texel of slash.tga is, 128 x 128, run-length coded rows:
 # c corset, p shorts, l legs, b boots, d pads, s skin, k shadow (left alone)
@@ -138,13 +139,16 @@ MAP = (
     "k12d19k17d52s6k2s18k2",
     "d5k4d4kd14k6d4k4d5kd30k2d20s6k2s18k2",
 )
-GRID = ["".join(c * int(n or 1) for c, n in re.findall(r"([a-z])(\d*)", row)) for row in MAP]
-N = len(GRID)
+MAP = LabelMap(MAP)
 
 SHORTS = {"": (0.9, 0.42, 0.08), "_red": (0.75, 0.1, 0.07), "_blue": (0.12, 0.28, 0.75)}
 COLOURS = {"c": (0.55, 0.47, 0.12), "l": (0.36, 0.35, 0.12), "b": (0.66, 0.46, 0.22),
            "d": (0.1, 0.1, 0.1), "s": (0.86, 0.82, 0.8)}
-ALPHA = {"c": 0.8, "p": 0.8, "l": 0.8, "b": 0.75, "d": 0.7, "s": 0.4}
+ALPHA = {"c": 0.5, "p": 0.45, "l": 0.5, "b": 0.45, "d": 0.45, "s": 0.35}
+# the grade under the paint: the same colours, as a x2 multiply
+TINT = {"c": (0.75, 0.62, 0.22), "l": (0.55, 0.53, 0.25), "b": (0.85, 0.6, 0.32),
+        "d": (0.25, 0.25, 0.26), "s": (0.62, 0.6, 0.6)}
+TEAM_TINT = {"": (1.0, 0.55, 0.18), "_red": (0.95, 0.2, 0.15), "_blue": (0.25, 0.4, 0.95)}
 # slash_h.tga, 768 px view: the hair, clear of the face and the goggles
 HAIR = [region(p, 768, 768) for p in (
     [(100, 160), (768, 160), (768, 600), (230, 600), (230, 380), (100, 380)],
@@ -153,19 +157,37 @@ HAIR = [region(p, 768, 768) for p in (
 HAIR_COLOUR = (0.07, 0.05, 0.05)
 
 
-def label(u, v):
-    return GRID[min(N - 1, int(v * N))][min(N - 1, int(u * N))]
+def body_grade_fn(variant):
+    n = Fbm(2120, 4, 6)
+
+    def f(u, v):
+        c, k = MAP.label(u, v), MAP.shade(u, v, 0.5)
+        k *= 0.88 + 0.24 * n.at(u * 5, v * 5)
+        if c == "k":
+            return [0.5 * k, 0.5 * k, 0.5 * k, 1]
+        tint = TEAM_TINT[variant] if c == "p" else TINT[c]
+        return [clamp(z * k) for z in tint] + [1]
+    return f
 
 
 def body_detail_fn(variant):
-    n = Fbm(2116, 4, 6)
+    n, fine = Fbm(2116, 4, 6), Noise(2122, 256, 256)
 
     def f(u, v):
-        c = label(u, v)
+        c = MAP.label(u, v)
         if c == "k":
             return [0, 0, 0, 0]
+        x, y, e = u * 512, v * 512, MAP.edge(u, v)
         k = 0.85 + 0.3 * n.at(u * 8, v * 8)
         colour = SHORTS[variant] if c == "p" else COLOURS[c]
+        if c == "c" and (x % 22) < 1.6:
+            return [0.12, 0.1, 0.03, 0.7]                    # the corset's boning
+        if c == "p" and 1.2 < e < 2.2 and (x + y) % 9 < 4.5:
+            return [0.95, 0.85, 0.6, 0.7]                    # stitched hem
+        if c in "pbd" and e < 1.2 and fine.at(x, y) > 0.55:
+            return [0.8, 0.75, 0.65, 0.5]                    # worn edge
+        if c == "d" and n.at(u * 20, v * 20) > 0.62:
+            return [0.35, 0.35, 0.36, 0.5]                   # a scuff on the pads
         return [clamp(z * k) for z in colour] + [ALPHA[c]]
     return f
 
@@ -188,6 +210,7 @@ def skate_grade(u, v):
 def look():
     return Look("slash", "slash", {
         "body": Sheet({"": "slash", "_red": "slash", "_blue": "slash"},
+                      grade={v: body_grade_fn(v) for v in SHORTS},
                       detail={v: body_detail_fn(v) for v in SHORTS}, size=512),
         "head": Sheet({"": "slash_h", "_red": "slash_h", "_blue": "slash_h"}, detail=head_detail_fn(), size=256),
         "skate": Sheet({"": "slashskate", "_red": "slashskate", "_blue": "slashskate"}, grade=skate_grade, size=128),
