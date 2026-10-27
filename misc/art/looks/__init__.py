@@ -45,10 +45,14 @@ module each, each with a look():
   models/players/sorlag/*_sorlag*.skin, ...
                        Sorlag (looks/sorlag.py): an olive-green hide with
                        glowing acid glands
+  models/players/doom/*_doomslayer*.skin, ...
+                       Doom Slayer (looks/doom.py): deep green armour and
+                       helmet, a dark grey undersuit, a gold visor
 """
 import importlib
 
-MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer", "raine", "beastmaster", "unumrey", "sorlag")
+MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer", "raine", "beastmaster",
+           "unumrey", "sorlag", "doom")
 
 
 def ALL():
