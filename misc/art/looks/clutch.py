@@ -1,9 +1,9 @@
-"""Clutch on tankjr: the orange armour burnt to an orange-brown, the
-emblems covered by steel plates with three stencilled bars (the plates
-are mirrored on the model, so no lettering), the gory feet turned to dark
-steel, the bare head cased in steel as a sensor unit, and its eyes lit
-cyan. Team versions keep the team's paint with the same plates, feet,
-head and eyes."""
+"""Clutch on tankjr: the orange armour painted over in teal, with the
+orange showing through where it is worn, the emblems covered by steel
+plates with three stencilled bars (the plates are mirrored on the model,
+so no lettering), the gory feet turned to dark steel, the bare head cased
+in steel as a sensor unit, and its eyes lit cyan. Team versions keep the
+team's paint with the same plates, feet, head and eyes."""
 import math
 from skins import Sheet, Look, region, inside
 from tremorart import Fbm, clamp
@@ -19,6 +19,7 @@ FEET = [region(p, 768, 768) for p in (
     [(580, 340), (640, 340), (640, 410), (580, 410)],
 )]
 EYES = [(85 / 768, 680 / 768, 16 / 768), (128 / 768, 680 / 768, 16 / 768)]
+TEAL = (0.17, 0.5, 0.6)
 CYAN = {"": (0.3, 0.9, 1.0), "_red": (1.0, 0.35, 0.2), "_blue": (0.3, 0.7, 1.0)}
 
 
@@ -32,10 +33,10 @@ def plate(u, v):
 
 
 def body_grade(u, v):
-    return [0.42, 0.4, 0.38, 1]
+    return [0.5, 0.47, 0.45, 1]
 
 
-def detail_fn():
+def detail_fn(team):
     n = Fbm(2011, 4, 6)
 
     def f(u, v):
@@ -51,6 +52,9 @@ def detail_fn():
         if inside(HEAD, u, v):
             k = 0.36 * (0.75 + 0.5 * n.at(u * 6, v * 6))
             return [k, k * 1.02, k * 1.08, 0.88]
+        if not team:
+            k = 0.85 + 0.3 * n.at(u * 6, v * 6)
+            return [TEAL[0] * k, TEAL[1] * k, TEAL[2] * k, 0.62]
         return [0, 0, 0, 0]
     return f
 
@@ -69,7 +73,7 @@ def look():
     return Look("tankjr", "clutch", {
         "body": Sheet({"": "tankjr", "_red": "red", "_blue": "blue"},
                       grade={"": body_grade, "_red": None, "_blue": None},
-                      detail=detail_fn(),
+                      detail={"": detail_fn(False), "_red": detail_fn(True), "_blue": detail_fn(True)},
                       glow={v: eyes_fn(CYAN[v]) for v in CYAN}, size=512),
     }, {"lower": {s: "body" for s in ("l_rcalf", "l_rfoot", "l_lfoot", "l_hips", "l_rthigh", "l_lthigh",
                                       "l_rtoe", "l_ltoe", "l_rtoes", "l_ltoes", "l_lcalf")},
