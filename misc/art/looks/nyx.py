@@ -1,7 +1,8 @@
 """Nyx on mynx: blue hair painted over the model's own curls, a blue-black
-bodysuit with glowing cyan seams over the leather and the bare skin, a veil over
-the lower face, a dark visor, and a crescent sigil where the belt skull was.
-Team versions keep the team's suit paint and light the seams in its colour."""
+bodysuit with glowing cyan seams over the leather and the bare skin, a
+veil over the lower face, bare eyes in dark make-up painted over the
+glasses (the face has no eyes under them), and a crescent sigil where the
+belt skull was. Team versions keep the team's suit paint and light the seams in its colour."""
 import math, random
 from skins import Sheet, Look, region, seg_dist
 from tremorart import Fbm, clamp, smooth, mix
@@ -12,6 +13,7 @@ from tremorart import Fbm, clamp, smooth, mix
 SKULL = region([(278, 22), (342, 22), (346, 100), (276, 100)], 768, 384)
 SIGIL = (310 / 768, 60 / 384)
 VISOR = region([(384, 208), (480, 208), (480, 288), (384, 288)], 768, 384)
+EYE = (440, 250)                # the eye's centre in the glasses, 768 x 384 view
 # seams over the big suit piece and the boot, as segments in 0..1
 SUIT_SEAMS = [((40 / 768, 0.02), (60 / 768, 0.98)), ((220 / 768, 0.02), (205 / 768, 0.98)),
               ((300 / 768, 190 / 384), (300 / 768, 370 / 384))]
@@ -51,9 +53,25 @@ def suit_detail_fn(wash):
             if crescent(u, v, SIGIL, 0.07) < 0.004:
                 c = [0.55, 0.6, 0.7]
         if VISOR(u, v) < 0:
-            c, a = [0.06, 0.04, 0.12], 0.95
+            c, a = list(eyes(u, v)), 1.0
         return c + [a]
     return f
+
+
+def eyes(u, v):
+    """Bare eyes where the glasses were: the glasses are mirrored, so one
+    eye in the piece shows as two, in pale skin with dark make-up."""
+    x, y = (u * 768 - EYE[0]) / 13, (v * 384 - EYE[1]) / 5
+    d = abs(x) ** 1.6 + abs(y) ** 1.2 * (1.6 if y > 0 else 1.0)           # an almond, lidded on top
+    if d < 1:
+        r = math.hypot(x * 2.2, y)
+        if r < 0.35:
+            return [0.02, 0.02, 0.03]                                     # pupil
+        if r < 0.85:
+            return [0.06, 0.16, 0.2]                                      # iris
+        return [0.62, 0.58, 0.55]                                         # the white
+    k = clamp((d - 1) / 1.8)
+    return mix((0.06, 0.04, 0.08), (0.55, 0.42, 0.37), k)                # make-up fading to skin
 
 
 def suit_glow_fn(colour):
@@ -63,8 +81,6 @@ def suit_glow_fn(colour):
             d, _ = seg_dist(u, v, *s)
             k = max(k, 1 - d / 0.004)
         k = max(k, 1 - max(0, crescent(u, v, SIGIL, 0.07)) / 0.006 if SKULL(u, v) < 0 else 0)
-        if VISOR(u, v) < 0:
-            k = max(k, 0.35 * (1 - abs(v - 248 / 384) / 0.03))
         k = clamp(k)
         return [colour[0] * k, colour[1] * k, colour[2] * k, 1]
     return f
