@@ -32,19 +32,37 @@ link_local_assets() {
 # and linked into the home folder. They stay on this machine: never in the
 # repo, tremor-assets.pk3 or a package. Painted again only when pak0 or the
 # art scripts change; without Python the champions wear the models' skins.
-# Usage: bake_local_looks <Quake 3 folder> <build folder> <home>/baseq3
+# The game does not wait for a paint (a first one takes a few minutes): the
+# last pack is used and the new one is ready at the next start. With
+# "wait" (test runs) the paint finishes first.
+# Usage: bake_local_looks <Quake 3 folder> <build folder> <home>/baseq3 [wait]
 bake_local_looks() {
 	pak="$1/baseq3/pak0.pk3"
 	out="$2/looks/zz-tremor-looks.pk3"
 	gamedir="$3"
-	art="$(cd "$(dirname "$0")/.." && pwd)/misc/art"
+	art="$ROOT/misc/art"			# (ROOT: the repo, set by the run scripts)
 	rm -f "$gamedir/zz-tremor-looks.pk3" "$gamedir/zz-tremor-form.pk3"
 	[ -f "$pak" ] && command -v python3 >/dev/null 2>&1 || return 0
 	mkdir -p "$2/looks"
 	stamp=$( (ls -l "$pak"; cat "$art"/*.py "$art"/looks/*.py) | cksum | cut -d' ' -f1)
 	if [ ! -f "$out" ] || [ "$(cat "$2/looks/stamp" 2>/dev/null)" != "$stamp" ]; then
-		echo "Painting the champions' looks from your Quake III models..." >&2
-		python3 -I "$art/bake-looks.py" "$1/baseq3" "$2/looks" "$out" >&2 && echo "$stamp" > "$2/looks/stamp" || return 0
+		# one paint at a time (a lock folder, cleared if its painter is gone)
+		lock="$2/looks/painting"
+		if [ -d "$lock" ] && ! kill -0 "$(cat "$lock/pid" 2>/dev/null)" 2>/dev/null; then
+			rm -rf "$lock"
+		fi
+		if mkdir "$lock" 2>/dev/null; then
+			paint="python3 -I \"$art/bake-looks.py\" \"$1/baseq3\" \"$2/looks\" \"$out\" && echo $stamp > \"$2/looks/stamp\"; rm -rf \"$lock\""
+			if [ "${4:-}" = wait ]; then
+				echo $$ > "$lock/pid"
+				sh -c "$paint" >&2
+			else
+				echo "Painting the champions' looks from your Quake III models in the background (ready at the next start)" >&2
+				nohup sh -c "$paint" >"$2/looks/paint.log" 2>&1 &
+				echo $! > "$lock/pid"
+			fi
+		fi
 	fi
-	ln -sf "$out" "$gamedir/zz-tremor-looks.pk3"
+	[ -f "$out" ] && ln -sf "$out" "$gamedir/zz-tremor-looks.pk3"
+	return 0
 }
