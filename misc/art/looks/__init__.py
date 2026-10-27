@@ -62,11 +62,14 @@ module each, each with a look():
   models/players/anarki/*_anarki*.skin, ...
                        Anarki (looks/anarki.py): tanned skin, a near-black
                        mohawk, brown leather, rusted scrap, brass goggles
+  models/players/keel/*_keel*.skin, ...
+                       Keel (looks/keel.py): beige armour, orange hoses,
+                       dark boots, steel staples over the scalp
 """
 import importlib
 
 MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer", "raine", "beastmaster",
-           "unumrey", "sorlag", "doom", "clutch", "ranger", "wrack", "anarki")
+           "unumrey", "sorlag", "doom", "clutch", "ranger", "wrack", "anarki", "keel")
 
 
 def ALL():
