@@ -4,7 +4,7 @@ layers ship. Called by make-models.py; by hand:
 
   python3 misc/art/skins.py OUT_DIR
 
-  models/players/grunt/*_strogg.skin, strogg_*.tga
+  models/players/grunt/*_strogg[_red|_blue].skin, strogg/head_*.skin, strogg_*.tga
                        Strogg's look on grunt's "stripe" textures: the paint
                        graded to olive steel, the flesh to a sickly grey, an
                        implant plate, staples and veins on the bare arm, a
@@ -102,6 +102,13 @@ GRADE_FLESH = (0.80, 1.05, 1.10)     # pink to a sickly grey
 def body_grade(u, v):
     f = max(clamp(0.5 - p(u, v) * 120) for p in FLESH)
     g = mix(GRADE_STEEL, GRADE_FLESH, f)
+    return [g[0] / 2, g[1] / 2, g[2] / 2, 1]
+
+
+def team_grade(u, v):
+    """The team versions keep the team's paint: only the skin is graded."""
+    f = max(clamp(0.5 - p(u, v) * 120) for p in FLESH)
+    g = mix((1.0, 1.0, 1.0), GRADE_FLESH, f)
     return [g[0] / 2, g[1] / 2, g[2] / 2, 1]
 
 
@@ -243,17 +250,15 @@ def tex(path, w, h, fn, alpha):
     write_tga(path, w, h, px, alpha)
 
 
-SHADERS = """// our skins over models the player already has (misc/art/skins.py)
-
-// Strogg on grunt: the model's own paint, graded, then our details and lights
-models/players/grunt/strogg_body
+SHADER = """
+models/players/grunt/strogg_body%(suffix)s
 {
 	{
-		map models/players/grunt/stripe.tga
+		map models/players/grunt/%(body)s.tga
 		rgbGen lightingDiffuse
 	}
 	{
-		map models/players/grunt/strogg_grade.tga
+		map models/players/grunt/%(grade)s.tga
 		blendFunc GL_DST_COLOR GL_SRC_COLOR
 	}
 	{
@@ -268,10 +273,10 @@ models/players/grunt/strogg_body
 	}
 }
 
-models/players/grunt/strogg_head
+models/players/grunt/strogg_head%(suffix)s
 {
 	{
-		map models/players/grunt/stripe_h.tga
+		map models/players/grunt/%(head)s.tga
 		rgbGen lightingDiffuse
 	}
 	{
@@ -290,6 +295,13 @@ models/players/grunt/strogg_head
 	}
 }
 """
+# Strogg on grunt: the model's own paint (stripe, or the team's), graded,
+# then our details and lights
+VARIANTS = (("", "stripe", "stripe_h", "strogg_grade"),
+            ("_red", "red", "red_h", "strogg_tgrade"),
+            ("_blue", "blue", "blue_h", "strogg_tgrade"))
+SHADERS = "// our skins over models the player already has (misc/art/skins.py)\n" + "".join(
+    SHADER % {"suffix": x, "body": b, "head": h, "grade": g} for x, b, h, g in VARIANTS)
 
 
 def grunt_strogg(out):
@@ -300,15 +312,23 @@ def grunt_strogg(out):
     tex(os.path.join(d, "strogg_hgrade.tga"), 16, 16, head_grade, False)
     tex(os.path.join(d, "strogg_hdetail.tga"), 256, 256, head_detail_fn(), True)
     tex(os.path.join(d, "strogg_hglow.tga"), 64, 64, head_glow, False)
-    skins = {
-        "lower": "tag_torso,\nl_legs,models/players/grunt/strogg_body\n",
-        "upper": "tag_head,\ntag_weapon,\nu_torso,models/players/grunt/strogg_body\ntag_torso,\n"
-                 "u_larm,models/players/grunt/strogg_body\nu_rarm,models/players/grunt/strogg_body\n",
-        "head": "tag_head,\nh_head,models/players/grunt/strogg_head\n",
-    }
-    for part, text in skins.items():
-        with open(os.path.join(d, "%s_strogg.skin" % part), "w") as f:
-            f.write(text)
+    tex(os.path.join(d, "strogg_tgrade.tga"), 128, 128, team_grade, False)
+    for suffix, _, _, _ in VARIANTS:
+        body = "models/players/grunt/strogg_body" + suffix
+        parts = {
+            "lower": "tag_torso,\nl_legs,%s\n" % body,
+            "upper": "tag_head,\ntag_weapon,\nu_torso,%s\ntag_torso,\nu_larm,%s\nu_rarm,%s\n" % (body, body, body),
+            "head": "tag_head,\nh_head,models/players/grunt/strogg_head%s\n" % suffix,
+        }
+        for part, text in parts.items():
+            if part == "head" and suffix:
+                # team heads are looked up in a folder named after the skin
+                path = os.path.join(d, "strogg", "head%s.skin" % suffix)
+            else:
+                path = os.path.join(d, "%s_strogg%s.skin" % (part, suffix))
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w") as f:
+                f.write(text)
 
 
 def build(out):
