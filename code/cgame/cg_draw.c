@@ -1598,6 +1598,8 @@ hud.md: the ability's icon inside its ring, lit when a charge is ready,
 dimmed while it recharges
 =================
 */
+static float	iconAlpha = 1;		// the ability block's glyph opacity (hud.md 10.5)
+
 static void CG_DrawAbilityIcon( float cx, float cy, float size ) {
 	static qhandle_t	icons[ACTIVE_NUM_ABILITIES];
 	static qboolean		loaded[ACTIVE_NUM_ABILITIES];
@@ -1614,7 +1616,12 @@ static void CG_DrawAbilityIcon( float cx, float cy, float size ) {
 	if ( !icons[active] ) {
 		return;
 	}
-	if ( BG_AbilityCharges( &cg.snap->ps ) <= 0 ) {
+	if ( iconAlpha < 1 ) {
+		vec4_t	a = { 1, 1, 1, 1 };
+
+		a[3] = iconAlpha;
+		trap_R_SetColor( a );
+	} else if ( BG_AbilityCharges( &cg.snap->ps ) <= 0 ) {
 		trap_R_SetColor( dim );
 	}
 	CG_DrawPic( cx - size / 2, cy - size / 2, size, size, icons[active] );
@@ -7267,10 +7274,14 @@ static float CG_HudEase( int start, int ms ) {
 =================
 CG_DrawVitalsSide
 
-One of the two vitals rows: icon, value 55 dp with "/ base" smaller,
-cells of 25 points (25 x 16 in a dark frame, filling over 0.78 s), a
-0.5 s pop to 1.8x tinted on a change, and the MAX plate when it reaches
-its maximum
+hud.md 10.3: one of the two vitals rows. The icon (a 42 box, its ring
+tinted, a black 50 % shadow under it); the value type 55, white, with the
+smaller "/max" on its baseline; one cell per 25 points (a 25 x 16 bar in a
+31 x 22 black 20 % frame, pitch 31): white up to the base, light blue (or
+green for armour) over it, red for the points missing to the base, yellow
+while protected, grey 40 % while filling (0.78 s a cell), all red with a
+glow at 25 or less. A change pops the value to 1.8x in its tint (damage red
+0.5 s with streaks, gains 0.53 s); MAX plate when it reaches its maximum.
 =================
 */
 typedef struct {
@@ -7280,13 +7291,20 @@ typedef struct {
 	int		maxTime;
 } vitalsAnim_t;
 
-static void CG_DrawVitalsSide( vitalsAnim_t *va_, const playerState_t *ps, int value, int base, int maxValue, float ix, float iy,
-	float vx, float vy, float bx, float by, float mx, float my, qhandle_t icon, qboolean lowRed, qboolean isArmor ) {
-	static const vec4_t	popTints[3] = { { 1, 0.25f, 0.2f, 1 }, { 0.62f, 0.85f, 1, 1 }, { 0.45f, 1, 0.55f, 1 } };
-	static const vec4_t	frameColor = { 0.04f, 0.04f, 0.05f, 0.75f }, empty = { 0.2f, 0.2f, 0.2f, 0.4f };
-	vec4_t		numColor, cell, plate;
-	float		scale = 1, f, cw = 25 * DP, chh = 16 * DP, inset = 3 * DP, pitch = 33 * DP;
-	int			cells, i, now;
+#define VITALS_CELLS	8
+
+static void CG_DrawVitalsSide( vitalsAnim_t *va_, const playerState_t *ps, int value, int base, int maxValue, float iconCx, float iconCy,
+	float vx, float vy, float bx, float by, float mx, float my, qhandle_t icon, const vec4_t iconTint, qboolean lowRed, qboolean isArmor ) {
+	static const vec4_t	popTints[3] = { { 1, 0.24f, 0.17f, 1 }, { 0.42f, 0.75f, 1, 1 }, { 0.4f, 1, 0.2f, 1 } };
+	static const vec4_t	frameColor = { 0, 0, 0, 0.2f }, refill = { 0.2f, 0.2f, 0.2f, 0.4f };
+	static const vec4_t	white = { 1, 1, 1, 1 }, missing = { 1, 0, 0, 1 }, buffed = { 1, 0.85f, 0.243f, 1 };
+	static const vec4_t	overHealth = { 0.42f, 0.75f, 1, 1 }, overArmor = { 0.396f, 1, 0.204f, 1 };
+	static const vec4_t	overGlow = { 0.455f, 0.816f, 0.988f, 0.35f }, lowGlow = { 1, 0.188f, 0.125f, 0.45f };
+	static const vec4_t	shadow = { 0, 0, 0, 0.5f };
+	vec4_t		numColor, plate, c;
+	float		scale = 1, f, cw = 25 * DP, chh = 16 * DP, inset = 3 * DP, pitch = 31 * DP, valueW;
+	int			cells, i, over = 0, kind;
+	qboolean	low = lowRed && value <= 25, prot = ps->powerups[PW_BATTLESUIT] > cg.time;
 	char		*s;
 
 	// a new life or a different followed player: no animation
@@ -7302,6 +7320,9 @@ static void CG_DrawVitalsSide( vitalsAnim_t *va_, const playerState_t *ps, int v
 		if ( !( value == va_->last - 1 && value >= base ) ) {
 			va_->popTime = cg.time;
 			va_->popKind = value < va_->last ? 0 : value > base ? 2 : 1;
+			if ( va_->popKind == 2 && !isArmor ) {
+				va_->popKind = 1;		// (health over its base: the blue tint)
+			}
 		}
 		if ( value >= maxValue && va_->last < maxValue ) {
 			va_->maxTime = cg.time;
@@ -7318,73 +7339,108 @@ static void CG_DrawVitalsSide( vitalsAnim_t *va_, const playerState_t *ps, int v
 		}
 	}
 
+	// the icon in its 42 box, the shadow copy under it
 	if ( icon ) {
-		CG_DrawPic( ix, iy, 30 * DP, 30 * DP, icon );
+		float	sz = 42 * DP;
+
+		trap_R_SetColor( shadow );
+		CG_DrawPic( iconCx - sz / 2, iconCy - sz / 2 + 1.5f * DP, sz, sz, icon );
+		trap_R_SetColor( iconTint );
+		CG_DrawPic( iconCx - sz / 2, iconCy - sz / 2, sz, sz, icon );
+		trap_R_SetColor( NULL );
 	}
 
-	// the number: white, red when low; a change pops it to 1.8x in the
-	// change's tint, easing back to white over 0.5 s
+	// the number: white at rest; a change pops it to 1.8x in the change's
+	// tint, easing back over 0.5 s (damage) or 0.53 s (gains)
 	Vector4Copy( colorWhite, numColor );
-	if ( lowRed && value <= 25 ) {
-		CG_HealthPalette( 0, numColor );
-		if ( !isArmor && cg.lowHealthStep >= LH_LOW ) {
-			scale = 1.0f + 0.1f * CG_LowHealthPulse();
-		}
-	}
-	f = CG_HudEase( va_->popTime, 500 );
+	kind = va_->popKind;
+	f = CG_HudEase( va_->popTime, kind == 0 ? 500 : 530 );
 	if ( f < 1 ) {
 		float	k = ( 1 - f ) * ( 1 - f );
 
 		scale = 1.0f + 0.8f * k;
 		for ( i = 0 ; i < 3 ; i++ ) {
-			numColor[i] = numColor[i] + ( popTints[va_->popKind][i] - numColor[i] ) * k;
+			numColor[i] = numColor[i] + ( popTints[kind][i] - numColor[i] ) * k;
+		}
+		// damage: a red glow (0.34 s) and horizontal streaks through the
+		// numbers and the portrait for the pop's 0.5 s (hud.md 10.3)
+		if ( kind == 0 ) {
+			static qhandle_t	streakShader;
+			int					n, seed = va_->popTime;
+
+			if ( !streakShader ) {
+				streakShader = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/streak" );
+			}
+			Vector4Set( c, 0.988f, 0.235f, 0.165f, 0.6f * ( 1 - f ) );
+			trap_R_SetColor( c );
+			for ( n = 0 ; n < 8 ; n++ ) {
+				float	yy = vy + ( Q_random( &seed ) * 70 - 5 ) * DP, len = ( 80 + Q_random( &seed ) * 170 ) * DP;
+				float	th = ( 1 + Q_random( &seed ) * 2 ) * DP;
+
+				CG_DrawPic( HX_L( 90 ), yy, len, th * 3, streakShader );
+			}
+			trap_R_SetColor( NULL );
 		}
 	}
 	s = va( "%i", value );
+	valueW = CG_DrawStrlen( s ) * 55 * DP * HUD_GLYPH_W;
 	CG_HudText( vx, vy, 55, s, numColor, 0, scale );
-	CG_HudText( vx + CG_DrawStrlen( s ) * 55 * DP * HUD_GLYPH_W + 6 * DP, vy + 22 * DP, 30, va( "/ %i", base ), colorMdGrey, 0, 1 );
+	CG_HudText( vx + valueW + 4 * DP, vy + 23 * DP, 32, va( "/%i", base ), colorWhite, 0, 1 );
 
-	// cells: one per 25 points of the base, more while over it
+	// the cells: one per 25 points of the base, more while over it
 	cells = ( ( value > base ? value : base ) + 24 ) / 25;
-	if ( cells > 8 ) {
-		cells = 8;
+	if ( cells > VITALS_CELLS ) {
+		cells = VITALS_CELLS;
 	}
-	now = (int)va_->shownF;
 	for ( i = 0 ; i < cells ; i++ ) {
-		float	x = bx + i * pitch, fill = ( va_->shownF - i * 25 ) / 25.0f;
+		if ( i * 25 >= base && i * 25 < value ) {
+			over++;
+		}
+	}
+	for ( i = 0 ; i < cells ; i++ ) {
+		float		x = bx + i * pitch, fill = ( va_->shownF - i * 25 ) / 25.0f;
+		qboolean	in = i * 25 < value, overCell = i * 25 >= base && in;
+		const float	*col;
 
 		CG_FillRect( x, by, cw + inset * 2, chh + inset * 2, frameColor );
-		CG_FillRect( x + inset, by + inset, cw, chh, empty );
-		if ( fill <= 0 ) {
+		if ( low && i * 25 < base ) {
+			// low: every cell red, filled ones too, with a glow
+			CG_FillRect( x + inset - 2 * DP, by + inset - 2 * DP, cw + 4 * DP, chh + 4 * DP, lowGlow );
+			CG_FillRect( x + inset, by + inset, cw, chh, missing );
 			continue;
 		}
-		if ( fill > 1 ) {
-			fill = 1;
+		if ( !in ) {
+			// the points missing up to the base: red, for as long as they are
+			if ( i * 25 < base ) {
+				CG_FillRect( x + inset, by + inset, cw, chh, missing );
+			}
+			continue;
 		}
-		// white, blue over the base, red when low; armour green
-		if ( lowRed && now <= 25 ) {
-			CG_HealthPalette( 0, cell );
-		} else if ( i * 25 >= base ) {
-			VectorSet( cell, 0.35f, 0.6f, 1 );
-		} else if ( isArmor ) {
-			VectorSet( cell, 0.35f, 0.95f, 0.45f );
-		} else {
-			VectorSet( cell, 1, 1, 1 );
+		col = overCell ? ( isArmor ? overArmor : overHealth ) : prot ? buffed : white;
+		if ( overCell && over >= 2 && !isArmor ) {
+			CG_FillRect( x + inset - 3 * DP, by + inset - 3 * DP, cw + 6 * DP, chh + 6 * DP, overGlow );
 		}
-		cell[3] = 0.95f;
-		CG_FillRect( x + inset, by + inset, cw * fill, chh, cell );
+		// a cell still filling: grey under the part filled so far
+		if ( fill < 1 ) {
+			CG_FillRect( x + inset, by + inset, cw, chh, refill );
+			if ( fill > 0 ) {
+				CG_FillRect( x + inset, by + inset, cw * fill, chh, col );
+			}
+			continue;
+		}
+		CG_FillRect( x + inset, by + inset, cw, chh, col );
 	}
 
-	// MAX: a 60 x 25 plate, pulsing twice (0.6 s each) then fading, 1.8 s
+	// MAX: a 60 x 25 dark plate, white "MAX" type 16, pulsing twice (0.6 s
+	// each) then fading, 1.8 s in all
 	if ( va_->maxTime && cg.time - va_->maxTime < 1800 && cg.time >= va_->maxTime ) {
 		int		t = cg.time - va_->maxTime;
 		float	a = t < 1200 ? 0.675f + 0.325f * cos( t / 600.0f * 2 * M_PI ) : 1.0f - ( t - 1200 ) / 600.0f;
 
-		VectorSet( plate, 0.95f, 0.78f, 0.2f );
-		plate[3] = a;
+		Vector4Set( plate, 0.05f, 0.05f, 0.06f, 0.75f * a );
 		CG_FillRect( mx, my, 60 * DP, 25 * DP, plate );
-		VectorSet( plate, 0.08f, 0.08f, 0.09f );
-		CG_HudText( mx + 30 * DP, my + 3 * DP, 19, BG_String( STR_HUD_MAX ), plate, 1, 1 );
+		Vector4Set( plate, 1, 1, 1, a );
+		CG_HudText( mx + 30 * DP, my + 4.5f * DP, 16, BG_String( STR_HUD_MAX ), plate, 1, 1 );
 	}
 }
 
@@ -7392,28 +7448,30 @@ static void CG_DrawVitalsSide( vitalsAnim_t *va_, const playerState_t *ps, int v
 =================
 CG_DrawVitals
 
-hud.md 9.7: health value box (278, 829) with its icon at (249, 891) and
-cells at (278, 895); armour value (250, 919), icon (221, 981), cells
-(250, 985); MAX plates at (528, 846) and (500, 935)
+hud.md 10.3: health on the upper row (value from x 278, top 829; icon
+centred (257, 905); cells from (278, 895)), armour on the lower, 28 dp
+further left (value 250, 919; icon (229, 995); cells (250, 985)); MAX
+plates at (528, 846) and (500, 935)
 =================
 */
 static void CG_DrawVitals( void ) {
 	static vitalsAnim_t	health, armor;
 	static qhandle_t	healthIcon, armorIcon;
+	static const vec4_t	healthTint = { 0.424f, 0.565f, 0.753f, 1 }, armorTint = { 0.306f, 0.729f, 0.329f, 1 };
 	playerState_t		*ps = &cg.snap->ps;
 	const champion_t	*champ = BG_Champion( ps->stats[STAT_CHAMPION] );
 	const classInfo_t	*ci = &bg_classInfo[champ->bodyClass];
 	int					spawnArmor = cgs.gametype == GT_TOURNAMENT ? ci->spawnArmorDuel : ci->spawnArmor;
 
 	if ( !healthIcon ) {
-		healthIcon = trap_R_RegisterShaderNoMip( "icons/tremor_health" );
-		armorIcon = trap_R_RegisterShaderNoMip( "icons/tremor_armor" );
+		healthIcon = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/health" );
+		armorIcon = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/armor" );
 	}
 	cg_hudAnchor = ANCHOR_LEFT;
 	CG_DrawVitalsSide( &health, ps, CG_OwnHealth( ps ), 100, 100 + ci->maxHealthBonus,
-		HX_L( 249 ), HY( 891 ), HX_L( 278 ), HY( 829 ), HX_L( 278 ), HY( 895 ), HX_L( 528 ), HY( 846 ), healthIcon, qtrue, qfalse );
+		HX_L( 257 ), HY( 905 ), HX_L( 278 ), HY( 829 ), HX_L( 278 ), HY( 895 ), HX_L( 528 ), HY( 846 ), healthIcon, healthTint, qtrue, qfalse );
 	CG_DrawVitalsSide( &armor, ps, CG_OwnArmor( ps ), ci->baseArmor, ci->maxArmor,
-		HX_L( 221 ), HY( 981 ), HX_L( 250 ), HY( 919 ), HX_L( 250 ), HY( 985 ), HX_L( 500 ), HY( 935 ), armorIcon, spawnArmor > 0, qtrue );
+		HX_L( 229 ), HY( 995 ), HX_L( 250 ), HY( 919 ), HX_L( 250 ), HY( 985 ), HX_L( 500 ), HY( 935 ), armorIcon, armorTint, spawnArmor > 0, qtrue );
 }
 
 /*
@@ -7436,14 +7494,25 @@ static void CG_DrawAmmoCounter( void ) {
 	if ( w > WP_NONE && w < WP_NUM_WEAPONS && ps->ammo[w] > -1 ) {
 		s = va( "%i", ps->ammo[w] );
 		if ( cg.lowAmmoWarning ) {
-			VectorSet( color, 1, 0.16f, 0.16f );
-			glow[3] = 0.25f * ( 0.85f + 0.15f * cos( cg.time / 400.0f * 2 * M_PI ) );
-			CG_HudText( HX_R( 1734 ) + 2, HY( 893 ) , 83, s, glow, 2, 1.08f );
+			// hud.md 10.6: red digits over a dark-red smear pulsing 0.7 -> 1.0
+			// -> 0.7 every 0.4 s
+			static qhandle_t	smear;
+			float				k = 0.85f + 0.15f * cos( cg.time / 400.0f * 2 * M_PI );
+
+			if ( !smear ) {
+				smear = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/smear" );
+			}
+			Vector4Set( glow, 0.75f, 0.06f, 0.06f, 0.85f * k );
+			trap_R_SetColor( glow );
+			CG_DrawPic( HX_R( 1580 ), HY( 905 ), ( 1920 - 1580 ) * DP, 95 * DP, smear );
+			trap_R_SetColor( NULL );
+			Vector4Set( color, 1, 0.161f + 0.45f * ( k - 0.7f ), 0.161f + 0.45f * ( k - 0.7f ), 1 );
 		}
-		CG_HudText( HX_R( 1734 ), HY( 893 ), 83, s, color, 2, 1 );
+		CG_HudText( HX_R( 1734 ), HY( 891 ), 83, s, color, 2, 1 );
 	}
+	// the weapon's icon in its 64 box
 	if ( w > WP_NONE && w < WP_NUM_WEAPONS && cg_weapons[w].weaponIcon ) {
-		CG_DrawPic( HX_R( 1753 ), HY( 920 ) - 4 * DP, 48 * DP, 48 * DP, cg_weapons[w].weaponIcon );
+		CG_DrawPic( HX_R( 1753 ) + 4 * DP, HY( 920 ) + 4 * DP, 56 * DP, 56 * DP, cg_weapons[w].weaponIcon );
 	}
 	// overall accuracy, asked of the server once a second
 	if ( cg_drawAccuracy.integer ) {
@@ -7642,17 +7711,54 @@ static void CG_DrawAbilityBlock( void ) {
 		ready = qfalse;
 	}
 
-	// the ring: a dark track and the fill
+	// hud.md 10.5: the disc (orange when ready, dark maroon otherwise) and
+	// the ring, 5 dp at Ø 106: white and full when ready, the beige arc of
+	// the cooldown elapsed, the red arc of the duration left while active
+	{
+		static qhandle_t	disc, bloom;
+		vec4_t				d;
+
+		if ( !disc ) {
+			disc = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/disc" );
+			bloom = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/bloom" );
+		}
+		if ( !off && ready && left <= 0 && !active ) {
+			// the ready glow: an orange bloom behind the ring
+			Vector4Set( d, 0.969f, 0.698f, 0.271f, 0.55f );
+			trap_R_SetColor( d );
+			CG_DrawPic( cx - 80 * DP, cy - 80 * DP, 160 * DP, 160 * DP, bloom );
+			Vector4Set( d, 0.988f, 0.518f, 0.306f, 1 );
+		} else if ( off ) {
+			Vector4Set( d, 0.1f, 0.08f, 0.07f, 0.6f );
+		} else {
+			Vector4Set( d, 0.141f, 0.094f, 0.071f, 0.92f );
+		}
+		trap_R_SetColor( d );
+		CG_DrawPic( cx - 48.5f * DP, cy - 48.5f * DP, 97 * DP, 97 * DP, disc );
+		trap_R_SetColor( NULL );
+	}
+	if ( active && !( ps->eFlags & EF_DRONE ) ) {
+		int		dur = BG_AbilityParam( champ->active, AP_DURATION );
+
+		if ( dur > 0 ) {
+			frac = (float)( ps->stats[STAT_ABILITY_TIME] * BG_AbilityTimeUnit( champ->active ) ) / dur;
+			if ( frac > 1 ) {
+				frac = 1;
+			}
+		}
+	}
 	if ( off ) {
 		Vector4Set( fill, 0.7f, 0.6f, 0.4f, 0.8f );
+	} else if ( active || ( ps->eFlags & EF_DRONE ) ) {
+		Vector4Set( fill, 0.922f, 0.153f, 0, 1 );		// red: what is left of it
 	} else if ( ready && left <= 0 ) {
 		Vector4Set( fill, 1, 1, 1, 1 );
 	} else {
 		Vector4Set( fill, 198 / 255.0f, 179 / 255.0f, 140 / 255.0f, 1 );
 	}
 	if ( cg_drawCooldown.integer ) {
-		CG_HudRing( cx, cy, r, 1, back, NULL, 120, 6 * DP );
-		CG_HudRing( cx, cy, r, frac, fill, NULL, 120, 6 * DP );
+		CG_HudRing( cx, cy, r - 2.5f * DP, 1, back, NULL, 240, 5 * DP );
+		CG_HudRing( cx, cy, r - 2.5f * DP, frac, fill, NULL, 240, 5 * DP );
 	}
 
 	// ready: a burst shrinking from 2.9x to 0.8x over 0.4 s, its glow gone
@@ -7673,13 +7779,16 @@ static void CG_DrawAbilityBlock( void ) {
 		CG_HudRing( cx, cy, r * ( 1 + 1.9f * ( 1 - f ) ), 1, burst, NULL, 48, 4 * DP );
 	}
 
-	size = 64 * DP;
-	if ( off ) {
-		vec4_t	dim = { 0.45f, 0.45f, 0.45f, 1 };
+	size = 56 * DP;
+	{
+		vec4_t	dim = { 1, 1, 1, 1 };
 
-		trap_R_SetColor( dim );
+		// behind the number while cooling (20 %), dimmed while active (40 %)
+		dim[3] = off ? 0.45f : active ? 0.4f : ready && left <= 0 ? 1 : 0.2f;
+		iconAlpha = dim[3];
 	}
 	CG_DrawAbilityIcon( cx, cy, size );
+	iconAlpha = 1;
 	trap_R_SetColor( NULL );
 
 	// the cooldown number, tenths in the last second
@@ -7697,11 +7806,11 @@ static void CG_DrawAbilityBlock( void ) {
 		f = CG_HudEase( cooldownShown, 470 );
 		numColor[3] = f;
 		s = left < 1000 ? va( "%i.%i", left / 1000, ( left % 1000 ) / 100 ) : va( "%i", ( left + 999 ) / 1000 );
-		CG_HudText( cx, cy - 15 * DP, 30, s, numColor, 1, 0.71f + 0.29f * f );
+		CG_HudText( cx, cy - 28 * DP, 56, s, numColor, 1, 0.71f + 0.29f * f );
 	} else if ( cooldownHidden && cg.time - cooldownHidden < 500 && cg.time >= cooldownHidden ) {
 		// (nothing left to count: the fading number is the last whole second)
 		numColor[3] = 1 - ( cg.time - cooldownHidden ) / 500.0f;
-		CG_HudText( cx, cy - 15 * DP, 30, "0", numColor, 1, 1 );
+		CG_HudText( cx, cy - 28 * DP, 56, "0", numColor, 1, 1 );
 	}
 
 	if ( off ) {
@@ -7748,14 +7857,24 @@ static void CG_DrawAbilityBlock( void ) {
 		s = "?";
 	}
 	{
-		static const vec4_t	cap = { 0.88f, 0.86f, 0.82f, 0.95f };
-		float	w = CG_DrawStrlen( s ) * 18 * DP * HUD_GLYPH_W + 10 * DP;
+		// hud.md 10.5: the cap centred (960, 993), 16 x 20, #C0BCB0 85 %, the
+		// key black type 18; 35 % while cooling. The name under it, type 15
+		// at top 1008, white when ready, grey 40 % otherwise
+		vec4_t	cap = { 0.753f, 0.737f, 0.69f, 0.85f }, key = { 0, 0, 0, 1 }, name = { 1, 1, 1, 1 };
+		float	w = CG_DrawStrlen( s ) * 18 * DP * HUD_GLYPH_W + 6 * DP;
+		float	k = ready && left <= 0 ? 1 : 0.35f;
 
-		if ( w < 26 * DP ) {
-			w = 26 * DP;
+		if ( w < 16 * DP ) {
+			w = 16 * DP;
 		}
-		CG_FillRect( HX_C( 961 ) - w / 2, HY( 982 ), w, 24 * DP, cap );
-		CG_HudText( HX_C( 961 ), HY( 985 ), 18, s, colorBlack, 1, 1 );
+		cap[3] *= k;
+		key[3] = k;
+		CG_FillRect( HX_C( 960 ) - w / 2, HY( 983 ), w, 20 * DP, cap );
+		CG_HudText( HX_C( 960 ), HY( 984 ), 18, s, key, 1, 1 );
+		if ( !( ready && left <= 0 ) || active ) {
+			name[3] = 0.4f;
+		}
+		CG_HudText( HX_C( 960 ), HY( 1008 ), 15, BG_String( bg_abilityInfo[champ->active].nameString ), name, 1, 1 );
 	}
 }
 
@@ -7817,12 +7936,25 @@ static void CG_DrawStatusRow( void ) {
 			a = 1 - ( cg.time - gone[p] ) / 380.0f;
 			leftMs = 0;
 		}
-		cx = HX_L( 245 + 29 + n * 61 );
-		cy = HY( 770 + 29 );
+		// hud.md 10.4: rings Ø 58 at 90 % centred (272 + 61 (n - 1), 797)
+		cx = HX_L( 272 + n * 61 );
+		cy = HY( 797 );
 		ring[3] = 0.9f * a;
 		track[3] = 0.15f * a;
 		text[3] = a;
-		CG_HudRing( cx, cy, 27 * DP, total[p] > 0 ? (float)leftMs / total[p] : 0, ring, track, 64, 4 * DP );
+		{
+			static qhandle_t	disc;
+			vec4_t				d = { 0.047f, 0.078f, 0.031f, 0.8f };
+
+			if ( !disc ) {
+				disc = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/disc" );
+			}
+			d[3] *= a;
+			trap_R_SetColor( d );
+			CG_DrawPic( cx - 26 * DP, cy - 26 * DP, 52 * DP, 52 * DP, disc );
+			trap_R_SetColor( NULL );
+		}
+		CG_HudRing( cx, cy, 25 * DP, total[p] > 0 ? (float)leftMs / total[p] : 0, ring, track, 120, 3 * DP );
 		// the icon behind, the seconds over it in the ring's middle
 		if ( icons[p] ) {
 			vec4_t	tint;
@@ -7832,8 +7964,9 @@ static void CG_DrawStatusRow( void ) {
 			CG_DrawPic( cx - 20 * DP, cy - 20 * DP, 40 * DP, 40 * DP, icons[p] );
 			trap_R_SetColor( NULL );
 		}
-		if ( leftMs > 0 ) {
-			CG_HudText( cx, cy - 12.5f * DP, 25, va( "%i", ( leftMs + 999 ) / 1000 ), text, 1, 1 );
+		// the time left with one decimal, in its last 5 s (hud.md 12, 8)
+		if ( leftMs > 0 && leftMs <= 5000 ) {
+			CG_HudText( cx, cy - 12.5f * DP, 25, va( "%i.%i", leftMs / 1000, ( leftMs % 1000 ) / 100 ), text, 1, 1 );
 		}
 		n++;
 	}
