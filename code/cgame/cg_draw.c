@@ -1623,7 +1623,11 @@ static void CG_DrawAbilityIcon( float cx, float cy, float size ) {
 		return;
 	}
 	if ( !loaded[active] ) {
-		icons[active] = trap_R_RegisterShaderNoMip( va( "gfx/tremor/abilities/%s", bg_abilityInfo[active].cvarName ) );
+		// the icon set's glyph (white, hud.md 11.3), else the old hexagon
+		icons[active] = trap_R_RegisterShaderNoMip( va( "gfx/tremor/icons/abilities/%s", bg_abilityInfo[active].cvarName ) );
+		if ( !icons[active] ) {
+			icons[active] = trap_R_RegisterShaderNoMip( va( "gfx/tremor/abilities/%s", bg_abilityInfo[active].cvarName ) );
+		}
 		loaded[active] = qtrue;
 	}
 	if ( !icons[active] ) {
@@ -7489,6 +7493,63 @@ static void CG_DrawVitals( void ) {
 
 /*
 =================
+CG_WeaponArt
+
+hud.md 10.12 and the icon set (gfx/tremor/icons): a weapon's side view
+(256 x 128, white) and its hue, its ammo type's glyph and that hue
+=================
+*/
+typedef struct {
+	int			weapon;
+	const char	*icon, *ammo;
+	float		hue[3], ammoHue[3];
+} weaponArt_t;
+
+static const weaponArt_t	weaponArt[] = {
+	{ WP_GAUNTLET, "melee", NULL, { 0.91f, 0.91f, 0.91f }, { 0.91f, 0.91f, 0.91f } },
+	{ WP_MACHINEGUN, "machinegun", "bullets", { 0.973f, 0.831f, 0.078f }, { 0.973f, 0.831f, 0.078f } },
+	{ WP_HEAVY_MACHINEGUN, "hmg", "bullets", { 0.973f, 0.831f, 0.078f }, { 0.973f, 0.831f, 0.078f } },
+	{ WP_SHOTGUN, "shotgun", "shells", { 0.91f, 0.627f, 0.251f }, { 0.91f, 0.627f, 0.251f } },
+	{ WP_SUPER_SHOTGUN, "ssg", "shells", { 0.91f, 0.627f, 0.251f }, { 0.91f, 0.627f, 0.251f } },
+	{ WP_NAILGUN, "nailgun", "nails", { 0, 0.353f, 0.988f }, { 0.494f, 0.259f, 0.965f } },
+	{ WP_SUPER_NAILGUN, "sng", "nails", { 0, 0.353f, 0.988f }, { 0.494f, 0.259f, 0.965f } },
+	{ WP_TRIBOLT, "tribolt", "bolts", { 0.69f, 0.627f, 0.314f }, { 0.69f, 0.627f, 0.314f } },
+	{ WP_ROCKET_LAUNCHER, "rocket", "rockets", { 0.847f, 0.188f, 0.188f }, { 0.847f, 0.188f, 0.188f } },
+	{ WP_LIGHTNING, "lightning", "cells", { 0.188f, 0.784f, 0.784f }, { 0.188f, 0.816f, 0.847f } },
+	{ WP_RAILGUN, "railgun", "slugs", { 0.063f, 0.722f, 0.063f }, { 0.204f, 0.863f, 0.173f } }
+};
+
+static const weaponArt_t *CG_WeaponArt( int w ) {
+	int		i;
+
+	for ( i = 0 ; i < ARRAY_LEN( weaponArt ) ; i++ ) {
+		if ( weaponArt[i].weapon == w ) {
+			return &weaponArt[i];
+		}
+	}
+	return NULL;
+}
+
+static qhandle_t CG_WeaponArtIcon( int w, qboolean ammo ) {
+	static qhandle_t	icons[WP_NUM_WEAPONS][2];
+	static qboolean		loaded[WP_NUM_WEAPONS][2];
+	const weaponArt_t	*art = CG_WeaponArt( w );
+
+	if ( !art || w <= WP_NONE || w >= WP_NUM_WEAPONS ) {
+		return 0;
+	}
+	if ( !loaded[w][ammo] ) {
+		loaded[w][ammo] = qtrue;
+		if ( ammo ? art->ammo != NULL : qtrue ) {
+			icons[w][ammo] = trap_R_RegisterShaderNoMip( ammo ? va( "gfx/tremor/icons/ammo/%s", art->ammo )
+				: va( "gfx/tremor/icons/weapons/%s", art->icon ) );
+		}
+	}
+	return icons[w][ammo];
+}
+
+/*
+=================
 CG_DrawAmmoCounter
 
 hud.md 9.7: 83 dp digits right-aligned in x 1507-1734, top 893, the
@@ -7523,9 +7584,31 @@ static void CG_DrawAmmoCounter( void ) {
 		}
 		CG_HudText( HX_R( 1734 ), HY( 891 ), 83, s, color, 2, 1 );
 	}
-	// the weapon's icon in its 64 box
-	if ( w > WP_NONE && w < WP_NUM_WEAPONS && cg_weapons[w].weaponIcon ) {
-		CG_DrawPic( HX_R( 1753 ) + 4 * DP, HY( 920 ) + 4 * DP, 56 * DP, 56 * DP, cg_weapons[w].weaponIcon );
+	// hud.md 10.6: the ammo type's glyph in a ring, both in the ammo hue
+	// (centre (1785, 952), ring Ø 60, the glyph 40); melee: its glyph, no number
+	{
+		static qhandle_t	ring;
+		const weaponArt_t	*art = CG_WeaponArt( w );
+		qhandle_t			glyph = CG_WeaponArtIcon( w, qtrue );
+		vec4_t				hue;
+
+		if ( !ring ) {
+			ring = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/ammo_ring" );
+		}
+		if ( art ) {
+			VectorCopy( art->ammoHue, hue );
+			hue[3] = 1;
+			trap_R_SetColor( hue );
+			CG_DrawPic( HX_R( 1785 ) - 30 * DP, HY( 952 ) - 30 * DP, 60 * DP, 60 * DP, ring );
+			if ( glyph ) {
+				CG_DrawPic( HX_R( 1785 ) - 20 * DP, HY( 952 ) - 20 * DP, 40 * DP, 40 * DP, glyph );
+			} else if ( CG_WeaponArtIcon( w, qfalse ) ) {
+				CG_DrawPic( HX_R( 1785 ) - 24 * DP, HY( 952 ) - 12 * DP, 48 * DP, 24 * DP, CG_WeaponArtIcon( w, qfalse ) );
+			}
+			trap_R_SetColor( NULL );
+		} else if ( w > WP_NONE && w < WP_NUM_WEAPONS && cg_weapons[w].weaponIcon ) {
+			CG_DrawPic( HX_R( 1753 ) + 4 * DP, HY( 920 ) + 4 * DP, 56 * DP, 56 * DP, cg_weapons[w].weaponIcon );
+		}
 	}
 	// overall accuracy, asked of the server once a second
 	if ( cg_drawAccuracy.integer ) {
@@ -7632,8 +7715,20 @@ static void CG_DrawWeaponColumn( void ) {
 			s = 1.56f + ( 0.75f - 1.56f ) * f;
 			Vector4Set( iconColor, 1, 1, 1, 1 );
 		}
-		size = 56 * DP * s;
+		size = 90 * DP * s;		// (the side views are 2:1)
 		x = HX_R( 1783 ) - size / 2;
+		// the weapon's hue: full when held, greyed when only owned
+		{
+			const weaponArt_t	*art = CG_WeaponArt( w );
+
+			if ( art && CG_WeaponArtIcon( w, qfalse ) && f >= 1 ) {
+				float	k = held ? 1 : 0.55f;
+
+				iconColor[0] *= art->hue[0] * k + ( 1 - k ) * 0.8f;
+				iconColor[1] *= art->hue[1] * k + ( 1 - k ) * 0.8f;
+				iconColor[2] *= art->hue[2] * k + ( 1 - k ) * 0.8f;
+			}
+		}
 		if ( !icons[w] ) {
 			gitem_t	*item = BG_FindItemForWeapon( w );
 
@@ -7646,7 +7741,11 @@ static void CG_DrawWeaponColumn( void ) {
 			}
 		}
 		trap_R_SetColor( iconColor );
-		CG_DrawPic( x, y + 29 * DP - size / 2, size, size, icons[w] );
+		if ( CG_WeaponArtIcon( w, qfalse ) ) {
+			CG_DrawPic( x, y + 29 * DP - size / 4, size, size / 2, CG_WeaponArtIcon( w, qfalse ) );
+		} else {
+			CG_DrawPic( x + size / 4, y + 29 * DP - size / 4, size / 2, size / 2, icons[w] );
+		}
 		trap_R_SetColor( NULL );
 
 		if ( !have || ps->ammo[w] < 0 ) {
@@ -7911,6 +8010,31 @@ static void CG_DrawAbilityBlock( void ) {
 		}
 		cap[3] *= k;
 		key[3] = k;
+		{
+			// the cradle under the ring: white 25 % idle, gold when ready
+			static qhandle_t	cradle, keycap;
+			vec4_t				line = { 1, 1, 1, 0.25f };
+
+			if ( !cradle ) {
+				cradle = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/ability_cradle" );
+				keycap = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/keycap" );
+			}
+			if ( ready && left <= 0 && !active ) {
+				Vector4Set( line, 1, 0.847f, 0.443f, 0.9f );
+			}
+			trap_R_SetColor( line );
+			CG_DrawPic( HX_C( 824 ), HY( 920 ), 275 * DP, 92 * DP, cradle );
+			trap_R_SetColor( NULL );
+			if ( keycap && CG_DrawStrlen( s ) <= 1 ) {
+				vec4_t	kc = { 1, 1, 1, 1 };
+
+				kc[3] = k;
+				trap_R_SetColor( kc );
+				CG_DrawPic( HX_C( 960 ) - 9 * DP, HY( 982 ), 18 * DP, 22 * DP, keycap );
+				trap_R_SetColor( NULL );
+				cap[3] = 0;
+			}
+		}
 		CG_FillRect( HX_C( 960 ) - w / 2, HY( 983 ), w, 20 * DP, cap );
 		CG_HudText( HX_C( 960 ), HY( 984 ), 18, s, key, 1, 1 );
 		if ( !( ready && left <= 0 ) || active ) {
