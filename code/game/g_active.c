@@ -1248,9 +1248,12 @@ static void G_BerserkGuide( gentity_t *ent ) {
 	int			i;
 	trace_t		tr;
 
+	// (only Berserk's champion: the same bit is Athena's HOOK_SWINGING)
+	if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active != ACTIVE_BERSERK ) {
+		return;
+	}
 	client->ps.stats[STAT_MOVE_STATE] &= ~LUNGE_TARGET;
-	if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active != ACTIVE_BERSERK
-		|| !G_AbilityActive( ent, ACTIVE_BERSERK ) ) {
+	if ( !G_AbilityActive( ent, ACTIVE_BERSERK ) ) {
 		return;
 	}
 	VectorCopy( client->ps.origin, eye );
