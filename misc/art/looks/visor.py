@@ -1,10 +1,10 @@
-"""Visor in his own colours: the steel and the old plates painted orange,
-the hide turned to pale skin, the dark joints kept dark gunmetal, and the
-visor painted as an orange face mask with a dark slit. Team versions paint
-the armour in the team's colour."""
-import re
-from skins import Sheet, Look
-from tremorart import Fbm, clamp
+"""Visor in his own colours: the steel and the old plates tinted orange
+with the model's own shading kept, shadows in the creases, chipped and
+scratched edges, the hide turned to pale skin, the dark joints kept dark
+gunmetal, and the visor an orange face mask with a dark slit. Team
+versions tint the armour in the team's colour."""
+from skins import Sheet, Look, LabelMap
+from tremorart import Fbm, Noise, clamp, smooth
 
 # what each texel of visor.tga is, 128 x 128, run-length coded rows:
 # o armour, s skin, d joints, k shadow (left alone)
@@ -138,34 +138,52 @@ MAP = (
     "k50od2k33d4o2d6o3d3o24",
     "k28o3k18od3k19o2k31o23",
 )
-GRID = ["".join(c * int(n or 1) for c, n in re.findall(r"([a-z])(\d*)", row)) for row in MAP]
-N = len(GRID)
+MAP = LabelMap(MAP)
 
 SLIT = (0, 412, 140, 428)                        # across the mask, 768 px view
 ARMOUR = {"": (0.86, 0.4, 0.1), "_red": (0.78, 0.12, 0.08), "_blue": (0.14, 0.3, 0.78)}
+TINT = {"": (1.0, 0.56, 0.2), "_red": (0.95, 0.24, 0.17), "_blue": (0.3, 0.42, 0.95)}
 SKIN = (0.8, 0.62, 0.5)
-JOINTS = (0.12, 0.12, 0.13)
+STEEL = (0.7, 0.68, 0.64)
 
 
-def label(u, v):
-    return GRID[min(N - 1, int(v * N))][min(N - 1, int(u * N))]
+def grade_fn(variant):
+    n = Fbm(2119, 4, 6)
+
+    def f(u, v):
+        c, k = MAP.label(u, v), MAP.shade(u, v)
+        k *= 0.88 + 0.24 * n.at(u * 5, v * 5)               # grime
+        if c == "o":
+            return [clamp(z * k) for z in TINT[variant]] + [1]
+        if c == "s":
+            return [0.9 * k, 0.8 * k, 0.84 * k, 1]
+        if c == "d":
+            return [0.3 * k, 0.3 * k, 0.32 * k, 1]
+        return [0.45 * k, 0.45 * k, 0.45 * k, 1]
+    return f
 
 
 def detail_fn(variant):
-    n = Fbm(2117, 4, 6)
+    n, fine, scratch = Fbm(2117, 4, 6), Noise(2121, 256, 256), Noise(2123, 64, 512)
 
     def f(u, v):
         x, y = u * 768, v * 768
         if SLIT[0] <= x <= SLIT[2] and SLIT[1] <= y <= SLIT[3]:
             return [0.03, 0.03, 0.03, 1]
+        c = MAP.label(u, v)
         k = 0.85 + 0.3 * n.at(u * 8, v * 8)
-        c = label(u, v)
         if c == "o":
-            return [clamp(z * k) for z in ARMOUR[variant]] + [0.72]
+            e = MAP.edge(u, v)
+            if e < 1.6 and fine.at(x * 0.6, y * 0.6) > 0.5:
+                return list(STEEL) + [0.8]                   # chipped paint on the edge
+            s = scratch.at(u * 12, v * 90)
+            if abs(s - 0.5) < 0.012:
+                return list(STEEL) + [0.5]                   # a scratch
+            if n.at(u * 14 + 3, v * 14) > 0.7:
+                return [0.08, 0.06, 0.05, 0.45]              # a grime spot
+            return [clamp(z * k) for z in ARMOUR[variant]] + [0.3]
         if c == "s":
-            return [clamp(z * k) for z in SKIN] + [0.8]
-        if c == "d":
-            return [z * k for z in JOINTS] + [0.6]
+            return [clamp(z * k) for z in SKIN] + [0.62]
         return [0, 0, 0, 0]
     return f
 
@@ -173,7 +191,8 @@ def detail_fn(variant):
 def look():
     return Look("visor", "visor", {
         "body": Sheet({"": "visor", "_red": "visor", "_blue": "visor"},
-                      detail={v: detail_fn(v) for v in ARMOUR}, size=512),
+                      grade={v: grade_fn(v) for v in TINT},
+                      detail={v: detail_fn(v) for v in TINT}, size=512),
     }, {"lower": {"l_legs": "body"},
         "upper": {"u_torso": "body"},
         "head": {"h_head": "body"}},

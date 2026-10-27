@@ -357,6 +357,51 @@ def grunt_strogg(out):
 
 # ---------------------------------------------------------------- looks: the same layers, described as data
 
+class LabelMap:
+    """A sheet's texels sorted into materials: rows of run-length coded
+    letters ("v13b12..."), and for each texel how far it is, in texels,
+    from the edge of its patch (a change of letter), for shading the
+    creases and wearing the edges."""
+
+    def __init__(self, rows, cap=8):
+        import re
+        self.grid = ["".join(c * int(n or 1) for c, n in re.findall(r"([a-z])(\d*)", row)) for row in rows]
+        self.n = n = len(self.grid)
+        g = self.grid
+        d = [[0 if any(not (0 <= x + i < n and 0 <= y + j < n) or g[y + j][x + i] != g[y][x]
+                       for i, j in ((1, 0), (-1, 0), (0, 1), (0, -1))) else cap
+              for x in range(n)] for y in range(n)]
+        for _ in range(2):                      # chamfer passes: down-right, then up-left
+            for y in range(n):
+                for x in range(n):
+                    for i, j in ((-1, 0), (0, -1), (-1, -1), (1, -1)):
+                        if 0 <= x + i < n and 0 <= y + j < n and g[y + j][x + i] == g[y][x]:
+                            d[y][x] = min(d[y][x], d[y + j][x + i] + (1.4 if i and j else 1))
+            for y in range(n - 1, -1, -1):
+                for x in range(n - 1, -1, -1):
+                    for i, j in ((1, 0), (0, 1), (1, 1), (-1, 1)):
+                        if 0 <= x + i < n and 0 <= y + j < n and g[y + j][x + i] == g[y][x]:
+                            d[y][x] = min(d[y][x], d[y + j][x + i] + (1.4 if i and j else 1))
+        self.dist = d
+
+    def label(self, u, v):
+        n = self.n
+        return self.grid[min(n - 1, int(v * n))][min(n - 1, int(u * n))]
+
+    def edge(self, u, v):
+        """Distance to the patch's edge in texels, smoothly sampled."""
+        n, d = self.n, self.dist
+        x, y = u * n - 0.5, v * n - 0.5
+        x0, y0 = max(0, min(n - 1, int(math.floor(x)))), max(0, min(n - 1, int(math.floor(y))))
+        x1, y1 = min(n - 1, x0 + 1), min(n - 1, y0 + 1)
+        fx, fy = clamp(x - x0), clamp(y - y0)
+        return mix(mix(d[y0][x0], d[y0][x1], fx), mix(d[y1][x0], d[y1][x1], fx), fy)
+
+    def shade(self, u, v, depth=0.45, width=3.0):
+        """1 in a patch's middle, darker towards its edge: the crease shadow."""
+        return 1 - depth * (1 - smooth(0, width, self.edge(u, v)))
+
+
 class Sheet:
     """One texture sheet of a model and the layers we put over it, per
     variant ("" for the skin itself, "_red" and "_blue" for team games):
