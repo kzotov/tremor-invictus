@@ -18,10 +18,14 @@ module each, each with a look():
                        B.J. on bitterman (looks/bj.py): a human skin over the
                        hide, a blond buzz cut over the tentacles, a dark vest
                        and fatigues
+  models/players/biker/*_eisen*.skin, ...
+                       Eisen on biker (looks/eisen.py): a grey beard, brass
+                       goggles on the brow, a leather apron, work trousers, a
+                       steel left arm
 """
 import importlib
 
-MODULES = ("nyx", "deathknight", "athena", "bj")
+MODULES = ("nyx", "deathknight", "athena", "bj", "eisen")
 
 
 def ALL():
