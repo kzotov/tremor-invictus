@@ -606,8 +606,13 @@ static qboolean CG_RegisterClientModelname( clientInfo_t *ci, const char *modelN
 	else if ( CG_FindClientHeadFile( filename, sizeof(filename), ci, teamName, headName, headSkinName, "icon", "tga" ) ) {
 		ci->modelIcon = trap_R_RegisterShaderNoMip( filename );
 	}
+	// a champion's look is a skin with no icon of its own: use the model's
+	else if ( CG_FindClientHeadFile( filename, sizeof(filename), ci, teamName, headName, "default", "icon", "tga" ) ) {
+		ci->modelIcon = trap_R_RegisterShaderNoMip( filename );
+	}
 
 	if ( !ci->modelIcon ) {
+		Com_Printf( "No icon for %s/%s\n", headName, headSkinName );
 		return qfalse;
 	}
 
