@@ -139,6 +139,19 @@ def circle(cx, cy, r):
     return Shape(lambda x, y: math.hypot(x - cx, y - cy) - r, (cx - r, cy - r, cx + r, cy + r))
 
 
+def ellipse(cx, cy, rx, ry):
+    """Close to a true distance near the edge, which is all the fills need."""
+    k = min(rx, ry)
+    return Shape(lambda x, y: (math.hypot((x - cx) / rx, (y - cy) / ry) - 1) * k, (cx - rx, cy - ry, cx + rx, cy + ry))
+
+
+def chamfered(x0, y0, x1, y1, cut, corners="tl"):
+    """A rectangle with 45-degree cuts on the named corners (tl, tr, br, bl)."""
+    c = {k: (cut if k in corners else 0.0) for k in ("tl", "tr", "br", "bl")}
+    return polygon([(x0 + c["tl"], y0), (x1 - c["tr"], y0), (x1, y0 + c["tr"]), (x1, y1 - c["br"]),
+                    (x1 - c["br"], y1), (x0 + c["bl"], y1), (x0, y1 - c["bl"]), (x0, y0 + c["tl"])])
+
+
 def ring(cx, cy, r, w):
     return Shape(lambda x, y: abs(math.hypot(x - cx, y - cy) - r) - w / 2,
                  (cx - r - w, cy - r - w, cx + r + w, cy + r + w))
@@ -342,6 +355,28 @@ class Canvas:
                 p[1] = c[1] * cov + p[1] * ia
                 p[2] = c[2] * cov + p[2] * ia
                 p[3] = cov + p[3] * ia
+
+    def fill_flat(self, shape, base=0.86, light=1.0, dark=0.66, rim=0.02, color=(1, 1, 1)):
+        """The icon look: one flat tone, a lighter rim where the edge faces the
+        upper left and a darker one where it faces the lower right. Drawn in
+        greys of `color` (white by default, for tinting in code)."""
+        sdf = shape.sdf
+        e = 0.5 / self.k
+
+        def f(x, y):
+            d = sdf(x, y)
+            gx = sdf(x + e, y) - sdf(x - e, y)
+            gy = sdf(x, y + e) - sdf(x, y - e)
+            gl = math.hypot(gx, gy) or 1.0
+            facing = (-gx - gy) / (gl * 1.4142)          # +1 towards the upper left
+            edge = smooth(-rim, -rim * 0.4, d)
+            k = base
+            if facing > 0:
+                k = mix(base, light, edge * facing)
+            else:
+                k = mix(base, dark, edge * -facing)
+            return (color[0] * k, color[1] * k, color[2] * k)
+        self.fill(shape, f)
 
     def glow(self, shape, color, radius, strength=1.0):
         """Light added around (and over) a shape, falling off over `radius` units."""
