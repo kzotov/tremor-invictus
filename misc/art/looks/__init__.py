@@ -62,8 +62,9 @@ module each, each with a look():
                        Keel (looks/keel.py): tan armour and forearms, a
                        brown undersuit at the neck, bloodied boots
   models/players/slash/*_slash*.skin, ...
-                       Slash (looks/slash.py): studded black leather, dark
-                       red striped stockings, gunmetal panels
+                       Slash (looks/slash.py): olive-gold corset, orange
+                       shorts, olive legs, dark pads, dark hair, green
+                       skates
   models/players/visor/*_visor*.skin, ...
                        Visor (looks/visor.py): orange armour over pale
                        skin, an orange face mask with a dark slit
