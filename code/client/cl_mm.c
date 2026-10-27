@@ -321,10 +321,12 @@ static void Done( void ) {
 
 	if ( mm.req.state == MMR_FAILED ) {
 		Cvar_Set( "mm_error", "The matchmaker can't be reached." );
+		Cvar_Set( "mm_ok", "0" );		// (the menus hide it until the address changes)
 		mm.polling = qfalse;
 		SetState( "idle" );
 		return;
 	}
+	Cvar_Set( "mm_ok", "1" );		// it answered
 	if ( mm.req.status != 200 ) {
 		char error[128];
 

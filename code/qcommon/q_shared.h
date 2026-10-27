@@ -218,6 +218,10 @@ typedef int		clipHandle_t;
 #define	MAX_QINT			0x7fffffff
 #define	MIN_QINT			(-MAX_QINT-1)
 
+// the game's own default keys on top of default.cfg (the engine at start,
+// the menus' Controls defaults)
+#define TREMOR_DEFAULT_BINDS	"bind q +button12; bind 1 \"weapon 1\"; bind F1 \"vote yes\"; bind F2 \"vote no\""
+
 #define ARRAY_LEN(x)			(sizeof(x) / sizeof(*(x)))
 #define STRARRAY_LEN(x)			(ARRAY_LEN(x) - 1)
 

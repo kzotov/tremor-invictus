@@ -1279,6 +1279,8 @@ void UI_SettingsRml( void ) {
 	trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui-gen/settings.rml\n" );
 }
 
+static int	s_setAskedAt;		// when DEFAULTS asked "SURE?" (0: not asking)
+
 /*
 =================
 UI_Settings_Frame
@@ -1290,10 +1292,111 @@ void UI_Settings_Frame( void ) {
 	float	cpi = trap_Cvar_VariableValue( "m_cpi" );
 	float	sens = trap_Cvar_VariableValue( "sensitivity" );
 
+	// "SURE?" goes back to DEFAULTS when the second click doesn't come
+	if ( s_setAskedAt && uis.realtime - s_setAskedAt > 3000 ) {
+		s_setAskedAt = 0;
+		trap_Cvar_Set( "ui_setAsk", "0" );
+	}
+
 	if ( cpi <= 0 || sens <= 0 ) {
 		trap_Cvar_Set( "ui_setTurn", BG_String( STR_SET_TURN_NEEDCPI ) );
 	} else {
 		trap_Cvar_Set( "ui_setTurn", va( (char *)BG_String( STR_SET_TURN_VALUE ), sens, 360.0f / sens ) );
+	}
+}
+
+/*
+=================
+Settings_BindLine
+
+One "bind <key> <command>" from a config text, applied when the command is
+one of the Controls rows
+=================
+*/
+static void Settings_BindLine( const char *keyName, const char *command ) {
+	char	name[32];
+	int		k, r;
+
+	for ( r = 0; r < ARRAY_LEN( controlRows ); r++ ) {
+		if ( !Q_stricmp( controlRows[r].cvar, command ) ) {
+			break;
+		}
+	}
+	if ( r == ARRAY_LEN( controlRows ) ) {
+		return;
+	}
+	for ( k = 0; k < 256; k++ ) {
+		trap_Key_KeynumToStringBuf( k, name, sizeof( name ) );
+		if ( name[0] && !Q_stricmp( name, keyName ) ) {
+			trap_Key_SetBinding( k, controlRows[r].cvar );
+			return;
+		}
+	}
+}
+
+// every "bind" in a config text that is for a Controls row
+static void Settings_BindText( char *text ) {
+	char	*p = text, key[32], *tok;
+
+	for ( tok = text ; *tok ; tok++ ) {
+		if ( *tok == ';' ) {
+			*tok = ' ';		// (commands on one line)
+		}
+	}
+	while ( 1 ) {
+		tok = COM_Parse( &p );
+		if ( !tok[0] ) {
+			break;
+		}
+		if ( Q_stricmp( tok, "bind" ) ) {
+			continue;
+		}
+		Q_strncpyz( key, COM_Parse( &p ), sizeof( key ) );
+		tok = COM_Parse( &p );
+		if ( key[0] && tok[0] ) {
+			Settings_BindLine( key, tok );
+		}
+	}
+}
+
+/*
+=================
+Settings_DefaultBinds
+
+The Controls tab's keys back to a new player's: its actions unbound, then
+their keys from default.cfg and the game's own defaults; other keys stay
+=================
+*/
+static void Settings_DefaultBinds( void ) {
+	static char		text[16384];
+	char			binds[] = TREMOR_DEFAULT_BINDS;
+	fileHandle_t	f;
+	int				r, len, keys[2];
+
+	for ( r = 0; r < ARRAY_LEN( controlRows ); r++ ) {
+		if ( controlRows[r].type != ROW_BIND ) {
+			continue;
+		}
+		Settings_KeysForCommand( controlRows[r].cvar, keys );
+		if ( keys[0] != -1 ) {
+			trap_Key_SetBinding( keys[0], "" );
+		}
+		if ( keys[1] != -1 ) {
+			trap_Key_SetBinding( keys[1], "" );
+		}
+	}
+	len = trap_FS_FOpenFile( "default.cfg", &f, FS_READ );
+	if ( len > 0 && len < (int)sizeof( text ) ) {
+		trap_FS_Read( text, len, f );
+		text[len] = 0;
+		Settings_BindText( text );
+	}
+	if ( len >= 0 ) {
+		trap_FS_FCloseFile( f );
+	}
+	Settings_BindText( binds );
+	for ( r = 0; r < settingTabs[TAB_CONTROLS].numRows; r++ ) {
+		Rml_BindText( TAB_CONTROLS, r );
 	}
 }
 
@@ -1334,20 +1437,17 @@ qboolean UI_SettingsCommand( const char *cmd ) {
 		return qtrue;
 	}
 	if ( !Q_stricmp( cmd, "ui_setDefaults" ) ) {
-		static int	askedAt;
-
 		// a second click within 3 s does it (the first one asks)
-		if ( !askedAt || uis.realtime - askedAt > 3000 ) {
-			askedAt = uis.realtime;
+		if ( !s_setAskedAt || uis.realtime - s_setAskedAt > 3000 ) {
+			s_setAskedAt = uis.realtime;
 			trap_Cvar_Set( "ui_setAsk", "1" );
 			return qtrue;
 		}
-		askedAt = 0;
+		s_setAskedAt = 0;
 		trap_Cvar_Set( "ui_setAsk", "0" );
 		tab = (int)trap_Cvar_VariableValue( "ui_setTab" );
 		if ( tab == TAB_CONTROLS ) {
-			// the keys back as a new player has them
-			trap_Cmd_ExecuteText( EXEC_APPEND, "unbindall\nexec default.cfg\nbind q +button12; bind 1 \"weapon 1\"; bind F1 \"vote yes\"; bind F2 \"vote no\"\n" );
+			Settings_DefaultBinds();		// this tab's keys only
 		}
 		for ( r = 0; tab >= 0 && tab < NUM_TABS && r < settingTabs[tab].numRows; r++ ) {
 			const settingRow_t	*row = &settingTabs[tab].rows[r];

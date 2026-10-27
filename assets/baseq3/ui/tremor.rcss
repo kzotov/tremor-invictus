@@ -442,6 +442,27 @@ button.small {
 	padding-left: 0dp;
 }
 
+/* the player's name under the main menu's buttons (menu.md 3) */
+.namefield {
+	margin-top: 24dp;
+	font-size: 22dp;
+	color: #a8a6a0;
+}
+
+.namefield .label {
+	display: block;
+	margin-bottom: 6dp;
+}
+
+.namefield input {
+	width: 360dp;
+	font-size: 26dp;
+	color: #f2efe9;
+	background-color: #0e0f12;
+	border: 2dp #3a3b40;
+	padding: 4dp 10dp;
+}
+
 .who {
 	position: absolute;
 	right: 40dp;

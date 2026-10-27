@@ -2374,7 +2374,7 @@ void Com_ExecuteCfg(void)
 
 	// our own default keys on top: the champion ability on Q, the gauntlet on 1,
 	// votes on F1 and F2; a player's saved config still overrides them
-	Cbuf_ExecuteText(EXEC_APPEND, "bind q +button12; bind 1 \"weapon 1\"; bind F1 \"vote yes\"; bind F2 \"vote no\"\n");
+	Cbuf_ExecuteText(EXEC_APPEND, TREMOR_DEFAULT_BINDS "\n");
 	Cbuf_Execute();
 
 	if(!Com_SafeMode())
