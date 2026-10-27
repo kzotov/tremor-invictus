@@ -42,10 +42,13 @@ module each, each with a look():
                        Unumrey on orbb (looks/unumrey.py): bruised violet
                        flesh, blackened metal, an eye of our own with a
                        glowing violet ring
+  models/players/sorlag/*_sorlag*.skin, ...
+                       Sorlag (looks/sorlag.py): an olive-green hide with
+                       glowing acid glands
 """
 import importlib
 
-MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer", "raine", "beastmaster", "unumrey")
+MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer", "raine", "beastmaster", "unumrey", "sorlag")
 
 
 def ALL():
