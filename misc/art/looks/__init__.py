@@ -11,10 +11,10 @@ module each, each with a look():
                        (looks/deathknight.py): blackened plate with embers in
                        its cracks, a furnace grate on the shoulder, a charred
                        skull with fire in the sockets
-  models/players/crash/*_athena*.skin, ...
-                       Athena on crash (looks/athena.py): white and silver
-                       armour with blue lights, a navy undersuit over the
-                       skin and leathers
+  models/players/crash/*_athena*.skin, major/head_athena.skin, ...
+                       Athena on crash's body with major's head
+                       (looks/athena.py): red armour with yellow lights, a
+                       dark grey flight suit, red hair
   models/players/bitterman/*_bj*.skin, ...
                        B.J. on bitterman (looks/bj.py): a human skin over the
                        hide, a blond buzz cut over the tentacles, olive vest
