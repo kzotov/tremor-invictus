@@ -3,10 +3,12 @@ over a yellow work shirt and a white undershirt, a brown leather belt,
 khaki work trousers with leather chaps over the thighs, grey boots,
 yellow work gloves, and ginger hair and a full beard. All of it is our own
 opaque paint except the face, which keeps the model's features under a
-skin wash. The shoulder pad is hidden. Team versions paint the vest in
+skin wash; shadows gather where one material meets another, the vest is
+quilted in puffed diamonds, the shirt and trousers fold, the chaps and
+vest are stitched, and the leather and boots are scuffed. The shoulder pad is hidden. Team versions paint the vest in
 the team's colour."""
-import re
-from skins import Sheet, Look
+import math
+from skins import Sheet, Look, LabelMap
 from tremorart import Fbm, Noise, clamp, smooth, mix
 
 # what each texel of sarge's band.tga is, 128 x 128, run-length coded rows:
@@ -142,8 +144,7 @@ MAP = (
     "v2b33g7b16k25c10k11c11k12v",
     "v3b23g21b10k26c10k11c10k9v5",
 )
-GRID = ["".join(c * int(n or 1) for c, n in re.findall(r"([a-z])(\d*)", row)) for row in MAP]
-N = len(GRID)
+MAP = LabelMap(MAP)
 
 VEST = {"": (0.62, 0.13, 0.1), "_red": (0.66, 0.08, 0.06), "_blue": (0.12, 0.24, 0.66)}
 COLOURS = {
@@ -155,34 +156,57 @@ SKIN = (0.8, 0.56, 0.42)
 GINGER = (0.8, 0.38, 0.13)
 
 
-def label(u, v):
-    return GRID[min(N - 1, int(v * N))][min(N - 1, int(u * N))]
+def quilt(x, y):
+    """Light on a puffed diamond of the vest: 1 on its crown, low in the seams."""
+    a, b = (x + y) / 26.0, (x - y) / 26.0
+    fa, fb = a - math.floor(a), b - math.floor(b)
+    seam = min(fa, 1 - fa, fb, 1 - fb)
+    return smooth(0.0, 0.22, seam) * (0.85 + 0.3 * (0.5 - fa))   # lit from above
 
 
 def detail_fn(variant):
     n, fine, strands = Fbm(2311, 4, 6), Noise(2313, 256, 256), Noise(2317, 128, 128)
+    folds = Noise(2319, 32, 32)
 
     def f(u, v):
         x, y = u * 512, v * 512
         k = 0.82 + 0.36 * n.at(u * 6, v * 6)
-        c = label(u, v)
+        c, e = MAP.label(u, v), MAP.edge(u, v)
+        if c == "f":
+            return list(SKIN) + [0.35]
+        k *= MAP.shade(u, v, 0.5, 3.5)                       # shadow where materials meet
         if c in "hb":
             s = strands.at(u * 60, v * 240) * 0.6 + strands.at(u * 140, v * 420 + 5) * 0.4
             hair = mix(tuple(z * 0.5 for z in GINGER), GINGER, smooth(0.3, 0.8, s))
             return [clamp(z * k) for z in hair] + [1]
-        if c == "f":
-            return list(SKIN) + [0.35]
         if c == "v":
-            quilt = (y % 22) < 2.5                                   # quilted rows
-            return [clamp(z * k * (0.68 if quilt else 1)) for z in VEST[variant]] + [1]
-        if c == "c":
-            k *= (0.9 + 0.2 * fine.at(x, y)) * (0.6 if (x % 40) < 1.5 else 1)     # stitched leather
-        elif c == "k":
-            k *= 0.92 + 0.16 * fine.at(x * 2, y * 2)                 # twill
+            k *= 0.55 + 0.55 * quilt(x, y)
+            if 1.0 < e < 1.8 and (x + 2 * y) % 7 < 3.5:
+                return [0.85, 0.75, 0.6, 1]                  # stitched edge
+            return [clamp(z * k) for z in VEST[variant]] + [1]
+        if c in "ywk":
+            fold = folds.at(u * 18, v * 5)                  # long folds down the cloth
+            k *= 0.78 + 0.4 * smooth(0.2, 0.8, fold)
+            if c == "k":
+                k *= 0.92 + 0.16 * fine.at(x * 2, y * 2)     # twill
+        elif c == "c":
+            k *= (0.85 + 0.25 * fine.at(x, y)) * (0.6 if (x % 40) < 1.5 else 1)
+            if 1.2 < e < 2.0 and (x + y) % 8 < 4:
+                return [0.8, 0.66, 0.45, 1]                  # stitched hem
+            if fine.at(x * 0.5 + 7, y * 0.5) > 0.7:
+                k *= 1.25                                    # scuffed leather
         elif c == "o":
             k *= 0.85 + 0.3 * fine.at(x, y)
+            if e < 1.5:
+                k *= 0.55                                    # the sole and welt
+            elif fine.at(x * 0.7, y * 0.7 + 9) > 0.72:
+                k *= 1.3                                     # scuffs
         elif c == "g":
             k *= 0.8 + 0.4 * smooth(0.4, 0.6, fine.at(x * 0.5, y * 3))
+            if 1.0 < e < 1.8 and x % 6 < 3:
+                return [0.7, 0.55, 0.3, 1]                   # stitched belt edge
+        elif c == "l":
+            k *= 0.8 + 0.35 * folds.at(u * 40, v * 40)       # creased gloves
         return [clamp(z * k) for z in COLOURS[c]] + [1]
     return f
 
