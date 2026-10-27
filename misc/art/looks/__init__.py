@@ -59,11 +59,14 @@ module each, each with a look():
                        Wrack on ranger's armoured set (looks/wrack.py):
                        red-brown plate, dark leather, bone skulls on the
                        thigh plates
+  models/players/anarki/*_anarki*.skin, ...
+                       Anarki (looks/anarki.py): tanned skin, a near-black
+                       mohawk, brown leather, rusted scrap, brass goggles
 """
 import importlib
 
 MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer", "raine", "beastmaster",
-           "unumrey", "sorlag", "doom", "clutch", "ranger", "wrack")
+           "unumrey", "sorlag", "doom", "clutch", "ranger", "wrack", "anarki")
 
 
 def ALL():

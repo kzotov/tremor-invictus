@@ -1037,7 +1037,7 @@ const champion_t bg_championList[] = {
 	// name, body class, run speed, jump speed cap, style, movement abilities, active ability, passives,
 	// player model, display name
 	{ "ranger", CLASS_MEDIUM, 320, 900, MOVE_STANDARD, 0, ACTIVE_ORB, PASSIVE_HASTE, "ranger/ranger", STR_CHAMPION_RANGER },	// default, must stay first
-	{ "anarki", CLASS_LIGHT, 320, 620, MOVE_AIRCONTROL, 0, ACTIVE_INJECTION, 0, "anarki", STR_CHAMPION_ANARKI },
+	{ "anarki", CLASS_LIGHT, 320, 620, MOVE_AIRCONTROL, 0, ACTIVE_INJECTION, 0, "anarki/anarki", STR_CHAMPION_ANARKI },
 	{ "athena", CLASS_LIGHT, 320, 750, MOVE_STANDARD, MOVEABIL_RAMPJUMP, ACTIVE_HOOK, 0, "crash/athena", STR_CHAMPION_ATHENA },
 	{ "nyx", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, MOVEABIL_WALLJUMP | MOVEABIL_EASYSTRAFE, ACTIVE_GHOSTWALK, 0, "mynx/nyx", STR_CHAMPION_NYX },
 	{ "slash", CLASS_LIGHT, 320, 700, MOVE_SLIDE, 0, ACTIVE_PLASMATRAIL, 0, "slash", STR_CHAMPION_SLASH },
