@@ -22,10 +22,15 @@ module each, each with a look():
                        Eisen on biker (looks/eisen.py): a grey beard, brass
                        goggles on the brow, a leather apron, work trousers, a
                        steel left arm
+  models/players/lucy/*_galena*.skin, uriel/head_galena.skin, ...
+                       Galena on lucy's "angel" plate with uriel's hood
+                       (looks/galena.py): cold iron with teal seams, dark
+                       robes, a charcoal hood with a teal trim, a pale face
+                       with teal eyes
 """
 import importlib
 
-MODULES = ("nyx", "deathknight", "athena", "bj", "eisen")
+MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena")
 
 
 def ALL():
