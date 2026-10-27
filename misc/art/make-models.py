@@ -63,6 +63,8 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
                                             a placeholder call per ability: a
                                             swept tone pitched by its name
   scripts/tremor-assets.shader              the shaders above
+  models/players/grunt/*_strogg.skin, scripts/tremor-skins.shader
+                                            our skins over models the player has (skins.py)
 All shapes are built here from lathes and boxes; textures from noise.
 """
 import math, os, random, struct, sys, zipfile
@@ -70,6 +72,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tremorart import *
 import tremorart as art
 import portraits as champion_portraits
+import skins
 
 
 # ---------------------------------------------------------------- meshes
@@ -1351,6 +1354,7 @@ def main():
     drone(src)
     barrier(src)
     acid(src)
+    skins.build(src)
     os.makedirs(os.path.join(src, "icons"), exist_ok=True)
     weapon_icons(src)
     hud_icons(src)
