@@ -1034,9 +1034,10 @@ static void G_TotemThink( gentity_t *totem ) {
 			}
 		} else if ( dist <= g_totemHealRadius.value && !G_AbilityMarked( totem, other->s.number ) ) {
 			// (within the radius, not the box's corners: abilities-data)
-			// one heal per ally per totem, over the maximum up to the
-			// class's overheal cap (champion-audit.md "Heal caps", Konstantin)
-			max = other->client->ps.stats[STAT_MAX_HEALTH] + G_ClassInfo( other->client )->maxHealthBonus;
+			// one heal per ally per totem up to the maximum; only the
+			// enforced totems (all three out) heal over it, up to the class's
+			// overheal cap (champion-audit.md "Heal caps", Konstantin)
+			max = other->client->ps.stats[STAT_MAX_HEALTH] + ( enforced ? G_ClassInfo( other->client )->maxHealthBonus : 0 );
 			if ( other->health >= max ) {
 				continue;
 			}

@@ -171,6 +171,22 @@ yours or a teammate's, enemy red otherwise; dim and growing while it arms
 #define TOTEM_ENEMY_R	1.0f
 #define TOTEM_ENEMY_G	0.13f
 #define TOTEM_ENEMY_B	0.1f
+#define TOTEM_HEIGHT	25			// the model's height: up to Galena's hip
+
+/*
+==================
+CG_TotemAxis
+
+The totem's flat face (the model's y) turned to the viewer
+==================
+*/
+static void CG_TotemAxis( const vec3_t origin, refEntity_t *ent ) {
+	vec3_t	toView, angles;
+
+	VectorSubtract( cg.refdef.vieworg, origin, toView );
+	VectorSet( angles, 0, atan2( toView[1], toView[0] ) * 180 / M_PI - 90, 0 );
+	AnglesToAxis( angles, ent->axis );
+}
 
 static void CG_TotemQuad( qhandle_t shader, const vec3_t a, const vec3_t b, const vec3_t c, const vec3_t d, const float *color, float k ) {
 	polyVert_t	v[4];
@@ -223,6 +239,7 @@ static void CG_Totem( centity_t *cent, refEntity_t *ent ) {
 	ent->shaderRGBA[1] = 255 * Com_Clamp( 0, 1, color[1] * k );
 	ent->shaderRGBA[2] = 255 * Com_Clamp( 0, 1, color[2] * k );
 	ent->shaderRGBA[3] = 255;
+	CG_TotemAxis( cent->lerpOrigin, ent );
 	trap_R_AddRefEntityToScene( ent );
 
 	// the aura on the floor (the entity sits 2 units off what it hit)
@@ -248,7 +265,7 @@ static void CG_Totem( centity_t *cent, refEntity_t *ent ) {
 		VectorNormalize( side );
 		VectorSet( side, -side[1] * w, side[0] * w, 0 );
 		VectorCopy( cent->lerpOrigin, top );
-		top[2] += 56;
+		top[2] += TOTEM_HEIGHT;
 		VectorAdd( top, side, a );
 		VectorSubtract( top, side, b );
 		VectorCopy( b, d );
@@ -259,7 +276,7 @@ static void CG_Totem( centity_t *cent, refEntity_t *ent ) {
 	}
 
 	VectorCopy( cent->lerpOrigin, c );
-	c[2] += 40;
+	c[2] += TOTEM_HEIGHT * 0.7f;
 	CG_AbilityLight( c, 110 + 60 * k, color[0] * k, color[1] * k, color[2] * k );
 }
 

@@ -545,14 +545,18 @@ def totem_skin():
     return c, glow
 
 
+TOTEM_SCALE = 0.45
+
+
 def totem(out):
     """Galena's Unholy Totem: a tall iron sign like a letter "m" set on a post.
     A banded centre stake, its blade point driven into the floor, hangs from a
     top bar; two broad flat blades hang from the bar's ends, cut at a slant
     at the bottom; braces run from the bar to a hub on the stake, and a
     stepped crest sits on top. A burning groove runs down the stake and a core
-    burns in the hub. 56 units tall from the floor (z = -2: the game places the
-    entity 2 units off the surface it hit). The groove, the core and the
+    burns in the hub. Built 56 units tall from the floor (z = -2: the game
+    places the entity 2 units off the surface it hit) and written at
+    TOTEM_SCALE, about 25 units. The groove, the core and the
     iron's cracks take the entity colour: the code paints them in the owner's
     side's colour."""
     iron, core = Mesh("ability/totem"), Mesh("ability/totemcore")
@@ -596,6 +600,10 @@ def totem(out):
         else:
             t = min(1.0, max(0.0, (p[1] + 3.4) / 6.8))
             iron.st[i] = ((TOTEM_SKIN_EDGE + 2.6 * t - TOTEM_SKIN_X0) / TOTEM_SKIN_SPAN, (TOTEM_SKIN_Z0 - p[2]) / TOTEM_SKIN_SPAN)
+    # built 56 units tall, made TOTEM_SCALE of that: up to Galena's hip
+    # (Konstantin), standing on the same floor
+    for m in (iron, core):
+        m.xyz = [(x * TOTEM_SCALE, y * TOTEM_SCALE, -2 + (z + 2) * TOTEM_SCALE) for x, y, z in m.xyz]
     write_md3(os.path.join(out, "models/abilities/totem/totem.md3"), "totem", [iron, core])
 
     def ember(u, v, n=Fbm(71, 4, 4)):

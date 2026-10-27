@@ -326,7 +326,9 @@ int Pickup_Health (gentity_t *ent, gentity_t *other) {
 	}
 	else
 #endif
-	if ( ent->item->quantity != 5 && ent->item->quantity != 100 ) {
+	// a map's healing pool gives hidden health items (target_give: they
+	// have a targetname): it heals up to the maximum only (Konstantin)
+	if ( ( ent->item->quantity != 5 && ent->item->quantity != 100 ) || ent->targetname ) {
 		max = other->client->ps.stats[STAT_MAX_HEALTH];
 	} else {
 		max = other->client->ps.stats[STAT_MAX_HEALTH] + G_ClassInfo( other->client )->maxHealthBonus;

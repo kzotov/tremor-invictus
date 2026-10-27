@@ -45,6 +45,10 @@ void Use_Target_Give( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
 		if ( !t->item ) {
 			continue;
 		}
+		// a healing pool does nothing at full health (Pickup_Health caps it)
+		if ( t->item->giType == IT_HEALTH && activator->health >= activator->client->ps.stats[STAT_MAX_HEALTH] ) {
+			continue;
+		}
 		Touch_Item( t, activator, &trace );
 
 		// make sure it isn't going to respawn or show any events
