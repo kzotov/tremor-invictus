@@ -55,10 +55,6 @@ module each, each with a look():
   models/players/ranger/*_ranger*.skin, ...
                        Ranger (looks/ranger.py): olive-drab vest, pads and
                        helmet over a dark undersuit, a brass buckle
-  models/players/ranger/*_shellshock*.skin, ...
-                       Wrack on ranger's armoured set (looks/wrack.py):
-                       red-brown plate, dark leather, bone skulls on the
-                       thigh plates
   models/players/anarki/*_anarki*.skin, ...
                        Anarki (looks/anarki.py): tanned skin, a near-black
                        mohawk, brown leather, rusted scrap, brass goggles
@@ -75,7 +71,7 @@ module each, each with a look():
 import importlib
 
 MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer", "raine", "beastmaster",
-           "unumrey", "sorlag", "doom", "clutch", "ranger", "wrack", "anarki", "keel", "slash", "visor")
+           "unumrey", "sorlag", "doom", "clutch", "ranger", "anarki", "keel", "slash", "visor")
 
 
 def ALL():
