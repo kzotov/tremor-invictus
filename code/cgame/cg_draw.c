@@ -6363,6 +6363,19 @@ static void CG_AddPillar( const vec3_t base, const byte *glow, int rank ) {
 		st[2][0] = 1; st[2][1] = 0;
 		st[3][0] = 0; st[3][1] = 0;
 		CG_PillarPoly( cgs.media.pillarRankShader[rank - 1], q, st, glow );
+		// and wound the other way too, so no renderer culls it
+		{
+			vec3_t	r[4];
+			float	rt[4][2];
+			int		k;
+
+			for ( k = 0 ; k < 4 ; k++ ) {
+				VectorCopy( q[3 - k], r[k] );
+				rt[k][0] = st[3 - k][0];
+				rt[k][1] = st[3 - k][1];
+			}
+			CG_PillarPoly( cgs.media.pillarRankShader[rank - 1], r, rt, glow );
+		}
 	}
 }
 
