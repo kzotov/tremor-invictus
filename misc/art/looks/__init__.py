@@ -1,8 +1,27 @@
 """The champions' looks on models the player has (see skins.Look), one
-module each, each with a look()."""
+module each, each with a look():
+
+  models/players/mynx/*_nyx[_red|_blue].skin, nyx/head_*.skin, nyx_*.tga
+                       Nyx on mynx (looks/nyx.py): blue curls painted over
+                       the hair, a violet-black suit with glowing seams, a
+                       veil over the lower face, a crescent on the shoulder
+  models/players/visor/*_deathknight*.skin, bones/head_deathknight.skin, ...
+                       Death Knight on visor's body with bones' skull
+                       (looks/deathknight.py): blackened plate with embers in
+                       its cracks, a furnace grate on the shoulder, a charred
+                       skull with fire in the sockets
+  models/players/crash/*_athena*.skin, ...
+                       Athena on crash (looks/athena.py): white and silver
+                       armour with blue lights, a navy undersuit over the
+                       skin and leathers
+  models/players/bitterman/*_bj*.skin, ...
+                       B.J. on bitterman (looks/bj.py): a human skin over the
+                       hide, a blond buzz cut over the tentacles, a dark vest
+                       and fatigues
+"""
 import importlib
 
-MODULES = ("nyx", "deathknight", "athena")
+MODULES = ("nyx", "deathknight", "athena", "bj")
 
 
 def ALL():

@@ -10,19 +10,8 @@ layers ship. Called by make-models.py; by hand:
                        implant plate, staples and veins on the bare arm, a
                        steel plate over the skull, a jaw grille, a glowing
                        implant eye and cable ports
-  models/players/mynx/*_nyx[_red|_blue].skin, nyx/head_*.skin, nyx_*.tga
-                       Nyx on mynx (looks/nyx.py): blue curls painted over
-                       the hair, a violet-black suit with glowing seams, a
-                       veil over the lower face, a crescent on the shoulder
-  models/players/visor/*_deathknight*.skin, bones/head_deathknight.skin, ...
-                       Death Knight on visor's body with bones' skull
-                       (looks/deathknight.py): blackened plate with embers in
-                       its cracks, a furnace grate on the shoulder, a charred
-                       skull with fire in the sockets
-  models/players/crash/*_athena*.skin, ...
-                       Athena on crash (looks/athena.py): white and silver
-                       armour with blue lights, a navy undersuit over the
-                       skin and leathers
+  models/players/<model>/*_<look>*.skin, <look>_*.tga
+                       the champions' looks in looks/ (listed there)
   scripts/tremor-skins.shader
 
 The champions' looks after Strogg are described as data in looks/, one
