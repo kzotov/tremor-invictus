@@ -19,10 +19,10 @@ module each, each with a look():
                        B.J. on bitterman (looks/bj.py): a human skin over the
                        hide, a blond buzz cut over the tentacles, olive vest
                        and fatigues, a leather belt
-  models/players/biker/*_eisen*.skin, ...
-                       Eisen on biker (looks/eisen.py): a ginger beard, brass
-                       goggles on the brow, a leather apron, work trousers, a
-                       copper left arm
+  models/players/sarge/*_eisen*.skin, ...
+                       Eisen on sarge (looks/eisen.py), painted from scratch:
+                       a red quilted vest over a yellow shirt, leather chaps
+                       over khaki trousers, grey boots, ginger hair and beard
   models/players/lucy/*_galena*.skin, uriel/head_galena.skin, ...
                        Galena on lucy's "angel" plate with uriel's hood
                        (looks/galena.py): cold iron with teal seams, dark
