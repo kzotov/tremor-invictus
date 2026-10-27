@@ -3048,7 +3048,7 @@ A champion's model loaded apart from any player, for the lobby's own pick
 clientInfo_t *CG_ChampionPreview( int champion ) {
 	static clientInfo_t	preview;
 	static int			loaded = -1;
-	char				model[MAX_QPATH], *skin;
+	char				model[MAX_QPATH], head[MAX_QPATH], *skin, *headSkin;
 
 	if ( champion < 0 || champion >= bg_numChampions ) {
 		return NULL;
@@ -3062,8 +3062,13 @@ clientInfo_t *CG_ChampionPreview( int champion ) {
 		}
 		Q_strncpyz( preview.modelName, model, sizeof( preview.modelName ) );
 		Q_strncpyz( preview.skinName, skin ? skin : "default", sizeof( preview.skinName ) );
-		Q_strncpyz( preview.headModelName, model, sizeof( preview.headModelName ) );
-		Q_strncpyz( preview.headSkinName, skin ? skin : "default", sizeof( preview.headSkinName ) );
+		BG_ChampionHead( champion, head, sizeof( head ) );
+		headSkin = strchr( head, '/' );
+		if ( headSkin ) {
+			*headSkin++ = 0;
+		}
+		Q_strncpyz( preview.headModelName, head, sizeof( preview.headModelName ) );
+		Q_strncpyz( preview.headSkinName, headSkin ? headSkin : ( skin ? skin : "default" ), sizeof( preview.headSkinName ) );
 		preview.infoValid = qtrue;
 		CG_LoadClientInfo( -1, &preview );
 		loaded = champion;

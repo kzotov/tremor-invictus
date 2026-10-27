@@ -1405,6 +1405,33 @@ void UI_PlayerInfo_SetModel( playerInfo_t *pi, const char *model ) {
 
 /*
 ===============
+UI_PlayerInfo_SetHead
+
+Another model's head on the body already set ("name" or "name/skin"); the
+body's own head stays if that one can't be loaded
+===============
+*/
+void UI_PlayerInfo_SetHead( playerInfo_t *pi, const char *head ) {
+	char		name[MAX_QPATH], filename[MAX_QPATH], *skin;
+	qhandle_t	model, headSkin;
+
+	Q_strncpyz( name, head, sizeof( name ) );
+	skin = strchr( name, '/' );
+	if ( skin ) {
+		*skin++ = 0;
+	}
+	model = trap_R_RegisterModel( va( "models/players/%s/head.md3", name ) );
+	Com_sprintf( filename, sizeof( filename ), "models/players/%s/head_%s.skin", name, skin ? skin : "default" );
+	headSkin = trap_R_RegisterSkin( filename );
+	if ( model && headSkin ) {
+		pi->headModel = model;
+		pi->headSkin = headSkin;
+	}
+}
+
+
+/*
+===============
 UI_PlayerInfo_SetInfo
 ===============
 */

@@ -2157,6 +2157,23 @@ int BG_ViewHeight( int champion, qboolean crouched ) {
 
 /*
 ==============
+BG_ModelNameEnd
+
+Where a model's name ends in "name/skin" or "body:head": the '/' or ':',
+or NULL
+==============
+*/
+static char *BG_ModelNameEnd( char *model ) {
+	for ( ; *model ; model++ ) {
+		if ( *model == '/' || *model == ':' ) {
+			return model;
+		}
+	}
+	return NULL;
+}
+
+/*
+==============
 BG_ChampionForModel
 
 Returns the champion that uses this player model ("name" or "name/skin"),
@@ -2186,7 +2203,7 @@ int BG_ChampionForModel( const char *model ) {
 	}
 	for ( i = 0 ; i < bg_numChampions ; i++ ) {
 		Q_strncpyz( own, bg_championList[i].model, sizeof( own ) );
-		slash = strchr( own, '/' );
+		slash = BG_ModelNameEnd( own );
 		if ( slash ) {
 			*slash = 0;
 		}
@@ -2203,15 +2220,18 @@ void	trap_Cvar_VariableStringBuffer( const char *var_name, char *buffer, int buf
 
 /*
 ==============
-BG_ChampionModel
+BG_ChampionModels
 
 The champion's player model, unless g_championModels names another one
 for it ("champion=model" pairs separated by spaces) and that model can be
 loaded here: how local test models are tried without changing the table.
 The game, the menus and the HUD all ask this, so they agree.
+
+A model may take its head from another model: "body[/skin]:head[/skin]",
+in the table or in g_championModels.
 ==============
 */
-void BG_ChampionModel( int champion, char *out, int size ) {
+static void BG_ChampionModels( int champion, char *out, int size ) {
 	static char		seen[MAX_CVAR_VALUE_STRING] = "\\unset";
 	static char		models[MAX_CHAMPIONS][MAX_QPATH];
 	char			list[MAX_CVAR_VALUE_STRING];
@@ -2247,7 +2267,7 @@ void BG_ChampionModel( int champion, char *out, int size ) {
 				continue;
 			}
 			Q_strncpyz( dir, eq + 1, sizeof( dir ) );
-			slash = strchr( dir, '/' );
+			slash = BG_ModelNameEnd( dir );
 			if ( slash ) {
 				*slash = 0;
 			}
@@ -2261,6 +2281,42 @@ void BG_ChampionModel( int champion, char *out, int size ) {
 		}
 	}
 	Q_strncpyz( out, champion < MAX_CHAMPIONS ? models[champion] : bg_championList[champion].model, size );
+}
+
+/*
+==============
+BG_ChampionModel
+
+The champion's body model ("name" or "name/skin")
+==============
+*/
+void BG_ChampionModel( int champion, char *out, int size ) {
+	char	*colon;
+
+	BG_ChampionModels( champion, out, size );
+	colon = strchr( out, ':' );
+	if ( colon ) {
+		*colon = 0;
+	}
+}
+
+/*
+==============
+BG_ChampionHead
+
+The champion's head model: the body's own unless the model names another
+==============
+*/
+void BG_ChampionHead( int champion, char *out, int size ) {
+	char	full[MAX_QPATH], *colon;
+
+	BG_ChampionModels( champion, full, sizeof( full ) );
+	colon = strchr( full, ':' );
+	Q_strncpyz( out, colon && colon[1] ? colon + 1 : full, size );
+	colon = strchr( out, ':' );
+	if ( colon ) {
+		*colon = 0;
+	}
 }
 
 /*

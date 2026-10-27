@@ -55,6 +55,8 @@ static void UI_Stage_Load( playerInfo_t *pi, int champion, weapon_t weapon ) {
 	memset( pi, 0, sizeof( *pi ) );
 	BG_ChampionModel( champion, model, sizeof( model ) );
 	UI_PlayerInfo_SetModel( pi, model );
+	BG_ChampionHead( champion, model, sizeof( model ) );
+	UI_PlayerInfo_SetHead( pi, model );
 	VectorClear( angles );
 	angles[YAW] = 180;
 	UI_PlayerInfo_SetInfo( pi, LEGS_IDLE, TORSO_STAND, angles, vec3_origin, weapon, qfalse );

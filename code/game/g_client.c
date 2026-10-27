@@ -840,10 +840,11 @@ void ClientUserinfoChanged( int clientNum ) {
 	if ( ( g_blindPick.integer && g_gametype.integer == GT_TOURNAMENT && level.warmupTime < 0 ) || G_LobbyHidesPicks()
 		|| G_RoundDuelHidesPicks() ) {
 		G_ChampionModel( 0, model, sizeof( model ) );
+		BG_ChampionHead( 0, headModel, sizeof( headModel ) );
 	} else {
 		G_ChampionModel( client->ps.stats[STAT_CHAMPION], model, sizeof( model ) );
+		BG_ChampionHead( client->ps.stats[STAT_CHAMPION], headModel, sizeof( headModel ) );
 	}
-	Q_strncpyz( headModel, model, sizeof( headModel ) );
 
 /*	NOTE: all client side now
 

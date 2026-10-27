@@ -1502,6 +1502,7 @@ extern	const classInfo_t	bg_classInfo[CLASS_NUM_CLASSES];
 
 int					BG_ChampionForName( const char *name );
 void				BG_ChampionModel( int champion, char *out, int size );
+void				BG_ChampionHead( int champion, char *out, int size );
 #define	MAX_CHAMPIONS		32
 int					BG_ChampionForModel( const char *model );
 int					BG_ChampionShotHeight( int champion );

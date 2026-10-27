@@ -295,6 +295,8 @@ static void Champion_Draw( void ) {
 		memset( &s_champion.playerInfo, 0, sizeof( s_champion.playerInfo ) );
 		BG_ChampionModel( s_champion.shown, model, sizeof( model ) );
 		UI_PlayerInfo_SetModel( &s_champion.playerInfo, model );
+		BG_ChampionHead( s_champion.shown, model, sizeof( model ) );
+		UI_PlayerInfo_SetHead( &s_champion.playerInfo, model );
 		VectorClear( angles );
 		angles[YAW] = 180 - 30;
 		UI_PlayerInfo_SetInfo( &s_champion.playerInfo, LEGS_IDLE, TORSO_STAND, angles, vec3_origin, WP_MACHINEGUN, qfalse );
