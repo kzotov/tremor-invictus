@@ -1,8 +1,9 @@
-"""Nyx on mynx: blue hair painted over the model's own curls, a blue-black
-bodysuit with glowing cyan seams over the leather and the bare skin, a
-veil over the lower face, bare eyes in dark make-up painted over the
+"""Nyx on mynx: bright cyan-blue hair painted over the model's own curls,
+a dark navy-teal bodysuit with glowing cyan seams over the leather and
+the bare skin, her face bare, eyes in dark make-up painted over the
 glasses (the face has no eyes under them), and a crescent sigil where the
-belt skull was. Team versions keep the team's suit paint and light the seams in its colour."""
+belt skull was. Team versions keep the team's suit paint and light the
+seams in its colour."""
 import math, random
 from skins import Sheet, Look, region, seg_dist
 from tremorart import Fbm, clamp, smooth, mix
@@ -17,12 +18,12 @@ EYE = (440, 250)                # the eye's centre in the glasses, 768 x 384 vie
 # seams over the big suit piece and the boot, as segments in 0..1
 SUIT_SEAMS = [((40 / 768, 0.02), (60 / 768, 0.98)), ((220 / 768, 0.02), (205 / 768, 0.98)),
               ((300 / 768, 190 / 384), (300 / 768, 370 / 384))]
-SUIT = (0.1, 0.1, 0.13)
+SUIT = (0.07, 0.11, 0.15)
 GLOW = {"": (0.2, 0.9, 1.0), "_red": (1.0, 0.4, 0.25), "_blue": (0.4, 0.8, 1.0)}
 
 
 def suit_grade(u, v):
-    return [0.32, 0.27, 0.42, 1]
+    return [0.24, 0.32, 0.46, 1]
 
 
 def team_suit_grade(u, v):
@@ -71,7 +72,7 @@ def eyes(u, v):
             return [0.06, 0.16, 0.2]                                      # iris
         return [0.62, 0.58, 0.55]                                         # the white
     k = clamp((d - 1) / 1.8)
-    return mix((0.06, 0.04, 0.08), (0.55, 0.42, 0.37), k)                # make-up fading to skin
+    return mix((0.06, 0.04, 0.08), (0.46, 0.33, 0.28), k)                # make-up fading to skin
 
 
 def suit_glow_fn(colour):
@@ -129,10 +130,9 @@ def arms_glow_fn(colour):
 # ---------------------------------------------------------------- the head sheet (mynx_h, 768 x 384 view): face left, hair right
 
 HAIR_U = 278 / 768
-VEIL_V = 212 / 384
-HAIR_DARK = (0.03, 0.06, 0.16)
-HAIR = (0.10, 0.24, 0.62)
-HAIR_LIGHT = (0.45, 0.70, 1.0)
+HAIR_DARK = (0.03, 0.12, 0.3)
+HAIR = (0.12, 0.45, 0.85)
+HAIR_LIGHT = (0.5, 0.85, 1.0)
 
 
 def head_grade(u, v):
@@ -172,7 +172,7 @@ class Curls:
 
 
 def head_detail_fn():
-    n, warp, veil = Fbm(831, 4, 4), Fbm(837, 3, 3), Fbm(839, 3, 4)
+    n, warp = Fbm(831, 4, 4), Fbm(837, 3, 3)
     curls = Curls(841)
 
     def f(u, v):
@@ -188,13 +188,6 @@ def head_detail_fn():
             c = [x * (0.35 + 0.65 * smooth(0.06, 0.2, gap)) for x in c]
             edge = clamp((u - HAIR_U + 0.005) / 0.01)
             return list(c) + [edge]
-        if v > VEIL_V:
-            k = 0.8 + 0.4 * veil.at(u * 2, v * 6)              # folds of the wrap
-            fold = 0.85 + 0.15 * math.sin(v * 70 + 4 * veil.at(u * 3, v * 3))
-            c = [x * k * fold for x in (0.12, 0.07, 0.18)]
-            if v < VEIL_V + 0.012:
-                c = [0.05, 0.03, 0.08]                          # the hem
-            return c + [clamp((v - VEIL_V) / 0.006)]
         return [0, 0, 0, 0]
     return f
 
@@ -203,7 +196,7 @@ def look():
     sheets = {
         "suit": Sheet({"": "mynx_shiny", "_red": "red_s", "_blue": "blue_s"},
                       grade={"": suit_grade, "_red": team_suit_grade},
-                      detail={"": suit_detail_fn(0.55), "_red": suit_detail_fn(0.3)},
+                      detail={"": suit_detail_fn(0.8), "_red": suit_detail_fn(0.3)},
                       glow={v: suit_glow_fn(GLOW[v]) for v in GLOW}, size=512),
         "arms": Sheet({"": "mynx", "_red": "mynx", "_blue": "mynx"},
                       detail={"": arms_detail_fn(SUIT), "_red": arms_detail_fn((0.36, 0.06, 0.06)),

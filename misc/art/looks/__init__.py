@@ -2,10 +2,9 @@
 module each, each with a look():
 
   models/players/mynx/*_nyx[_red|_blue].skin, nyx/head_*.skin, nyx_*.tga
-                       Nyx on mynx (looks/nyx.py): blue curls painted over
-                       the hair, a blue-black suit with cyan seams, a
-                       veil over the lower face, bare eyes instead of the
-                       glasses, a crescent on the shoulder
+                       Nyx on mynx (looks/nyx.py): cyan-blue hair, a
+                       navy-teal suit with cyan seams, bare eyes instead of
+                       the glasses, a crescent on the shoulder
   models/players/visor/*_deathknight*.skin, bones/head_deathknight.skin, ...
                        Death Knight on visor's body with bones' skull
                        (looks/deathknight.py): blackened plate with embers in
