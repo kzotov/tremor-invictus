@@ -661,7 +661,7 @@ static void CG_AbilitySound( entityState_t *es, int which ) {
 		if ( es->number == cg.snap->ps.clientNum ) {
 			champ = cg.snap->ps.stats[STAT_CHAMPION];
 		} else {
-			champ = BG_ChampionForModel( cgs.clientinfo[es->number].modelName );
+			champ = CG_ClientChampion( &cgs.clientinfo[es->number] );
 		}
 		if ( champ < 0 ) {
 			return;
@@ -773,7 +773,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	case EV_FOOTSTEP:
 		DEBUGNAME("EV_FOOTSTEP");
 		if (cg_footsteps.integer) {
-			int		champ = BG_ChampionForModel( ci->modelName );
+			int		champ = CG_ClientChampion( ci );
 
 			// heavy champions: heavier, louder steps (the step set and a second voice)
 			if ( champ >= 0 && BG_Champion( champ )->bodyClass == CLASS_HEAVY ) {

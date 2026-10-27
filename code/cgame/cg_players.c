@@ -3024,17 +3024,10 @@ model (Wrack is ranger/wrack) are told apart by the skin
 ===============
 */
 int CG_ClientChampion( clientInfo_t *ci ) {
-	char	own[MAX_QPATH], full[MAX_QPATH];
-	int		i;
+	char	full[MAX_QPATH];
 
 	Com_sprintf( full, sizeof( full ), "%s/%s", ci->modelName, ci->skinName );
-	for ( i = 0 ; i < bg_numChampions ; i++ ) {
-		BG_ChampionModel( i, own, sizeof( own ) );
-		if ( strchr( own, '/' ) && !Q_stricmp( own, full ) ) {
-			return i;
-		}
-	}
-	return BG_ChampionForModel( ci->modelName );
+	return BG_ChampionForModel( full );
 }
 
 /*

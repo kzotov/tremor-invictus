@@ -14,6 +14,11 @@ layers ship. Called by make-models.py; by hand:
                        Nyx on mynx (looks/nyx.py): blue curls painted over
                        the hair, a violet-black suit with glowing seams, a
                        veil over the lower face, a crescent on the shoulder
+  models/players/visor/*_deathknight*.skin, bones/head_deathknight.skin, ...
+                       Death Knight on visor's body with bones' skull
+                       (looks/deathknight.py): blackened plate with embers in
+                       its cracks, a furnace grate on the shoulder, a charred
+                       skull with fire in the sockets
   scripts/tremor-skins.shader
 
 The champions' looks after Strogg are described as data in looks/, one
@@ -346,10 +351,11 @@ class Sheet:
     base, the model's own image there; grade, a x2 multiply (0.5 keeps the
     colour); detail, our painting blended by its alpha; glow, added unlit.
     A layer is a function (u, v) -> rgba, or None; one given for "" alone
-    serves every variant."""
+    serves every variant. model names the sheet's model when it is not the
+    look's own (a head taken from another model)."""
 
-    def __init__(self, base, grade=None, detail=None, glow=None, size=256, pulse=False):
-        self.base, self.size, self.pulse = base, size, pulse
+    def __init__(self, base, grade=None, detail=None, glow=None, size=256, pulse=False, model=None):
+        self.base, self.size, self.pulse, self.model = base, size, pulse, model
         self.layers = {"grade": grade, "detail": detail, "glow": glow}
 
     def layer(self, kind, variant):
@@ -361,10 +367,12 @@ class Sheet:
 
 class Look:
     """A champion's look on a model the player has: model/skin, its sheets,
-    and which sheet each surface of each part wears."""
+    and which sheet each surface of each part wears. head_model is the
+    model the head comes from, for a "body/skin:head/skin" champion."""
 
-    def __init__(self, model, skin, sheets, surfaces, tags):
+    def __init__(self, model, skin, sheets, surfaces, tags, head_model=None):
         self.model, self.skin, self.sheets, self.surfaces, self.tags = model, skin, sheets, surfaces, tags
+        self.head_model = head_model or model
 
 
 LAYER_SHADER = {
@@ -376,30 +384,34 @@ LAYER_SHADER = {
 
 def build_look(out, look):
     """Write the look's layer images, shaders and skins; returns the shader text."""
-    rel = "models/players/%s/" % look.model
-    d = os.path.join(out, rel)
     made, shaders = {}, ""
+
+    def shader(name, variant):
+        return "models/players/%s/%s_%s%s" % (look.sheets[name].model or look.model, look.skin, name, variant)
     for name, sheet in look.sheets.items():
+        rel = "models/players/%s/" % (sheet.model or look.model)
         for variant, base in sheet.base.items():
-            text = "%s%s_%s%s\n{\n" % (rel, look.skin, name, variant)
+            text = "%s\n{\n" % shader(name, variant)
             text += "\t{\n\t\tmap %s%s.tga\n\t\trgbGen lightingDiffuse\n\t}\n" % (rel, base)
             for kind in ("grade", "detail", "glow"):
                 fn = sheet.layer(kind, variant)
                 if fn is None:
                     continue
                 if id(fn) not in made:
-                    img = "%s_%s_%s%s.tga" % (look.skin, name, kind, variant)
+                    img = "%s%s_%s_%s%s.tga" % (rel, look.skin, name, kind, variant)
                     w = sheet.size if kind == "detail" else max(16, sheet.size // 2)
-                    tex(os.path.join(d, img), w, w, fn, kind == "detail")
+                    tex(os.path.join(out, img), w, w, fn, kind == "detail")
                     made[id(fn)] = img
                 wave = "\t\trgbGen wave sin 0.85 0.15 0 1.5\n" if kind == "glow" and sheet.pulse else ""
-                text += LAYER_SHADER[kind] % ((rel + made[id(fn)],) + ((wave,) if kind == "glow" else ()))
+                text += LAYER_SHADER[kind] % ((made[id(fn)],) + ((wave,) if kind == "glow" else ()))
             shaders += text + "}\n\n"
     variants = list(next(iter(look.sheets.values())).base)
     for variant in variants:
         for part, surfs in look.surfaces.items():
             lines = ["%s," % t for t in look.tags[part]]
-            lines += ["%s,%s%s_%s%s" % (sf, rel, look.skin, sheet, variant) for sf, sheet in surfs.items()]
+            lines += ["%s,%s" % (sf, shader(sheet, variant)) for sf, sheet in surfs.items()]
+            model = look.head_model if part == "head" else look.model
+            d = os.path.join(out, "models/players", model)
             if part == "head" and variant:
                 # team heads are looked up in a folder named after the skin
                 path = os.path.join(d, look.skin, "head%s.skin" % variant)

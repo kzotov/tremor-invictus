@@ -3,5 +3,5 @@ module each."""
 
 
 def ALL():
-    from . import nyx
-    return [nyx.look()]
+    from . import nyx, deathknight
+    return [nyx.look(), deathknight.look()]

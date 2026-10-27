@@ -151,7 +151,7 @@ static void CG_DrawClientScore( int y, score_t *score, float *color, float fade,
 	}
 
 	// the champion's portrait, or the model's face when there is none
-	portrait = CG_ChampionPortrait( BG_ChampionForModel( ci->modelName ), !largeFormat );
+	portrait = CG_ChampionPortrait( CG_ClientChampion( ci ), !largeFormat );
 	VectorClear( headAngles );
 	headAngles[YAW] = 180;
 	if( largeFormat ) {
@@ -252,7 +252,7 @@ static void CG_DrawClientScore( int y, score_t *score, float *color, float fade,
 
 	// the champion after the name, small, where it fits
 	if ( score->ping != -1 && ci->team != TEAM_SPECTATOR ) {
-		int			champ = BG_ChampionForModel( ci->modelName );
+		int			champ = CG_ClientChampion( ci );
 		const char	*champName = champ >= 0 ? BG_String( BG_Champion( champ )->nameString ) : "";
 		int			x = SB_SCORELINE_X + ( SB_RATING_WIDTH / 2 ) + CG_DrawStrlen( string ) * BIGCHAR_WIDTH + 8;
 		vec4_t		gray = { 0.6f, 0.6f, 0.6f, 1 };
@@ -764,7 +764,7 @@ static const char *CG_BoardName( int client ) {
 }
 
 static const char *CG_BoardPortrait( int client ) {
-	int		champion = BG_ChampionForModel( cgs.clientinfo[client].modelName );
+	int		champion = CG_ClientChampion( &cgs.clientinfo[client] );
 
 	return champion >= 0 && champion < 32 ? cg_portraitPath[champion] : "";
 }

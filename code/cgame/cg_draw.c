@@ -738,7 +738,7 @@ static qhandle_t CG_KillFeedPortrait( int clientNum ) {
 	if ( clientNum < 0 || clientNum >= MAX_CLIENTS || !cgs.clientinfo[clientNum].infoValid ) {
 		return 0;
 	}
-	return CG_ChampionPortrait( BG_ChampionForModel( cgs.clientinfo[clientNum].modelName ), qtrue );
+	return CG_ChampionPortrait( CG_ClientChampion( &cgs.clientinfo[clientNum] ), qtrue );
 }
 
 void CG_AddKillFeed( const char *killer, const char *victim, int weapon, int killerNum, int victimNum ) {
@@ -1954,7 +1954,7 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 			if ( who < 0 || !cgs.clientinfo[who].infoValid ) {
 				continue;
 			}
-			portrait = CG_ChampionPortrait( BG_ChampionForModel( cgs.clientinfo[who].modelName ), qtrue );
+			portrait = CG_ChampionPortrait( CG_ClientChampion( &cgs.clientinfo[who] ), qtrue );
 			if ( atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_roundDuel" ) ) ) {
 				// hud.md 9.1 / 9.7, round duel: a name plate with the round wins
 				// at its inner end, the champion in play (61 dp from (819.5,
@@ -2972,7 +2972,7 @@ static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 			// the teammate's champion, and a dot for its ability: green ready,
 			// blue in use, grey recharging
 			{
-				int			champ = BG_ChampionForModel( ci->modelName );
+				int			champ = CG_ClientChampion( ci );
 				qhandle_t	pic = CG_ChampionPortrait( champ, qtrue );
 				vec4_t		dot;
 				int			state = ( ci->abilityStat & 0xffff ) >> ABILITY_STATE_SHIFT;
@@ -5163,7 +5163,7 @@ static void CG_DrawSpectatorAbilities( void ) {
 		y = 380 - ( i / 8 ) * 30;
 		CG_FillRect( x + 1, y, w - 2, 26, back );
 		{
-			qhandle_t	pic = CG_ChampionPortrait( BG_ChampionForModel( ci->modelName ), qtrue );
+			qhandle_t	pic = CG_ChampionPortrait( CG_ClientChampion( ci ), qtrue );
 
 			if ( pic ) {
 				CG_DrawPic( x + w - 26, y + 1, 24, 24, pic );
@@ -5252,7 +5252,7 @@ static void CG_DrawDeathScreenModern( void ) {
 	cg_hudAnchor = ANCHOR_CENTER;
 	if ( cg.deathKiller >= 0 && cg.deathKiller < MAX_CLIENTS && cg.deathKiller != cg.snap->ps.clientNum ) {
 		ci = &cgs.clientinfo[cg.deathKiller];
-		champ = BG_ChampionForModel( ci->modelName );
+		champ = CG_ClientChampion( ci );
 		if ( cg.deathMod >= MOD_HEAVYWEIGHT && cg.deathMod <= MOD_LEAPINGKICK && champ >= 0 && BG_Champion( champ )->active > ACTIVE_NONE ) {
 			how = BG_String( bg_abilityInfo[BG_Champion( champ )->active].nameString );
 		} else if ( cg.deathWeapon > WP_NONE && cg.deathWeapon < WP_NUM_WEAPONS && cg_weapons[cg.deathWeapon].item ) {
@@ -5378,7 +5378,7 @@ static void CG_DrawDeathScreen( void ) {
 	// hud.md 7.5 / 9.6: the fragged-by panel, centre, top + 150
 	if ( cg.deathKiller >= 0 && cg.deathKiller < MAX_CLIENTS && cg.deathKiller != cg.snap->ps.clientNum ) {
 		ci = &cgs.clientinfo[cg.deathKiller];
-		champ = BG_ChampionForModel( ci->modelName );
+		champ = CG_ClientChampion( ci );
 		// a weapon, or the champion's ability for ability deaths
 		if ( cg.deathMod >= MOD_HEAVYWEIGHT && cg.deathMod <= MOD_LEAPINGKICK && champ >= 0 && BG_Champion( champ )->active > ACTIVE_NONE ) {
 			how = BG_String( bg_abilityInfo[BG_Champion( champ )->active].nameString );
@@ -6559,7 +6559,7 @@ static void CG_DrawPillars( const int *clients, const int *heights, const int *t
 			qfalse, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 16 );
 		if ( labels && labels[i] ) {
 			float		lx = sx - CG_DrawStrlen( labels[i] ) * TINYCHAR_WIDTH / 2;
-			qhandle_t	pic = ranks ? 0 : CG_ChampionPortrait( BG_ChampionForModel( ci->modelName ), qtrue );
+			qhandle_t	pic = ranks ? 0 : CG_ChampionPortrait( CG_ClientChampion( ci ), qtrue );
 
 			CG_DrawStringExt( lx, 424, labels[i], colorLtGrey, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
 			// the champion's portrait beside its name on the lineup
@@ -6648,7 +6648,7 @@ static void CG_DrawTeamStandoff( const int *blue, int nBlue, const int *red, int
 		n = side ? nRed : nBlue;
 		for ( i = 0 ; i < n && i < 8 ; i++ ) {
 			clientInfo_t	*ci = &cgs.clientinfo[list[i]];
-			int				ch = BG_ChampionForModel( ci->modelName );
+			int				ch = CG_ClientChampion( ci );
 			float			step = i < 4 ? 1 : -1;
 			float			size = i < 4 ? 1 : 0.8f;		// (20 / 16 dp, menu-style.md)
 
@@ -7124,7 +7124,7 @@ static void CG_DrawLineup( void ) {
 #endif
 	// each player's champion under their name
 	for ( i = 0 ; i < count ; i++ ) {
-		int		champ = BG_ChampionForModel( cgs.clientinfo[clients[i]].modelName );
+		int		champ = CG_ClientChampion( &cgs.clientinfo[clients[i]] );
 
 		labels[i] = champ >= 0 ? BG_String( BG_Champion( champ )->nameString ) : NULL;
 	}

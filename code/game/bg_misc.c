@@ -1042,7 +1042,7 @@ const champion_t bg_championList[] = {
 	{ "nyx", CLASS_LIGHT, 320, 1000, MOVE_STANDARD, MOVEABIL_WALLJUMP | MOVEABIL_EASYSTRAFE, ACTIVE_GHOSTWALK, 0, "mynx/nyx", STR_CHAMPION_NYX },
 	{ "slash", CLASS_LIGHT, 320, 700, MOVE_SLIDE, 0, ACTIVE_PLASMATRAIL, 0, "slash", STR_CHAMPION_SLASH },
 	{ "bj", CLASS_MEDIUM, 320, 900, MOVE_STANDARD, 0, ACTIVE_DUALWIELD, PASSIVE_REGENERATION, "bitterman", STR_CHAMPION_BJ },
-	{ "deathknight", CLASS_MEDIUM, 320, 900, MOVE_STANDARD, 0, ACTIVE_FLAMESTRIKE, PASSIVE_FIREPROOF | PASSIVE_CHARRING, "bones", STR_CHAMPION_DEATHKNIGHT },
+	{ "deathknight", CLASS_MEDIUM, 320, 900, MOVE_STANDARD, 0, ACTIVE_FLAMESTRIKE, PASSIVE_FIREPROOF | PASSIVE_CHARRING, "visor/deathknight:bones/deathknight", STR_CHAMPION_DEATHKNIGHT },
 	{ "doomslayer", CLASS_MEDIUM, 320, 700, MOVE_STANDARD, MOVEABIL_DOUBLEJUMP, ACTIVE_BERSERK, 0, "doom", STR_CHAMPION_DOOMSLAYER },
 	{ "eisen", CLASS_MEDIUM, 320, 700, MOVE_STANDARD, 0, ACTIVE_TURRET, PASSIVE_ARMORREGEN, "biker", STR_CHAMPION_EISEN },
 	{ "galena", CLASS_MEDIUM, 320, 900, MOVE_STANDARD, 0, ACTIVE_TOTEM, PASSIVE_HEALTHCOOLDOWN | PASSIVE_SLOWDECAY, "lucy", STR_CHAMPION_GALENA },
@@ -2177,38 +2177,47 @@ static char *BG_ModelNameEnd( char *model ) {
 BG_ChampionForModel
 
 Returns the champion that uses this player model ("name" or "name/skin"),
-or -1 if none does
+or -1 if none does. Two champions can wear the same body (Death Knight wears
+visor's under his own skin), so the closest match wins: the same model and
+skin, the model worn without a skin of its own, any skin of the model, the
+model as a head, then the table's model when a local test model stands in
 ==============
 */
 int BG_ChampionForModel( const char *model ) {
 	char	name[MAX_QPATH], own[MAX_QPATH];
-	char	*slash;
-	int		i;
+	char	*end;
+	int		i, pass;
 
 	Q_strncpyz( name, model, sizeof( name ) );
-	slash = strchr( name, '/' );
-	if ( slash ) {
-		*slash = 0;
+	end = strchr( name, ':' );
+	if ( end ) {
+		*end = 0;
 	}
-	for ( i = 0 ; i < bg_numChampions ; i++ ) {
-		// the model in use (a local test model may stand in), then the table's
-		BG_ChampionModel( i, own, sizeof( own ) );
-		slash = strchr( own, '/' );
-		if ( slash ) {
-			*slash = 0;
+	for ( pass = 0 ; pass < 5 ; pass++ ) {
+		if ( pass == 1 ) {
+			end = strchr( name, '/' );
+			if ( end ) {
+				*end = 0;
+			}
 		}
-		if ( !Q_stricmp( name, own ) ) {
-			return i;
-		}
-	}
-	for ( i = 0 ; i < bg_numChampions ; i++ ) {
-		Q_strncpyz( own, bg_championList[i].model, sizeof( own ) );
-		slash = BG_ModelNameEnd( own );
-		if ( slash ) {
-			*slash = 0;
-		}
-		if ( !Q_stricmp( name, own ) ) {
-			return i;
+		for ( i = 0 ; i < bg_numChampions ; i++ ) {
+			if ( pass == 3 ) {
+				BG_ChampionHead( i, own, sizeof( own ) );
+			} else if ( pass == 4 ) {
+				Q_strncpyz( own, bg_championList[i].model, sizeof( own ) );
+			} else {
+				BG_ChampionModel( i, own, sizeof( own ) );
+			}
+			end = BG_ModelNameEnd( own );
+			if ( pass == 1 && end ) {
+				continue;
+			}
+			if ( pass >= 2 && end ) {
+				*end = 0;
+			}
+			if ( !Q_stricmp( name, own ) ) {
+				return i;
+			}
 		}
 	}
 	return -1;
