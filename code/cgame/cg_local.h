@@ -1705,6 +1705,7 @@ void CG_InvulnerabilityImpact( vec3_t org, vec3_t angles );
 void CG_InvulnerabilityJuiced( vec3_t org );
 void CG_LightningBoltBeam( vec3_t start, vec3_t end );
 #endif
+void CG_HitReadoutAdd( int target, int weapon, int damage );
 void CG_DamagePlum( int client, int target, int weapon, vec3_t org, int damage );
 void CG_ScorePlum( int client, vec3_t org, int score );
 

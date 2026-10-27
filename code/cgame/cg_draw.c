@@ -4612,6 +4612,82 @@ static void CG_DrawDamageArc( void ) {
 
 /*
 =================
+CG_HitReadoutAdd / CG_DrawHitReadout
+
+hud.md 10.9 and 12, 21: the damage you deal, by the crosshair (anchored at
+(866, 446), up and left of it): heavy white digits with a dark outline, the
+newest at the anchor, older ones drifting up 20 dp and fading to grey over
+a second; cg_damagePlumSum adds a weapon's (1) or all (2) hits on one
+target within 0.5 s of the first into one number, cg_damagePlumScale sizes it
+=================
+*/
+#ifndef MISSIONPACK
+static void CG_HudText( float x, float y, float size, const char *s, const vec4_t color, int align, float scale );
+#endif
+
+#define HIT_READOUT_ROWS	5
+#define HIT_READOUT_TIME	1000
+
+static struct {
+	int		value, time, first, target, weapon;
+} hitReadout[HIT_READOUT_ROWS];
+
+void CG_HitReadoutAdd( int target, int weapon, int damage ) {
+	int		i;
+
+	if ( cg_damagePlumSum.integer && hitReadout[0].time && cg.time - hitReadout[0].first < 500
+		&& hitReadout[0].target == target && ( cg_damagePlumSum.integer == 2 || hitReadout[0].weapon == weapon ) ) {
+		hitReadout[0].value += damage;
+		hitReadout[0].time = cg.time;
+		return;
+	}
+	for ( i = HIT_READOUT_ROWS - 1 ; i > 0 ; i-- ) {
+		hitReadout[i] = hitReadout[i - 1];
+	}
+	hitReadout[0].value = damage;
+	hitReadout[0].time = hitReadout[0].first = cg.time;
+	hitReadout[0].target = target;
+	hitReadout[0].weapon = weapon;
+}
+
+static void CG_DrawHitReadout( void ) {
+	vec4_t	c, outline = { 0, 0, 0, 0.6f };
+	float	scale = cg_damagePlumScale.value < 1 ? 1 : cg_damagePlumScale.value > 2 ? 2 : cg_damagePlumScale.value;
+	int		i, t;
+
+	if ( !cg_damagePlum.integer || cg_damagePlum.integer == 2 ) {
+		return;
+	}
+#ifndef MISSIONPACK
+	cg_hudAnchor = ANCHOR_CENTER;
+	for ( i = HIT_READOUT_ROWS - 1 ; i >= 0 ; i-- ) {
+		const char	*s;
+		float		x, y, k;
+
+		t = cg.time - hitReadout[i].time;
+		if ( !hitReadout[i].time || t < 0 || t >= HIT_READOUT_TIME ) {
+			continue;
+		}
+		k = (float)t / HIT_READOUT_TIME;
+		// the newest white, older ones grey; all fade and drift up
+		if ( i == 0 ) {
+			Vector4Set( c, 0.957f, 0.988f, 0.988f, 1 - k * k );
+		} else {
+			Vector4Set( c, 0.7f, 0.7f, 0.7f, ( 1 - k ) * 0.8f );
+		}
+		outline[3] = 0.6f * c[3];
+		s = va( "%i", hitReadout[i].value );
+		x = HX_C( 866 );
+		y = HY( 446 ) - k * 20 * DP - i * 24 * DP * scale;
+		CG_HudText( x + DP, y + DP, 26 * scale, s, outline, 2, 1 );
+		CG_HudText( x - DP, y - DP, 26 * scale, s, outline, 2, 1 );
+		CG_HudText( x, y, 26 * scale, s, c, 2, 1 );
+	}
+#endif
+}
+
+/*
+=================
 CG_LowHealthStep
 =================
 */
@@ -8656,6 +8732,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 			}
 			CG_DrawCrosshairNames();
 			CG_DrawDamageArc();
+			CG_DrawHitReadout();
 			// the classic pop-up weapon row; the modern layout has its bar on the right
 			if ( !CG_HudModern() ) {
 				CG_DrawWeaponSelect();
