@@ -7020,6 +7020,14 @@ static qboolean CG_DrawDraft( void ) {
 			y = ( side ? -1 : 1 ) * ( 60 + k * 54 );
 			VectorSet( base, dist, y, -40 );
 			CG_AddPillar( base, glows[side], 0 );
+			// the pick standing on its pedestal (menu-style.md 4, round duel)
+			{
+				const int	*row = side ? picks[!local] : picks[local];
+
+				if ( row[k] >= 0 && row[k] < bg_numChampions && CG_ChampionPreview( row[k] ) ) {
+					CG_AddPillarInfo( CG_ChampionPreview( row[k] ), base, side ? -20 : 20 );
+				}
+			}
 		}
 	}
 	trap_R_AddLightToScene( vec3_origin, 600, 1, 1, 1 );
@@ -7035,16 +7043,11 @@ static qboolean CG_DrawDraft( void ) {
 			sx = 320 - y / ( dist * tan( DEG2RAD( 30 ) ) ) * 0.5f * cgs.glconfig.vidWidth * 480 / cgs.glconfig.vidHeight;
 			if ( row[k] >= 0 && row[k] < bg_numChampions ) {
 				const champion_t	*c = BG_Champion( row[k] );
-				char				model[MAX_QPATH], *skin;
-				qhandle_t			icon;
+				qhandle_t			icon = CG_ChampionPortrait( row[k], qtrue );
 
-				Q_strncpyz( model, c->model, sizeof( model ) );
-				skin = strchr( model, '/' );
-				if ( skin ) {
-					*skin++ = 0;
+				if ( icon ) {
+					CG_DrawPic( sx - 24, 258, 48, 48, icon );
 				}
-				icon = trap_R_RegisterShaderNoMip( va( "models/players/%s/icon_%s", model, skin ? skin : "default" ) );
-				CG_DrawPic( sx - 24, 258, 48, 48, icon );
 				CG_DrawStringExt( sx - CG_DrawStrlen( BG_String( c->nameString ) ) * TINYCHAR_WIDTH / 2, 310,
 					BG_String( c->nameString ), colorWhite, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
 			}

@@ -3044,34 +3044,36 @@ A champion's model loaded apart from any player, for the lobby's own pick
 ===============
 */
 clientInfo_t *CG_ChampionPreview( int champion ) {
-	static clientInfo_t	preview;
-	static int			loaded = -1;
+	static clientInfo_t	previews[32];		// one each, loaded once (the draft shows six)
+	static qboolean		loaded[32];
+	clientInfo_t		*preview;
 	char				model[MAX_QPATH], head[MAX_QPATH], *skin, *headSkin;
 
-	if ( champion < 0 || champion >= bg_numChampions ) {
+	if ( champion < 0 || champion >= bg_numChampions || champion >= 32 ) {
 		return NULL;
 	}
-	if ( loaded != champion ) {
-		memset( &preview, 0, sizeof( preview ) );
+	preview = &previews[champion];
+	if ( !loaded[champion] ) {
+		memset( preview, 0, sizeof( *preview ) );
 		BG_ChampionModel( champion, model, sizeof( model ) );
 		skin = strchr( model, '/' );
 		if ( skin ) {
 			*skin++ = 0;
 		}
-		Q_strncpyz( preview.modelName, model, sizeof( preview.modelName ) );
-		Q_strncpyz( preview.skinName, skin ? skin : "default", sizeof( preview.skinName ) );
+		Q_strncpyz( preview->modelName, model, sizeof( preview->modelName ) );
+		Q_strncpyz( preview->skinName, skin ? skin : "default", sizeof( preview->skinName ) );
 		BG_ChampionHead( champion, head, sizeof( head ) );
 		headSkin = strchr( head, '/' );
 		if ( headSkin ) {
 			*headSkin++ = 0;
 		}
-		Q_strncpyz( preview.headModelName, head, sizeof( preview.headModelName ) );
-		Q_strncpyz( preview.headSkinName, headSkin ? headSkin : ( skin ? skin : "default" ), sizeof( preview.headSkinName ) );
-		preview.infoValid = qtrue;
-		CG_LoadClientInfo( -1, &preview );
-		loaded = champion;
+		Q_strncpyz( preview->headModelName, head, sizeof( preview->headModelName ) );
+		Q_strncpyz( preview->headSkinName, headSkin ? headSkin : ( skin ? skin : "default" ), sizeof( preview->headSkinName ) );
+		preview->infoValid = qtrue;
+		CG_LoadClientInfo( -1, preview );
+		loaded[champion] = qtrue;
 	}
-	return &preview;
+	return preview;
 }
 
 /*
