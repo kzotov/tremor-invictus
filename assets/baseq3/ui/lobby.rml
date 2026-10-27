@@ -22,21 +22,22 @@
 				<span data-when="lb_phase=start">[lb_start]</span>
 			</div>
 			<div class="lbsecs" data-when="lb_duel!=1" data-text-cvar="lb_secs"></div>
+			<div class="lbsecs" data-when="lb_duel=1&amp;lb_phase!=pick" data-text-cvar="lb_secs"></div>
 		</div>
 
 		<!-- the map cards: greyed until the vote opens, the winner alone after it -->
 		<div class="cards" data-when="lb_phase!=pick&amp;lb_phase!=start&amp;lb_phase!=wait">
-			<div class="card" data-when="lb_map1!=" data-class="mine:lb_myvote=1" onclick="mapvote 1; set lb_myvote 1">
+			<div class="mapcard" data-when="lb_map1!=" data-class="mine:lb_myvote=1" onclick="mapvote 1; set lb_myvote 1">
 				<div data-class="grey:lb_phase=soon"><div data-class="lost:lb_win=2"><div data-class="lost:lb_win=3">
 					<img data-src-cvar="lb_shot1"/><div class="cname" data-text-cvar="lb_map1"></div><div class="cvotes"><span data-text-cvar="lb_votes1"></span> [lb_votes]</div>
 				</div></div></div>
 			</div>
-			<div class="card" data-when="lb_map2!=" data-class="mine:lb_myvote=2" onclick="mapvote 2; set lb_myvote 2">
+			<div class="mapcard" data-when="lb_map2!=" data-class="mine:lb_myvote=2" onclick="mapvote 2; set lb_myvote 2">
 				<div data-class="grey:lb_phase=soon"><div data-class="lost:lb_win=1"><div data-class="lost:lb_win=3">
 					<img data-src-cvar="lb_shot2"/><div class="cname" data-text-cvar="lb_map2"></div><div class="cvotes"><span data-text-cvar="lb_votes2"></span> [lb_votes]</div>
 				</div></div></div>
 			</div>
-			<div class="card" data-when="lb_map3!=" data-class="mine:lb_myvote=3" onclick="mapvote 3; set lb_myvote 3">
+			<div class="mapcard" data-when="lb_map3!=" data-class="mine:lb_myvote=3" onclick="mapvote 3; set lb_myvote 3">
 				<div data-class="grey:lb_phase=soon"><div data-class="lost:lb_win=1"><div data-class="lost:lb_win=2">
 					<img data-src-cvar="lb_shot3"/><div class="cname" data-text-cvar="lb_map3"></div><div class="cvotes"><span data-text-cvar="lb_votes3"></span> [lb_votes]</div>
 				</div></div></div>

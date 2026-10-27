@@ -233,6 +233,7 @@ vmCvar_t	g_allowVoteMidGame;
 vmCvar_t	g_teamSizeMin;
 vmCvar_t	g_mapVote;
 vmCvar_t	g_lobby;
+vmCvar_t	g_intermissionTime;
 vmCvar_t	g_lobbyVoteTime;
 vmCvar_t	g_lobbyPickTime;
 vmCvar_t	g_mapVoteTime;
@@ -333,6 +334,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_teamSizeMin, "g_teamSizeMin", "1", CVAR_ARCHIVE, 0, qfalse },
 	{ &g_mapVote, "g_mapVote", "1", CVAR_ARCHIVE, 0, qtrue },			// end-of-match map vote; 0 = the rotation decides
 	{ &g_lobby, "g_lobby", "0", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qfalse },	// 1: the pre-match lobby (lobby.md) before each match
+	{ &g_intermissionTime, "g_intermissionTime", "15", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qfalse },	// the end board goes after this long (s, 0 waits)
 	{ &g_lobbyVoteTime, "g_lobbyVoteTime", "15", CVAR_ARCHIVE, 0, qfalse },
 	{ &g_lobbyPickTime, "g_lobbyPickTime", "30", CVAR_ARCHIVE, 0, qfalse },
 	{ &g_mapVoteTime, "g_mapVoteTime", "20", CVAR_ARCHIVE, 0, qtrue },
@@ -1744,6 +1746,12 @@ void CheckIntermissionExit( void ) {
 
 	// never exit in less than five seconds
 	if ( level.time < level.intermissiontime + 5000 ) {
+		return;
+	}
+
+	// the end board never outstays g_intermissionTime, whatever the vote
+	if ( g_intermissionTime.integer > 0 && level.time >= level.intermissiontime + g_intermissionTime.integer * 1000 ) {
+		ExitLevel();
 		return;
 	}
 

@@ -6006,6 +6006,17 @@ static void CG_DrawIntermission( void ) {
 	cg.scoreFadeTime = cg.time;
 	cg.scoreBoardShowing = CG_DrawScoreboard();
 	CG_DrawMapVote();
+#ifndef MISSIONPACK
+	// how long the end board stays (g_intermissionTime)
+	{
+		int		total = atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_intermissionTime" ) );
+		int		left = total - ( cg.time - cg.podiumTime ) / 1000;
+
+		if ( total > 0 && cg.podiumTime ) {
+			CG_HudText( 320, 462, 16, va( (char *)BG_String( STR_END_NEXT ), left > 0 ? left : 0 ), colorWhite, 1, 1 );
+		}
+	}
+#endif
 }
 
 /*

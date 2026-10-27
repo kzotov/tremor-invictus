@@ -12,9 +12,9 @@ div { display: block; }
 
 /* map cards across the top centre */
 .cards { position: absolute; left: 0; right: 0; top: 105dp; text-align: center; }
-.card { display: inline-block; text-align: left; width: 300dp; margin: 0 10dp; padding: 6dp; background-color: rgba(20, 20, 26, 230); border: 3dp transparent; cursor: pointer; }
-.card.mine { border-color: #ffb748; }
-.card img { width: 288dp; height: 162dp; }
+.mapcard { display: inline-block; text-align: left; width: 300dp; margin: 0 10dp; padding: 6dp; background-color: rgba(20, 20, 26, 230); border: 3dp transparent; cursor: pointer; }
+.mapcard.mine { border-color: #ffb748; }
+.mapcard img { width: 288dp; height: 162dp; }
 .cname { font-size: 24dp; margin-top: 4dp; }
 .cvotes { font-size: 18dp; color: #9a9aa0; }
 .grey { opacity: 0.45; }

@@ -2079,7 +2079,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Ready",
 	"Drop weapon",
 	"Taunt",
-	"%s no longer does %s"
+	"%s no longer does %s",
+	"Next match in %i s - fire to continue"
 };
 
 /*

@@ -1118,6 +1118,7 @@ extern	vmCvar_t	g_allowVoteMidGame;
 extern	vmCvar_t	g_teamSizeMin;
 extern	vmCvar_t	g_mapVote;
 extern	vmCvar_t	g_lobby;
+extern	vmCvar_t	g_intermissionTime;
 extern	vmCvar_t	g_lobbyVoteTime;
 extern	vmCvar_t	g_lobbyPickTime;
 extern	vmCvar_t	g_mapVoteTime;

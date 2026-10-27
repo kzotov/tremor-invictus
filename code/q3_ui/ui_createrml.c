@@ -369,6 +369,9 @@ static void CS_Start( void ) {
 	// client hides menu pages while connecting), so the main menu never
 	// shows in between; the menus close once the map is in
 	CS_Cmd( va( "exec presets/%s.cfg\n", m->preset ) );
+	// the bots are the ones added here: a bot_minplayers left from
+	// elsewhere would kick or add some
+	CS_Cmd( "set bot_minplayers 0\n" );
 	// the limits picked over the mode's own (0 keeps them)
 	if ( trap_Cvar_VariableValue( "ui_csTime" ) > 0 ) {
 		CS_Cmd( va( "set timelimit %i\n", (int)trap_Cvar_VariableValue( "ui_csTime" ) ) );
