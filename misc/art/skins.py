@@ -1,8 +1,8 @@
 """Our own skins for player models the player already has: shader layers
-over the model's own textures, which stay in the player's packs. Only these
-layers ship. Called by make-models.py; by hand:
-
-  python3 misc/art/skins.py OUT_DIR
+over the model's own textures, which stay in the player's packs. Painted on
+the player's own machine from where each texel sits on the player's copy
+of the model (geo.py), so none of it is in the repository or in a package:
+called by bake-looks.py, which packs it into the home folder only.
 
   models/players/grunt/*_strogg[_red|_blue].skin, strogg/head_*.skin, strogg_*.tga
                        Strogg's look on grunt's "stripe" textures: the paint
@@ -17,9 +17,9 @@ layers ship. Called by make-models.py; by hand:
 The champions' looks after Strogg are described as data in looks/, one
 module each (see Look and Sheet below).
 
-Every region is a polygon in the texture's 0..1 layout (u right, v down),
-traced by hand from where the model's surfaces sit; nothing is read from
-the model's own images.
+A layer is a function (u, v) -> rgba; one made with painted(factory) is
+made on the player's machine as factory(geo) from the sheet's SheetGeo
+(geo.py), and paints by where each texel sits on the model.
 """
 import math, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -402,20 +402,26 @@ class LabelMap:
         return 1 - depth * (1 - smooth(0, width, self.edge(u, v)))
 
 
+def painted(factory):
+    """Mark a layer factory that takes the sheet's SheetGeo (geo.py) and
+    returns the layer's (u, v) -> rgba."""
+    factory.needs_geo = True
+    return factory
+
+
 class Sheet:
     """One texture sheet of a model and the layers we put over it, per
     variant ("" for the skin itself, "_red" and "_blue" for team games):
     base, the model's own image there; grade, a x2 multiply (0.5 keeps the
     colour); detail, our painting blended by its alpha; glow, added unlit.
-    form: the sheet also takes the form shading worked out from the model
-    on the player's own machine (bake-form.py, the look's FORM): a x2
-    multiply and a lit highlight after the detail, shipped neutral (0.5
-    grey and black) so the look holds without them.
+    form: the sheet also takes form shading worked out from the model (a
+    look's FORM entry, see form_layers): a x2 multiply and a lit highlight
+    after the detail.
     A layer is a function (u, v) -> rgba, or None; one given for "" alone
     serves every variant. model names the sheet's model when it is not the
     look's own (a head taken from another model)."""
 
-    def __init__(self, base, grade=None, detail=None, glow=None, size=256, pulse=False, model=None, form=False):
+    def __init__(self, base, grade=None, detail=None, glow=None, size=256, pulse=False, model=None, form=None):
         self.base, self.size, self.pulse, self.model, self.form = base, size, pulse, model, form
         self.layers = {"grade": grade, "detail": detail, "glow": glow}
 
@@ -448,15 +454,44 @@ LAYER_SHADER = {
 
 
 def form_images(look, name):
-    """The form layers' images of a look's sheet (bake-form.py writes them
-    under the same names)."""
+    """The form layers' images of a look's sheet."""
     rel = "models/players/%s/%s_%s_" % (look.sheets[name].model or look.model, look.skin, name)
     return rel + "form.tga", rel + "shine.tga"
 
 
-def build_look(out, look, draw=True):
+def form_layers(out, ctx, look, name, f):
+    """Draw a sheet's form layers from md3bake's light and openness on the
+    player's model: f is the look's FORM entry, {"model": (model, skin,
+    texture) for md3bake, "light": (a, b), "open": (c, d), "shine":
+    {label: strength}, "label": (u, v) -> label, "size": px}; form is
+    (a + b lit) (c + d open), halved for the x2 multiply, shine is
+    strength lit^8 (c + d open)."""
+    from md3bake import bake, sample
+    maps = bake(ctx.files, *f["model"])
+    lit, opn = maps if maps else ([[0.6]], [[1.0]])
+    label = f.get("label")
+    if getattr(label, "needs_geo", False):
+        label = label(ctx.sheet(look, name))
+    size, shine = f.get("size", 256), f.get("shine", {})
+
+    def light(u, v):
+        return sample(lit, u, v), f["open"][0] + f["open"][1] * sample(opn, u, v)
+
+    def form(u, v):
+        l, o = light(u, v)
+        return [clamp((f["light"][0] + f["light"][1] * l) * o * 0.5)] * 3 + [1]
+
+    def gloss(u, v):
+        l, o = light(u, v)
+        return [clamp(shine.get(label(u, v) if label else "", 0.0) * l ** 8 * o)] * 3 + [1]
+    for img, fn in zip(form_images(look, name), (form, gloss)):
+        tex(os.path.join(out, img), size, size, fn, False)
+
+
+def build_look(out, look, ctx, draw=True):
     """Write the look's layer images (unless draw is False and they are
-    there from before), shaders and skins; returns the shader text."""
+    there from before), shaders and skins; returns the shader text. ctx is
+    geo.Context on the player's files."""
     made, shaders = {}, ""
 
     def shader(name, variant):
@@ -469,9 +504,9 @@ def build_look(out, look, draw=True):
             for kind in ("grade", "detail", "form", "glow"):
                 if kind == "form":
                     if sheet.form:
-                        for img, grey in zip(form_images(look, name), (0.5, 0.0)):
-                            if not os.path.isfile(os.path.join(out, img)):
-                                tex(os.path.join(out, img), 8, 8, lambda u, v, g=grey: [g, g, g, 1], False)
+                        if variant == next(iter(sheet.base)) and (draw or not os.path.isfile(
+                                os.path.join(out, form_images(look, name)[0]))):
+                            form_layers(out, ctx, look, name, sheet.form)
                         text += LAYER_SHADER["form"] % form_images(look, name)[0]
                         text += LAYER_SHADER["shine"] % form_images(look, name)[1]
                     continue
@@ -482,7 +517,8 @@ def build_look(out, look, draw=True):
                     img = "%s%s_%s_%s%s.tga" % (rel, look.skin, name, kind, variant)
                     w = sheet.size if kind == "detail" else max(16, sheet.size // 2)
                     if draw or not os.path.isfile(os.path.join(out, img)):
-                        tex(os.path.join(out, img), w, w, fn, kind == "detail")
+                        tex(os.path.join(out, img), w, w, fn(ctx.sheet(look, name)) if getattr(fn, "needs_geo", False)
+                            else fn, kind == "detail")
                     made[id(fn)] = img
                 wave = "\t\trgbGen wave sin 0.85 0.15 0 1.5\n" if kind == "glow" and sheet.pulse else ""
                 text += LAYER_SHADER[kind] % ((made[id(fn)],) + ((wave,) if kind == "glow" else ()))
@@ -509,28 +545,26 @@ def build_look(out, look, draw=True):
     return shaders
 
 
-def build(out):
-    """Every look; a look's images are drawn again only when its module or
-    the drawing code changed since they were last drawn into out (the
-    stamps sit beside out, so they stay out of the pack)."""
+def build(out, ctx, signature=b""):
+    """Every look, painted from the player's files (ctx, a geo.Context); a
+    look's images are drawn again only when its module, the drawing code
+    or signature (the player's files) changed since they were last drawn
+    into out (the stamps sit beside out, so they stay out of the pack)."""
     import hashlib, looks
     grunt_strogg(out)
     text = SHADERS
     here = os.path.dirname(os.path.abspath(__file__))
-    common = b"".join(open(os.path.join(here, f), "rb").read() for f in ("skins.py", "tremorart.py"))
+    common = signature + b"".join(open(os.path.join(here, f), "rb").read()
+                                  for f in ("skins.py", "tremorart.py", "geo.py", "md3bake.py"))
     stamps = os.path.join(os.path.dirname(os.path.abspath(out)), "skins-stamps")
     os.makedirs(stamps, exist_ok=True)
     for module, look in looks.ALL():
         digest = hashlib.sha1(common + open(module.__file__, "rb").read()).hexdigest()
         stamp = os.path.join(stamps, "%s_%s" % (look.model, look.skin))
         fresh = os.path.isfile(stamp) and open(stamp).read() == digest
-        text += "\n// %s/%s\n" % (look.model, look.skin) + build_look(out, look, draw=not fresh)
+        text += "\n// %s/%s\n" % (look.model, look.skin) + build_look(out, look, ctx, draw=not fresh)
         with open(stamp, "w") as f:
             f.write(digest)
     os.makedirs(os.path.join(out, "scripts"), exist_ok=True)
     with open(os.path.join(out, "scripts/tremor-skins.shader"), "w") as f:
         f.write(text)
-
-
-if __name__ == "__main__":
-    build(sys.argv[1])

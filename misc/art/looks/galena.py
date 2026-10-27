@@ -266,7 +266,7 @@ def face_detail_fn():
 def look():
     return Look("lucy", "galena", {
         "body": Sheet({"": "angel", "_red": "angel", "_blue": "angel"},
-                      detail={v: detail_fn(v) for v in ROBE}, size=1024, form=True),
+                      detail={v: detail_fn(v) for v in ROBE}, size=1024, form=FORM["body"]),
         "hood": Sheet({"": "uriel", "_red": "uriel", "_blue": "uriel"}, model="uriel",
                       detail={v: hood_detail_fn(v) for v in ROBE}, size=256),
         "face": Sheet({"": "uriel_h", "_red": "uriel_h", "_blue": "uriel_h"}, model="uriel",

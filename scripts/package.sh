@@ -62,9 +62,10 @@ cp "$GENERATED/tremor-assets.pk3" "$GAMEDIR/"
 
 for f in "$@"; do
 	# only map data may ride along: never local sound, model or weapon packs,
-	# nor anything from the reference folders
+	# the looks painted from the player's own models (zz-tremor-*), nor
+	# anything from the reference folders
 	case "$f" in
-	*reference*|*sound*|*weapon*|*portrait*|*model*|*.zip)
+	*reference*|*sound*|*weapon*|*portrait*|*model*|*.zip|*zz-tremor-*)
 		echo "package: refusing $f (not a map pack)" >&2; exit 1 ;;
 	esac
 	cp "$f" "$GAMEDIR/zz-local-$(basename "$f")"

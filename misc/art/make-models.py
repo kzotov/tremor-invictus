@@ -67,16 +67,15 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
                                             a placeholder call per ability: a
                                             swept tone pitched by its name
   scripts/tremor-assets.shader              the shaders above
-  models/players/grunt/*_strogg.skin, mynx/*_nyx.skin, scripts/tremor-skins.shader
-                                            our skins over models the player has (skins.py)
+The champions' looks over models the player has (skins.py, looks/) are
+not made here: bake-looks.py paints them on the player's machine.
 All shapes are built here from lathes and boxes; textures from noise.
 """
-import math, os, random, struct, sys, zipfile
+import math, os, random, shutil, struct, sys, zipfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tremorart import *
 import tremorart as art
 import portraits as champion_portraits
-import skins
 
 
 # ---------------------------------------------------------------- meshes
@@ -1683,7 +1682,11 @@ def main():
     drone(src)
     barrier(src)
     acid(src)
-    skins.build(src)
+    # the champions' looks are painted on the player's machine (bake-looks.py),
+    # never packed here: clear any left from older builds
+    shutil.rmtree(os.path.join(src, "models/players"), ignore_errors=True)
+    if os.path.isfile(os.path.join(src, "scripts/tremor-skins.shader")):
+        os.remove(os.path.join(src, "scripts/tremor-skins.shader"))
     os.makedirs(os.path.join(src, "icons"), exist_ok=True)
     weapon_icons(src)
     hud_icons(src)

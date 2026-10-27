@@ -109,7 +109,7 @@ start)
 	# local test assets from outside the repo (see scripts/local-assets.sh)
 	. "$ROOT/scripts/local-assets.sh"
 	LOCAL_ARGS=$(link_local_assets "$HOME_DIR/baseq3")
-	bake_local_form "$TREMOR_Q3" "$BUILD" "$HOME_DIR/baseq3"
+	bake_local_looks "$TREMOR_Q3" "$BUILD" "$HOME_DIR/baseq3"
 
 	# no stale "game is running" marker, so no safe-mode dialog
 	rm -f "$HOME_DIR"/baseq3/*.pid "$HOME_DIR/baseq3/qconsole.log"

@@ -337,7 +337,7 @@ def look():
     return Look("keel", "scalebearer", {
         "body": Sheet({"": "keel", "_red": "keel", "_blue": "keel"},
                       detail={v: detail_fn(v) for v in ENAMEL},
-                      glow={v: glow_fn(LIGHT[v]) for v in LIGHT}, size=1024, form=True),
+                      glow={v: glow_fn(LIGHT[v]) for v in LIGHT}, size=1024, form=FORM["body"]),
         "neck": Sheet({"": "keel_h", "_red": "keel_h", "_blue": "keel_h"}, detail=neck_detail, size=64),
         "head": Sheet({"": "biker_h", "_red": "biker_h", "_blue": "biker_h"}, model="biker",
                       grade=head_grade, detail=head_detail_fn(),
