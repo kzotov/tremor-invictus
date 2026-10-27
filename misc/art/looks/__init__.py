@@ -65,8 +65,8 @@ module each, each with a look():
                        Slash (looks/slash.py): studded black leather, dark
                        red striped stockings, gunmetal panels
   models/players/visor/*_visor*.skin, ...
-                       Visor (looks/visor.py): gunmetal all over, a red
-                       glowing slit across the visor, a small green lens
+                       Visor (looks/visor.py): orange armour over pale
+                       skin, an orange face mask with a dark slit
 """
 import importlib
 
