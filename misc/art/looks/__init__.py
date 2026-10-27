@@ -55,11 +55,15 @@ module each, each with a look():
   models/players/ranger/*_ranger*.skin, ...
                        Ranger (looks/ranger.py): olive-drab vest, pads and
                        helmet over a dark undersuit, a brass buckle
+  models/players/ranger/*_shellshock*.skin, ...
+                       Wrack on ranger's armoured set (looks/wrack.py):
+                       red-brown plate, dark leather, bone skulls on the
+                       thigh plates
 """
 import importlib
 
 MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer", "raine", "beastmaster",
-           "unumrey", "sorlag", "doom", "clutch", "ranger")
+           "unumrey", "sorlag", "doom", "clutch", "ranger", "wrack")
 
 
 def ALL():

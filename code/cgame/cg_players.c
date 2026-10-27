@@ -3020,7 +3020,7 @@ void CG_DroneBody( centity_t *cent ) {
 CG_ClientChampion
 
 A player's champion from their model and skin: champions that share a
-model (Wrack is ranger/wrack) are told apart by the skin
+model (Wrack is ranger/shellshock) are told apart by the skin
 ===============
 */
 int CG_ClientChampion( clientInfo_t *ci ) {
