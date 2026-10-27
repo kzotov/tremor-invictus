@@ -1,8 +1,8 @@
-"""Clutch on tankjr: the orange armour painted over in teal, with the
-orange showing through where it is worn, the emblems covered by steel
-plates with three stencilled bars (the plates are mirrored on the model,
-so no lettering), the gory feet turned to dark steel, the bare head cased
-in steel as a sensor unit, and its eyes lit cyan. Team versions keep the
+"""Clutch on tankjr: the orange armour painted a glossy dark red, the
+emblems covered by steel plates with three stencilled bars (the plates
+are mirrored on the model, so no lettering), the gory feet turned to
+dark steel, the bare head cased in steel as a sensor unit, and its eyes
+lit amber. Team versions keep the
 team's paint with the same plates, feet, head and eyes."""
 import math
 from skins import Sheet, Look, region, inside
@@ -19,8 +19,8 @@ FEET = [region(p, 768, 768) for p in (
     [(580, 340), (640, 340), (640, 410), (580, 410)],
 )]
 EYES = [(85 / 768, 680 / 768, 16 / 768), (128 / 768, 680 / 768, 16 / 768)]
-TEAL = (0.17, 0.5, 0.6)
-CYAN = {"": (0.3, 0.9, 1.0), "_red": (1.0, 0.35, 0.2), "_blue": (0.3, 0.7, 1.0)}
+PAINT = (0.3, 0.03, 0.03)
+LIGHTS = {"": (1.0, 0.75, 0.2), "_red": (1.0, 0.35, 0.2), "_blue": (0.3, 0.7, 1.0)}
 
 
 def plate(u, v):
@@ -33,7 +33,7 @@ def plate(u, v):
 
 
 def body_grade(u, v):
-    return [0.5, 0.47, 0.45, 1]
+    return [0.52, 0.32, 0.32, 1]
 
 
 def detail_fn(team):
@@ -54,7 +54,7 @@ def detail_fn(team):
             return [k, k * 1.02, k * 1.08, 0.88]
         if not team:
             k = 0.85 + 0.3 * n.at(u * 6, v * 6)
-            return [TEAL[0] * k, TEAL[1] * k, TEAL[2] * k, 0.62]
+            return [PAINT[0] * k, PAINT[1] * k, PAINT[2] * k, 0.7]
         return [0, 0, 0, 0]
     return f
 
@@ -74,7 +74,7 @@ def look():
         "body": Sheet({"": "tankjr", "_red": "red", "_blue": "blue"},
                       grade={"": body_grade, "_red": None, "_blue": None},
                       detail={"": detail_fn(False), "_red": detail_fn(True), "_blue": detail_fn(True)},
-                      glow={v: eyes_fn(CYAN[v]) for v in CYAN}, size=512),
+                      glow={v: eyes_fn(LIGHTS[v]) for v in LIGHTS}, size=512),
     }, {"lower": {s: "body" for s in ("l_rcalf", "l_rfoot", "l_lfoot", "l_hips", "l_rthigh", "l_lthigh",
                                       "l_rtoe", "l_ltoe", "l_rtoes", "l_ltoes", "l_lcalf")},
         "upper": {"u_abdomen": "body", "u_arms": "body", "u_torso": "body"},

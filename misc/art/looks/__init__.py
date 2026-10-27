@@ -49,9 +49,9 @@ module each, each with a look():
                        Doom Slayer (looks/doom.py): deep green armour and
                        helmet, a dark grey undersuit, a gold visor
   models/players/tankjr/*_clutch*.skin, ...
-                       Clutch on tankjr (looks/clutch.py): teal armour
-                       worn to orange, steel plates over the emblems,
-                       steel feet, a steel-cased head with cyan eyes
+                       Clutch on tankjr (looks/clutch.py): dark red armour,
+                       steel plates over the emblems, steel feet, a
+                       steel-cased head with amber eyes
   models/players/ranger/*_ranger*.skin, ...
                        Ranger (looks/ranger.py): olive-drab vest, pads and
                        helmet over a dark undersuit, a brass buckle
