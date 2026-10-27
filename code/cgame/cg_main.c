@@ -306,7 +306,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_drawAmmoWarning, "cg_drawAmmoWarning", "2", CVAR_ARCHIVE  },
 	{ &cg_drawAccuracy, "cg_drawAccuracy", "0", CVAR_ARCHIVE },		// overall accuracy beside the ammo (hud.md 9.7)
 	{ &cg_drawAttacker, "cg_drawAttacker", "1", CVAR_ARCHIVE  },
-	{ &cg_drawCrosshair, "cg_drawCrosshair", "4", CVAR_ARCHIVE },
+	{ &cg_drawCrosshair, "cg_drawCrosshair", "1", CVAR_ARCHIVE },		// hud.md 10.9: a yellow plus by default
 	{ &cg_drawCrosshairNames, "cg_drawCrosshairNames", "1", CVAR_ARCHIVE },
 	{ &cg_drawItemPickups, "cg_drawItemPickups", "1", CVAR_ARCHIVE },	// 0 off, 1 the pickup feed
 	{ &cg_fragBanner, "cg_fragLine", "1", CVAR_ARCHIVE },
@@ -463,7 +463,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_specThirdPerson, "cg_specThirdPerson", "0", CVAR_ARCHIVE},	// following: chase from behind
 	{ &cg_followPowerup, "cg_followPowerup", "0", CVAR_ARCHIVE},		// spectators follow whoever takes a power-up
 	{ &cg_zoomSensitivity, "cg_zoomSensitivity", "0", CVAR_ARCHIVE},
-	{ &cg_crosshairColor, "cg_crosshairColor", "0", CVAR_ARCHIVE},
+	{ &cg_crosshairColor, "cg_crosshairColor", "3", CVAR_ARCHIVE},
 	{ &cg_drawSpeed, "cg_drawSpeed", "0", CVAR_ARCHIVE},
 	{ &cg_layoutDebug, "cg_layoutDebug", "0", CVAR_CHEAT},
 	{ &cg_showLoading, "cg_showLoading", "0", CVAR_CHEAT},		// show the loading screen, to check its layout

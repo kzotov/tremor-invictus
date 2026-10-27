@@ -4292,7 +4292,7 @@ static void CG_DrawCrosshair(void)
 	// the chosen colour, else colour by health
 	if ( cg_crosshairColor.integer > 0 ) {
 		static const vec4_t	palette[] = {
-			{ 1, 1, 1, 1 }, { 1, 0.2f, 0.2f, 1 }, { 0.2f, 1, 0.2f, 1 }, { 1, 1, 0.2f, 1 },
+			{ 1, 1, 1, 1 }, { 1, 0.2f, 0.2f, 1 }, { 0.2f, 1, 0.2f, 1 }, { 0.91f, 0.894f, 0.424f, 1 },		// (3: hud.md's #E8E46C)
 			{ 0.2f, 0.4f, 1, 1 }, { 0.2f, 1, 1, 1 }, { 1, 0.3f, 1, 1 }, { 1, 0.6f, 0.1f, 1 }
 		};
 
@@ -4583,12 +4583,28 @@ static void CG_DrawDamageArc( void ) {
 			color[0] = 1;
 			color[1] = color[2] = 0.6f * ( 1 - ramp );
 			color[3] = ( t < 540 ? 1 : 1 - ( t - 540 ) / 630.0f ) * ( 0.5f + 0.5f * ( value > 50 ? 1.0f : value / 50.0f ) );
-			for ( i = 0 ; i <= 10 ; i++ ) {
-				a = cg.damageArcYaw[n] + DAMAGE_ARC_SPAN * size / 0.7f * ( i / 10.0f - 0.5f );
+			// hud.md 10.11 / 12, 22: a smooth arc ~277 dp out from (955, 540),
+			// 70 degrees across, thicker for hits of 50 or more, a diamond in
+			// its middle
+			dot = ( value >= 50 ? 9 : 5 ) * DP;
+			for ( i = 0 ; i <= 48 ; i++ ) {
+				float	edge = 1 - fabs( i / 24.0f - 1 );		// thinning to the ends
+
+				a = cg.damageArcYaw[n] + 70 * size / 0.7f * ( i / 48.0f - 0.5f );
 				rad = DEG2RAD( a );
-				x = 320 - sin( rad ) * DAMAGE_ARC_RADIUS;
-				y = 240 - cos( rad ) * DAMAGE_ARC_RADIUS;
-				CG_FillRect( x - dot * size / 0.7f / 2, y - dot * size / 0.7f / 2, dot * size / 0.7f, dot * size / 0.7f, color );
+				x = HX_C( 955 ) - sin( rad ) * 277 * DP;
+				y = HY( 540 ) - cos( rad ) * 277 * DP;
+				CG_FillRect( x - dot * ( 0.5f + 0.5f * edge ) / 2, y - dot * ( 0.5f + 0.5f * edge ) / 2,
+					dot * ( 0.5f + 0.5f * edge ), dot * ( 0.5f + 0.5f * edge ), color );
+			}
+			rad = DEG2RAD( cg.damageArcYaw[n] );
+			x = HX_C( 955 ) - sin( rad ) * 277 * DP;
+			y = HY( 540 ) - cos( rad ) * 277 * DP;
+			for ( i = 0 ; i < 4 ; i++ ) {
+				float	k = ( 4 - i ) * 2.5f * DP;
+
+				CG_FillRect( x - k, y - ( i * 2.5f * DP ) / 2 - DP, k * 2, 2 * DP, color );
+				CG_FillRect( x - k, y + ( i * 2.5f * DP ) / 2 - DP, k * 2, 2 * DP, color );
 			}
 		}
 	}
