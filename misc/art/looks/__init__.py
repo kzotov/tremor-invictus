@@ -24,9 +24,9 @@ module each, each with a look():
                        over khaki trousers, grey boots, ginger hair and beard
   models/players/lucy/*_galena*.skin, uriel/head_galena.skin, ...
                        Galena on lucy's "angel" plate with uriel's hood
-                       (looks/galena.py): cold iron with teal seams, dark
-                       robes, a charcoal hood with a teal trim, a pale face
-                       with teal eyes
+                       (looks/galena.py): ivory plate trimmed in gold, a
+                       cream breastplate, a gold belt, near-black robes and
+                       hood, a pale face framed by black hair
   models/players/keel/*_scalebearer*.skin, biker/head_scalebearer.skin, ...
                        Scalebearer on keel's armour with biker's head
                        (looks/scalebearer.py): copper-rimmed gunmetal scales,
