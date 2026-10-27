@@ -303,8 +303,8 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_drawSnapshot, "cg_drawSnapshot", "0", CVAR_ARCHIVE  },
 	{ &cg_draw3dIcons, "cg_draw3dIcons", "1", CVAR_ARCHIVE  },
 	{ &cg_drawIcons, "cg_drawIcons", "1", CVAR_ARCHIVE  },
-	{ &cg_drawAmmoWarning, "cg_drawAmmoWarning", "2", CVAR_ARCHIVE  },
-	{ &cg_drawAccuracy, "cg_drawAccuracy", "0", CVAR_ARCHIVE },		// overall accuracy beside the ammo (hud.md 9.7)
+	{ &cg_drawAmmoWarning, "cg_drawAmmoWarning", CGDEF_DRAWAMMOWARNING, CVAR_ARCHIVE  },
+	{ &cg_drawAccuracy, "cg_drawAccuracy", CGDEF_DRAWACCURACY, CVAR_ARCHIVE },		// overall accuracy beside the ammo (hud.md 9.7)
 	{ &cg_drawAttacker, "cg_drawAttacker", "1", CVAR_ARCHIVE  },
 	{ &cg_drawCrosshair, "cg_drawCrosshair", CGDEF_DRAWCROSSHAIR, CVAR_ARCHIVE },		// hud.md 10.9: a yellow plus by default
 	{ &cg_drawCrosshairNames, "cg_drawCrosshairNames", "1", CVAR_ARCHIVE },
@@ -447,8 +447,8 @@ static cvarTable_t cvarTable[] = {
 	// 1: the champions HUD, 0: the classic status bar
 	{ &cg_hudLayout, "cg_hudLayout", CGDEF_HUDLAYOUT, CVAR_ARCHIVE},		// hud/<name>.hud: modern or classic
 	{ &cg_rmlScoreboard, "cg_rmlScoreboard", "1", CVAR_ARCHIVE },		// the RmlUi Tab board (scoreboard.md)
-	{ &cg_netWarnings, "cg_netWarnings", "0", CVAR_ARCHIVE },			// ping / loss / spike / fps warnings
-	{ &cg_hitMarker, "cg_hitMarker", "1", CVAR_ARCHIVE },				// a crosshair mark on each confirmed hit
+	{ &cg_netWarnings, "cg_netWarnings", CGDEF_NETWARNINGS, CVAR_ARCHIVE },			// ping / loss / spike / fps warnings
+	{ &cg_hitMarker, "cg_hitMarker", CGDEF_HITMARKER, CVAR_ARCHIVE },				// a crosshair mark on each confirmed hit
 	{ &cg_specHints, "cg_specHints", "1", CVAR_ARCHIVE },				// the spectator key-hints bar
 	// the ability arc by the crosshair: 0 off, 2 top, 3 bottom, 4 left, 5 right
 	{ &cg_drawCooldownArc, "cg_drawCooldownArc", CGDEF_DRAWCOOLDOWNARC, CVAR_ARCHIVE},	// 0 off, 1 layout (bottom), 2 top, 3 right, 4 bottom, 5 left
@@ -473,9 +473,9 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_zoomToggle, "cg_zoomToggle", CGDEF_ZOOMTOGGLE, CVAR_ARCHIVE},		// 1: +zoom toggles instead of holding
 	{ &cg_joinScreen, "cg_joinScreen", "1", CVAR_ARCHIVE},		// the join screen for spectators on a new map
 	{ &cg_damagePlum, "cg_damagePlum", CGDEF_DAMAGEPLUM, CVAR_ARCHIVE},		// damage numbers over hit enemies
-	{ &cg_damagePlumScale, "cg_damagePlumScale", "1", CVAR_ARCHIVE },	// their size, 1.0-2.0
-	{ &cg_damagePlumSum, "cg_damagePlumSum", "2", CVAR_ARCHIVE },		// 0 each hit, 1 per damage type, 2 all hits on a target
-	{ &cg_damagePlumHidden, "cg_damagePlumHidden", "0", CVAR_ARCHIVE },	// numbers for targets out of sight
+	{ &cg_damagePlumScale, "cg_damagePlumScale", CGDEF_DAMAGEPLUMSCALE, CVAR_ARCHIVE },	// their size, 1.0-2.0
+	{ &cg_damagePlumSum, "cg_damagePlumSum", CGDEF_DAMAGEPLUMSUM, CVAR_ARCHIVE },		// 0 each hit, 1 per damage type, 2 all hits on a target
+	{ &cg_damagePlumHidden, "cg_damagePlumHidden", CGDEF_DAMAGEPLUMHIDDEN, CVAR_ARCHIVE },	// numbers for targets out of sight
 	{ &cg_hitBeep, "cg_hitBeep", CGDEF_HITBEEP, CVAR_ARCHIVE},	// 0 off, 1 one beep, 2 by damage, 3 by damage reversed
 	{ &cg_killBeep, "cg_killBeep", CGDEF_KILLBEEP, CVAR_ARCHIVE},
 	{ &cg_worldItemTimers, "cg_worldItemTimers", CGDEF_WORLDITEMTIMERS, CVAR_ARCHIVE},	// markers and countdowns on away items
