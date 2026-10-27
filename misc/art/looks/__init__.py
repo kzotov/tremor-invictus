@@ -68,11 +68,14 @@ module each, each with a look():
   models/players/slash/*_slash*.skin, ...
                        Slash (looks/slash.py): studded black leather, dark
                        red striped stockings, gunmetal panels
+  models/players/visor/*_visor*.skin, ...
+                       Visor (looks/visor.py): gunmetal all over, a red
+                       glowing slit across the visor, a small green lens
 """
 import importlib
 
 MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer", "raine", "beastmaster",
-           "unumrey", "sorlag", "doom", "clutch", "ranger", "wrack", "anarki", "keel", "slash")
+           "unumrey", "sorlag", "doom", "clutch", "ranger", "wrack", "anarki", "keel", "slash", "visor")
 
 
 def ALL():
