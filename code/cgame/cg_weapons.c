@@ -604,9 +604,30 @@ static void CG_HookRope( const vec3_t start, const vec3_t end, qboolean taut, by
 // each player's rope as last drawn, to fade it out after release
 typedef struct {
 	vec3_t		start, end;
+	vec3_t		bend[MAX_ROPE_BENDS];		// the bends between, from the hook end
+	int			bends;
 	qboolean	taut;
 	int			time;
 } ropeLast_t;
+
+/*
+==========================
+CG_HookRopeChain
+
+The rope from the hand through its bend points (bend[0] is next to the
+hook) to the hook
+==========================
+*/
+static void CG_HookRopeChain( const vec3_t start, vec3_t *bend, int bends, const vec3_t end, qboolean taut, byte alpha ) {
+	vec3_t	from;
+
+	VectorCopy( start, from );
+	for ( bends = bends > MAX_ROPE_BENDS ? MAX_ROPE_BENDS : bends ; bends > 0 ; bends-- ) {
+		CG_HookRope( from, bend[bends - 1], qtrue, alpha );
+		VectorCopy( bend[bends - 1], from );
+	}
+	CG_HookRope( from, end, taut, alpha );
+}
 
 static ropeLast_t	ropeLast[MAX_CLIENTS];
 
@@ -631,7 +652,8 @@ void CG_AddFadingRopes( void ) {
 		if ( !ropeLast[i].time || age <= 0 || age >= ROPE_FADE_MSEC ) {
 			continue;
 		}
-		CG_HookRope( ropeLast[i].start, ropeLast[i].end, ropeLast[i].taut, 255 * ( ROPE_FADE_MSEC - age ) / ROPE_FADE_MSEC );
+		CG_HookRopeChain( ropeLast[i].start, ropeLast[i].bend, ropeLast[i].bends, ropeLast[i].end, ropeLast[i].taut,
+			255 * ( ROPE_FADE_MSEC - age ) / ROPE_FADE_MSEC );
 	}
 }
 
@@ -654,36 +676,33 @@ void CG_GrappleTrail( centity_t *ent, const weaponInfo_t *wi ) {
 	VectorMA( beam.origin, -6, up, beam.origin );
 	VectorCopy( origin, beam.oldorigin );
 
-	if (Distance( beam.origin, beam.oldorigin ) < 64 )
-		return; // Don't draw if close
-
 	if ( cgs.media.abilityRopeShader ) {
-		ropeLast_t	*last = &ropeLast[es->otherEntityNum & ( MAX_CLIENTS - 1 )];
-
-		// through the points where it bends over edges (the owner's own,
-		// predicted, for the local player)
+		ropeLast_t			*last = &ropeLast[es->otherEntityNum & ( MAX_CLIENTS - 1 )];
 		const playerState_t	*ps = &cg.predictedPlayerState;
 		int					bends, i;
-		vec3_t				bend[MAX_ROPE_BENDS], from;
 
+		// through the points where it bends over edges (the owner's own,
+		// predicted, for the local player); too short to see near the hand
 		if ( es->otherEntityNum == ps->clientNum ) {
 			bends = ps->ropeBends;
 			for ( i = 0 ; i < MAX_ROPE_BENDS ; i++ ) {
-				VectorCopy( ps->ropeBend[i], bend[i] );
+				VectorCopy( ps->ropeBend[i], last->bend[i] );
 			}
 		} else {
 			bends = es->ropeBends;
 			for ( i = 0 ; i < MAX_ROPE_BENDS ; i++ ) {
-				VectorCopy( es->ropeBend[i], bend[i] );
+				VectorCopy( es->ropeBend[i], last->bend[i] );
 			}
 		}
-		VectorCopy( beam.origin, from );
-		for ( bends = bends > MAX_ROPE_BENDS ? MAX_ROPE_BENDS : bends ; bends > 0 ; bends-- ) {
-			CG_HookRope( from, bend[bends - 1], qtrue, 255 );
-			VectorCopy( bend[bends - 1], from );
+		if ( bends < 0 || bends > MAX_ROPE_BENDS ) {
+			bends = 0;
 		}
-		CG_HookRope( from, beam.oldorigin, es->pos.trType == TR_STATIONARY, 255 );
+		if ( Distance( beam.origin, bends ? last->bend[bends - 1] : beam.oldorigin ) < 64 && !bends ) {
+			return;
+		}
+		CG_HookRopeChain( beam.origin, last->bend, bends, beam.oldorigin, es->pos.trType == TR_STATIONARY, 255 );
 		// kept to fade out once the hook lets go
+		last->bends = bends;
 		VectorCopy( beam.origin, last->start );
 		VectorCopy( beam.oldorigin, last->end );
 		last->taut = es->pos.trType == TR_STATIONARY;
@@ -691,6 +710,9 @@ void CG_GrappleTrail( centity_t *ent, const weaponInfo_t *wi ) {
 		return;
 	}
 
+	if ( Distance( beam.origin, beam.oldorigin ) < 64 ) {
+		return;		// don't draw if close
+	}
 	beam.reType = RT_LIGHTNING;
 	beam.customShader = cgs.media.hookLineShader;
 
