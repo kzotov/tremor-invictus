@@ -1236,7 +1236,7 @@ typedef struct {
 	// the HUD's TrueType text (FIX-11): Roboto Mono in the fixed-width
 	// cells, Roboto Bold for the proportional strings, Roboto Black for
 	// banners; a glyph handle of 0 means not loaded (the bitmap font then)
-	fontInfo_t		fontMono, fontProp, fontBanner;
+	fontInfo_t		fontMono, fontProp, fontBanner, fontHudBold, fontChat;
 } cgs_t;
 
 //==============================================================================
@@ -1495,6 +1495,7 @@ void CG_DrawString( float x, float y, const char *string,
 
 
 extern qboolean	cg_drawTeamPalette;
+extern const fontInfo_t	*cg_cellFont;
 void CG_DrawStringExt( int x, int y, const char *string, const float *setColor, 
 		qboolean forceColor, qboolean shadow, int charWidth, int charHeight, int maxChars );
 void CG_DrawBigString( int x, int y, const char *s, float alpha );

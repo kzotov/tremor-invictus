@@ -86,7 +86,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 FT_Library ftLibrary = NULL;  
 #endif
 
-#define MAX_FONTS 6
+#define MAX_FONTS 16		// (the HUD, chat and menu faces: hud.md 10.13)
 static int registeredFontCount = 0;
 static fontInfo_t registeredFont[MAX_FONTS];
 

@@ -2104,6 +2104,28 @@ void CG_AssetCache( void ) {
 #endif
 /*
 =================
+CG_RegisterFontFallback
+
+The first of two font files that the game has
+=================
+*/
+static void CG_RegisterFontFallback( const char *name, const char *fallback, fontInfo_t *font ) {
+	fileHandle_t	f;
+	int				len = trap_FS_FOpenFile( name, &f, FS_READ );
+
+	if ( len > 0 ) {
+		trap_FS_FCloseFile( f );
+		trap_R_RegisterFont( name, 48, font );
+		return;
+	}
+	if ( len == 0 ) {
+		trap_FS_FCloseFile( f );
+	}
+	trap_R_RegisterFont( fallback, 48, font );
+}
+
+/*
+=================
 CG_Init
 
 Called after every level change or subsystem restart
@@ -2140,9 +2162,13 @@ void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum ) {
 
 	// load a few needed things before we do any screen updates
 	cgs.media.charsetShader		= trap_R_RegisterShader( "gfx/2d/bigchars" );
-	trap_R_RegisterFont( "ui/fonts/RobotoMono-Regular.ttf", 48, &cgs.fontMono );
-	trap_R_RegisterFont( "ui/fonts/Roboto-Bold.ttf", 48, &cgs.fontProp );
-	trap_R_RegisterFont( "ui/fonts/Roboto-Black.ttf", 48, &cgs.fontBanner );
+	// hud.md 10.13: Tektur (SemiBold for the HUD's text, Bold for big
+	// numbers and titles), Play for the chat; Roboto when they are missing
+	CG_RegisterFontFallback( "ui/fonts/Tektur-SemiBold.ttf", "ui/fonts/RobotoMono-Regular.ttf", &cgs.fontMono );
+	CG_RegisterFontFallback( "ui/fonts/Tektur-Bold.ttf", "ui/fonts/RobotoMono-Regular.ttf", &cgs.fontHudBold );
+	CG_RegisterFontFallback( "ui/fonts/Play-Regular.ttf", "ui/fonts/RobotoMono-Regular.ttf", &cgs.fontChat );
+	CG_RegisterFontFallback( "ui/fonts/Tektur-SemiBold.ttf", "ui/fonts/Roboto-Bold.ttf", &cgs.fontProp );
+	CG_RegisterFontFallback( "ui/fonts/Tektur-Bold.ttf", "ui/fonts/Roboto-Black.ttf", &cgs.fontBanner );
 	cgs.media.whiteShader		= trap_R_RegisterShader( "white" );
 	cgs.media.pillarSideShader	= trap_R_RegisterShader( "tremor/pillar/side" );
 	cgs.media.pillarCapShader	= trap_R_RegisterShader( "tremor/pillar/cap" );

@@ -252,11 +252,14 @@ static qboolean CG_FontReady( const fontInfo_t *font ) {
 	return font->glyphs['A'].glyph != 0;
 }
 
+const fontInfo_t	*cg_cellFont;		// the font for cells drawn now (NULL: cgs.fontMono)
+
 void CG_DrawChar( int x, int y, int width, int height, int ch ) {
 	int row, col;
 	float frow, fcol;
 	float size;
 	float	ax, ay, aw, ah;
+	const fontInfo_t	*font = cg_cellFont && CG_FontReady( cg_cellFont ) ? cg_cellFont : &cgs.fontMono;
 
 	ch &= 255;
 
@@ -267,15 +270,15 @@ void CG_DrawChar( int x, int y, int width, int height, int ch ) {
 	// Roboto Mono in the cell: capitals about three quarters of its height,
 	// the advance squeezed to the cell's width
 	// (control and symbol codes, and glyphs the font lacks, stay bitmap)
-	if ( CG_FontReady( &cgs.fontMono ) && ( ( ch >= 32 && ch < 127 ) || ch >= 160 )
-		&& cgs.fontMono.glyphs[ch].imageWidth > 0 ) {
+	if ( CG_FontReady( font ) && ( ( ch >= 32 && ch < 127 ) || ch >= 160 )
+		&& font->glyphs[ch].imageWidth > 0 ) {
 		float	ys = height * 1.05f / 48.0f;
-		float	xs = (float)width / cgs.fontMono.glyphs[ch].xSkip;
+		float	xs = (float)width / font->glyphs[ch].xSkip;
 
 		if ( xs > ys ) {
 			xs = ys;
 		}
-		CG_DrawGlyph( &cgs.fontMono, x + ( width - cgs.fontMono.glyphs[ch].xSkip * xs ) * 0.5f,
+		CG_DrawGlyph( font, x + ( width - font->glyphs[ch].xSkip * xs ) * 0.5f,
 			y + height * 0.84f, xs, ys, ch );
 		return;
 	}

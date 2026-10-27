@@ -1304,7 +1304,13 @@ tremor/droneshimmer
 
 
 FONTS = ["Roboto-Regular.ttf", "Roboto-Bold.ttf", "Roboto-Black.ttf", "RobotoCondensed-Regular.ttf",
-         "RobotoCondensed-Bold.ttf", "RobotoMono-Regular.ttf"]
+         "RobotoCondensed-Bold.ttf", "RobotoMono-Regular.ttf",
+         # hud.md 10.13: Tektur for the HUD (OFL), Play for the chat (OFL),
+         # Ubuntu Mono for the console (Ubuntu Font Licence); Roboto stays as
+         # the fallback
+         "Tektur-Medium.ttf", "Tektur-SemiBold.ttf", "Tektur-Bold.ttf", "Play-Regular.ttf", "Play-Bold.ttf",
+         "UbuntuMono-Regular.ttf"]
+LICENCES = ["LICENSE-Roboto.txt", "LICENSE-Tektur.txt", "LICENSE-Play.txt", "LICENSE-UbuntuMono.txt"]
 
 
 def fonts(out):
@@ -1322,9 +1328,10 @@ def fonts(out):
     for f in found:
         with open(os.path.join(folder, f), "rb") as i, open(os.path.join(dest, f), "wb") as o:
             o.write(i.read())
-    licence = os.path.join(here, "../../assets/baseq3/ui/fonts/LICENSE-Roboto.txt")
-    with open(licence, "rb") as i, open(os.path.join(dest, "LICENSE-Roboto.txt"), "wb") as o:
-        o.write(i.read())
+    for name in LICENCES:
+        licence = os.path.join(here, "../../assets/baseq3/ui/fonts", name)
+        with open(licence, "rb") as i, open(os.path.join(dest, name), "wb") as o:
+            o.write(i.read())
 
 
 def main():

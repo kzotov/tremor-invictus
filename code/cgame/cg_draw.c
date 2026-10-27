@@ -1280,7 +1280,16 @@ void CG_AddChat( const char *text ) {
 CG_DrawChat
 =================
 */
+static void CG_DrawChatLines( void );
+
 static void CG_DrawChat( void ) {
+	// the chat in its own face (hud.md 10.13: Play)
+	cg_cellFont = &cgs.fontChat;
+	CG_DrawChatLines();
+	cg_cellFont = NULL;
+}
+
+static void CG_DrawChatLines( void ) {
 	chatLine_t	*c;
 	int			i, rows, y = CHAT_Y, life, modernRow = 0;
 	vec4_t		color = { 1, 1, 1, 1 };
@@ -7398,7 +7407,12 @@ static void CG_HudText( float x, float y, float size, const char *s, const vec4_
 	} else {
 		x -= ( w - w / scale ) * 0.5f;
 	}
+	// hud.md 10.13: numbers of 45 dp or more in the bold face
+	if ( size >= 45 ) {
+		cg_cellFont = &cgs.fontHudBold;
+	}
 	CG_DrawStringExt( x, y, s, color, qtrue, qfalse, cw, ch, 0 );
+	cg_cellFont = NULL;
 }
 
 /*
