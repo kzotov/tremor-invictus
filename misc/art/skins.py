@@ -19,6 +19,10 @@ layers ship. Called by make-models.py; by hand:
                        (looks/deathknight.py): blackened plate with embers in
                        its cracks, a furnace grate on the shoulder, a charred
                        skull with fire in the sockets
+  models/players/crash/*_athena*.skin, ...
+                       Athena on crash (looks/athena.py): white and silver
+                       armour with blue lights, a navy undersuit over the
+                       skin and leathers
   scripts/tremor-skins.shader
 
 The champions' looks after Strogg are described as data in looks/, one
@@ -55,6 +59,15 @@ def poly(points, k=768.0):
             best = min(best, math.hypot(u - x0 - dx * t, v - y0 - dy * t))
         return -best if inside(u, v) else best
     return dist
+
+
+def region(points, w, h):
+    """A polygon traced in a w x h view of a sheet; returns its distance (< 0 inside)."""
+    return poly([(x * 768.0 / w, y * 768.0 / h) for x, y in points])
+
+
+def inside(regions, u, v):
+    return any(r(u, v) < 0 for r in regions)
 
 
 def seg_dist(u, v, a, b):
@@ -382,8 +395,9 @@ LAYER_SHADER = {
 }
 
 
-def build_look(out, look):
-    """Write the look's layer images, shaders and skins; returns the shader text."""
+def build_look(out, look, draw=True):
+    """Write the look's layer images (unless draw is False and they are
+    there from before), shaders and skins; returns the shader text."""
     made, shaders = {}, ""
 
     def shader(name, variant):
@@ -400,7 +414,8 @@ def build_look(out, look):
                 if id(fn) not in made:
                     img = "%s%s_%s_%s%s.tga" % (rel, look.skin, name, kind, variant)
                     w = sheet.size if kind == "detail" else max(16, sheet.size // 2)
-                    tex(os.path.join(out, img), w, w, fn, kind == "detail")
+                    if draw or not os.path.isfile(os.path.join(out, img)):
+                        tex(os.path.join(out, img), w, w, fn, kind == "detail")
                     made[id(fn)] = img
                 wave = "\t\trgbGen wave sin 0.85 0.15 0 1.5\n" if kind == "glow" and sheet.pulse else ""
                 text += LAYER_SHADER[kind] % ((made[id(fn)],) + ((wave,) if kind == "glow" else ()))
@@ -409,7 +424,8 @@ def build_look(out, look):
     for variant in variants:
         for part, surfs in look.surfaces.items():
             lines = ["%s," % t for t in look.tags[part]]
-            lines += ["%s,%s" % (sf, shader(sheet, variant)) for sf, sheet in surfs.items()]
+            # a surface left as the model has it names its own shader
+            lines += ["%s,%s" % (sf, sheet if "/" in sheet else shader(sheet, variant)) for sf, sheet in surfs.items()]
             model = look.head_model if part == "head" else look.model
             d = os.path.join(out, "models/players", model)
             if part == "head" and variant:
@@ -424,11 +440,23 @@ def build_look(out, look):
 
 
 def build(out):
-    import looks
+    """Every look; a look's images are drawn again only when its module or
+    the drawing code changed since they were last drawn into out (the
+    stamps sit beside out, so they stay out of the pack)."""
+    import hashlib, looks
     grunt_strogg(out)
     text = SHADERS
-    for look in looks.ALL():
-        text += "\n// %s/%s\n" % (look.model, look.skin) + build_look(out, look)
+    here = os.path.dirname(os.path.abspath(__file__))
+    common = b"".join(open(os.path.join(here, f), "rb").read() for f in ("skins.py", "tremorart.py"))
+    stamps = os.path.join(os.path.dirname(os.path.abspath(out)), "skins-stamps")
+    os.makedirs(stamps, exist_ok=True)
+    for module, look in looks.ALL():
+        digest = hashlib.sha1(common + open(module.__file__, "rb").read()).hexdigest()
+        stamp = os.path.join(stamps, "%s_%s" % (look.model, look.skin))
+        fresh = os.path.isfile(stamp) and open(stamp).read() == digest
+        text += "\n// %s/%s\n" % (look.model, look.skin) + build_look(out, look, draw=not fresh)
+        with open(stamp, "w") as f:
+            f.write(digest)
     os.makedirs(os.path.join(out, "scripts"), exist_ok=True)
     with open(os.path.join(out, "scripts/tremor-skins.shader"), "w") as f:
         f.write(text)

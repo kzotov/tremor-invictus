@@ -3,13 +3,8 @@ bodysuit with glowing seams over the leather and the bare skin, a veil over
 the lower face, a dark visor, and a crescent sigil where the belt skull was.
 Team versions keep the team's suit paint and light the seams in its colour."""
 import math, random
-from skins import Sheet, Look, poly, seg_dist
+from skins import Sheet, Look, region, seg_dist
 from tremorart import Fbm, clamp, smooth, mix
-
-
-def region(points, w, h):
-    """A polygon traced in a w x h view of a sheet; returns its distance (< 0 inside)."""
-    return poly([(x * 768.0 / w, y * 768.0 / h) for x, y in points])
 
 
 # ---------------------------------------------------------------- the suit sheet (mynx_shiny, 768 x 384 view)

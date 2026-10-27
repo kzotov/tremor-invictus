@@ -48,7 +48,7 @@ if(TREMOR_PYTHON3)
     # the HUD icon set and the HUD images):
     # every misc/art/make-*.py, run again when any script there changes
     file(GLOB TREMOR_ART_SCRIPTS ${CMAKE_SOURCE_DIR}/misc/art/make-*.py)
-    file(GLOB TREMOR_ART_SOURCES ${CMAKE_SOURCE_DIR}/misc/art/*.py)
+    file(GLOB TREMOR_ART_SOURCES ${CMAKE_SOURCE_DIR}/misc/art/*.py ${CMAKE_SOURCE_DIR}/misc/art/looks/*.py)
     # the Roboto fonts packed into the art (make-models.py): new ones redraw it
     if(DEFINED ENV{TREMOR_FONTS})
         file(GLOB TREMOR_FONT_FILES $ENV{TREMOR_FONTS}/*.ttf)
