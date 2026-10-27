@@ -577,7 +577,13 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 			client->ps.stats[STAT_ABILITY_TIME] = t > HOOK_THROW_GAP ? HOOK_THROW_GAP : t;
 			state = ABILITY_IDLE;
 			client->ps.stats[STAT_MOVE_STATE] = 0;		// (the swing's rope)
+			client->ps.ropeBends = 0;
 			client->ps.pm_flags &= ~PMF_GRAPPLE_PULL;
+		}
+		// where the rope bends, for everyone else to draw
+		if ( client->hook ) {
+			client->hook->s.ropeBends = client->ps.ropeBends;
+			memcpy( client->hook->s.ropeBend, client->ps.ropeBend, sizeof( client->hook->s.ropeBend ) );
 		}
 	}
 

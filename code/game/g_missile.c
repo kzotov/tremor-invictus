@@ -435,6 +435,13 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace ) {
 		ent->think = Weapon_HookThink;
 		ent->nextthink = level.time + FRAMETIME;
 
+		// Athena's hook doesn't bite within 68 u of her (movement.md: the
+		// attach dead zone); it is called back as a miss
+		if ( Distance( ent->parent->client->ps.origin, v ) < HOOK_ATTACH_MIN ) {
+			G_FreeEntity( nent );
+			Weapon_HookFree( ent );
+			return;
+		}
 		ent->parent->client->ps.pm_flags |= PMF_GRAPPLE_PULL;
 		VectorCopy( ent->r.currentOrigin, ent->parent->client->ps.grapplePoint);
 		// Athena's hook can't swing on a player (movement.md); the move code

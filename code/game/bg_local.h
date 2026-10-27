@@ -59,6 +59,7 @@ typedef struct {
 	qboolean	stairJump;			// this jump fired from a step up
 	float		runSpeed;			// ps->speed plus any acceleration bonus
 	qboolean	abilityHeld;		// ability button down this frame
+	float		swingSpeed;			// Athena's speed swinging into this move (0: not swinging)
 	float		rushSpeed;			// bull rush speed set this frame, 0 if not rushing
 	qboolean	jumped;				// left the ground by jumping this frame
 } pml_t;

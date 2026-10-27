@@ -793,7 +793,26 @@ netField_t	entityStateFields[] =
 { NETF(angles2[0]), 0 },
 { NETF(angles2[2]), 0 },
 { NETF(constantLight), 32 },
-{ NETF(frame), 16 }
+{ NETF(frame), 16 },
+{ NETF(ropeBends), 4 },
+{ NETF(ropeBend[0][0]), 0 },
+{ NETF(ropeBend[0][1]), 0 },
+{ NETF(ropeBend[0][2]), 0 },
+{ NETF(ropeBend[1][0]), 0 },
+{ NETF(ropeBend[1][1]), 0 },
+{ NETF(ropeBend[1][2]), 0 },
+{ NETF(ropeBend[2][0]), 0 },
+{ NETF(ropeBend[2][1]), 0 },
+{ NETF(ropeBend[2][2]), 0 },
+{ NETF(ropeBend[3][0]), 0 },
+{ NETF(ropeBend[3][1]), 0 },
+{ NETF(ropeBend[3][2]), 0 },
+{ NETF(ropeBend[4][0]), 0 },
+{ NETF(ropeBend[4][1]), 0 },
+{ NETF(ropeBend[4][2]), 0 },
+{ NETF(ropeBend[5][0]), 0 },
+{ NETF(ropeBend[5][1]), 0 },
+{ NETF(ropeBend[5][2]), 0 }
 };
 
 
@@ -1107,7 +1126,26 @@ netField_t	playerStateFields[] =
 { PSF(grapplePoint[1]), 0 },
 { PSF(grapplePoint[2]), 0 },
 { PSF(jumppad_ent), GENTITYNUM_BITS },
-{ PSF(loopSound), 16 }
+{ PSF(loopSound), 16 },
+{ PSF(ropeBends), 4 },
+{ PSF(ropeBend[0][0]), 0 },
+{ PSF(ropeBend[0][1]), 0 },
+{ PSF(ropeBend[0][2]), 0 },
+{ PSF(ropeBend[1][0]), 0 },
+{ PSF(ropeBend[1][1]), 0 },
+{ PSF(ropeBend[1][2]), 0 },
+{ PSF(ropeBend[2][0]), 0 },
+{ PSF(ropeBend[2][1]), 0 },
+{ PSF(ropeBend[2][2]), 0 },
+{ PSF(ropeBend[3][0]), 0 },
+{ PSF(ropeBend[3][1]), 0 },
+{ PSF(ropeBend[3][2]), 0 },
+{ PSF(ropeBend[4][0]), 0 },
+{ PSF(ropeBend[4][1]), 0 },
+{ PSF(ropeBend[4][2]), 0 },
+{ PSF(ropeBend[5][0]), 0 },
+{ PSF(ropeBend[5][1]), 0 },
+{ PSF(ropeBend[5][2]), 0 }
 };
 
 /*

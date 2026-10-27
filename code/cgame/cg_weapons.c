@@ -660,7 +660,29 @@ void CG_GrappleTrail( centity_t *ent, const weaponInfo_t *wi ) {
 	if ( cgs.media.abilityRopeShader ) {
 		ropeLast_t	*last = &ropeLast[es->otherEntityNum & ( MAX_CLIENTS - 1 )];
 
-		CG_HookRope( beam.origin, beam.oldorigin, es->pos.trType == TR_STATIONARY, 255 );
+		// through the points where it bends over edges (the owner's own,
+		// predicted, for the local player)
+		const playerState_t	*ps = &cg.predictedPlayerState;
+		int					bends, i;
+		vec3_t				bend[MAX_ROPE_BENDS], from;
+
+		if ( es->otherEntityNum == ps->clientNum ) {
+			bends = ps->ropeBends;
+			for ( i = 0 ; i < MAX_ROPE_BENDS ; i++ ) {
+				VectorCopy( ps->ropeBend[i], bend[i] );
+			}
+		} else {
+			bends = es->ropeBends;
+			for ( i = 0 ; i < MAX_ROPE_BENDS ; i++ ) {
+				VectorCopy( es->ropeBend[i], bend[i] );
+			}
+		}
+		VectorCopy( beam.origin, from );
+		for ( bends = bends > MAX_ROPE_BENDS ? MAX_ROPE_BENDS : bends ; bends > 0 ; bends-- ) {
+			CG_HookRope( from, bend[bends - 1], qtrue, 255 );
+			VectorCopy( bend[bends - 1], from );
+		}
+		CG_HookRope( from, beam.oldorigin, es->pos.trType == TR_STATIONARY, 255 );
 		// kept to fade out once the hook lets go
 		VectorCopy( beam.origin, last->start );
 		VectorCopy( beam.oldorigin, last->end );

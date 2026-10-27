@@ -1144,6 +1144,8 @@ typedef struct {
 // playerState_t is a full superset of entityState_t as it is used by players,
 // so if a playerState_t is transmitted, the entityState_t can be fully derived
 // from it.
+#define	MAX_ROPE_BENDS	6		// bend points of Athena's rope
+
 typedef struct playerState_s {
 	int			commandTime;	// cmd->serverTime of last executed command
 	int			pm_type;
@@ -1205,6 +1207,11 @@ typedef struct playerState_s {
 	int			generic1;
 	int			loopSound;
 	int			jumppad_ent;	// jumppad entity hit this frame
+
+	// Athena's rope bent over edges on its way to grapplePoint, from the hook
+	// end (bg_pmove.c PM_RopeBend)
+	int			ropeBends;
+	vec3_t		ropeBend[MAX_ROPE_BENDS];
 
 	// not communicated over the net at all
 	int			ping;			// server to game info for scoreboard
@@ -1329,6 +1336,11 @@ typedef struct entityState_s {
 	int		torsoAnim;		// mask off ANIM_TOGGLEBIT
 
 	int		generic1;
+
+	// Athena's hook: where its rope bends, from the hook end (the owner's
+	// playerState ropeBend, copied by the game)
+	int		ropeBends;
+	vec3_t	ropeBend[MAX_ROPE_BENDS];
 } entityState_t;
 
 typedef enum {

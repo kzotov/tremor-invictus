@@ -3266,7 +3266,7 @@ static void PM_EndAbility( void ) {
 #define HOOK_SWING_AFTER		100		// from this long into the pull
 #define HOOK_SWING_CLEAR		20		// the swinging rope keeps her this high
 #define HOOK_SWING_TIME			3000	// a swing ends after this long
-#define HOOK_SWING_TURN			250		// the entry speed turns sideways over this long
+#define HOOK_SWING_TURN			50		// her whole speed turns onto the swing over this long
 #define HOOK_ROPE_MASK			4095
 
 /*
@@ -3312,6 +3312,107 @@ static void PM_StartAbility( int *state, int *time ) {
 		// body where Strogg was)
 		break;
 	}
+}
+
+#define ROPE_CHEST		16		// the rope leaves Athena this high over her origin
+#define ROPE_SHORT		8		// blocked this far short of a rope point, it bends
+#define ROPE_CUT_DEPTH	40		// a block that cannot bend counts toward the cut this deep
+
+/*
+================
+PM_RopePivot
+
+The rope point Athena hangs on: the last bend, or the hook
+================
+*/
+static void PM_RopePivot( vec3_t out ) {
+	if ( pm->ps->ropeBends > 0 ) {
+		VectorCopy( pm->ps->ropeBend[pm->ps->ropeBends - 1], out );
+	} else {
+		VectorCopy( pm->ps->grapplePoint, out );
+	}
+}
+
+static qboolean PM_RopeBlocked( const vec3_t from, const vec3_t to, trace_t *tr ) {
+	pm->trace( tr, from, NULL, NULL, to, pm->ps->clientNum, MASK_SOLID );
+	return tr->fraction < 1 && Distance( tr->endpos, to ) > ROPE_SHORT;
+}
+
+/*
+================
+PM_RopeBend
+
+Athena's rope bends over edges (abilities.md, "Rope bending over edges"):
+after each move, a bend whose earlier rope point she can see again comes
+off (one a step), and a rope blocked on its way to its last point bends
+where the edge is, found between this step's line and the last one's. A
+swing's free length (STAT_MOVE_STATE) gives up or takes back the bent
+part. Fixed geometry only: a mover or a player blocks it instead.
+================
+*/
+static void PM_RopeBend( void ) {
+	vec3_t	chest, was, pivot, prev, at, back, bend;
+	trace_t	tr, hit;
+	float	lo, hi, mid, len;
+	int		i, n = pm->ps->ropeBends, state = pm->ps->stats[STAT_MOVE_STATE];
+
+	VectorCopy( pm->ps->origin, chest );
+	chest[2] += ROPE_CHEST;
+	VectorCopy( pml.previous_origin, was );
+	was[2] += ROPE_CHEST;
+
+	// unbend: the rope point before the last bend is in sight again
+	if ( n > 0 ) {
+		if ( n > 1 ) {
+			VectorCopy( pm->ps->ropeBend[n - 2], prev );
+		} else {
+			VectorCopy( pm->ps->grapplePoint, prev );
+		}
+		if ( !PM_RopeBlocked( chest, prev, &tr ) ) {
+			if ( state & HOOK_SWINGING ) {
+				len = ( state & HOOK_ROPE_MASK ) + Distance( pm->ps->ropeBend[n - 1], prev );
+				pm->ps->stats[STAT_MOVE_STATE] = HOOK_SWINGING | (int)( len > HOOK_ROPE_MASK ? HOOK_ROPE_MASK : len );
+			}
+			pm->ps->ropeBends = --n;
+			return;
+		}
+	}
+
+	// bend over the edge between last step's clear line and this one
+	PM_RopePivot( pivot );
+	if ( n >= MAX_ROPE_BENDS || !PM_RopeBlocked( chest, pivot, &tr ) || tr.entityNum != ENTITYNUM_WORLD
+		|| PM_RopeBlocked( was, pivot, &hit ) ) {
+		return;
+	}
+	lo = 0;
+	hi = 1;
+	hit = tr;
+	for ( i = 0 ; i < 8 ; i++ ) {
+		mid = ( lo + hi ) * 0.5f;
+		VectorSubtract( chest, was, at );
+		VectorMA( was, mid, at, at );
+		if ( PM_RopeBlocked( at, pivot, &tr ) ) {
+			hi = mid;
+			hit = tr;
+		} else {
+			lo = mid;
+		}
+	}
+	if ( hit.entityNum != ENTITYNUM_WORLD ) {
+		return;
+	}
+	VectorSubtract( chest, was, at );
+	VectorMA( was, hi, at, at );
+	VectorSubtract( at, hit.endpos, back );
+	VectorNormalize( back );
+	VectorMA( hit.endpos, 2, hit.plane.normal, bend );
+	VectorMA( bend, 2, back, bend );
+	if ( state & HOOK_SWINGING ) {
+		len = ( state & HOOK_ROPE_MASK ) - Distance( bend, pivot );
+		pm->ps->stats[STAT_MOVE_STATE] = HOOK_SWINGING | (int)( len < 1 ? 1 : len );
+	}
+	VectorCopy( bend, pm->ps->ropeBend[n] );
+	pm->ps->ropeBends = n + 1;
 }
 
 /*
@@ -3421,6 +3522,7 @@ static void PM_Ability( void ) {
 			PM_AddEvent( EV_HOOK_ATTACH );
 			time = 0;
 			pm->ps->stats[STAT_MOVE_STATE] &= HOOK_ON_PLAYER;		// (set by the game on the bite)
+			pm->ps->ropeBends = 0;
 			pm->ps->stats[STAT_HOOK] = pm->cmd.upmove >= 10 ? HOOK_JUMP_DOWN : 0;
 			VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
 			VectorNormalize( dir );
@@ -3442,11 +3544,15 @@ static void PM_Ability( void ) {
 		qboolean	arrived = qfalse;
 
 		{
-			float	dist;
-			trace_t	tr;
+			float		dist;
+			trace_t		tr;
+			qboolean	cut;
 
 			VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
 			dist = VectorNormalize( dir );
+			if ( pm->ps->ropeBends > 0 ) {
+				dist = bg_pmoveSettings.hookDeadZone + 1;		// (bent: not at the hook)
+			}
 			// abilities.md, Athena: the hook lets go under 40 u or over
 			// 3000 u of rope, on landing, on a jump, when stuck (under 32 u
 			// in 0.2 s, as speed under about 133 u/s) and when the rope is cut;
@@ -3483,8 +3589,17 @@ static void PM_Ability( void ) {
 					hook &= ~( 15 << HOOK_MOVED_SHIFT );		// a new window
 				}
 				// the rope cut: the line blocked for 0.6 s
-				pm->trace( &tr, pm->ps->origin, NULL, NULL, pm->ps->grapplePoint, pm->ps->clientNum, MASK_SOLID );
-				if ( tr.fraction < 1 && Distance( tr.endpos, pm->ps->grapplePoint ) > 8 ) {
+				// (only a block the rope can't bend over, and deep: PM_RopeBend)
+				{
+					vec3_t	chest, pivot;
+
+					PM_RopePivot( pivot );
+					VectorCopy( pm->ps->origin, chest );
+					chest[2] += ROPE_CHEST;
+					pm->trace( &tr, chest, NULL, NULL, pivot, pm->ps->clientNum, MASK_SOLID );
+					cut = tr.fraction < 1 && Distance( tr.endpos, pivot ) > ROPE_CUT_DEPTH;
+				}
+				if ( cut ) {
 					blocked += pml.msec;
 					if ( blocked >= HOOK_CUT_MSEC ) {
 						arrived = qtrue;
@@ -3510,7 +3625,8 @@ static void PM_Ability( void ) {
 				if ( !pml.abilityHeld ) {
 					arrived = qtrue;
 				}
-			} else if ( pressed ) {
+			} else if ( pressed && time >= HOOK_SWING_AFTER ) {
+				// (a press counts from 0.1 s into the pull: abilities.md)
 				pm->ps->stats[STAT_MOVE_STATE] = ( hs & HOOK_ON_PLAYER ) | HOOK_PRESSED;
 			} else if ( hs & HOOK_PRESSED ) {
 				if ( !pml.abilityHeld ) {
@@ -3812,11 +3928,12 @@ otherwise the hook pulls, speeding up to the top pull speed
 ================
 */
 static void PM_HookMove( void ) {
-	vec3_t	dir;
+	vec3_t	dir, pivot;
 	float	dist, rope, radial, pull, speed;
 	int		state = pm->ps->stats[STAT_MOVE_STATE], time = pm->ps->stats[STAT_ABILITY_TIME];
 
-	VectorSubtract( pm->ps->grapplePoint, pm->ps->origin, dir );
+	PM_RopePivot( pivot );
+	VectorSubtract( pivot, pm->ps->origin, dir );
 	dist = VectorNormalize( dir );
 	radial = DotProduct( pm->ps->velocity, dir );
 
@@ -3863,9 +3980,11 @@ static void PM_HookMove( void ) {
 			}
 		}
 		pm->ps->stats[STAT_MOVE_STATE] = HOOK_SWINGING | (int)rope;
-		// the entry speed toward the point turns sideways, evenly over the
-		// swing's first 0.25 s (4x its size each second)
-		if ( time < HOOK_SWING_TURN && radial > 0 ) {
+		// her whole speed, the part along the rope and the vertical part
+		// too, turns onto the swing within its first 50 ms (abilities.md,
+		// ABL-09 "Swing feel": a few frames, no speed lost)
+		if ( time < HOOK_SWING_TURN ) {
+			speed = VectorLength( pm->ps->velocity );
 			VectorMA( pm->ps->velocity, -radial, dir, side );
 			if ( VectorNormalize( side ) < 1 ) {
 				VectorMA( pml.forward, -DotProduct( pml.forward, dir ), dir, side );
@@ -3874,13 +3993,16 @@ static void PM_HookMove( void ) {
 					VectorNormalize( side );
 				}
 			}
-			turn = radial * pml.msec / (float)( HOOK_SWING_TURN - time );
-			if ( turn > radial ) {
-				turn = radial;
+			turn = pml.msec / (float)( HOOK_SWING_TURN - time );
+			if ( turn > 1 ) {
+				turn = 1;
 			}
-			VectorMA( pm->ps->velocity, -turn, dir, pm->ps->velocity );
-			VectorMA( pm->ps->velocity, turn, side, pm->ps->velocity );
-			radial -= turn;
+			VectorScale( pm->ps->velocity, 1 - turn, pm->ps->velocity );
+			VectorMA( pm->ps->velocity, turn * speed, side, pm->ps->velocity );
+			if ( VectorNormalize( pm->ps->velocity ) > 0 ) {
+				VectorScale( pm->ps->velocity, speed, pm->ps->velocity );
+			}
+			radial = DotProduct( pm->ps->velocity, dir );
 		}
 		if ( dist >= rope ) {
 			// taut rope: back onto the rope's sphere, and no moving away
@@ -3900,7 +4022,9 @@ static void PM_HookMove( void ) {
 		speed = VectorLength( pm->ps->velocity );
 		if ( speed > bg_pmoveSettings.hookSwingMax ) {
 			VectorScale( pm->ps->velocity, bg_pmoveSettings.hookSwingMax / speed, pm->ps->velocity );
+			speed = bg_pmoveSettings.hookSwingMax;
 		}
+		pml.swingSpeed = speed;
 	} else {
 		if ( !pml.abilityHeld ) {
 			pm->ps->stats[STAT_MOVE_STATE] &= HOOK_ON_PLAYER;
@@ -4284,6 +4408,19 @@ void PmoveSingle (pmove_t *pmove) {
 
 	PM_CheckRushBlocked();
 	PM_TrackClimb( wasWalking );
+
+	// Athena's rope bends over what it meets on the move; a swing into a
+	// wall or the floor stops her nearly dead and lets go (ABL-09 "Swing feel")
+	if ( BG_AbilityState( pm->ps ) == ABILITY_HOOK_PULL ) {
+		if ( pml.swingSpeed > 300 && VectorLength( pm->ps->velocity ) < pml.swingSpeed * 0.5f ) {
+			VectorScale( pm->ps->velocity, 0.1f, pm->ps->velocity );
+			PM_EndAbility();
+		} else {
+			PM_RopeBend();
+		}
+	} else {
+		pm->ps->ropeBends = 0;
+	}
 
 	// the hook's stuck check: how far this frame's move took her
 	if ( BG_AbilityState( pm->ps ) == ABILITY_HOOK_PULL ) {
