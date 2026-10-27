@@ -3387,6 +3387,42 @@ static void CG_MedalChime( void ) {
 }
 
 /*
+=================
+CG_MedalTier
+
+The medal's ring (hud.md 11.5, the icon set's tiers): common, rare, epic
+or legendary, by the medal's key; 1 (rare) for anything not listed
+=================
+*/
+static int CG_MedalTier( int nameString ) {
+	static const char	*common = " firstblood airborne pointblank stopwatch capture defend offense assist accuracy frags victory ";
+	static const char	*epic = " gauntlet collateral doublewhammy partybreaker perforated fromthegrave kamikaze showstopper fighter "
+		"crusher exterminator demolisher grimreaper rage fury frenzy riot dominating ";
+	static const char	*legendary = " avatarofdeath rampage merciless fanaticism sadism executioner powerupmassacre ";
+	char				key[64];
+	int					i, len;
+
+	for ( i = 0 ; i < MEDAL_NUM ; i++ ) {
+		if ( bg_medalInfo[i].name != nameString || !bg_medalInfo[i].key ) {
+			continue;
+		}
+		Com_sprintf( key, sizeof( key ), " %s ", bg_medalInfo[i].key );
+		len = strlen( bg_medalInfo[i].key );
+		if ( strstr( common, key ) ) {
+			return 0;
+		}
+		if ( strstr( epic, key ) ) {
+			return 2;
+		}
+		if ( strstr( legendary, key ) || ( len > 3 && !Q_stricmp( bg_medalInfo[i].key + len - 3, "god" ) ) ) {
+			return 3;
+		}
+		return 1;
+	}
+	return 1;
+}
+
+/*
 ===================
 CG_DrawReward
 ===================
@@ -3504,6 +3540,29 @@ static void CG_DrawReward( void ) {
 			CG_DrawStringExt( mx - CG_DrawStrlen( name ) * nw / 2, my + 87 * DP + f * 60 * DP, name, oc, qfalse, qtrue, nw, nh, 0 );
 		}
 		name = medalRow[0].name ? BG_String( medalRow[0].name ) : "";
+		// hud.md 10.9: horizontal light streaks behind, the tier's ring
+		// (Ø 85) round the medal
+		{
+			static qhandle_t	rings[4], streak;
+			static const char	*tiers[4] = { "common", "rare", "epic", "legendary" };
+			int					tier = CG_MedalTier( medalRow[0].name );
+			vec4_t				st = { 0.706f, 0.682f, 0.988f, 0 };
+
+			if ( !streak ) {
+				streak = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/medal_streak" );
+				for ( i = 0 ; i < 4 ; i++ ) {
+					rings[i] = trap_R_RegisterShaderNoMip( va( "gfx/tremor/hud/medal_ring_%s", tiers[i] ) );
+				}
+			}
+			st[3] = 0.6f * color[3];
+			trap_R_SetColor( st );
+			CG_DrawPic( mx - 400 * DP, my + 28 * DP, 800 * DP, 40 * DP, streak );
+			trap_R_SetColor( color );
+			if ( rings[tier] ) {
+				CG_DrawPic( mx - 48 * DP * pop, my + 48 * DP - 48 * DP * pop, 96 * DP * pop, 96 * DP * pop, rings[tier] );
+			}
+			trap_R_SetColor( NULL );
+		}
 		if ( medalRow[0].shader ) {
 			trap_R_SetColor( color );
 			CG_DrawPic( mx - bh / 2, my + ( 96 * DP - bh ) / 2, bh, bh, medalRow[0].shader );		// the icon is square inside the box
