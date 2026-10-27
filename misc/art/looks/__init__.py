@@ -48,11 +48,15 @@ module each, each with a look():
   models/players/doom/*_doomslayer*.skin, ...
                        Doom Slayer (looks/doom.py): deep green armour and
                        helmet, a dark grey undersuit, a gold visor
+  models/players/tankjr/*_clutch*.skin, ...
+                       Clutch on tankjr (looks/clutch.py): orange-brown
+                       armour, steel plates over the emblems, steel feet, a
+                       steel-cased head with cyan eyes
 """
 import importlib
 
 MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer", "raine", "beastmaster",
-           "unumrey", "sorlag", "doom")
+           "unumrey", "sorlag", "doom", "clutch")
 
 
 def ALL():
