@@ -313,7 +313,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_medals, "cg_medals", "1", CVAR_ARCHIVE },			// 0 hides medals (they still count), 2 sound only
 	{ &cg_eventBanner, "cg_eventLine", "1", CVAR_ARCHIVE },
 	{ &cg_systemMessages, "cg_systemMessages", "1", CVAR_ARCHIVE },	// 0 hides connect and team lines
-	{ &cg_crosshairSize, "cg_crosshairSize", "24", CVAR_ARCHIVE },
+	{ &cg_crosshairSize, "cg_crosshairSize", "14", CVAR_ARCHIVE },		// (the plus 13 dp across, hud.md 10.9)
 	{ &cg_crosshairHealth, "cg_crosshairHealth", "1", CVAR_ARCHIVE },
 	{ &cg_crosshairX, "cg_crosshairX", "0", CVAR_ARCHIVE },
 	{ &cg_crosshairY, "cg_crosshairY", "0", CVAR_ARCHIVE },

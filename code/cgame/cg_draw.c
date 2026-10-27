@@ -4499,6 +4499,17 @@ static void CG_DrawCrosshair(void)
 		ca = 0;
 	}
 	hShader = cgs.media.crosshairShader[ ca % NUM_CROSSHAIRS ];
+	// hud.md 10.9: the default (1) is the generated yellow plus
+	if ( ca == 1 ) {
+		static qhandle_t	plus;
+
+		if ( !plus ) {
+			plus = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/crosshair_plus" );
+		}
+		if ( plus ) {
+			hShader = plus;
+		}
+	}
 
 	trap_R_DrawStretchPic( x + cg.refdef.x + 0.5 * (cg.refdef.width - w), 
 		y + cg.refdef.y + 0.5 * (cg.refdef.height - h), 
@@ -4756,25 +4767,32 @@ static void CG_DrawDamageArc( void ) {
 			// hud.md 10.11 / 12, 22: a smooth arc ~277 dp out from (955, 540),
 			// 70 degrees across, thicker for hits of 50 or more, a diamond in
 			// its middle
-			dot = ( value >= 50 ? 9 : 5 ) * DP;
-			for ( i = 0 ; i <= 48 ; i++ ) {
-				float	edge = 1 - fabs( i / 24.0f - 1 );		// thinning to the ends
+			// 6 dp (10 for hits of 50 or more) in the middle tapering to 0 at
+			// the ends, a 20 dp glow under it, a 14 dp diamond in the middle
+			dot = ( value >= 50 ? 10 : 6 ) * DP;
+			for ( i = 0 ; i <= 64 ; i++ ) {
+				float	edge = 1 - fabs( i / 32.0f - 1 ), d = dot * edge;
+				vec4_t	glow;
 
-				a = cg.damageArcYaw[n] + 70 * size / 0.7f * ( i / 48.0f - 0.5f );
+				a = cg.damageArcYaw[n] + 70 * size / 0.7f * ( i / 64.0f - 0.5f );
 				rad = DEG2RAD( a );
 				x = HX_C( 955 ) - sin( rad ) * 277 * DP;
 				y = HY( 540 ) - cos( rad ) * 277 * DP;
-				CG_FillRect( x - dot * ( 0.5f + 0.5f * edge ) / 2, y - dot * ( 0.5f + 0.5f * edge ) / 2,
-					dot * ( 0.5f + 0.5f * edge ), dot * ( 0.5f + 0.5f * edge ), color );
+				Vector4Copy( color, glow );
+				glow[3] *= 0.12f * edge;
+				CG_FillRect( x - 10 * DP * edge, y - 10 * DP * edge, 20 * DP * edge, 20 * DP * edge, glow );
+				if ( d > 0.2f ) {
+					CG_FillRect( x - d / 2, y - d / 2, d, d, color );
+				}
 			}
 			rad = DEG2RAD( cg.damageArcYaw[n] );
 			x = HX_C( 955 ) - sin( rad ) * 277 * DP;
 			y = HY( 540 ) - cos( rad ) * 277 * DP;
-			for ( i = 0 ; i < 4 ; i++ ) {
-				float	k = ( 4 - i ) * 2.5f * DP;
+			for ( i = 0 ; i < 7 ; i++ ) {
+				float	k = ( 7 - i ) * DP;		// a 14 dp diamond from 1 dp rows
 
-				CG_FillRect( x - k, y - ( i * 2.5f * DP ) / 2 - DP, k * 2, 2 * DP, color );
-				CG_FillRect( x - k, y + ( i * 2.5f * DP ) / 2 - DP, k * 2, 2 * DP, color );
+				CG_FillRect( x - k, y - i * DP - DP, k * 2, DP, color );
+				CG_FillRect( x - k, y + i * DP, k * 2, DP, color );
 			}
 		}
 	}
@@ -8282,8 +8300,10 @@ static void CG_DrawStatusRow( void ) {
 			item = BG_FindItemForPowerup( effects[i] );
 			icons[effects[i]] = item ? trap_R_RegisterShaderNoMip( item->icon ) : 0;
 		}
-		icons[PW_BURNING] = trap_R_RegisterShaderNoMip( "gfx/tremor/abilities/flamestrike" );
-		icons[PW_POISONED] = trap_R_RegisterShaderNoMip( "gfx/tremor/abilities/acidspit" );
+		// hud.md 11.7: the status glyphs of the icon set
+		icons[PW_BURNING] = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/glyphs/status_burning" );
+		icons[PW_POISONED] = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/glyphs/status_acid" );
+		icons[PW_REGEN] = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/glyphs/status_regen" );
 		icons[PW_SHELLSHOCK] = trap_R_RegisterShaderNoMip( "gfx/tremor/abilities/shellshock" );		// stunned
 		loaded = qtrue;
 	}
@@ -8330,7 +8350,15 @@ static void CG_DrawStatusRow( void ) {
 			CG_DrawPic( cx - 26 * DP, cy - 26 * DP, 52 * DP, 52 * DP, disc );
 			trap_R_SetColor( NULL );
 		}
-		CG_HudRing( cx, cy, 25 * DP, total[p] > 0 ? (float)leftMs / total[p] : 0, ring, track, 120, 3 * DP );
+		// hud.md 10.4: the ring Ø 58 (at 90 %), white turning gold as it runs out
+		{
+			float	frac = total[p] > 0 ? (float)leftMs / total[p] : 0;
+
+			ring[0] = 1;
+			ring[1] = 1 - 0.09f * ( 1 - frac );
+			ring[2] = 1 - 0.56f * ( 1 - frac );
+			CG_HudRing( cx, cy, 27.5f * 0.9f * DP / 0.9f, frac, ring, track, 140, 3 * DP );
+		}
 		// the icon behind, the seconds over it in the ring's middle
 		if ( icons[p] ) {
 			vec4_t	tint;
