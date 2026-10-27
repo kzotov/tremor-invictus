@@ -407,12 +407,16 @@ class Sheet:
     variant ("" for the skin itself, "_red" and "_blue" for team games):
     base, the model's own image there; grade, a x2 multiply (0.5 keeps the
     colour); detail, our painting blended by its alpha; glow, added unlit.
+    form: the sheet also takes the form shading worked out from the model
+    on the player's own machine (bake-form.py, the look's FORM): a x2
+    multiply and a lit highlight after the detail, shipped neutral (0.5
+    grey and black) so the look holds without them.
     A layer is a function (u, v) -> rgba, or None; one given for "" alone
     serves every variant. model names the sheet's model when it is not the
     look's own (a head taken from another model)."""
 
-    def __init__(self, base, grade=None, detail=None, glow=None, size=256, pulse=False, model=None):
-        self.base, self.size, self.pulse, self.model = base, size, pulse, model
+    def __init__(self, base, grade=None, detail=None, glow=None, size=256, pulse=False, model=None, form=False):
+        self.base, self.size, self.pulse, self.model, self.form = base, size, pulse, model, form
         self.layers = {"grade": grade, "detail": detail, "glow": glow}
 
     def layer(self, kind, variant):
@@ -438,7 +442,16 @@ LAYER_SHADER = {
     "grade": "\t{\n\t\tmap %s\n\t\tblendFunc GL_DST_COLOR GL_SRC_COLOR\n\t}\n",
     "detail": "\t{\n\t\tmap %s\n\t\tblendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA\n\t\trgbGen lightingDiffuse\n\t}\n",
     "glow": "\t{\n\t\tmap %s\n\t\tblendFunc GL_ONE GL_ONE\n%s\t}\n",
+    "form": "\t{\n\t\tmap %s\n\t\tblendFunc GL_DST_COLOR GL_SRC_COLOR\n\t}\n",
+    "shine": "\t{\n\t\tmap %s\n\t\tblendFunc GL_ONE GL_ONE\n\t\trgbGen lightingDiffuse\n\t}\n",
 }
+
+
+def form_images(look, name):
+    """The form layers' images of a look's sheet (bake-form.py writes them
+    under the same names)."""
+    rel = "models/players/%s/%s_%s_" % (look.sheets[name].model or look.model, look.skin, name)
+    return rel + "form.tga", rel + "shine.tga"
 
 
 def build_look(out, look, draw=True):
@@ -453,7 +466,15 @@ def build_look(out, look, draw=True):
         for variant, base in sheet.base.items():
             text = "%s\n{\n" % shader(name, variant)
             text += "\t{\n\t\tmap %s%s.tga\n\t\trgbGen lightingDiffuse\n\t}\n" % (rel, base)
-            for kind in ("grade", "detail", "glow"):
+            for kind in ("grade", "detail", "form", "glow"):
+                if kind == "form":
+                    if sheet.form:
+                        for img, grey in zip(form_images(look, name), (0.5, 0.0)):
+                            if not os.path.isfile(os.path.join(out, img)):
+                                tex(os.path.join(out, img), 8, 8, lambda u, v, g=grey: [g, g, g, 1], False)
+                        text += LAYER_SHADER["form"] % form_images(look, name)[0]
+                        text += LAYER_SHADER["shine"] % form_images(look, name)[1]
+                    continue
                 fn = sheet.layer(kind, variant)
                 if fn is None:
                     continue

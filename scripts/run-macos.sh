@@ -37,6 +37,7 @@ ln -sfn "$ROOT/build-macos/generated/tremor-assets.pk3" "$HOME_DIR/baseq3/tremor
 # local test assets from outside the repo (see scripts/local-assets.sh)
 . "$ROOT/scripts/local-assets.sh"
 LOCAL_ARGS=$(link_local_assets "$HOME_DIR/baseq3")
+bake_local_form "$Q3" "$ROOT/build-macos" "$HOME_DIR/baseq3"
 
 # the console output also goes to build-macos/home/run.log (a crash's
 # backtrace with it; also in build-macos/home/crash.log)
