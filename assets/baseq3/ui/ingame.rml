@@ -26,12 +26,12 @@
 			<button onclick="rml_hide; ui_settings">[menu_settings]</button>
 			<button onclick="set ui_joinFromMenu 1; rml_show ui/join.rml">[menu_join_team]</button>
 			<button onclick="ui_players">[menu_players]</button>
-			<button data-when="sv_running=1&amp;bot_enable=1" onclick="ui_addbots">[menu_add_bots]</button>
-			<button data-when="sv_running=1&amp;bot_enable=1" onclick="ui_removebots">[menu_remove_bots]</button>
-			<button data-when="sv_running=1&amp;bot_enable=1&amp;ui_ingameGametype>=3" onclick="ui_teamOrders">[menu_team_orders]</button>
+			<button data-when="sv_running=1&amp;bot_enable=1" onclick="ui_addbots">[menu_bots]</button>
 			<div class="gap"/>
-			<button onclick="rml_hide; disconnect">[menu_leave]</button>
-			<button onclick="quit">[menu_quit]</button>
+			<button data-when="ui_ask!=leave" onclick="ui_confirm leave &quot;rml_hide; disconnect&quot;">[menu_leave]</button>
+			<button class="go" data-when="ui_ask=leave" onclick="ui_confirm leave &quot;rml_hide; disconnect&quot;">[menu_leave_sure]</button>
+			<button data-when="ui_ask!=quit" onclick="ui_confirm quit quit">[menu_quit]</button>
+			<button class="go" data-when="ui_ask=quit" onclick="ui_confirm quit quit">[menu_quit_sure]</button>
 		</div>
 	</div>
 </body>

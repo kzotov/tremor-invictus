@@ -1325,6 +1325,7 @@ typedef enum {
 	STR_HUD_DRONE_CHARGE,			// under the ability ring while the drone flies
 	STR_HUD_DRONE_ARMED,
 	STR_KF_SUICIDE,					// the kill feed's suicide row (hud.md 10.8)
+	STR_CS_MODE_LIMIT,				// Practice / Create: a limit left to the mode
 
 	STR_NUM_STRINGS
 } stringId_t;
@@ -1724,6 +1725,7 @@ typedef enum {
 // STAT_MOVE_STATE on Athena's hook: the hold time or the swing's rope in
 // bits 0-11, and these
 #define	HOOK_PRESSED			0x1000		// a fresh press during the pull: its hold is counting
+#define	HOOK_ATTACH_MIN			68			// the hook doesn't bite this close to her
 #define	HOOK_THROW_GAP			1000		// msec from a throw to the next
 #define	HOOK_MISS_GAP			2000		// and after a hook that never bit
 // msec since her last throw (capped at HOOK_MISS_GAP), in an ammo slot no

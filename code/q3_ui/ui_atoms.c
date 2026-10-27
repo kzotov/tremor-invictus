@@ -1103,6 +1103,8 @@ void UI_RmlBack( void ) {
 UI_ConsoleCommand
 =================
 */
+static int	ui_askedAt;		// when a ui_confirm button asked "SURE?"
+
 qboolean UI_ConsoleCommand( int realTime ) {
 	char	*cmd;
 
@@ -1161,6 +1163,27 @@ qboolean UI_ConsoleCommand( int realTime ) {
 	}
 
 	if ( UI_VoteCommand( cmd ) ) {
+		return qtrue;
+	}
+
+	// ui_confirm <key> <command...>: the first press shows the button's
+	// "SURE?" (ui_ask is key), a second within 3 s runs the command
+	if ( !Q_stricmp( cmd, "ui_confirm" ) ) {
+		if ( !Q_stricmp( UI_Cvar_VariableString( "ui_ask" ), UI_Argv( 1 ) ) && uis.realtime - ui_askedAt < 3000 ) {
+			char	line[MAX_STRING_CHARS];
+			int		i;
+
+			line[0] = 0;
+			for ( i = 2 ; i < trap_Argc() ; i++ ) {
+				Q_strcat( line, sizeof( line ), va( "%s ", UI_Argv( i ) ) );
+			}
+			trap_Cvar_Set( "ui_ask", "" );
+			ui_askedAt = 0;
+			trap_Cmd_ExecuteText( EXEC_APPEND, va( "%s\n", line ) );
+		} else {
+			trap_Cvar_Set( "ui_ask", UI_Argv( 1 ) );
+			ui_askedAt = uis.realtime;
+		}
 		return qtrue;
 	}
 
@@ -1551,6 +1574,12 @@ void UI_Refresh( int realtime )
 {
 	uis.frametime = realtime - uis.realtime;
 	uis.realtime  = realtime;
+
+	// a ui_confirm "SURE?" goes back after 3 s
+	if ( ui_askedAt && uis.realtime - ui_askedAt > 3000 ) {
+		ui_askedAt = 0;
+		trap_Cvar_Set( "ui_ask", "" );
+	}
 
 	if ( !( trap_Key_GetCatcher() & KEYCATCH_UI ) ) {
 		return;

@@ -1568,3 +1568,6 @@ scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc {
 	display: block;
 	color: #e8e4dc;
 }
+
+/* rows that do nothing as things are set (a colour row while the skin is off) */
+.row.dim { opacity: 0.35; }

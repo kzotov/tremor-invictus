@@ -7,8 +7,8 @@
 	<div class="create">
 		<h1><span data-when="ui_csPractice!=1">[cs_title]</span><span data-when="ui_csPractice=1">[pr_title]</span></h1>
 		<div class="modes">
-			<button class="opt mode" data-class="on:ui_csModeShown=ffa" onclick="ui_csMode ffa">[mode_ffa]</button>
 			<button class="opt mode" data-class="on:ui_csModeShown=duel" onclick="ui_csMode duel">[mode_duel]</button>
+			<button class="opt mode" data-class="on:ui_csModeShown=ffa" onclick="ui_csMode ffa">[mode_ffa]</button>
 			<button class="opt mode" data-class="on:ui_csModeShown=tdm" onclick="ui_csMode tdm">[mode_tdm]</button>
 			<button class="opt mode" data-class="on:ui_csModeShown=tdm2v2" onclick="ui_csMode tdm2v2">[mode_tdm2v2]</button>
 			<button class="opt mode" data-class="on:ui_csModeShown=ctf" onclick="ui_csMode ctf">[mode_ctf]</button>
@@ -36,13 +36,17 @@
 		<div class="row"><span class="label">[cs_map]</span><span class="value" data-text-cvar="ui_csMapName"></span></div>
 		<div class="row" data-when="ui_csPractice=1"><span class="label">[pr_opponents]</span>
 			<button class="opt" onclick="ui_prCount opp -1">-</button><span class="value" data-text-cvar="ui_prOpp"></span><button class="opt" onclick="ui_prCount opp 1">+</button></div>
-		<div class="row" data-when="ui_csPractice=1"><span class="label">[pr_teammates]</span>
+		<div class="row" data-when="ui_csPractice=1&amp;ui_csTeams=1"><span class="label">[pr_teammates]</span>
 			<button class="opt" onclick="ui_prCount mates -1">-</button><span class="value" data-text-cvar="ui_prMates"></span><button class="opt" onclick="ui_prCount mates 1">+</button></div>
 		<div class="row" data-when="ui_csPractice=1"><span class="label">[pr_champ]</span>
 			<button class="opt" onclick="ui_prChampStep -1">&lt;</button><span class="value" data-text-cvar="ui_prChampName"></span><button class="opt" onclick="ui_prChampStep 1">&gt;</button></div>
 		<div class="row" data-when="ui_csPractice!=1"><span class="label">[cs_name]</span><input type="text" maxlength="31" size="20" data-value-cvar="sv_hostname" onchange="set sv_hostname {value}"/></div>
 		<div class="row" data-when="ui_csPractice!=1"><span class="label">[cs_bots]</span>
 			<button class="opt" onclick="ui_csBotsAdd -1">-</button><span class="value" data-text-cvar="ui_csBots"></span><button class="opt" onclick="ui_csBotsAdd 1">+</button></div>
+		<div class="row"><span class="label">[cs_time]</span>
+			<button class="opt" onclick="ui_csLimit time -5">-</button><span class="value" data-text-cvar="ui_csTimeText"></span><button class="opt" onclick="ui_csLimit time 5">+</button></div>
+		<div class="row"><span class="label">[cs_frags]</span>
+			<button class="opt" onclick="ui_csLimit frags -5">-</button><span class="value" data-text-cvar="ui_csFragsText"></span><button class="opt" onclick="ui_csLimit frags 5">+</button></div>
 		<div class="row"><span class="label">[cs_skill]</span><button class="opt" data-class="on:ui_csSkill=1" onclick="set ui_csSkill 1">1</button><button class="opt" data-class="on:ui_csSkill=2" onclick="set ui_csSkill 2">2</button><button class="opt" data-class="on:ui_csSkill=3" onclick="set ui_csSkill 3">3</button><button class="opt" data-class="on:ui_csSkill=4" onclick="set ui_csSkill 4">4</button><button class="opt" data-class="on:ui_csSkill=5" onclick="set ui_csSkill 5">5</button></div>
 		<div class="row" data-when="ui_csPractice!=1"><span class="label">[cs_server]</span>
 			<button class="opt" data-class="on:ui_csDedicated=0" onclick="set ui_csDedicated 0">[cs_play]</button>

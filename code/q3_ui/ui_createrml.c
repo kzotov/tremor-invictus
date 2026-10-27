@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //   ui_csPage <+1|-1>	the next or previous page of maps
 //   ui_csPick <slot>	pick the map in a slot of the page
 //   ui_csBotsAdd <+1|-1>	more or fewer bots (in ui_csBots)
+//   ui_csLimit <time|frags> <+n|-n>	the time / frag limit (0: the mode's own)
 //   ui_csNext			on to the champion page (its Start runs ui_csStart)
 //   ui_csStart			start the server
 // Practice is the same document with ui_csPractice 1: opponents and
@@ -175,6 +176,7 @@ static void CS_SetMode( int mode ) {
 	cs.page = 0;
 	cs.picked = cs.numMaps ? 0 : -1;
 	trap_Cvar_Set( "ui_csModeShown", csModes[mode].preset );
+	trap_Cvar_SetValue( "ui_csTeams", csModes[mode].teams );		// (the Teammates row)
 	CS_PublishPage();
 }
 
@@ -188,6 +190,14 @@ static const char *CS_BotFor( int champion ) {
 		}
 	}
 	return n > 0 ? Info_ValueForKey( UI_GetBotInfoByNumber( rand() % n ), "name" ) : "sarge";
+}
+
+// the time and frag limits as shown: a number, or the mode's own
+static void CS_PublishLimits( void ) {
+	int		t = (int)trap_Cvar_VariableValue( "ui_csTime" ), f = (int)trap_Cvar_VariableValue( "ui_csFrags" );
+
+	trap_Cvar_Set( "ui_csTimeText", t > 0 ? va( "%i", t ) : BG_String( STR_CS_MODE_LIMIT ) );
+	trap_Cvar_Set( "ui_csFragsText", f > 0 ? va( "%i", f ) : BG_String( STR_CS_MODE_LIMIT ) );
 }
 
 static void CS_PublishChampion( void ) {
@@ -270,7 +280,10 @@ void UI_CreateServerRml( void ) {
 	trap_Cvar_Register( NULL, "ui_csBots", "3", CVAR_ARCHIVE );
 	trap_Cvar_Register( NULL, "ui_csSkill", "3", CVAR_ARCHIVE );
 	trap_Cvar_Register( NULL, "ui_csDedicated", "0", CVAR_ARCHIVE );
-	trap_Cvar_Register( NULL, "ui_csLastMode", "ffa", CVAR_ARCHIVE );
+	trap_Cvar_Register( NULL, "ui_csLastMode", "duel", CVAR_ARCHIVE );
+	trap_Cvar_Register( NULL, "ui_csTime", "0", CVAR_ARCHIVE );
+	trap_Cvar_Register( NULL, "ui_csFrags", "0", CVAR_ARCHIVE );
+	CS_PublishLimits();
 	trap_Cvar_Register( NULL, "sv_hostname", "noname", CVAR_ARCHIVE );
 	UI_CsTakeBack();
 	for ( i = 0; i < ARRAY_LEN( csModes ); i++ ) {
@@ -356,6 +369,13 @@ static void CS_Start( void ) {
 	// client hides menu pages while connecting), so the main menu never
 	// shows in between; the menus close once the map is in
 	CS_Cmd( va( "exec presets/%s.cfg\n", m->preset ) );
+	// the limits picked over the mode's own (0 keeps them)
+	if ( trap_Cvar_VariableValue( "ui_csTime" ) > 0 ) {
+		CS_Cmd( va( "set timelimit %i\n", (int)trap_Cvar_VariableValue( "ui_csTime" ) ) );
+	}
+	if ( trap_Cvar_VariableValue( "ui_csFrags" ) > 0 ) {
+		CS_Cmd( va( "set fraglimit %i\n", (int)trap_Cvar_VariableValue( "ui_csFrags" ) ) );
+	}
 	CS_Cmd( va( "wait ; wait ; map %s\nwait 3\nui_close\n", Info_ValueForKey( info, "map" ) ) );
 
 	if ( trap_Cvar_VariableValue( "ui_csPractice" ) ) {
@@ -475,6 +495,15 @@ qboolean UI_CreateServerCommand( const char *cmd ) {
 			cs.picked = i;
 			CS_PublishPage();
 		}
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_csLimit" ) ) {
+		// ui_csLimit <time|frags> <+n|-n>: 0 keeps the mode's own
+		qboolean	time = !Q_stricmp( UI_Argv( 1 ), "time" );
+
+		i = (int)trap_Cvar_VariableValue( time ? "ui_csTime" : "ui_csFrags" ) + atoi( UI_Argv( 2 ) );
+		trap_Cvar_SetValue( time ? "ui_csTime" : "ui_csFrags", Com_Clamp( 0, time ? 60 : 200, i ) );
+		CS_PublishLimits();
 		return qtrue;
 	}
 	if ( !Q_stricmp( cmd, "ui_csBotsAdd" ) ) {

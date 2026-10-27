@@ -3,7 +3,7 @@
 	<title>Bots</title>
 	<link type="text/rcss" href="tremor.rcss"/>
 </head>
-<body data-escape="rml_hide; ui_close">
+<body data-escape="rml_show ui/ingame.rml">
 	<div class="settings">
 		<h1>[bt_title]</h1>
 		<div class="tabs">
@@ -12,6 +12,7 @@
 			<button class="tab" data-when="ui_botTeamGame=1" data-class="on:ui_botTab=2" onclick="ui_botRefresh; set ui_botTab 2">[menu_team_orders]</button>
 		</div>
 		<div class="spage" data-when="ui_botTab=0">
+			<div class="srow" data-when="ui_ingameGametype=1"><span class="slabel">[bt_duel_warn]</span></div>
 			<div class="srow"><span class="slabel">[cs_skill]</span><span class="svalue"><button class="opt" data-class="on:ui_botSkill=1" onclick="set ui_botSkill 1">1</button><button class="opt" data-class="on:ui_botSkill=2" onclick="set ui_botSkill 2">2</button><button class="opt" data-class="on:ui_botSkill=3" onclick="set ui_botSkill 3">3</button><button class="opt" data-class="on:ui_botSkill=4" onclick="set ui_botSkill 4">4</button><button class="opt" data-class="on:ui_botSkill=5" onclick="set ui_botSkill 5">5</button></span></div>
 			<div class="srow" data-when="ui_botTeamGame=1"><span class="slabel">[bt_team]</span><span class="svalue">
 				<button class="opt" data-class="on:ui_botTeam=" onclick="set ui_botTeam &quot;&quot;">[join_auto]</button>
@@ -57,7 +58,7 @@
 			<div class="srow" data-when="ui_bot15_name!=&amp;ui_bot15_mate=1"><span class="slabel" data-text-cvar="ui_bot15_name"></span><span class="svalue"><button class="opt" onclick="ui_botOrder 15 0">[bt_follow]</button><button class="opt" data-when="ui_botCtf=0" onclick="ui_botOrder 15 1">[bt_roam]</button><button class="opt" data-when="ui_botCtf=1" onclick="ui_botOrder 15 2">[bt_defend]</button><button class="opt" data-when="ui_botCtf=1" onclick="ui_botOrder 15 3">[bt_getflag]</button><button class="opt" onclick="ui_botOrder 15 4">[bt_camp]</button><button class="opt" onclick="ui_botOrder 15 5">[bt_report]</button></span></div>
 		</div>
 		<div class="sactions">
-			<button onclick="rml_hide; ui_close">[menu_resume]</button>
+			<button onclick="rml_show ui/ingame.rml">[menu_back]</button>
 		</div>
 	</div>
 </body>
