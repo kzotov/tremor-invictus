@@ -64,8 +64,8 @@ module each, each with a look():
                        Anarki (looks/anarki.py): tanned skin, a near-black
                        mohawk, brown leather, rusted scrap, brass goggles
   models/players/keel/*_keel*.skin, ...
-                       Keel (looks/keel.py): beige armour, orange hoses,
-                       dark boots, steel staples over the scalp
+                       Keel (looks/keel.py): tan armour and forearms, a
+                       brown undersuit at the neck, bloodied boots
   models/players/slash/*_slash*.skin, ...
                        Slash (looks/slash.py): studded black leather, dark
                        red striped stockings, gunmetal panels
