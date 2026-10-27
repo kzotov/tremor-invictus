@@ -357,6 +357,195 @@ def prism(mesh, outline, y0, y1):
         mesh.quad(*q)
 
 
+# the totem's skin: the front view in units, x from TOTEM_SKIN_X0, z down
+# from TOTEM_SKIN_Z0, TOTEM_SKIN_SPAN units across both ways; the trim strip
+# for the edges at x TOTEM_SKIN_EDGE .. + 2.6
+TOTEM_SKIN_X0, TOTEM_SKIN_Z0, TOTEM_SKIN_SPAN, TOTEM_SKIN_EDGE = -20.0, 60.0, 72.0, 20.5
+TOTEM_LIGHT = (-0.55, -0.75)            # towards the light, in the picture (x right, y down)
+IRON = (0.17, 0.165, 0.17)
+BRONZE = (0.55, 0.36, 0.17)
+
+
+def totem_skin():
+    """Paint the totem's skin (512 x 512) and its glow map in the same layout.
+    Blackened iron plates with aged bronze trims: every part bevelled, lit
+    from the upper left with a bright catch on its rim and a dark lower right
+    edge, an inset line round each plate, rivets, engraved runes down the
+    blades, a groove down the stake, rings round the hub, scratches, grime
+    towards the floor and the shadows the parts in front cast on those
+    behind."""
+    W = 512
+    span = TOTEM_SKIN_SPAN
+    c = Canvas(W, W, (0.05, 0.05, 0.05, 1), span=span)
+    glow = Canvas(W, W, (0, 0, 0, 1), span=span)
+    grain = Fbm(101, 4, 10)
+    fine = Noise(103, 256, 256)
+    rng = random.Random(107)
+
+    def pt(x, z):
+        return (x - TOTEM_SKIN_X0, TOTEM_SKIN_Z0 - z)
+
+    def poly(pts):
+        return polygon([pt(x, z) for x, z in pts])
+
+    def mirror(pts):
+        return [(-x, z) for x, z in reversed(pts)]
+
+    def material(base, x, y, wear=1.0):
+        n = grain.at(x / span * 6, y / span * 6)
+        f = fine.at(x * 9, y * 9) - 0.5
+        k = 0.82 + 0.36 * n + 0.10 * f
+        z = TOTEM_SKIN_Z0 - y
+        k *= 1 - 0.35 * wear * smooth(30, 0, z) * (0.6 + 0.4 * grain.at(x * 0.3, y * 0.3))   # grime low down
+        return tuple(ch * k for ch in base)
+
+    def bevelled(shape, base, bevel=0.7, wear=1.0):
+        """Fill with a bevel: the rim facing the light bright, the far rim
+        dark, a thin catch of light on the very edge."""
+        sdf = shape.sdf
+        e = 0.05
+        lx, ly = TOTEM_LIGHT
+        ln = math.hypot(lx, ly)
+        lx, ly = lx / ln, ly / ln
+
+        def f(x, y):
+            d = -sdf(x, y)
+            col = material(base, x, y, wear)
+            if d < bevel:
+                gx = sdf(x + e, y) - sdf(x - e, y)
+                gy = sdf(x, y + e) - sdf(x, y - e)
+                gl = math.hypot(gx, gy) or 1.0
+                facing = -(gx * lx + gy * ly) / gl        # +1: the rim faces the light
+                t = 1 - max(0.0, d) / bevel
+                k = 1 + t * (0.9 * facing if facing > 0 else 0.75 * facing)
+                if d < 0.14:
+                    k += 0.5 * max(0.0, facing) + 0.15        # the catch on the edge
+                col = tuple(ch * max(0.15, k) for ch in col)
+            return col
+        c.fill(shape, f)
+
+    def shadow(shape, depth=0.9):
+        """The shade a part casts on what lies behind it, away from the light."""
+        lx, ly = TOTEM_LIGHT
+        c.fill(shape.moved(-lx * depth, -ly * depth).grow(0.2), (0, 0, 0), 0.55, soft=0.9)
+
+    def inset(shape, k=0.9):
+        line_ = shape.grow(-k).outline(0.16)
+        c.fill(line_, (0.03, 0.03, 0.03), 0.8)
+        c.fill(line_.moved(0.12, 0.12), (1, 1, 1), 0.12)
+
+    def rivet(x, z, r=0.45):
+        cx, cy = pt(x, z)
+        c.fill(circle(cx + 0.15, cy + 0.2, r * 1.1), (0, 0, 0), 0.6, soft=0.2)
+        bevelled(circle(cx, cy, r), scale(BRONZE, 1.3), bevel=r)
+        c.fill(circle(cx - r * 0.35, cy - r * 0.35, r * 0.28), (1, 0.9, 0.7), 0.55)
+
+    def scratches(shape, n):
+        x0, y0, x1, y1 = shape.box
+        for _ in range(n):
+            x, y = rng.uniform(x0, x1), rng.uniform(y0, y1)
+            a = rng.uniform(0, math.pi)
+            l = rng.uniform(0.4, 1.6)
+            st = line(x, y, x + math.cos(a) * l, y + math.sin(a) * l, 0.06) & shape.grow(-0.4)
+            c.fill(st, (0.9, 0.85, 0.8), 0.35)
+
+    def rune_column(x, z0, z1, seed):
+        """Engraved signs down a plate: two to four strokes each on a 2 x 3 grid."""
+        r = random.Random(seed)
+        out = None
+        z = z1
+        while z - 3.2 > z0:
+            g = [(x + gx * 0.9, z - gz * 1.1) for gz in range(3) for gx in (-1, 0, 1)]
+            pts = r.sample(g, 4)
+            sign = None
+            for k in range(r.randint(2, 3)):
+                (ax, az), (bx, bz) = pts[k], pts[k + 1]
+                st = line(*pt(ax, az), *pt(bx, bz), 0.3)
+                sign = st if sign is None else sign | st
+            out = sign if out is None else out | sign
+            z -= 3.6
+        return out
+
+    # the parts, from the back to the front
+    brace = [(-13, 46), (-11, 46), (-4.5, 39), (-4.5, 37)]
+    blade = [(-18.5, 48), (-11.5, 46), (-11.5, 18), (-17.5, 11)]
+    bar = [(-17, 50), (17, 50), (16, 46), (-16, 46)]
+    crest1 = [(-6, 53), (6, 53), (6, 50), (-6, 50)]
+    crest2 = [(-3.5, 56), (3.5, 56), (3.5, 53), (-3.5, 53)]
+    stake = [(-2.6, 46), (2.6, 46), (2.6, 2), (-2.6, 2)]
+    tip = [(-2.6, 2), (2.6, 2), (2.6, -3), (0.4, -10), (-2.6, -4)]
+    hub = [(-4.5, 44), (4.5, 44), (4.5, 36), (-4.5, 36)]
+    bands = [[(-3.4, z1), (3.4, z1), (3.4, z0), (-3.4, z0)] for z0, z1 in ((30, 32), (17, 18.5), (2, 4.5))]
+
+    for b in (brace, mirror(brace)):
+        bevelled(poly(b), scale(BRONZE, 0.75), 0.5)
+    bevelled(poly(crest2), BRONZE, 0.6)
+    for x in (-1.6, 0, 1.6):
+        c.fill(line(*pt(x, 55.4), *pt(x, 53.6), 0.22), (0.05, 0.03, 0.02), 0.8)
+    for b, seed in ((blade, 1), (mirror(blade), 2)):
+        sh = poly(b)
+        bevelled(sh, IRON, 0.9)
+        inset(sh, 1.0)
+        bx = sum(p[0] for p in b) / 4
+        runes = rune_column(bx, 20, 42, seed)
+        c.fill(runes.grow(0.08), (0.02, 0.02, 0.02), 0.9)
+        c.fill(runes.moved(0.1, 0.1), (1, 1, 1), 0.08)
+        glow.fill(runes.grow(-0.02), (1, 1, 1))
+        glow.glow(runes, (0.35, 0.35, 0.35), 0.4, 0.6)
+        scratches(sh, 26)
+        rivet(bx, 44.2)
+        rivet(bx + (1.3 if bx < 0 else -1.3), 16.5 if bx < 0 else 16.5, 0.4)
+    shadow(poly(crest1))
+    bevelled(poly(crest1), BRONZE, 0.7)
+    inset(poly(crest1), 0.6)
+    shadow(poly(bar))
+    bar_s = poly(bar)
+    bevelled(bar_s, IRON, 0.9)
+    inset(bar_s, 0.8)
+    scratches(bar_s, 18)
+    for x in (-14.5, -9, 9, 14.5):
+        rivet(x, 48)
+    shadow(poly(stake))
+    st_s = poly(stake)
+    bevelled(st_s, IRON, 0.8)
+    groove = art.box(*pt(0, 17.5), 0.75, 11.5)
+    c.fill(groove.grow(0.15), (0.01, 0.01, 0.01), 0.95)
+    glow.fill(groove.grow(-0.15), (1, 1, 1))
+    glow.glow(groove, (0.4, 0.4, 0.4), 0.6, 0.7)
+    scratches(st_s, 10)
+    shadow(poly(tip), 0.6)
+    bevelled(poly(tip), scale(IRON, 0.9), 0.7)
+    c.fill(poly([(-1.4, 1), (1.4, 1), (0.2, -7)]).outline(0.12), (0.02, 0.02, 0.02), 0.7)
+    for b in bands:
+        shadow(poly(b), 0.6)
+        bevelled(poly(b), BRONZE, 0.5)
+        z = (b[0][1] + b[2][1]) / 2
+        rivet(-2.4, z, 0.38)
+        rivet(2.4, z, 0.38)
+    shadow(poly(hub))
+    hub_s = poly(hub)
+    bevelled(hub_s, BRONZE, 0.8)
+    hx, hy = pt(0, 40)
+    for r, w in ((3.4, 0.35), (2.9, 0.14)):
+        c.fill(ring(hx, hy, r, w), (0.03, 0.02, 0.01), 0.85)
+    glow.fill(ring(hx, hy, 3.4, 0.18), (0.8, 0.8, 0.8))
+    for a in range(0, 360, 45):
+        ax, ay = hx + 3.9 * math.cos(math.radians(a)), hy + 3.9 * math.sin(math.radians(a))
+        if abs(ax - hx) < 4.1 and abs(ay - hy) < 3.6:
+            c.fill(circle(ax, ay, 0.22), (1.0, 0.8, 0.55), 0.6)
+
+    # the trim strip the side faces use: bronze, a bright ridge along it
+    sx0, _ = pt(TOTEM_SKIN_EDGE, 0)
+
+    def edge(x, y):
+        t = (x - sx0) / 2.6
+        k = 0.55 + 0.75 * math.exp(-((t - 0.5) / 0.22) ** 2) - 0.25 * abs(t - 0.5)
+        return material(scale(IRON, 1.6), x, y, 0.6) if 0 <= t <= 1 else (0, 0, 0)
+    c.fill(art.box(sx0 + 1.3, span / 2, 1.3, span / 2), lambda x, y: tuple(
+        ch * (0.55 + 0.75 * math.exp(-(((x - sx0) / 2.6 - 0.5) / 0.22) ** 2)) for ch in edge(x, y)))
+    return c, glow
+
+
 def totem(out):
     """Galena's Unholy Totem: a tall iron sign like a letter "m" set on a post.
     A banded centre stake, its blade point driven into the floor, hangs from a
@@ -399,25 +588,24 @@ def totem(out):
     start = len(core.xyz)
     lathe(core, [(0.05, 0), (2.4, 0.4), (2.4, 7.2), (0.05, 7.6)], 12)
     transform(core, start, lambda p: (p[0], p[2] - 3.8, p[1] + 40))     # a lens through the hub, face to face
+    # the skin is painted as the totem seen from the front (totem_skin below):
+    # faces looking along y take their place in it, the edges a strip of trim
+    # at its right
+    for i, (p, n) in enumerate(zip(iron.xyz, iron.normal)):
+        if abs(n[1]) > 0.5:
+            iron.st[i] = ((p[0] - TOTEM_SKIN_X0) / TOTEM_SKIN_SPAN, (TOTEM_SKIN_Z0 - p[2]) / TOTEM_SKIN_SPAN)
+        else:
+            t = min(1.0, max(0.0, (p[1] + 3.4) / 6.8))
+            iron.st[i] = ((TOTEM_SKIN_EDGE + 2.6 * t - TOTEM_SKIN_X0) / TOTEM_SKIN_SPAN, (TOTEM_SKIN_Z0 - p[2]) / TOTEM_SKIN_SPAN)
     write_md3(os.path.join(out, "models/abilities/totem/totem.md3"), "totem", [iron, core])
-
-    def blackiron(u, v, n=Fbm(53, 4, 6), f=Noise(59, 64, 64)):
-        # dark bronze
-        k = 0.24 + 0.09 * n.at(u * 3, v * 6) + 0.05 * (f.at(u * 64, v * 64) - 0.5)
-        return [k * 1.2, k * 0.9, k * 0.68, 1]
-
-    def cracks(u, v, n=Fbm(61, 4, 5)):
-        # thin veins where the noise crosses a level: lit by the entity colour
-        e = abs(n.at(u * 2, v * 3) - 0.5)
-        g = max(0.0, 1 - e / 0.035) ** 2
-        return [g, g, g, 1]
 
     def ember(u, v, n=Fbm(71, 4, 4)):
         g = 0.45 + 0.55 * n.at(u * 3, v * 3)
         return [g, g, g, 1]
 
-    texture(os.path.join(out, "models/abilities/totem/totem.tga"), 64, 128, blackiron, False)
-    texture(os.path.join(out, "models/abilities/totem/totem_cracks.tga"), 64, 128, cracks, False)
+    skin, glow = totem_skin()
+    skin.write(os.path.join(out, "models/abilities/totem/totem.tga"), alpha=False)
+    glow.write(os.path.join(out, "models/abilities/totem/totem_cracks.tga"), alpha=False)
     texture(os.path.join(out, "models/abilities/totem/totem_core.tga"), 64, 64, ember, False)
 
 
