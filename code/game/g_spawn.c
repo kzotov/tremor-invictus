@@ -305,6 +305,12 @@ qboolean G_CallSpawn( gentity_t *ent ) {
 		ent->classname = "item_health_large";
 	}
 
+	// mechanics.md: with g_hourglassFromShards every map-placed armour shard
+	// is an hourglass (dropped shards stay shards: they don't come through here)
+	if ( g_hourglassFromShards.integer && !strcmp( ent->classname, "item_armor_shard" ) ) {
+		ent->classname = "item_hourglass";
+	}
+
 	// check item spawn functions
 	for ( item=bg_itemlist+1 ; item->classname ; item++ ) {
 		if ( !strcmp(item->classname, ent->classname) ) {

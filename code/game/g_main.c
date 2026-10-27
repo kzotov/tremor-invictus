@@ -225,6 +225,7 @@ vmCvar_t	g_spawnProtection;
 vmCvar_t	g_spawnProtectionScale;
 vmCvar_t	g_teamSize;
 vmCvar_t	g_voteFlags;
+vmCvar_t	g_hourglassFromShards;
 vmCvar_t	g_voteDelay;
 vmCvar_t	g_voteLimit;
 vmCvar_t	g_allowSpecVote;
@@ -323,6 +324,8 @@ static cvarTable_t		gameCvarTable[] = {
 	// msec after the map starts before votes, the calls a player has per map
 	// (0 no limit), spectators calling and voting, calls during the match
 	{ &g_voteFlags, "g_voteFlags", "0", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qfalse },
+	// mechanics.md: map-placed armour shards spawn as hourglasses (on map load)
+	{ &g_hourglassFromShards, "g_hourglassFromShards", "1", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_LATCH, 0, qfalse },
 	{ &g_voteDelay, "g_voteDelay", "0", CVAR_ARCHIVE, 0, qfalse },
 	{ &g_voteLimit, "g_voteLimit", "0", CVAR_ARCHIVE, 0, qfalse },
 	{ &g_allowSpecVote, "g_allowSpecVote", "0", CVAR_ARCHIVE, 0, qfalse },
