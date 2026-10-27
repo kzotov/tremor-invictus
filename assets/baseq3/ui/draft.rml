@@ -3,35 +3,36 @@
 	<title>Draft</title>
 	<link type="text/rcss" href="tremor.rcss"/>
 </head>
-<body>
+<body data-escape="togglemenu">
 	<div class="draft">
 		<h1>[draft_title]</h1>
+		<div class="turn" data-text-cvar="dr_turn"></div>
 		<div class="sub">[draft_turn]</div>
 		<div class="grid">
-		<button onclick="pick ranger">[champ_ranger][$dr_t_ranger]</button>
-		<button onclick="pick anarki">[champ_anarki][$dr_t_anarki]</button>
-		<button onclick="pick athena">[champ_athena][$dr_t_athena]</button>
-		<button onclick="pick nyx">[champ_nyx][$dr_t_nyx]</button>
-		<button onclick="pick slash">[champ_slash][$dr_t_slash]</button>
-		<button onclick="pick bj">[champ_bj][$dr_t_bj]</button>
-		<button onclick="pick deathknight">[champ_deathknight][$dr_t_deathknight]</button>
-		<button onclick="pick doomslayer">[champ_doomslayer][$dr_t_doomslayer]</button>
-		<button onclick="pick eisen">[champ_eisen][$dr_t_eisen]</button>
-		<button onclick="pick galena">[champ_galena][$dr_t_galena]</button>
-		<button onclick="pick strogg">[champ_strogg][$dr_t_strogg]</button>
-		<button onclick="pick visor">[champ_visor][$dr_t_visor]</button>
-		<button onclick="pick clutch">[champ_clutch][$dr_t_clutch]</button>
-		<button onclick="pick keel">[champ_keel][$dr_t_keel]</button>
-		<button onclick="pick scalebearer">[champ_scalebearer][$dr_t_scalebearer]</button>
-		<button onclick="pick sorlag">[champ_sorlag][$dr_t_sorlag]</button>
-		<button onclick="pick wrack">[champ_wrack][$dr_t_wrack]</button>
-		<button onclick="pick sarge">[champ_sarge][$dr_t_sarge]</button>
-		<button onclick="pick klesk">[champ_klesk][$dr_t_klesk]</button>
-		<button onclick="pick hunter">[champ_hunter][$dr_t_hunter]</button>
-		<button onclick="pick xaero">[champ_xaero][$dr_t_xaero]</button>
-		<button onclick="pick raine">[champ_raine][$dr_t_raine]</button>
-		<button onclick="pick beastmaster">[champ_beastmaster][$dr_t_beastmaster]</button>
-		<button onclick="pick unumrey">[champ_unumrey][$dr_t_unumrey]</button>
+		<button onclick="pick ranger"><img src="/gfx/champions-generated/ranger_small.tga"/><span>[champ_ranger][$dr_t_ranger]</span></button>
+		<button onclick="pick anarki"><img src="/gfx/champions-generated/anarki_small.tga"/><span>[champ_anarki][$dr_t_anarki]</span></button>
+		<button onclick="pick athena"><img src="/gfx/champions-generated/athena_small.tga"/><span>[champ_athena][$dr_t_athena]</span></button>
+		<button onclick="pick nyx"><img src="/gfx/champions-generated/nyx_small.tga"/><span>[champ_nyx][$dr_t_nyx]</span></button>
+		<button onclick="pick slash"><img src="/gfx/champions-generated/slash_small.tga"/><span>[champ_slash][$dr_t_slash]</span></button>
+		<button onclick="pick bj"><img src="/gfx/champions-generated/bj_small.tga"/><span>[champ_bj][$dr_t_bj]</span></button>
+		<button onclick="pick deathknight"><img src="/gfx/champions-generated/deathknight_small.tga"/><span>[champ_deathknight][$dr_t_deathknight]</span></button>
+		<button onclick="pick doomslayer"><img src="/gfx/champions-generated/doomslayer_small.tga"/><span>[champ_doomslayer][$dr_t_doomslayer]</span></button>
+		<button onclick="pick eisen"><img src="/gfx/champions-generated/eisen_small.tga"/><span>[champ_eisen][$dr_t_eisen]</span></button>
+		<button onclick="pick galena"><img src="/gfx/champions-generated/galena_small.tga"/><span>[champ_galena][$dr_t_galena]</span></button>
+		<button onclick="pick strogg"><img src="/gfx/champions-generated/strogg_small.tga"/><span>[champ_strogg][$dr_t_strogg]</span></button>
+		<button onclick="pick visor"><img src="/gfx/champions-generated/visor_small.tga"/><span>[champ_visor][$dr_t_visor]</span></button>
+		<button onclick="pick clutch"><img src="/gfx/champions-generated/clutch_small.tga"/><span>[champ_clutch][$dr_t_clutch]</span></button>
+		<button onclick="pick keel"><img src="/gfx/champions-generated/keel_small.tga"/><span>[champ_keel][$dr_t_keel]</span></button>
+		<button onclick="pick scalebearer"><img src="/gfx/champions-generated/scalebearer_small.tga"/><span>[champ_scalebearer][$dr_t_scalebearer]</span></button>
+		<button onclick="pick sorlag"><img src="/gfx/champions-generated/sorlag_small.tga"/><span>[champ_sorlag][$dr_t_sorlag]</span></button>
+		<button onclick="pick wrack"><img src="/gfx/champions-generated/wrack_small.tga"/><span>[champ_wrack][$dr_t_wrack]</span></button>
+		<button onclick="pick sarge"><img src="/gfx/champions-generated/sarge_small.tga"/><span>[champ_sarge][$dr_t_sarge]</span></button>
+		<button onclick="pick klesk"><img src="/gfx/champions-generated/klesk_small.tga"/><span>[champ_klesk][$dr_t_klesk]</span></button>
+		<button onclick="pick hunter"><img src="/gfx/champions-generated/hunter_small.tga"/><span>[champ_hunter][$dr_t_hunter]</span></button>
+		<button onclick="pick xaero"><img src="/gfx/champions-generated/xaero_small.tga"/><span>[champ_xaero][$dr_t_xaero]</span></button>
+		<button onclick="pick raine"><img src="/gfx/champions-generated/raine_small.tga"/><span>[champ_raine][$dr_t_raine]</span></button>
+		<button onclick="pick beastmaster"><img src="/gfx/champions-generated/beastmaster_small.tga"/><span>[champ_beastmaster][$dr_t_beastmaster]</span></button>
+		<button onclick="pick unumrey"><img src="/gfx/champions-generated/unumrey_small.tga"/><span>[champ_unumrey][$dr_t_unumrey]</span></button>
 		</div>
 	</div>
 </body>

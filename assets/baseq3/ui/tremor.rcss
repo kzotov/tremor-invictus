@@ -186,13 +186,29 @@ button.small {
 	margin-bottom: 14dp;
 }
 
+.draft .turn {
+	display: block;
+	text-align: center;
+	font-family: "Roboto Black";
+	font-size: 30dp;
+	color: #d3191f;
+	margin-bottom: 6dp;
+}
+
 .draft .grid button {
 	display: inline-block;
 	width: 15%;
-	font-size: 24dp;
+	font-size: 22dp;
 	padding: 6dp 10dp;
 	margin: 2dp;
 	border-left-width: 4dp;
+}
+
+.draft .grid button img {
+	display: block;
+	width: 64dp;
+	height: 64dp;
+	margin: 0dp auto 4dp auto;
 }
 
 /* the end-of-match map vote along the bottom of the end board */

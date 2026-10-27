@@ -6966,8 +6966,9 @@ static qboolean CG_DrawDraft( void ) {
 				trap_Cvar_Set( va( "dr_t_%s", BG_Champion( c )->name ), taken ? BG_String( STR_RD_DRAFT_TAKEN ) : "" );
 			}
 			// the page for the two drafting; spectators only watch (their
-			// keys stay theirs). Opening it lets go of held keys.
-			if ( players[0] == cg.clientNum || players[1] == cg.clientNum ) {
+			// keys stay theirs). Opening it lets go of held keys. Not over
+			// another page (the Esc menu): it comes back once that closes
+			if ( ( players[0] == cg.clientNum || players[1] == cg.clientNum ) && ( shown || !atoi( active ) ) ) {
 				if ( !shown ) {
 					trap_SendConsoleCommand( "-forward\n-back\n-moveleft\n-moveright\n-moveup\n-movedown\n-attack\n-button12\n-button13\n" );
 				}
@@ -7056,6 +7057,17 @@ static qboolean CG_DrawDraft( void ) {
 				CG_DrawStringExt( 320 - CG_DrawStrlen( line ) * SMALLCHAR_WIDTH / 2, 180, line,
 					players[turn] == cg.snap->ps.clientNum ? colorYellow : colorWhite, qfalse, qtrue,
 					SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
+			} else {
+				line[0] = 0;
+			}
+			// the same line on the picking page (its header)
+			{
+				static char	shownTurn[MAX_STRING_CHARS];
+
+				if ( strcmp( line, shownTurn ) ) {
+					Q_strncpyz( shownTurn, line, sizeof( shownTurn ) );
+					trap_Cvar_Set( "dr_turn", line );
+				}
 			}
 		}
 	}
