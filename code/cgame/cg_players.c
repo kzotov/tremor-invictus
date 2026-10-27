@@ -1135,10 +1135,10 @@ void CG_NewClientInfo( int clientNum ) {
 
 		forceDefer = trap_MemoryRemaining() < 4000000;
 
-		// if we are defering loads, just have it pick the first valid; never
-		// for ourselves: a new champion must look like itself at once
-		if ( forceDefer || ( cg_deferPlayers.integer && !cg_buildScript.integer && !cg.loading
-			&& clientNum != cg.clientNum ) ) {
+		// only defer when low on memory: a deferred player borrows another
+		// client's model until the scoreboard comes up, which would show a
+		// champion as someone else after a mid-game change
+		if ( forceDefer ) {
 			// keep whatever they had if it won't violate team skins
 			CG_SetDeferredClientInfo( clientNum, &newInfo );
 			// if we are low on memory, leave them with this model
