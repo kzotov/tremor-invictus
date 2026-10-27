@@ -157,6 +157,114 @@ static void CG_EntityEffects( centity_t *cent ) {
 
 /*
 ==================
+CG_Totem
+
+Galena's standing totem: its core, halo and cracks (entity colour) and the
+aura on the floor out to its reach (angles2[0]) in ally blue when it is
+yours or a teammate's, enemy red otherwise; dim and growing while it arms
+(until time), then breathing slowly; a light over it
+==================
+*/
+#define TOTEM_ALLY_R	0.15f
+#define TOTEM_ALLY_G	0.62f
+#define TOTEM_ALLY_B	1.0f
+#define TOTEM_ENEMY_R	1.0f
+#define TOTEM_ENEMY_G	0.13f
+#define TOTEM_ENEMY_B	0.1f
+
+static void CG_TotemQuad( qhandle_t shader, const vec3_t a, const vec3_t b, const vec3_t c, const vec3_t d, const float *color, float k ) {
+	polyVert_t	v[4];
+	int			i;
+
+	VectorCopy( a, v[0].xyz );
+	VectorCopy( b, v[1].xyz );
+	VectorCopy( c, v[2].xyz );
+	VectorCopy( d, v[3].xyz );
+	v[0].st[0] = 0; v[0].st[1] = 0;
+	v[1].st[0] = 1; v[1].st[1] = 0;
+	v[2].st[0] = 1; v[2].st[1] = 1;
+	v[3].st[0] = 0; v[3].st[1] = 1;
+	for ( i = 0 ; i < 4 ; i++ ) {
+		v[i].modulate[0] = 255 * color[0] * k;
+		v[i].modulate[1] = 255 * color[1] * k;
+		v[i].modulate[2] = 255 * color[2] * k;
+		v[i].modulate[3] = 255;
+	}
+	trap_R_AddPolyToScene( shader, 4, v );
+}
+
+static void CG_AbilityLight( const vec3_t origin, float intensity, float r, float g, float b );
+
+static void CG_TotemColor( int owner, float *color ) {
+	if ( owner == cg.snap->ps.clientNum
+		|| ( cgs.gametype >= GT_TEAM && owner >= 0 && owner < MAX_CLIENTS
+			&& cgs.clientinfo[owner].team == cg.snap->ps.persistant[PERS_TEAM] ) ) {
+		VectorSet( color, TOTEM_ALLY_R, TOTEM_ALLY_G, TOTEM_ALLY_B );
+	} else {
+		VectorSet( color, TOTEM_ENEMY_R, TOTEM_ENEMY_G, TOTEM_ENEMY_B );
+	}
+}
+
+static void CG_Totem( centity_t *cent, refEntity_t *ent ) {
+	entityState_t	*s1 = &cent->currentState;
+	float			color[3], arm, k, radius;
+	vec3_t			c, a, b, d, e;
+
+	CG_TotemColor( s1->otherEntityNum, color );
+	// arming: dim, then a flare as it wakes, then a slow breath
+	arm = s1->time > cg.time ? 0.35f : 1.0f;
+	k = arm;
+	if ( s1->time <= cg.time && cg.time - s1->time < 300 ) {
+		k += 0.6f * ( 1.0f - ( cg.time - s1->time ) / 300.0f );
+	}
+	k *= 0.85f + 0.15f * sin( cg.time * 0.004f + s1->number );
+
+	ent->shaderRGBA[0] = 255 * Com_Clamp( 0, 1, color[0] * k );
+	ent->shaderRGBA[1] = 255 * Com_Clamp( 0, 1, color[1] * k );
+	ent->shaderRGBA[2] = 255 * Com_Clamp( 0, 1, color[2] * k );
+	ent->shaderRGBA[3] = 255;
+	trap_R_AddRefEntityToScene( ent );
+
+	// the aura on the floor (the entity sits 2 units off what it hit)
+	radius = s1->angles2[0] > 0 ? s1->angles2[0] : 120;
+	if ( s1->time > cg.time ) {
+		radius *= 0.6f + 0.4f * ( 1.0f - ( s1->time - cg.time ) / 1000.0f );
+	}
+	VectorCopy( cent->lerpOrigin, c );
+	c[2] -= 1.5f;
+	VectorSet( a, c[0] - radius, c[1] - radius, c[2] );
+	VectorSet( b, c[0] + radius, c[1] - radius, c[2] );
+	VectorSet( d, c[0] + radius, c[1] + radius, c[2] );
+	VectorSet( e, c[0] - radius, c[1] + radius, c[2] );
+	CG_TotemQuad( cgs.media.totemAuraShader, a, b, d, e, color, 0.6f * k );
+
+	// a faint column of light over the core, turned to face the viewer
+	{
+		vec3_t	side, top;
+		float	w = 7;
+
+		VectorSubtract( cg.refdef.vieworg, cent->lerpOrigin, side );
+		side[2] = 0;
+		VectorNormalize( side );
+		VectorSet( side, -side[1] * w, side[0] * w, 0 );
+		VectorCopy( cent->lerpOrigin, top );
+		top[2] += 36;
+		VectorAdd( top, side, a );
+		VectorSubtract( top, side, b );
+		VectorCopy( b, d );
+		VectorCopy( a, e );
+		d[2] += 56;
+		e[2] += 56;
+		CG_TotemQuad( cgs.media.totemBeamShader, e, d, b, a, color, 0.5f * k );
+	}
+
+	VectorCopy( cent->lerpOrigin, c );
+	c[2] += 38;
+	CG_AbilityLight( c, 110 + 60 * k, color[0] * k, color[1] * k, color[2] * k );
+}
+
+/*
+==================
 CG_General
 ==================
 */
@@ -197,6 +305,12 @@ static void CG_General( centity_t *cent ) {
 
 	// convert angles to axis
 	AnglesToAxis( cent->lerpAngles, ent.axis );
+
+	// Galena's totem glows in its side's colour over its aura
+	if ( ent.hModel && ent.hModel == cgs.media.totemModel ) {
+		CG_Totem( cent, &ent );
+		return;
+	}
 
 	// Eisen's turret is painted like its owner (otherEntityNum)
 	if ( ent.hModel && ent.hModel == cgs.media.turretModel ) {
@@ -799,6 +913,16 @@ static void CG_AbilityVisual( centity_t *cent ) {
 		VectorSet( a, cg.time * 0.4f, s1->angles[YAW], 0 );
 		AnglesToAxis( a, ent.axis );
 		ent.renderfx = RF_NOSHADOW;
+		if ( ent.hModel == cgs.media.totemModel ) {
+			float	color[3];
+
+			// dim in its side's colour while it flies
+			CG_TotemColor( s1->otherEntityNum, color );
+			ent.shaderRGBA[0] = 90 * color[0];
+			ent.shaderRGBA[1] = 90 * color[1];
+			ent.shaderRGBA[2] = 90 * color[2];
+			ent.shaderRGBA[3] = 255;
+		}
 		trap_R_AddRefEntityToScene( &ent );
 		break;
 

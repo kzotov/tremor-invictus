@@ -1137,6 +1137,9 @@ static void CG_RegisterGraphics( void ) {
 		cgs.media.railCoreShader = trap_R_RegisterShader( "railCore" );		// (the laser's beam)
 	}
 	cgs.media.turretModel = trap_R_RegisterModel( "models/abilities/turret/turret.md3" );
+	cgs.media.totemModel = trap_R_RegisterModel( "models/abilities/totem/totem.md3" );
+	cgs.media.totemAuraShader = trap_R_RegisterShader( "ability/totem_aura" );
+	cgs.media.totemBeamShader = trap_R_RegisterShader( "ability/totem_beam" );
 	cgs.media.droneShimmerShader = trap_R_RegisterShader( "tremor/droneshimmer" );
 	cgs.media.brightShader = trap_R_RegisterShader( "tremor/bright" );
 	cgs.media.sportShader = trap_R_RegisterShader( "tremor/sport" );

@@ -40,8 +40,12 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
                                             armour breaks (synthesised)
   sound/tremor/match_found.wav              the ready check's call: three rising
                                             bell tones
-  models/abilities/totem/totem.md3          the Unholy Totem: a bone post with a
-                                            skull knob and a glowing ring
+  models/abilities/totem/totem.md3          the Unholy Totem: a black iron stake
+                                            with bone thorns, three prongs round a
+                                            burning core and a rune halo; the core,
+                                            halo and cracks in the entity colour
+  gfx/abilities/totem_aura.tga, totem_beam.tga
+                                            its floor aura and the light over it
   models/abilities/turret/turret.md3        the sentry: a tripod, a turning head
                                             and a barrel along +x
   models/abilities/drone/drone.md3          Strogg's Peeker: a small sphere with a red eye
@@ -163,6 +167,8 @@ def name_bytes(s, n):
 
 def write_md3(path, name, meshes):
     """One frame, no tags, a surface per mesh."""
+    for m in meshes:
+        assert len(m.xyz) <= 1000, "%s: %i vertices, the engine takes 1000 a surface" % (m.shader, len(m.xyz))
     pts = [p for m in meshes for p in m.xyz]
     lo = [min(p[i] for p in pts) for i in range(3)]
     hi = [max(p[i] for p in pts) for i in range(3)]
@@ -331,17 +337,106 @@ def claw(out):
 
 
 def totem(out):
-    post, ring = Mesh("ability/totem"), Mesh("ability/totemring")
-    # a foot, a tapering post and a round knob with two eye sockets
-    lathe(post, [(0, 0), (7, 0), (7, 2), (3, 4), (2.2, 18), (2.6, 19), (0.1, 19)], 10)
-    lathe(post, [(0.1, 18.5), (3.5, 19.5), (5, 23), (4.5, 26.5), (2.5, 28.5), (0.1, 29)], 12)
-    for side in (-1, 1):
-        box(post, (3.6, side * 2.2 - 0.9, 23.5), (4.9, side * 2.2 + 0.9, 25))
-    # a flat band of light around the post
-    lathe(ring, [(9, 11), (9, 13), (10.5, 13), (10.5, 11)], 24)
-    write_md3(os.path.join(out, "models/abilities/totem/totem.md3"), "totem", [post, ring])
-    texture(os.path.join(out, "models/abilities/totem/totem.tga"), 64, 64,
-            lambda u, v, n=Fbm(53, 4, 6): [c * (0.75 + 0.35 * n.at(u * 3, v * 6)) for c in (0.78, 0.72, 0.6)] + [1], False)
+    """Galena's Unholy Totem: a black iron stake driven into the floor, its
+    shaft knotted like a spine and set with bone thorns, ending in a cup that
+    holds a burning core inside three curved bone prongs, with a thin rune
+    halo floating round them. 48 units tall from the floor (z = -2, the game
+    places the entity 2 units off the surface it hit). The core, the halo and
+    the iron's cracks take the entity colour: the code paints them in the
+    owner's side's colour."""
+    # two bone surfaces: a surface may hold at most 1000 vertices
+    iron, bone, crown = Mesh("ability/totem"), Mesh("ability/totembone"), Mesh("ability/totembone")
+    core, halo = Mesh("ability/totemcore"), Mesh("ability/totemring")
+    # the stake, its point in the floor, a flared collar on the floor
+    lathe(iron, [(0.05, -9), (1.2, -6), (2.4, -2.5), (6.2, -2), (6.6, -1), (4.2, 0.6), (2.9, 2.5)], 12)
+    # the knotted shaft
+    prof = [(2.9, 2.5)]
+    for z in (6, 11, 16, 21, 26):
+        prof += [(2.0, z - 2.2), (3.1, z - 0.6), (3.1, z + 0.6), (2.0, z + 2.2)]
+    prof += [(2.1, 29), (2.6, 30), (5.2, 33), (5.6, 34.2), (4.2, 34.6), (2.0, 33.4), (0.05, 33.2)]
+    lathe(iron, prof, 12)
+    # three claws gripping the floor
+    for k in range(3):
+        a = math.radians(k * 120 + 60)
+        rod(bone, (4.6 * math.cos(a), 4.6 * math.sin(a), -0.5), (math.cos(a), math.sin(a), -0.15), 6.5, 1.1, 0.2,
+            (0, 0, -1.8), 6, 6)
+    # bone thorns along the shaft, turning round it, pointing out and up
+    for k, z in enumerate((8.5, 12, 15.5, 19, 22.5, 26)):
+        a = math.radians(k * 137.5 + 20)
+        l = 6.5 + 2.5 * math.sin(k * 1.7)
+        rod(bone, (2.6 * math.cos(a), 2.6 * math.sin(a), z), (math.cos(a), math.sin(a), 0.75), l, 0.95, 0.12,
+            (0, 0, 1.2), 6, 6)
+    # three big prongs from the cup's rim, out and then curling in over the core;
+    # three short hooks between them
+    for k in range(3):
+        a = math.radians(k * 120)
+        ca, sa = math.cos(a), math.sin(a)
+        rod(crown, (4.4 * ca, 4.4 * sa, 33.5), (0.42 * ca, 0.42 * sa, 1), 13, 1.35, 0.22,
+            (-6.5 * ca, -6.5 * sa, 0.5), 8, 14)
+        b = a + math.radians(60)
+        rod(crown, (4.6 * math.cos(b), 4.6 * math.sin(b), 33.8), (math.cos(b), math.sin(b), 0.6), 5, 0.8, 0.15,
+            (0, 0, 1.5), 6, 6)
+    # the burning core and the rune halo round the prongs
+    lathe(core, [(4.0 * math.sin(math.pi * k / 10), 39.5 - 4.0 * math.cos(math.pi * k / 10)) for k in range(11)], 14)
+    lathe(halo, [(8.4, 40.6), (8.4, 41.4), (10.2, 41.4), (10.2, 40.6), (8.4, 40.6)], 32)
+    write_md3(os.path.join(out, "models/abilities/totem/totem.md3"), "totem", [iron, bone, crown, core, halo])
+
+    def blackiron(u, v, n=Fbm(53, 4, 6), f=Noise(59, 64, 64)):
+        k = 0.13 + 0.07 * n.at(u * 3, v * 6) + 0.04 * (f.at(u * 64, v * 64) - 0.5)
+        return [k * 1.12, k * 0.95, k * 0.92, 1]
+
+    def cracks(u, v, n=Fbm(61, 4, 5)):
+        # thin veins where the noise crosses a level: lit by the entity colour
+        e = abs(n.at(u * 2, v * 3) - 0.5)
+        g = max(0.0, 1 - e / 0.035) ** 2
+        return [g, g, g, 1]
+
+    def bonetex(u, v, n=Fbm(67, 4, 8)):
+        k = 0.78 + 0.18 * (n.at(u * 2, v * 6) - 0.5)
+        dark = smooth(0.55, 1.0, v)                    # darkening towards the tips
+        k *= 1 - 0.75 * dark
+        return [k * 0.96, k * 0.9, k * 0.76, 1]
+
+    def ember(u, v, n=Fbm(71, 4, 4)):
+        g = 0.45 + 0.55 * n.at(u * 3, v * 3)
+        return [g, g, g, 1]
+
+    def runes(u, v):
+        # a band of short strokes and gaps, white for the entity colour
+        x = (u * 24) % 1
+        k = 1.0 if (0.15 < x < 0.32 or 0.5 < x < 0.56 or 0.7 < x < 0.85) else 0.18
+        return [k, k, k, 1]
+
+    texture(os.path.join(out, "models/abilities/totem/totem.tga"), 64, 128, blackiron, False)
+    texture(os.path.join(out, "models/abilities/totem/totem_cracks.tga"), 64, 128, cracks, False)
+    texture(os.path.join(out, "models/abilities/totem/totem_bone.tga"), 32, 64, bonetex, False)
+    texture(os.path.join(out, "models/abilities/totem/totem_core.tga"), 64, 64, ember, False)
+    texture(os.path.join(out, "models/abilities/totem/totem_runes.tga"), 256, 8, runes, False)
+
+
+def totem_aura(out):
+    """The ground aura under a standing totem (gfx/abilities/totem_aura.tga): a
+    disc of faint light out to its heal radius with a brighter rim and a ring
+    of small marks, white for the code to tint; and a soft column of light
+    (totem_beam.tga) that rises from the core."""
+    def aura(u, v, n=Fbm(73, 3, 6)):
+        x, y = u * 2 - 1, v * 2 - 1
+        d = math.hypot(x, y)
+        a = math.atan2(y, x)
+        rim = math.exp(-((d - 0.94) / 0.025) ** 2)
+        inner = 0.10 * smooth(0.2, 0.93, d) * (d < 0.95)
+        marks = 0.0
+        if 0.78 < d < 0.86:
+            t = (a / (2 * math.pi) * 18) % 1
+            marks = 0.55 * (0.3 < t < 0.7) * math.exp(-((d - 0.82) / 0.025) ** 2)
+        g = min(1.0, rim + inner * (0.7 + 0.6 * n.at(u * 4, v * 4)) + marks)
+        return [g, g, g, 1]
+
+    def beam(u, v):
+        g = math.exp(-((u - 0.5) / 0.18) ** 2) * (1 - v) ** 1.5 * smooth(0.0, 0.08, v)
+        return [g, g, g, 1]
+    texture(os.path.join(out, "gfx/abilities/totem_aura.tga"), 256, 256, aura, False)
+    texture(os.path.join(out, "gfx/abilities/totem_beam.tga"), 32, 128, beam, False)
 
 
 def turret(out):
@@ -1168,6 +1263,37 @@ ability/totem
 		map models/abilities/totem/totem.tga
 		rgbGen lightingDiffuse
 	}
+	{
+		map models/abilities/totem/totem_cracks.tga
+		blendFunc GL_ONE GL_ONE
+		rgbGen entity
+	}
+}
+
+ability/totembone
+{
+	{
+		map models/abilities/totem/totem_bone.tga
+		rgbGen lightingDiffuse
+	}
+}
+
+// the core and the halo in the entity colour (the owner's side), pulsing
+ability/totemcore
+{
+	sort additive
+	{
+		map models/abilities/totem/totem_core.tga
+		blendFunc GL_ONE GL_ONE
+		tcMod rotate 40
+		rgbGen entity
+	}
+	{
+		map models/abilities/totem/totem_core.tga
+		blendFunc GL_ONE GL_ONE
+		tcMod scroll 0 0.6
+		rgbGen wave sin 0.35 0.25 0 1.4
+	}
 }
 
 ability/totemring
@@ -1175,9 +1301,36 @@ ability/totemring
 	cull none
 	sort additive
 	{
-		map $whiteimage
+		map models/abilities/totem/totem_runes.tga
 		blendFunc GL_ONE GL_ONE
-		rgbGen wave sin 0.5 0.25 0 1.2
+		tcMod scroll 0.08 0
+		rgbGen entity
+	}
+}
+
+// the totem's aura on the floor and the light over its core (cg_ents.c), tinted by vertex colour
+ability/totem_aura
+{
+	nopicmip
+	polygonOffset
+	cull none
+	sort additive
+	{
+		clampmap gfx/abilities/totem_aura.tga
+		blendFunc GL_ONE GL_ONE
+		rgbGen vertex
+	}
+}
+
+ability/totem_beam
+{
+	nopicmip
+	cull none
+	sort additive
+	{
+		clampmap gfx/abilities/totem_beam.tga
+		blendFunc GL_ONE GL_ONE
+		rgbGen vertex
 	}
 }
 
@@ -1350,6 +1503,7 @@ def main():
     orb(src)
     claw(src)
     totem(src)
+    totem_aura(src)
     turret(src)
     drone(src)
     barrier(src)

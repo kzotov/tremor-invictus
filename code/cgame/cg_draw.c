@@ -6485,6 +6485,11 @@ static void CG_AddPillarInfo( clientInfo_t *ci, const vec3_t feet, float yaw ) {
 		prop.hModel = BG_Champion( CG_ClientChampion( ci ) )->active == ACTIVE_TURRET
 			? cgs.media.turretModel : trap_R_RegisterModel( "models/abilities/totem/totem.md3" );
 		prop.renderfx = RF_LIGHTING_ORIGIN | RF_NOSHADOW;
+		// the totem's core, halo and cracks in the logo red
+		prop.shaderRGBA[0] = 211;
+		prop.shaderRGBA[1] = 25;
+		prop.shaderRGBA[2] = 31;
+		prop.shaderRGBA[3] = 255;
 		trap_R_AddRefEntityToScene( &prop );
 	}
 }

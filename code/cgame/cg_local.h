@@ -910,6 +910,9 @@ typedef struct {
 	sfxHandle_t	laserLoopSound;		// Clutch's Mining Laser
 	sfxHandle_t	shockRingSound;		// shell-shocked: the ears ringing
 	qhandle_t	turretModel;		// Eisen's, told apart from other general entities
+	qhandle_t	totemModel;			// Galena's, drawn with its aura
+	qhandle_t	totemAuraShader;
+	qhandle_t	totemBeamShader;
 	sfxHandle_t	dodgeSound;		// generated; 0 when missing
 	sfxHandle_t	berserkSwingSound;
 	sfxHandle_t	hookAttachSound;	// generated

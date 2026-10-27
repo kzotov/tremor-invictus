@@ -1068,6 +1068,10 @@ static void G_TotemImpact( gentity_t *totem, trace_t *trace ) {
 	totem->s.eType = ET_GENERAL;
 	totem->s.generic1 = AV_NONE;
 	totem->s.modelindex = G_ModelIndex( "models/abilities/totem/totem.md3" );
+	// for its aura (cg_ents.c): the owner, when it arms and how far it reaches
+	totem->s.otherEntityNum = totem->parent ? totem->parent->s.number : ENTITYNUM_NONE;
+	totem->s.time = level.time + g_totemArmTime.integer;
+	totem->s.angles2[0] = g_totemHealRadius.value > g_totemHurtRadius.value ? g_totemHealRadius.value : g_totemHurtRadius.value;
 	totem->r.contents = CONTENTS_CORPSE;
 	VectorSet( totem->r.mins, -8, -8, -8 );
 	VectorSet( totem->r.maxs, 8, 8, 16 );
@@ -1092,6 +1096,7 @@ static void G_ThrowTotem( gentity_t *ent ) {
 	totem->clipmask = MASK_SOLID;
 	totem->s.generic1 = AV_THROWN;
 	totem->s.modelindex = G_ModelIndex( "models/abilities/totem/totem.md3" );
+	totem->s.otherEntityNum = ent->s.number;		// its side's colour in flight
 	totem->abilityImpact = G_TotemImpact;
 	totem->abilityTime = level.time;
 	totem->think = G_FreeEntity;
