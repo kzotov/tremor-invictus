@@ -1346,6 +1346,7 @@ typedef enum {
 	STR_SET_BIND_READY,
 	STR_SET_BIND_DROP,
 	STR_SET_BIND_TAUNT,
+	STR_SET_BIND_TAKEN,				// a key moved from another action: key, its old action
 
 	STR_NUM_STRINGS
 } stringId_t;

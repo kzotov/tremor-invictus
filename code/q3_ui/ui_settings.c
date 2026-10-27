@@ -354,6 +354,30 @@ static int Settings_FindValue( const settingRow_t *row, const char *value ) {
 Settings_GetResolutions
 =================
 */
+// whether resolution a ("WxH") sorts after b: by aspect, widest first, then by size
+static qboolean Settings_ResolutionAfter( const char *a, const char *b ) {
+	const char	*xa = strchr( a, 'x' ), *xb = strchr( b, 'x' );
+	int			wa, ha, wb, hb;
+	float		ra, rb;
+
+	if ( !xa || !xb ) {
+		return qfalse;
+	}
+	wa = atoi( a ); ha = atoi( xa + 1 ); wb = atoi( b ); hb = atoi( xb + 1 );
+	if ( ha <= 0 || hb <= 0 ) {
+		return qfalse;
+	}
+	ra = wa / (float)ha;
+	rb = wb / (float)hb;
+	if ( ra < rb - 0.01f ) {
+		return qtrue;
+	}
+	if ( ra > rb + 0.01f ) {
+		return qfalse;
+	}
+	return wa * ha > wb * hb;
+}
+
 static void Settings_GetResolutions( void ) {
 	char	*s;
 
@@ -370,6 +394,20 @@ static void Settings_GetResolutions( void ) {
 		*s++ = '\0';
 	}
 	s_settings.resolutions[s_settings.numResolutions] = NULL;
+
+	// grouped by shape (widest first), then from small to large
+	{
+		int		i, j;
+
+		for ( i = 2; i < s_settings.numResolutions; i++ ) {
+			for ( j = i; j > 1 && Settings_ResolutionAfter( s_settings.resolutions[j - 1], s_settings.resolutions[j] ); j-- ) {
+				const char	*t = s_settings.resolutions[j];
+
+				s_settings.resolutions[j] = s_settings.resolutions[j - 1];
+				s_settings.resolutions[j - 1] = t;
+			}
+		}
+	}
 }
 
 /*
@@ -1263,6 +1301,9 @@ void UI_SettingsRml( void ) {
 			UI_RmlText( BG_String( settingTabs[tab].name ) ) ) );
 	}
 	Rml_Add( "</div>\n" );
+	// a key just taken from another action (Controls)
+	trap_Cvar_Set( "ui_setWarn", "" );
+	Rml_Add( "<div class=\"note\" data-when=\"ui_setWarn!=\" data-text-cvar=\"ui_setWarn\"></div>\n" );
 	for ( tab = 0; tab < NUM_TABS; tab++ ) {
 		Rml_Add( va( "<div class=\"spage\" data-when=\"ui_setTab=%i\">\n", tab ) );
 		for ( r = 0; r < settingTabs[tab].numRows; r++ ) {
@@ -1503,6 +1544,25 @@ qboolean UI_SettingsCommand( const char *cmd ) {
 			Settings_KeysForCommand( settingTabs[tab].rows[r].cvar, keys );
 			if ( keys[1] != -1 && key != keys[0] && key != keys[1] ) {
 				trap_Key_SetBinding( keys[0], "" );
+			}
+			// a key that did something else: say what it no longer does
+			{
+				char	was[MAX_STRING_CHARS], keyName[64];
+				int		other;
+
+				trap_Key_GetBindingBuf( key, was, sizeof( was ) );
+				trap_Cvar_Set( "ui_setWarn", "" );
+				if ( was[0] && Q_stricmp( was, settingTabs[tab].rows[r].cvar ) ) {
+					trap_Key_KeynumToStringBuf( key, keyName, sizeof( keyName ) );
+					Q_strupr( keyName );
+					for ( other = 0; other < settingTabs[TAB_CONTROLS].numRows; other++ ) {
+						if ( !Q_stricmp( settingTabs[TAB_CONTROLS].rows[other].cvar, was ) ) {
+							Q_strncpyz( was, BG_String( settingTabs[TAB_CONTROLS].rows[other].label ), sizeof( was ) );
+							break;
+						}
+					}
+					trap_Cvar_Set( "ui_setWarn", va( (char *)BG_String( STR_SET_BIND_TAKEN ), keyName, was ) );
+				}
 			}
 			trap_Key_SetBinding( key, settingTabs[tab].rows[r].cvar );
 		}

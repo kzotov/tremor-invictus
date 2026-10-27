@@ -2078,7 +2078,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Warns when the held weapon runs low on ammo.",
 	"Ready",
 	"Drop weapon",
-	"Taunt"
+	"Taunt",
+	"%s no longer does %s"
 };
 
 /*
