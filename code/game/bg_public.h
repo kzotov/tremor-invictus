@@ -1324,6 +1324,7 @@ typedef enum {
 	STR_HUD_HOLD_SWING,				// Athena on the hook: the key's name
 	STR_HUD_DRONE_CHARGE,			// under the ability ring while the drone flies
 	STR_HUD_DRONE_ARMED,
+	STR_KF_SUICIDE,					// the kill feed's suicide row (hud.md 10.8)
 
 	STR_NUM_STRINGS
 } stringId_t;

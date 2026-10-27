@@ -2056,7 +2056,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Counts up",
 	"HOLD %s TO SWING",
 	"CHARGE",
-	"IMPACT ARMED"
+	"IMPACT ARMED",
+	"suicide"
 };
 
 /*

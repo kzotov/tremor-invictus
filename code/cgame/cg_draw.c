@@ -809,7 +809,19 @@ static void CG_KillFeedNameModern( float x, float y, const char *name, int team,
 
 	Vector4Copy( fade, c );
 	if ( cgs.gametype >= GT_TEAM && ( team == TEAM_RED || team == TEAM_BLUE ) ) {
-		CG_TeamPalette( team, c );
+		// hud.md 10.8: your side #54A0D0, the other #C04834 (a free camera:
+		// the team's own colour)
+		int		mine = cg.snap->ps.persistant[PERS_TEAM];
+
+		if ( mine == TEAM_RED || mine == TEAM_BLUE ) {
+			if ( team == mine ) {
+				VectorSet( c, 0.329f, 0.627f, 0.816f );
+			} else {
+				VectorSet( c, 0.753f, 0.282f, 0.204f );
+			}
+		} else {
+			CG_TeamPalette( team, c );
+		}
 		c[3] = fade[3];
 		CG_DrawStringExt( x, y, name, c, qtrue, qtrue, cw, ch, 0 );
 	} else {
@@ -877,15 +889,16 @@ static void CG_DrawKillFeedModern( int rows ) {
 		victim = CG_CapName( k->victim, 23, 160 );
 		w = ( k->killer[0] ? ( k->killerPic ? icon + 4 : 0 ) + CG_DrawStrlen( killer ) * cw + 6 : 0 )
 			+ icon + 6 + ( k->quad ? cw + 4 : 0 ) + ( k->victimPic ? icon + 4 : 0 ) + CG_DrawStrlen( victim ) * cw;
-		// your own frags on a red band, your deaths on a dark one with the skull
-		if ( k->killerNum == me && k->victimNum != me ) {
-			band[0] = 0.45f; band[1] = 0.05f; band[2] = 0.04f; band[3] = 0.6f * fade[3];
-			CG_FillRect( fx - 4, y - 2, w + 8, icon + 4, band );
-		} else if ( k->victimNum == me ) {
-			band[0] = band[1] = band[2] = 0.05f; band[3] = 0.7f * fade[3];
-			CG_FillRect( fx - 4, y - 2, w + 8 + icon + 4, icon + 4, band );
-		}
+		// (hud.md 10.8: no bands, the name colours only)
+		(void)w; (void)band; (void)me;
 		x = fx;
+		// a suicide: the name, then the word, no icon
+		if ( !k->killer[0] || k->killerNum == k->victimNum ) {
+			CG_KillFeedNameModern( x, y + ( icon - ch ) / 2, victim, k->victimTeam, fade, cw, ch );
+			x += CG_DrawStrlen( victim ) * cw + 13 * DP;
+			CG_DrawStringExt( x, y + ( icon - ch ) / 2, BG_String( STR_KF_SUICIDE ), fade, qtrue, qtrue, cw, ch, 0 );
+			continue;
+		}
 		if ( k->killer[0] ) {
 			if ( k->killerPic ) {
 				trap_R_SetColor( fade );
@@ -894,7 +907,7 @@ static void CG_DrawKillFeedModern( int rows ) {
 				x += icon + 4;
 			}
 			CG_KillFeedNameModern( x, y + ( icon - ch ) / 2, killer, k->killerTeam, fade, cw, ch );
-			x += CG_DrawStrlen( killer ) * cw + 6;
+			x += CG_DrawStrlen( killer ) * cw + 13 * DP;
 		}
 		if ( k->quad ) {
 			Vector4Copy( colorBlue, quadColor );
@@ -909,7 +922,7 @@ static void CG_DrawKillFeedModern( int rows ) {
 			CG_DrawPic( x, y, icon, icon, skull );		// suicide or the world
 		}
 		trap_R_SetColor( NULL );
-		x += icon + 6;
+		x += icon + 13 * DP;
 		if ( k->victimPic ) {
 			trap_R_SetColor( fade );
 			CG_DrawPic( x, y, icon, icon, k->victimPic );
@@ -7369,7 +7382,7 @@ static void CG_DrawVitalsSide( vitalsAnim_t *va_, const playerState_t *ps, int v
 			int					n, seed = va_->popTime;
 
 			if ( !streakShader ) {
-				streakShader = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/streak" );
+				streakShader = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/hit_streak" );
 			}
 			Vector4Set( c, 0.988f, 0.235f, 0.165f, 0.6f * ( 1 - f ) );
 			trap_R_SetColor( c );
@@ -7457,15 +7470,15 @@ plates at (528, 846) and (500, 935)
 static void CG_DrawVitals( void ) {
 	static vitalsAnim_t	health, armor;
 	static qhandle_t	healthIcon, armorIcon;
-	static const vec4_t	healthTint = { 0.424f, 0.565f, 0.753f, 1 }, armorTint = { 0.306f, 0.729f, 0.329f, 1 };
+	static const vec4_t	healthTint = { 1, 1, 1, 1 }, armorTint = { 1, 1, 1, 1 };		// (the images carry their colour)
 	playerState_t		*ps = &cg.snap->ps;
 	const champion_t	*champ = BG_Champion( ps->stats[STAT_CHAMPION] );
 	const classInfo_t	*ci = &bg_classInfo[champ->bodyClass];
 	int					spawnArmor = cgs.gametype == GT_TOURNAMENT ? ci->spawnArmorDuel : ci->spawnArmor;
 
 	if ( !healthIcon ) {
-		healthIcon = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/health" );
-		armorIcon = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/armor" );
+		healthIcon = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/vital_health_icon" );
+		armorIcon = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/vital_armour_icon" );
 	}
 	cg_hudAnchor = ANCHOR_LEFT;
 	CG_DrawVitalsSide( &health, ps, CG_OwnHealth( ps ), 100, 100 + ci->maxHealthBonus,
@@ -7500,7 +7513,7 @@ static void CG_DrawAmmoCounter( void ) {
 			float				k = 0.85f + 0.15f * cos( cg.time / 400.0f * 2 * M_PI );
 
 			if ( !smear ) {
-				smear = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/smear" );
+				smear = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/low_ammo_smear" );
 			}
 			Vector4Set( glow, 0.75f, 0.06f, 0.06f, 0.85f * k );
 			trap_R_SetColor( glow );
@@ -7571,7 +7584,8 @@ static void CG_DrawWeaponColumn( void ) {
 
 	for ( w = WP_GAUNTLET ; w < WP_NUM_WEAPONS ; w++ ) {
 		slot = BG_WeaponSlot( w );
-		if ( !slot || !cg_weapons[w].registered || !cg_weapons[w].weaponIcon ) {
+		// hud.md 10.7: slots 2-8 down the column, slot 1's (melee) row empty
+		if ( slot < 2 || !cg_weapons[w].registered || !cg_weapons[w].weaponIcon ) {
 			continue;
 		}
 		have = ps->stats[STAT_WEAPONS] & ( 1 << w );
@@ -7582,12 +7596,19 @@ static void CG_DrawWeaponColumn( void ) {
 			continue;		// neither held: the slot shows the starting weapon
 		}
 		held = w == ps->weapon;
-		y = HY( 806 - ( slot - 1 ) * 70 );
+		y = HY( 316 + ( slot - 1 ) * 70 );		// the row's top
 		maxAmmo = BG_WeaponTuned( w ) ? BG_WeaponParam( w, WPP_AMMOMAX ) : 200;
 		low = have && ps->ammo[w] >= 0 && maxAmmo > 0 && ps->ammo[w] <= maxAmmo * 0.2f;
 
 		if ( held ) {
-			CG_FillRect( HX_R( 1729 ), y - 13 * DP, 173 * DP, 75 * DP, plate );
+			// the held plate: mostly transparent; the orange bracket round the gauge
+			static const vec4_t	bracket = { 0.847f, 0.533f, 0.314f, 1 };
+
+			CG_FillRect( HX_R( 1729 ), y - 8 * DP, 173 * DP, 75 * DP, plate );
+			CG_FillRect( HX_R( 1843 ), y, 19 * DP, 1.5f * DP, bracket );
+			CG_FillRect( HX_R( 1843 ), y + 57.5f * DP, 19 * DP, 1.5f * DP, bracket );
+			CG_FillRect( HX_R( 1843 ), y, 1.5f * DP, 59 * DP, bracket );
+			CG_FillRect( HX_R( 1860.5f ), y, 1.5f * DP, 59 * DP, bracket );
 		}
 		Vector4Set( iconColor, 1, 1, 1, 1 );
 		s = 1;
@@ -7611,8 +7632,8 @@ static void CG_DrawWeaponColumn( void ) {
 			s = 1.56f + ( 0.75f - 1.56f ) * f;
 			Vector4Set( iconColor, 1, 1, 1, 1 );
 		}
-		size = 48 * DP * s;
-		x = HX_R( 1722 ) + 24 * DP - size / 2;
+		size = 56 * DP * s;
+		x = HX_R( 1783 ) - size / 2;
 		if ( !icons[w] ) {
 			gitem_t	*item = BG_FindItemForWeapon( w );
 
@@ -7625,25 +7646,46 @@ static void CG_DrawWeaponColumn( void ) {
 			}
 		}
 		trap_R_SetColor( iconColor );
-		CG_DrawPic( x, y + 24 * DP - size / 2, size, size, icons[w] );
+		CG_DrawPic( x, y + 29 * DP - size / 2, size, size, icons[w] );
 		trap_R_SetColor( NULL );
 
 		if ( !have || ps->ammo[w] < 0 ) {
 			continue;
 		}
+		// the count type 20, white 60 % (red #EB3333 empty or low), ending x 1841
 		Vector4Set( text, 1, 1, 1, 0.6f );
 		if ( ps->ammo[w] == 0 || low ) {
-			VectorSet( text, 0.92f, 0.2f, 0.2f );
+			Vector4Set( text, 0.922f, 0.2f, 0.2f, 1 );
 		}
-		CG_HudText( HX_R( 1843 ), y + 14 * DP, 20, va( "%i", ps->ammo[w] ), text, 2, 1 );
-		dots = maxAmmo > 0 ? (int)( 5 * ps->ammo[w] / maxAmmo + 0.99f ) : 0;
-		for ( d = 0 ; d < 5 ; d++ ) {
-			if ( low ) {
-				Vector4Set( dot, 0.92f, 0.2f, 0.2f, d < dots ? 0.95f : 0.2f );
-			} else {
-				Vector4Set( dot, 1, 1, 1, d < dots ? ( held ? 0.9f : 0.45f ) : 0.15f );
+		CG_HudText( HX_R( 1841 ), y + 32 * DP, 20, va( "%i", ps->ammo[w] ), text, 2, 1 );
+		// the gauge: a 14 x 52 frame from the row top + 4, filled from the
+		// bottom to ammo / max, five marks 12 apart over it
+		{
+			float	frac = maxAmmo > 0 ? ps->ammo[w] / maxAmmo : 0, gx = HX_R( 1846 ), gy = y + 4 * DP;
+			vec4_t	edge = { 1, 1, 1, 0.25f };
+
+			if ( held ) {
+				edge[3] = 0.5f;
 			}
-			CG_FillRect( HX_R( 1847 ), y + ( 48 - d * 12 ) * DP, 13 * DP, 2 * DP, dot );		// 50 dp tall, 12 pitch
+			if ( frac > 1 ) {
+				frac = 1;
+			}
+			CG_FillRect( gx, gy, 14 * DP, 1.5f * DP, edge );
+			CG_FillRect( gx, gy + 50.5f * DP, 14 * DP, 1.5f * DP, edge );
+			CG_FillRect( gx, gy, 1.5f * DP, 52 * DP, edge );
+			CG_FillRect( gx + 12.5f * DP, gy, 1.5f * DP, 52 * DP, edge );
+			if ( low || ps->ammo[w] == 0 ) {
+				Vector4Set( dot, 0.922f, 0.2f, 0.2f, 0.95f );
+			} else {
+				Vector4Set( dot, 1, 1, 1, held ? 0.9f : 0.5f );
+			}
+			CG_FillRect( gx + 2 * DP, gy + 1 * DP + 50 * DP * ( 1 - frac ), 10 * DP, 50 * DP * frac, dot );
+			dots = 0;
+			for ( d = 0 ; d < 5 ; d++ ) {
+				vec4_t	mark = { 0, 0, 0, 0.5f };
+
+				CG_FillRect( gx + 2 * DP, gy + ( 2 + d * 12 ) * DP, 10 * DP, 1 * DP, mark );
+			}
 		}
 	}
 }
@@ -7719,8 +7761,8 @@ static void CG_DrawAbilityBlock( void ) {
 		vec4_t				d;
 
 		if ( !disc ) {
-			disc = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/disc" );
-			bloom = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/bloom" );
+			disc = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/ability_disc" );
+			bloom = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/ability_glow" );
 		}
 		if ( !off && ready && left <= 0 && !active ) {
 			// the ready glow: an orange bloom behind the ring
@@ -7947,7 +7989,7 @@ static void CG_DrawStatusRow( void ) {
 			vec4_t				d = { 0.047f, 0.078f, 0.031f, 0.8f };
 
 			if ( !disc ) {
-				disc = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/disc" );
+				disc = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/ability_disc" );
 			}
 			d[3] *= a;
 			trap_R_SetColor( d );
