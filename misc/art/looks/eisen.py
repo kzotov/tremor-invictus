@@ -1,6 +1,6 @@
-"""Eisen on biker: a full grey beard and brass goggles pushed up on the
-brow, a leather work apron over the belly, canvas work trousers over the
-jeans, and a steel prosthetic for the left arm (its own surface, so only
+"""Eisen on biker: ginger mutton-chops and moustache, blue-glass brass
+goggles pushed up on the brow, a leather work apron over the belly,
+canvas work trousers over the jeans, and a copper prosthetic for the left arm (its own surface, so only
 that arm wears it). Team versions keep the team's paint, the beard, the
 goggles and the arm."""
 import math
@@ -40,15 +40,15 @@ def arm_detail_fn():
     def f(u, v):
         if not inside(ARM, u, v):
             return [0, 0, 0, 0]
-        # steel plates in rings down the arm, with dark joints and rivets
-        k = 0.3 * (0.7 + 0.6 * n.at(u * 6, v * 6))
-        c = [k, k * 1.02, k * 1.06]
+        # copper plates in rings down the arm, with dark joints and brass rivets
+        k = 0.7 + 0.6 * n.at(u * 6, v * 6)
+        c = [0.36 * k, 0.17 * k, 0.09 * k]
         t = (v - 310 / 768) / (458 / 768)
         if min(abs(t - b) for b in bands) < 0.012:
             c = [0.06, 0.06, 0.07]
         r = rivets(u, v, [(0.62 + 0.08 * i, 310 / 768 + (b - 0.03) * 458 / 768) for b in bands for i in range(4)], 0.009)
         if r >= 0:
-            c = [0.25 + 0.5 * r] * 3
+            c = [0.4 + 0.45 * r, 0.3 + 0.35 * r, 0.12 + 0.12 * r]
         return c + [1.0]
     return f
 
@@ -61,7 +61,7 @@ BEARD = region([(0, 470), (90, 520), (150, 560), (230, 560), (300, 520), (360, 4
 MOUSTACHE = region([(110, 500), (180, 482), (260, 500), (290, 560), (240, 530), (130, 530), (85, 560)], 768, 768)
 LENSES = [(FACE_CX - 0.1, 0.3, 0.078), (FACE_CX + 0.1, 0.3, 0.078)]
 STRAP = (0.275, 0.325)            # v band across the head behind the lenses
-GREY = (0.55, 0.53, 0.5)
+GINGER = (0.62, 0.33, 0.15)
 
 
 def head_detail_fn():
@@ -69,7 +69,7 @@ def head_detail_fn():
 
     def hair(u, v, a):
         s = strands.at(u * 110, v * 22) * 0.7 + strands.at(u * 230, v * 40 + 9) * 0.3   # strands down the face
-        c = mix(tuple(x * 0.5 for x in GREY), GREY, smooth(0.3, 0.8, s))
+        c = mix(tuple(x * 0.5 for x in GINGER), GINGER, smooth(0.3, 0.8, s))
         k = 0.85 + 0.3 * n.at(u * 3, v * 3)
         return [x * k for x in c] + [a]
 
@@ -80,7 +80,7 @@ def head_detail_fn():
                 if d > r * 0.72:
                     return [0.55, 0.4, 0.16, 1.0]                  # brass rim
                 glint = clamp(1 - math.hypot(u - cu + r * 0.3, v - cv + r * 0.3) / (r * 0.3))
-                return [0.1 + 0.6 * glint, 0.13 + 0.6 * glint, 0.1 + 0.6 * glint, 1.0]
+                return [0.08 + 0.6 * glint, 0.2 + 0.6 * glint, 0.34 + 0.55 * glint, 1.0]   # blue glass
         if STRAP[0] < v < STRAP[1] and u > FACE_CX + 0.17:
             return [0.12, 0.08, 0.05, 1.0]
         if MOUSTACHE(u, v) < 0:
