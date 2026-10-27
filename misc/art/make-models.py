@@ -40,10 +40,10 @@ name sorts after tremor-assets.pk3 replaces any of them without code changes:
                                             armour breaks (synthesised)
   sound/tremor/match_found.wav              the ready check's call: three rising
                                             bell tones
-  models/abilities/totem/totem.md3          the Unholy Totem: a black iron stake
-                                            with bone thorns, three prongs round a
-                                            burning core and a rune halo; the core,
-                                            halo and cracks in the entity colour
+  models/abilities/totem/totem.md3          the Unholy Totem: an iron "m" on a
+                                            stake (two outer blades and a centre
+                                            stake under a top bar); its groove,
+                                            core and cracks in the entity colour
   gfx/abilities/totem_aura.tga, totem_beam.tga
                                             its floor aura and the light over it
   models/abilities/turret/turret.md3        the sentry: a tripod, a turning head
@@ -336,54 +336,75 @@ def claw(out):
     texture(os.path.join(out, "gfx/abilities/hookrope.tga"), 64, 32, rope)
 
 
+def prism(mesh, outline, y0, y1):
+    """A convex outline of (x, z) points, clockwise seen from -y, pushed from
+    y0 to y1: two faces and the sides between them."""
+    n = len(outline)
+    for y, sign in ((y0, -1), (y1, 1)):
+        idx = [mesh.vert((x, y, z), (0, sign, 0), (0.5 + x / 64, 0.5 - z / 64)) for x, z in outline]
+        for k in range(1, n - 1):
+            if sign < 0:
+                mesh.tri(idx[0], idx[k], idx[k + 1])
+            else:
+                mesh.tri(idx[0], idx[k + 1], idx[k])
+    for k in range(n):
+        (ax, az), (bx, bz) = outline[k], outline[(k + 1) % n]
+        nx, nz = bz - az, -(bx - ax)
+        length = math.hypot(nx, nz) or 1.0
+        nrm = (-nx / length, 0, -nz / length)
+        q = [mesh.vert((ax, y0, az), nrm, (0, 0)), mesh.vert((bx, y0, bz), nrm, (1, 0)),
+             mesh.vert((bx, y1, bz), nrm, (1, 1)), mesh.vert((ax, y1, az), nrm, (0, 1))]
+        mesh.quad(*q)
+
+
 def totem(out):
-    """Galena's Unholy Totem: a black iron stake driven into the floor, its
-    shaft knotted like a spine and set with bone thorns, ending in a cup that
-    holds a burning core inside three curved bone prongs, with a thin rune
-    halo floating round them. 48 units tall from the floor (z = -2, the game
-    places the entity 2 units off the surface it hit). The core, the halo and
-    the iron's cracks take the entity colour: the code paints them in the
-    owner's side's colour."""
-    # two bone surfaces: a surface may hold at most 1000 vertices
-    iron, bone, crown = Mesh("ability/totem"), Mesh("ability/totembone"), Mesh("ability/totembone")
-    core, halo = Mesh("ability/totemcore"), Mesh("ability/totemring")
-    # the stake, its point in the floor, a flared collar on the floor
-    lathe(iron, [(0.05, -9), (1.2, -6), (2.4, -2.5), (6.2, -2), (6.6, -1), (4.2, 0.6), (2.9, 2.5)], 12)
-    # the knotted shaft
-    prof = [(2.9, 2.5)]
-    for z in (6, 11, 16, 21, 26):
-        prof += [(2.0, z - 2.2), (3.1, z - 0.6), (3.1, z + 0.6), (2.0, z + 2.2)]
-    prof += [(2.1, 29), (2.6, 30), (5.2, 33), (5.6, 34.2), (4.2, 34.6), (2.0, 33.4), (0.05, 33.2)]
-    lathe(iron, prof, 12)
-    # three claws gripping the floor
-    for k in range(3):
-        a = math.radians(k * 120 + 60)
-        rod(bone, (4.6 * math.cos(a), 4.6 * math.sin(a), -0.5), (math.cos(a), math.sin(a), -0.15), 6.5, 1.1, 0.2,
-            (0, 0, -1.8), 6, 6)
-    # bone thorns along the shaft, turning round it, pointing out and up
-    for k, z in enumerate((8.5, 12, 15.5, 19, 22.5, 26)):
-        a = math.radians(k * 137.5 + 20)
-        l = 6.5 + 2.5 * math.sin(k * 1.7)
-        rod(bone, (2.6 * math.cos(a), 2.6 * math.sin(a), z), (math.cos(a), math.sin(a), 0.75), l, 0.95, 0.12,
-            (0, 0, 1.2), 6, 6)
-    # three big prongs from the cup's rim, out and then curling in over the core;
-    # three short hooks between them
-    for k in range(3):
-        a = math.radians(k * 120)
-        ca, sa = math.cos(a), math.sin(a)
-        rod(crown, (4.4 * ca, 4.4 * sa, 33.5), (0.42 * ca, 0.42 * sa, 1), 13, 1.35, 0.22,
-            (-6.5 * ca, -6.5 * sa, 0.5), 8, 14)
-        b = a + math.radians(60)
-        rod(crown, (4.6 * math.cos(b), 4.6 * math.sin(b), 33.8), (math.cos(b), math.sin(b), 0.6), 5, 0.8, 0.15,
-            (0, 0, 1.5), 6, 6)
-    # the burning core and the rune halo round the prongs
-    lathe(core, [(4.0 * math.sin(math.pi * k / 10), 39.5 - 4.0 * math.cos(math.pi * k / 10)) for k in range(11)], 14)
-    lathe(halo, [(8.4, 40.6), (8.4, 41.4), (10.2, 41.4), (10.2, 40.6), (8.4, 40.6)], 32)
-    write_md3(os.path.join(out, "models/abilities/totem/totem.md3"), "totem", [iron, bone, crown, core, halo])
+    """Galena's Unholy Totem: a tall iron sign like a letter "m" set on a post.
+    A banded centre stake, its blade point driven into the floor, hangs from a
+    top bar; two broad flat blades hang from the bar's ends, cut at a slant
+    at the bottom; braces run from the bar to a hub on the stake, and a
+    stepped crest sits on top. A burning groove runs down the stake and a core
+    burns in the hub. 56 units tall from the floor (z = -2: the game places the
+    entity 2 units off the surface it hit). The groove, the core and the
+    iron's cracks take the entity colour: the code paints them in the owner's
+    side's colour."""
+    iron, core = Mesh("ability/totem"), Mesh("ability/totemcore")
+    # the top bar and its stepped crest
+    prism(iron, [(-17, 50), (17, 50), (16, 46), (-16, 46)], -2.4, 2.4)
+    prism(iron, [(-6, 53), (6, 53), (6, 50), (-6, 50)], -2.0, 2.0)
+    prism(iron, [(-3.5, 56), (3.5, 56), (3.5, 53), (-3.5, 53)], -1.6, 1.6)
+    # the two outer blades, flaring at the top and cut at a slant at the bottom,
+    # the outer edge the longer
+    for side in (-1, 1):
+        start = len(iron.xyz)
+        prism(iron, [(-18.5, 48), (-11.5, 46), (-11.5, 18), (-17.5, 11)], -1.8, 1.8)
+        if side > 0:
+            transform(iron, start, lambda p: (-p[0], -p[1], p[2]))
+    # the centre stake, its bands and its blade point in the floor
+    prism(iron, [(-2.6, 46), (2.6, 46), (2.6, 2), (-2.6, 2)], -2.6, 2.6)
+    for z0, z1 in ((30, 32), (17, 18.5), (2, 4.5)):
+        prism(iron, [(-3.4, z1), (3.4, z1), (3.4, z0), (-3.4, z0)], -3.4, 3.4)
+    prism(iron, [(-2.6, 2), (2.6, 2), (2.6, -3), (0.4, -10), (-2.6, -4)], -2.2, 2.2)
+    # the hub under the bar and the braces from the bar's ends down to it
+    prism(iron, [(-4.5, 44), (4.5, 44), (4.5, 36), (-4.5, 36)], -3.2, 3.2)
+    for side in (-1, 1):
+        start = len(iron.xyz)
+        prism(iron, [(-13, 46), (-11, 46), (-4.5, 39), (-4.5, 37)], -1.2, 1.2)
+        if side > 0:
+            transform(iron, start, lambda p: (-p[0], -p[1], p[2]))
+    # the burning groove on both faces of the stake, and the core in the hub
+    for y in (-2.75, 2.75):
+        prism(core, [(-0.7, 29), (0.7, 29), (0.7, 6), (-0.7, 6)], y - 0.2, y + 0.2)
+    lathe(core, [(2.6 * math.sin(math.pi * k / 8), 40 - 2.6 * math.cos(math.pi * k / 8)) for k in range(9)], 12,
+          (0, 0, 0))
+    start = len(core.xyz)
+    lathe(core, [(0.05, 0), (2.4, 0.4), (2.4, 7.2), (0.05, 7.6)], 12)
+    transform(core, start, lambda p: (p[0], p[2] - 3.8, p[1] + 40))     # a lens through the hub, face to face
+    write_md3(os.path.join(out, "models/abilities/totem/totem.md3"), "totem", [iron, core])
 
     def blackiron(u, v, n=Fbm(53, 4, 6), f=Noise(59, 64, 64)):
-        k = 0.13 + 0.07 * n.at(u * 3, v * 6) + 0.04 * (f.at(u * 64, v * 64) - 0.5)
-        return [k * 1.12, k * 0.95, k * 0.92, 1]
+        # dark bronze
+        k = 0.24 + 0.09 * n.at(u * 3, v * 6) + 0.05 * (f.at(u * 64, v * 64) - 0.5)
+        return [k * 1.2, k * 0.9, k * 0.68, 1]
 
     def cracks(u, v, n=Fbm(61, 4, 5)):
         # thin veins where the noise crosses a level: lit by the entity colour
@@ -391,27 +412,13 @@ def totem(out):
         g = max(0.0, 1 - e / 0.035) ** 2
         return [g, g, g, 1]
 
-    def bonetex(u, v, n=Fbm(67, 4, 8)):
-        k = 0.78 + 0.18 * (n.at(u * 2, v * 6) - 0.5)
-        dark = smooth(0.55, 1.0, v)                    # darkening towards the tips
-        k *= 1 - 0.75 * dark
-        return [k * 0.96, k * 0.9, k * 0.76, 1]
-
     def ember(u, v, n=Fbm(71, 4, 4)):
         g = 0.45 + 0.55 * n.at(u * 3, v * 3)
         return [g, g, g, 1]
 
-    def runes(u, v):
-        # a band of short strokes and gaps, white for the entity colour
-        x = (u * 24) % 1
-        k = 1.0 if (0.15 < x < 0.32 or 0.5 < x < 0.56 or 0.7 < x < 0.85) else 0.18
-        return [k, k, k, 1]
-
     texture(os.path.join(out, "models/abilities/totem/totem.tga"), 64, 128, blackiron, False)
     texture(os.path.join(out, "models/abilities/totem/totem_cracks.tga"), 64, 128, cracks, False)
-    texture(os.path.join(out, "models/abilities/totem/totem_bone.tga"), 32, 64, bonetex, False)
     texture(os.path.join(out, "models/abilities/totem/totem_core.tga"), 64, 64, ember, False)
-    texture(os.path.join(out, "models/abilities/totem/totem_runes.tga"), 256, 8, runes, False)
 
 
 def totem_aura(out):
@@ -1270,15 +1277,7 @@ ability/totem
 	}
 }
 
-ability/totembone
-{
-	{
-		map models/abilities/totem/totem_bone.tga
-		rgbGen lightingDiffuse
-	}
-}
-
-// the core and the halo in the entity colour (the owner's side), pulsing
+// the groove and the core in the entity colour (the owner's side), pulsing
 ability/totemcore
 {
 	sort additive
@@ -1293,18 +1292,6 @@ ability/totemcore
 		blendFunc GL_ONE GL_ONE
 		tcMod scroll 0 0.6
 		rgbGen wave sin 0.35 0.25 0 1.4
-	}
-}
-
-ability/totemring
-{
-	cull none
-	sort additive
-	{
-		map models/abilities/totem/totem_runes.tga
-		blendFunc GL_ONE GL_ONE
-		tcMod scroll 0.08 0
-		rgbGen entity
 	}
 }
 

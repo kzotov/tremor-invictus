@@ -238,7 +238,7 @@ static void CG_Totem( centity_t *cent, refEntity_t *ent ) {
 	VectorSet( e, c[0] - radius, c[1] + radius, c[2] );
 	CG_TotemQuad( cgs.media.totemAuraShader, a, b, d, e, color, 0.6f * k );
 
-	// a faint column of light over the core, turned to face the viewer
+	// a faint column of light over the crest, turned to face the viewer
 	{
 		vec3_t	side, top;
 		float	w = 7;
@@ -248,7 +248,7 @@ static void CG_Totem( centity_t *cent, refEntity_t *ent ) {
 		VectorNormalize( side );
 		VectorSet( side, -side[1] * w, side[0] * w, 0 );
 		VectorCopy( cent->lerpOrigin, top );
-		top[2] += 36;
+		top[2] += 56;
 		VectorAdd( top, side, a );
 		VectorSubtract( top, side, b );
 		VectorCopy( b, d );
@@ -259,7 +259,7 @@ static void CG_Totem( centity_t *cent, refEntity_t *ent ) {
 	}
 
 	VectorCopy( cent->lerpOrigin, c );
-	c[2] += 38;
+	c[2] += 40;
 	CG_AbilityLight( c, 110 + 60 * k, color[0] * k, color[1] * k, color[2] * k );
 }
 
