@@ -46,16 +46,10 @@ module each, each with a look():
   models/players/sorlag/*_sorlag*.skin, ...
                        Sorlag (looks/sorlag.py): an olive-green hide with
                        glowing acid glands and a salmon frill
-  models/players/doom/*_doomslayer*.skin, ...
-                       Doom Slayer (looks/doom.py): deep green armour and
-                       helmet, a dark grey undersuit, a gold visor
   models/players/tankjr/*_clutch*.skin, ...
                        Clutch on tankjr (looks/clutch.py): dark red armour,
                        steel plates over the emblems, steel feet, a
                        steel-cased head with amber eyes
-  models/players/ranger/*_ranger*.skin, ...
-                       Ranger (looks/ranger.py): olive-drab vest, pads and
-                       helmet over a dark undersuit, a brass buckle
   models/players/anarki/*_anarki*.skin, ...
                        Anarki (looks/anarki.py): tanned skin, a near-black
                        mohawk, brown leather, rusted scrap, brass goggles
@@ -73,7 +67,7 @@ module each, each with a look():
 import importlib
 
 MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer", "raine", "beastmaster",
-           "unumrey", "sorlag", "doom", "clutch", "ranger", "anarki", "keel", "slash", "visor")
+           "unumrey", "sorlag", "clutch", "anarki", "keel", "slash", "visor")
 
 
 def ALL():
