@@ -1,7 +1,8 @@
-"""Athena on crash: red armour panels with small yellow lights along
-them, the bare skin and the leathers under a dark grey flight suit, and
-major's head instead of the helmet, with the hair painted red. Team versions keep the
-team's paint and only cover the skin, lit in the team's colour."""
+"""Athena on crash: a military uniform, with olive armour panels and
+small sage lights along them, the bare skin and the leathers under a
+dark olive suit, and major's head instead of the helmet, with dark hair.
+Team versions keep the team's paint and only cover the skin, lit in the
+team's colour."""
 import math
 from skins import Sheet, Look, region, inside, seg_dist
 from tremorart import Fbm, Noise, clamp, smooth
@@ -27,10 +28,10 @@ SKIN = [region(p, 768, 768) for p in (
 # the lights, as segments in 0..1
 BODY_LINES = [((0.05, 0.03), (0.05, 0.33)), ((0.42, 0.03), (0.42, 0.28)), ((0.80, 0.47), (0.97, 0.66)),
               ((0.02, 0.80), (0.36, 0.72)), ((0.79, 0.04), (0.97, 0.04))]
-SUIT = (0.12, 0.12, 0.13)
-RED = (0.55, 0.09, 0.07)
+SUIT = (0.12, 0.15, 0.12)
+OLIVE = (0.33, 0.36, 0.12)
 GUNMETAL = (0.22, 0.22, 0.24)
-LIGHT = {"": (1.0, 0.78, 0.2), "_red": (1.0, 0.35, 0.2), "_blue": (0.3, 0.7, 1.0)}
+LIGHT = {"": (0.45, 0.85, 0.7), "_red": (1.0, 0.35, 0.2), "_blue": (0.3, 0.7, 1.0)}
 
 
 def lines_glow(lines, colour, width=0.004):
@@ -50,7 +51,7 @@ def lines_dark(lines, u, v, width=0.008):
 
 def body_grade(u, v):
     if inside(ARMOUR, u, v):
-        return [0.6, 0.45, 0.45, 1]
+        return [0.55, 0.56, 0.42, 1]
     return [0.42, 0.42, 0.44, 1]
 
 
@@ -68,7 +69,7 @@ def body_detail_fn(team):
         if inside(HELMET, u, v):
             return list(GUNMETAL) + [0.6]
         if inside(ARMOUR, u, v):
-            return list(RED) + [0.6]
+            return list(OLIVE) + [0.65]
         return list(SUIT) + [0.6]
     return f
 
@@ -80,20 +81,20 @@ CHEST_LINES = [((0.0, 0.56), (0.75, 0.56))]
 
 
 def chest_grade(u, v):
-    return [0.6, 0.45, 0.45, 1] if inside(PLATE, u, v) else [0.42, 0.42, 0.44, 1]
+    return [0.55, 0.56, 0.42, 1] if inside(PLATE, u, v) else [0.42, 0.42, 0.44, 1]
 
 
 def chest_detail(u, v):
     if lines_dark(CHEST_LINES, u, v, 0.014):
         return [0.05, 0.07, 0.12, 0.9]
     if inside(PLATE, u, v):
-        return list(RED) + [0.6]
+        return list(OLIVE) + [0.65]
     return list(SUIT) + [0.6]
 
 
-# ---------------------------------------------------------------- the head (major's, major_h.tga, 768 x 384 view): red hair
+# ---------------------------------------------------------------- the head (major's, major_h.tga, 768 x 384 view): dark hair
 
-HAIR = (0.5, 0.12, 0.05)
+HAIR = (0.11, 0.08, 0.06)
 
 
 def head_detail_fn():

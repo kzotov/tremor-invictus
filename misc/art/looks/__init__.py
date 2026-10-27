@@ -13,8 +13,8 @@ module each, each with a look():
                        skull with fire in the sockets
   models/players/crash/*_athena*.skin, major/head_athena.skin, ...
                        Athena on crash's body with major's head
-                       (looks/athena.py): red armour with yellow lights, a
-                       dark grey flight suit, red hair
+                       (looks/athena.py): an olive military uniform with
+                       sage lights, dark hair
   models/players/bitterman/*_bj*.skin, ...
                        B.J. on bitterman (looks/bj.py): a human skin over the
                        hide, a blond buzz cut over the tentacles, olive vest
