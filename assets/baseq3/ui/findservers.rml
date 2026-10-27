@@ -58,6 +58,8 @@
 				<span class="c1" data-text-cvar="ui_fs11_name"></span><span class="c2" data-text-cvar="ui_fs11_map"></span><span class="c3" data-text-cvar="ui_fs11_mode"></span><span class="c4" data-text-cvar="ui_fs11_players"></span><span class="c5" data-text-cvar="ui_fs11_ping"></span>
 			</div>
 		</div>
+		<div class="note" data-when="ui_fsSource=2&amp;ui_fs0_name=">[fs_nofav]</div>
+		<div class="row" data-when="ui_fsSource=2"><span class="label">[fs_address]</span><input type="text" size="22" maxlength="48" data-value-cvar="ui_fsAddress" onchange="set ui_fsAddress {value}"/><button class="opt" onclick="ui_fsAddAddress">[fs_add]</button></div>
 		<div class="fsstatus">
 			<button class="opt" onclick="ui_fsScroll -12">&lt;</button>
 			<span data-text-cvar="ui_fsStatus"></span>

@@ -8789,8 +8789,14 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 		return;
 	}
 
-	// a menu over the game hides the HUD and centre prints under it
+	// a menu over the game (the Esc menu and its pages) hides the HUD and
+	// centre prints under it and darkens the world to 40 % (menu-style.md 3)
 	if ( trap_Key_GetCatcher() & KEYCATCH_UI ) {
+		static const vec4_t	dim = { 0, 0, 0, 0.6f };
+
+		trap_R_SetColor( dim );
+		trap_R_DrawStretchPic( 0, 0, cgs.glconfig.vidWidth, cgs.glconfig.vidHeight, 0, 0, 1, 1, cgs.media.whiteShader );
+		trap_R_SetColor( NULL );
 		return;
 	}
 

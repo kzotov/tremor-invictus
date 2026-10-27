@@ -770,6 +770,18 @@ qboolean UI_FindServersCommand( const char *cmd ) {
 		FS_Connect();
 		return qtrue;
 	}
+	if ( !Q_stricmp( cmd, "ui_fsAddAddress" ) ) {
+		// a favourite typed in as an address (ui_fsAddress), refreshed at once
+		char	addr[64];
+
+		trap_Cvar_VariableStringBuffer( "ui_fsAddress", addr, sizeof( addr ) );
+		if ( addr[0] ) {
+			trap_LAN_AddServer( AS_FAVORITES, addr, addr );
+			trap_Cvar_Set( "ui_fsAddress", "" );
+			trap_Cmd_ExecuteText( EXEC_APPEND, "ui_fsRefresh\n" );
+		}
+		return qtrue;
+	}
 	if ( !Q_stricmp( cmd, "ui_fsFavorite" ) ) {
 		if ( s_fs.selected < s_fs.numListed ) {
 			fsServer_t	*f = &s_fs.listed[s_fs.selected];

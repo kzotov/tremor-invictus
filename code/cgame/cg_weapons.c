@@ -1594,6 +1594,9 @@ void CG_AddViewWeapon( playerState_t *ps ) {
 	if ( ps->eFlags & EF_DRONE ) {
 		return;		// flying the drone, no hands
 	}
+	if ( trap_Key_GetCatcher() & KEYCATCH_UI ) {
+		return;		// a menu over the game (menu-style.md 3)
+	}
 	CG_AddViewShield( ps );
 
 	if ( ps->pm_type == PM_INTERMISSION ) {
