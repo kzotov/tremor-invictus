@@ -1,6 +1,6 @@
 """Sorlag in her own colours: the hide graded from rust to a dark olive
 green, the pale scale lines yellowed, acid-green glands glowing where the
-model has its blisters, and the throat frill a sickly yellow-green. Team
+model has its blisters, and the throat frill a salmon pink. Team
 versions keep the team's paint with the glands lit in the team's colour."""
 import math
 from skins import Sheet, Look
@@ -44,7 +44,7 @@ def glands_fn(colour):
 # ---------------------------------------------------------------- the torso (sorlag_t.tga): copper plates, blue frill
 
 def torso_grade(u, v):
-    return [0.36, 0.48, 0.3, 1]
+    return [0.6, 0.46, 0.44, 1]              # a salmon frill
 
 
 def look():

@@ -1,5 +1,5 @@
-"""Nyx on mynx: blue hair painted over the model's own curls, a violet-black
-bodysuit with glowing seams over the leather and the bare skin, a veil over
+"""Nyx on mynx: blue hair painted over the model's own curls, a blue-black
+bodysuit with glowing cyan seams over the leather and the bare skin, a veil over
 the lower face, a dark visor, and a crescent sigil where the belt skull was.
 Team versions keep the team's suit paint and light the seams in its colour."""
 import math, random
@@ -15,8 +15,8 @@ VISOR = region([(384, 208), (480, 208), (480, 288), (384, 288)], 768, 384)
 # seams over the big suit piece and the boot, as segments in 0..1
 SUIT_SEAMS = [((40 / 768, 0.02), (60 / 768, 0.98)), ((220 / 768, 0.02), (205 / 768, 0.98)),
               ((300 / 768, 190 / 384), (300 / 768, 370 / 384))]
-VIOLET = (0.15, 0.08, 0.24)
-GLOW = {"": (0.35, 0.75, 1.0), "_red": (1.0, 0.4, 0.25), "_blue": (0.4, 0.8, 1.0)}
+SUIT = (0.1, 0.1, 0.13)
+GLOW = {"": (0.2, 0.9, 1.0), "_red": (1.0, 0.4, 0.25), "_blue": (0.4, 0.8, 1.0)}
 
 
 def suit_grade(u, v):
@@ -39,7 +39,7 @@ def suit_detail_fn(wash):
     n = Fbm(811, 4, 6)
 
     def f(u, v):
-        c, a = list(VIOLET), wash
+        c, a = list(SUIT), wash
         k = 0.8 + 0.4 * n.at(u * 3, v * 3)
         c = [x * k for x in c]
         for s in SUIT_SEAMS:
@@ -190,7 +190,7 @@ def look():
                       detail={"": suit_detail_fn(0.55), "_red": suit_detail_fn(0.3)},
                       glow={v: suit_glow_fn(GLOW[v]) for v in GLOW}, size=512),
         "arms": Sheet({"": "mynx", "_red": "mynx", "_blue": "mynx"},
-                      detail={"": arms_detail_fn(VIOLET), "_red": arms_detail_fn((0.36, 0.06, 0.06)),
+                      detail={"": arms_detail_fn(SUIT), "_red": arms_detail_fn((0.36, 0.06, 0.06)),
                               "_blue": arms_detail_fn((0.06, 0.1, 0.4))},
                       glow={v: arms_glow_fn(GLOW[v]) for v in GLOW}, size=256),
         "head": Sheet({"": "mynx_h", "_red": "red_h", "_blue": "red_h"},

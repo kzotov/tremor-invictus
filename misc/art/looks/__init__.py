@@ -3,7 +3,7 @@ module each, each with a look():
 
   models/players/mynx/*_nyx[_red|_blue].skin, nyx/head_*.skin, nyx_*.tga
                        Nyx on mynx (looks/nyx.py): blue curls painted over
-                       the hair, a violet-black suit with glowing seams, a
+                       the hair, a blue-black suit with cyan seams, a
                        veil over the lower face, a crescent on the shoulder
   models/players/visor/*_deathknight*.skin, bones/head_deathknight.skin, ...
                        Death Knight on visor's body with bones' skull
@@ -44,7 +44,7 @@ module each, each with a look():
                        glowing violet ring
   models/players/sorlag/*_sorlag*.skin, ...
                        Sorlag (looks/sorlag.py): an olive-green hide with
-                       glowing acid glands
+                       glowing acid glands and a salmon frill
   models/players/doom/*_doomslayer*.skin, ...
                        Doom Slayer (looks/doom.py): deep green armour and
                        helmet, a dark grey undersuit, a gold visor
