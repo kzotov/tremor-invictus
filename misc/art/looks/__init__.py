@@ -65,11 +65,14 @@ module each, each with a look():
   models/players/keel/*_keel*.skin, ...
                        Keel (looks/keel.py): beige armour, orange hoses,
                        dark boots, steel staples over the scalp
+  models/players/slash/*_slash*.skin, ...
+                       Slash (looks/slash.py): studded black leather, dark
+                       red striped stockings, gunmetal panels
 """
 import importlib
 
 MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer", "raine", "beastmaster",
-           "unumrey", "sorlag", "doom", "clutch", "ranger", "wrack", "anarki", "keel")
+           "unumrey", "sorlag", "doom", "clutch", "ranger", "wrack", "anarki", "keel", "slash")
 
 
 def ALL():
