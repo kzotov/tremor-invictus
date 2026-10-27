@@ -1506,6 +1506,35 @@ CG_AddViewWeapon
 Add the weapon, and flash for the player's view
 ==============
 */
+/*
+==============
+CG_AddViewShield
+
+Clutch's shield seen from behind it: the same panel others see, in front of
+his own view while it is up (EF_BARRIER)
+==============
+*/
+static void CG_AddViewShield( playerState_t *ps ) {
+	refEntity_t	shell;
+
+	if ( !( ps->eFlags & EF_BARRIER ) || !cgs.media.abilityBarrierModel || cg.renderingThirdPerson ) {
+		return;
+	}
+	memset( &shell, 0, sizeof( shell ) );
+	AxisCopy( cg.refdef.viewaxis, shell.axis );
+	VectorMA( cg.refdef.vieworg, 20, shell.axis[0], shell.origin );
+	VectorMA( shell.origin, -6, shell.axis[2], shell.origin );
+	VectorCopy( shell.origin, shell.oldorigin );
+	VectorScale( shell.axis[0], 0.25f, shell.axis[0] );
+	VectorScale( shell.axis[1], 1.1f, shell.axis[1] );
+	shell.nonNormalizedAxes = qtrue;
+	shell.hModel = cgs.media.abilityBarrierModel;
+	shell.renderfx = RF_FIRST_PERSON | RF_DEPTHHACK | RF_NOSHADOW | RF_FORCE_ENT_ALPHA;
+	shell.shaderRGBA[0] = shell.shaderRGBA[1] = shell.shaderRGBA[2] = 255;
+	shell.shaderRGBA[3] = 70;		// (a hint of it: the view stays clear)
+	trap_R_AddRefEntityToScene( &shell );
+}
+
 void CG_AddViewWeapon( playerState_t *ps ) {
 	refEntity_t	hand;
 	centity_t	*cent;
@@ -1521,6 +1550,7 @@ void CG_AddViewWeapon( playerState_t *ps ) {
 	if ( ps->eFlags & EF_DRONE ) {
 		return;		// flying the drone, no hands
 	}
+	CG_AddViewShield( ps );
 
 	if ( ps->pm_type == PM_INTERMISSION ) {
 		return;

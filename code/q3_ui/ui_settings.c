@@ -1225,7 +1225,11 @@ void UI_SettingsRml( void ) {
 	fileHandle_t	f;
 	int				tab, r;
 
-	// the game module's settings shown here, saved even before a game has run
+	// the game module's settings shown here, saved even before a game has run,
+	// with the game's own defaults (one table, bg_settingDefaults)
+	for ( r = 0 ; r < bg_numSettingDefaults ; r++ ) {
+		trap_Cvar_Register( NULL, bg_settingDefaults[r].name, bg_settingDefaults[r].value, bg_settingDefaults[r].flags );
+	}
 	trap_Cvar_Register( NULL, "cg_trailGrey", "0", CVAR_ARCHIVE );
 	trap_Cvar_Register( NULL, "cg_trailColor", "", CVAR_ARCHIVE );
 	trap_Cvar_Register( NULL, "cg_trailEnemyColor", "", CVAR_ARCHIVE );
@@ -1237,6 +1241,7 @@ void UI_SettingsRml( void ) {
 	trap_Cvar_Register( NULL, "ui_setTab", "0", CVAR_TEMP );
 	trap_Cvar_Register( NULL, "ui_setRestart", "0", CVAR_TEMP );
 	trap_Cvar_Set( "ui_setWait", "" );
+	trap_Cvar_Set( "ui_setAsk", "0" );
 	UI_Settings_Frame();
 
 	rmlPage[0] = 0;
@@ -1257,7 +1262,8 @@ void UI_SettingsRml( void ) {
 	}
 	Rml_Add( "<div class=\"sactions\">" );
 	Rml_Add( "<button onclick=\"ui_back\">[menu_back]</button>" );
-	Rml_Add( va( "<button onclick=\"ui_setDefaults\">%s</button>", UI_RmlText( BG_String( STR_SET_DEFAULTS ) ) ) );
+	Rml_Add( va( "<button data-when=\"ui_setAsk!=1\" onclick=\"ui_setDefaults\">%s</button>", UI_RmlText( BG_String( STR_SET_DEFAULTS ) ) ) );
+	Rml_Add( "<button class=\"go\" data-when=\"ui_setAsk=1\" onclick=\"ui_setDefaults\">[set_defaults_sure]</button>" );
 	Rml_Add( va( "<button class=\"apply\" data-when=\"ui_setRestart=1\" onclick=\"set ui_setRestart 0; vid_restart\">%s</button>",
 		UI_RmlText( BG_String( STR_SET_APPLY ) ) ) );
 	Rml_Add( va( "<button onclick=\"ui_credits\">%s</button>", UI_RmlText( BG_String( STR_SET_CREDITS ) ) ) );
@@ -1328,7 +1334,21 @@ qboolean UI_SettingsCommand( const char *cmd ) {
 		return qtrue;
 	}
 	if ( !Q_stricmp( cmd, "ui_setDefaults" ) ) {
+		static int	askedAt;
+
+		// a second click within 3 s does it (the first one asks)
+		if ( !askedAt || uis.realtime - askedAt > 3000 ) {
+			askedAt = uis.realtime;
+			trap_Cvar_Set( "ui_setAsk", "1" );
+			return qtrue;
+		}
+		askedAt = 0;
+		trap_Cvar_Set( "ui_setAsk", "0" );
 		tab = (int)trap_Cvar_VariableValue( "ui_setTab" );
+		if ( tab == TAB_CONTROLS ) {
+			// the keys back as a new player has them
+			trap_Cmd_ExecuteText( EXEC_APPEND, "unbindall\nexec default.cfg\nbind q +button12; bind 1 \"weapon 1\"; bind F1 \"vote yes\"; bind F2 \"vote no\"\n" );
+		}
 		for ( r = 0; tab >= 0 && tab < NUM_TABS && r < settingTabs[tab].numRows; r++ ) {
 			const settingRow_t	*row = &settingTabs[tab].rows[r];
 

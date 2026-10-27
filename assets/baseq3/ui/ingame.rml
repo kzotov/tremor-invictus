@@ -11,8 +11,8 @@
 			<button onclick="rml_hide; ui_close">[menu_resume]</button>
 			<button class="go" data-when="ui_readyShown=1&amp;ui_imReady!=1" onclick="readyup; rml_hide; ui_close">[menu_ready]</button>
 			<button data-when="ui_readyShown=1&amp;ui_imReady=1" onclick="readyup; rml_hide; ui_close">[menu_not_ready]</button>
-			<button data-when="g_gametype!=1" onclick="rml_hide; ui_champions">[menu_champion]</button>
-			<button data-when="g_gametype=1&amp;ui_duelPick=1" onclick="rml_hide; ui_champions">[menu_champion]</button>
+			<button data-when="ui_ingameGametype!=1" onclick="rml_hide; ui_champions">[menu_champion]</button>
+			<button data-when="ui_ingameGametype=1&amp;ui_duelPick=1" onclick="rml_hide; ui_champions">[menu_champion]</button>
 			<div class="starter">
 				<div class="label">[ch_weapon]</div>
 				<button class="opt" data-class="on:cg_startWeapon=mg" onclick="ui_startWeapon mg">[ch_mg_short]</button>
@@ -24,11 +24,11 @@
 			<button data-when="ui_voteRunning!=1" onclick="ui_callvote">[menu_vote]</button>
 			<button onclick="ui_colors">[menu_player_colors]</button>
 			<button onclick="rml_hide; ui_settings">[menu_settings]</button>
-			<button onclick="rml_hide; ui_team">[menu_join_team]</button>
+			<button onclick="set ui_joinFromMenu 1; rml_show ui/join.rml">[menu_join_team]</button>
 			<button onclick="ui_players">[menu_players]</button>
 			<button data-when="sv_running=1&amp;bot_enable=1" onclick="ui_addbots">[menu_add_bots]</button>
 			<button data-when="sv_running=1&amp;bot_enable=1" onclick="ui_removebots">[menu_remove_bots]</button>
-			<button data-when="sv_running=1&amp;bot_enable=1&amp;g_gametype>=3" onclick="ui_teamOrders">[menu_team_orders]</button>
+			<button data-when="sv_running=1&amp;bot_enable=1&amp;ui_ingameGametype>=3" onclick="ui_teamOrders">[menu_team_orders]</button>
 			<div class="gap"/>
 			<button onclick="rml_hide; disconnect">[menu_leave]</button>
 			<button onclick="quit">[menu_quit]</button>

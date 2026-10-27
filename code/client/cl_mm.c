@@ -362,6 +362,12 @@ void CL_MM_Frame( void ) {
 	if ( !mm_url ) {
 		return;
 	}
+	// the menus offer Find Match and Profile only with a matchmaker set
+	// (the default address is this computer's, where none runs)
+	if ( mm_url->modified || !Cvar_VariableString( "mm_ok" )[0] ) {
+		mm_url->modified = qfalse;
+		Cvar_Set( "mm_ok", mm_url->string[0] && Q_stricmp( mm_url->string, "http://127.0.0.1:27960" ) ? "1" : "0" );
+	}
 	if ( !MM_Poll( &mm.req ) ) {
 		return;
 	}

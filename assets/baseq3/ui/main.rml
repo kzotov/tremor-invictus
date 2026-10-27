@@ -8,13 +8,13 @@
 	<div class="menu">
 		<button id="play" onclick="rml_toggle play_menu">[menu_play]</button>
 		<div class="submenu" id="play_menu">
-			<button class="small" onclick="mm_profile; rml_show ui/findmatch.rml">[menu_find_match]</button>
+			<button class="small" data-when="mm_ok=1" onclick="mm_profile; rml_show ui/findmatch.rml">[menu_find_match]</button>
 			<button class="small" onclick="rml_hide; ui_practice">[menu_practice]</button>
 			<button class="small" onclick="ui_servers">[menu_find_servers]</button>
 			<button class="small" onclick="rml_hide; ui_createServer">[menu_create_server]</button>
 		</div>
 		<button onclick="ui_champions">[menu_champions]</button>
-		<button onclick="ui_profile">[menu_profile]</button>
+		<button data-when="mm_ok=1" onclick="ui_profile">[menu_profile]</button>
 		<button onclick="ui_colors">[menu_player_colors]</button>
 		<button onclick="rml_hide; ui_settings">[menu_settings]</button>
 		<button onclick="ui_demos">[menu_demos]</button>
@@ -30,7 +30,7 @@
 		<div class="chclass" data-text-cvar="ui_chCurrentInfo"></div>
 		<button class="small" onclick="ui_champions">[ch_change]</button>
 	</div>
-	<div class="who" data-text-cvar="ui_playerName"></div>
+	<div class="who"><span class="label">[menu_name]</span> <input type="text" maxlength="31" size="18" data-value-cvar="name" onchange="set name {value}"/></div>
 	<div class="footer">[menu_footer]</div>
 </body>
 </rml>

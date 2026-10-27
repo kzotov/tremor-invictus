@@ -3,16 +3,17 @@
 	<title>Join</title>
 	<link type="text/rcss" href="tremor.rcss"/>
 </head>
-<body data-escape="rml_hide">
+<body data-escape="ui_joinBack">
 	<div class="card">
 		<h1>[$cg_joinMode]</h1>
 		<div class="sub">[$cg_joinMap]</div>
-		<button data-when="cg_joinTeams=1" onclick="rml_hide; team red">[join_red]</button>
-		<button data-when="cg_joinTeams=1" onclick="rml_hide; team blue">[join_blue]</button>
-		<button data-when="cg_joinTeams=1" onclick="rml_hide; team free">[join_auto]</button>
-		<button data-when="cg_joinTeams=0" onclick="rml_hide; team free">[join_play]</button>
-		<button onclick="rml_hide; team spectator">[join_spectate]</button>
-		<button onclick="rml_hide; ui_champions">[join_champion]</button>
+		<button data-when="cg_joinTeams=1" onclick="set ui_joinFromMenu 0; rml_hide; ui_close; team red">[join_red]</button>
+		<button data-when="cg_joinTeams=1" onclick="set ui_joinFromMenu 0; rml_hide; ui_close; team blue">[join_blue]</button>
+		<button data-when="cg_joinTeams=1" onclick="set ui_joinFromMenu 0; rml_hide; ui_close; team free">[join_auto]</button>
+		<button data-when="cg_joinTeams=0" onclick="set ui_joinFromMenu 0; rml_hide; ui_close; team free">[join_play]</button>
+		<button onclick="set ui_joinFromMenu 0; rml_hide; ui_close; team spectator">[join_spectate]</button>
+		<button onclick="set ui_joinFromMenu 0; rml_hide; ui_close; ui_champions">[join_champion]</button>
+		<button data-when="ui_joinFromMenu=1" onclick="ui_joinBack">[menu_back]</button>
 	</div>
 </body>
 </rml>

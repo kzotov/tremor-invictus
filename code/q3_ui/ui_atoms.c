@@ -1225,6 +1225,17 @@ qboolean UI_ConsoleCommand( int realTime ) {
 		return qtrue;
 	}
 
+	// the join page's Esc: back to the in-game menu when that opened it
+	if ( Q_stricmp (cmd, "ui_joinBack") == 0 ) {
+		if ( trap_Cvar_VariableValue( "ui_joinFromMenu" ) ) {
+			trap_Cvar_Set( "ui_joinFromMenu", "0" );
+			trap_Cmd_ExecuteText( EXEC_NOW, "rml_show ui/ingame.rml\n" );
+		} else {
+			trap_Cmd_ExecuteText( EXEC_NOW, "rml_hide\n" );
+		}
+		return qtrue;
+	}
+
 	// a page's Back and Esc: the in-game menu in a game, else the main menu
 	if ( Q_stricmp (cmd, "ui_back") == 0 ) {
 		UI_RmlBack();

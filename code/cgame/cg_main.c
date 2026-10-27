@@ -289,38 +289,38 @@ typedef struct {
 
 static cvarTable_t cvarTable[] = {
 	{ &cg_ignore, "cg_ignore", "0", 0 },	// used for debugging
-	{ &cg_autoswitch, "cg_autoswitch", "1", CVAR_ARCHIVE },
+	{ &cg_autoswitch, "cg_autoswitch", CGDEF_AUTOSWITCH, CVAR_ARCHIVE },
 	{ &cg_drawGun, "cg_drawGun", "1", CVAR_ARCHIVE },
-	{ &cg_zoomFov, "cg_zoomfov", "22.5", CVAR_ARCHIVE },
-	{ &cg_fov, "cg_fov", "90", CVAR_ARCHIVE },
+	{ &cg_zoomFov, "cg_zoomfov", CGDEF_ZOOMFOV, CVAR_ARCHIVE },
+	{ &cg_fov, "cg_fov", CGDEF_FOV, CVAR_ARCHIVE },
 	{ &cg_viewsize, "cg_viewsize", "100", CVAR_ARCHIVE },
 	{ &cg_shadows, "cg_shadows", "1", CVAR_ARCHIVE  },
-	{ &cg_gibs, "cg_gibs", "1", CVAR_ARCHIVE  },
+	{ &cg_gibs, "cg_gibs", CGDEF_GIBS, CVAR_ARCHIVE  },
 	{ &cg_draw2D, "cg_draw2D", "1", CVAR_ARCHIVE  },
 	{ &cg_drawStatus, "cg_drawStatus", "1", CVAR_ARCHIVE  },
 	{ &cg_drawTimer, "cg_drawTimer", "0", CVAR_ARCHIVE  },
-	{ &cg_drawFPS, "cg_drawFPS", "0", CVAR_ARCHIVE  },
+	{ &cg_drawFPS, "cg_drawFPS", CGDEF_DRAWFPS, CVAR_ARCHIVE  },
 	{ &cg_drawSnapshot, "cg_drawSnapshot", "0", CVAR_ARCHIVE  },
 	{ &cg_draw3dIcons, "cg_draw3dIcons", "1", CVAR_ARCHIVE  },
 	{ &cg_drawIcons, "cg_drawIcons", "1", CVAR_ARCHIVE  },
 	{ &cg_drawAmmoWarning, "cg_drawAmmoWarning", "2", CVAR_ARCHIVE  },
 	{ &cg_drawAccuracy, "cg_drawAccuracy", "0", CVAR_ARCHIVE },		// overall accuracy beside the ammo (hud.md 9.7)
 	{ &cg_drawAttacker, "cg_drawAttacker", "1", CVAR_ARCHIVE  },
-	{ &cg_drawCrosshair, "cg_drawCrosshair", "1", CVAR_ARCHIVE },		// hud.md 10.9: a yellow plus by default
+	{ &cg_drawCrosshair, "cg_drawCrosshair", CGDEF_DRAWCROSSHAIR, CVAR_ARCHIVE },		// hud.md 10.9: a yellow plus by default
 	{ &cg_drawCrosshairNames, "cg_drawCrosshairNames", "1", CVAR_ARCHIVE },
-	{ &cg_drawItemPickups, "cg_drawItemPickups", "1", CVAR_ARCHIVE },	// 0 off, 1 the pickup feed
-	{ &cg_fragBanner, "cg_fragLine", "1", CVAR_ARCHIVE },
-	{ &cg_medals, "cg_medals", "1", CVAR_ARCHIVE },			// 0 hides medals (they still count), 2 sound only
-	{ &cg_eventBanner, "cg_eventLine", "1", CVAR_ARCHIVE },
-	{ &cg_systemMessages, "cg_systemMessages", "1", CVAR_ARCHIVE },	// 0 hides connect and team lines
-	{ &cg_crosshairSize, "cg_crosshairSize", "14", CVAR_ARCHIVE },		// (the plus 13 dp across, hud.md 10.9)
+	{ &cg_drawItemPickups, "cg_drawItemPickups", CGDEF_DRAWITEMPICKUPS, CVAR_ARCHIVE },	// 0 off, 1 the pickup feed
+	{ &cg_fragBanner, "cg_fragLine", CGDEF_FRAGLINE, CVAR_ARCHIVE },
+	{ &cg_medals, "cg_medals", CGDEF_MEDALS, CVAR_ARCHIVE },			// 0 hides medals (they still count), 2 sound only
+	{ &cg_eventBanner, "cg_eventLine", CGDEF_EVENTLINE, CVAR_ARCHIVE },
+	{ &cg_systemMessages, "cg_systemMessages", CGDEF_SYSTEMMESSAGES, CVAR_ARCHIVE },	// 0 hides connect and team lines
+	{ &cg_crosshairSize, "cg_crosshairSize", CGDEF_CROSSHAIRSIZE, CVAR_ARCHIVE },		// (the plus 13 dp across, hud.md 10.9)
 	{ &cg_crosshairHealth, "cg_crosshairHealth", "1", CVAR_ARCHIVE },
 	{ &cg_crosshairX, "cg_crosshairX", "0", CVAR_ARCHIVE },
 	{ &cg_crosshairY, "cg_crosshairY", "0", CVAR_ARCHIVE },
 	{ &cg_brassTime, "cg_brassTime", "2500", CVAR_ARCHIVE },
 	{ &cg_simpleItems, "cg_simpleItems", "0", CVAR_ARCHIVE },
 	{ &cg_addMarks, "cg_marks", "1", CVAR_ARCHIVE },
-	{ &cg_lagometer, "cg_lagometer", "0", CVAR_ARCHIVE },
+	{ &cg_lagometer, "cg_lagometer", CGDEF_LAGOMETER, CVAR_ARCHIVE },
 	{ &cg_railTrailTime, "cg_railTrailTime", "400", CVAR_ARCHIVE  },
 	{ &cg_gun_x, "cg_gunX", "0", CVAR_CHEAT },
 	{ &cg_gun_y, "cg_gunY", "0", CVAR_CHEAT },
@@ -356,7 +356,7 @@ static cvarTable_t cvarTable[] = {
 #else
 	{ &cg_deferPlayers, "cg_deferPlayers", "1", CVAR_ARCHIVE },
 #endif
-	{ &cg_drawTeamOverlay, "cg_drawTeamOverlay", "1", CVAR_ARCHIVE },
+	{ &cg_drawTeamOverlay, "cg_drawTeamOverlay", CGDEF_DRAWTEAMOVERLAY, CVAR_ARCHIVE },
 	{ &cg_teamOverlayUserinfo, "teamoverlay", "0", CVAR_ROM | CVAR_USERINFO },
 	{ &cg_stats, "cg_stats", "0", 0 },
 	{ &cg_drawFriend, "cg_drawFriend", "1", CVAR_ARCHIVE },
@@ -396,7 +396,7 @@ static cvarTable_t cvarTable[] = {
 
 	{ &pmove_fixed, "pmove_fixed", "1", CVAR_SYSTEMINFO},
 	{ &pmove_msec, "pmove_msec", "8", CVAR_SYSTEMINFO},
-	{ &cg_autoHop, "cg_autoHop", "1", CVAR_USERINFO | CVAR_ARCHIVE},
+	{ &cg_autoHop, "cg_autoHop", CGDEF_AUTOHOP, CVAR_USERINFO | CVAR_ARCHIVE},
 	{ &cg_startWeapon, "cg_startWeapon", "mg", CVAR_USERINFO | CVAR_ARCHIVE},
 	{ &cg_playerScale, "cg_playerScale", "1", CVAR_ARCHIVE},
 	{ &cg_projectileNudge, "cg_projectileNudge", "0", CVAR_CHEAT},
@@ -417,74 +417,74 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_weaponColor_grenade, "cg_weaponColor_grenade", "0xFCFC00FF", CVAR_ARCHIVE},
 	{ &cg_deadBodyColor, "cg_deadBodyColor", "0x101010FF", CVAR_ARCHIVE},
 	{ &cg_deadBodyDarken, "cg_deadBodyDarken", "1", CVAR_ARCHIVE},
-	{ &cg_autoProjectileNudge, "cg_autoProjectileNudge", "1", CVAR_ARCHIVE},
+	{ &cg_autoProjectileNudge, "cg_autoProjectileNudge", CGDEF_AUTOPROJECTILENUDGE, CVAR_ARCHIVE},
 #ifdef MISSIONPACK
 	{ &cg_smallFont, "ui_smallFont", "0.25", CVAR_ARCHIVE},
 	{ &cg_bigFont, "ui_bigFont", "0.4", CVAR_ARCHIVE},
 	{ &cg_noTaunt, "cg_noTaunt", "0", CVAR_ARCHIVE},
 #endif
 	{ &cg_noProjectileTrail, "cg_noProjectileTrail", "0", CVAR_ARCHIVE},
-	{ &cg_oldRail, "cg_oldRail", "0", CVAR_ARCHIVE},		// 0: the rail core with rings for the trail time
+	{ &cg_oldRail, "cg_oldRail", CGDEF_OLDRAIL, CVAR_ARCHIVE},		// 0: the rail core with rings for the trail time
 	{ &cg_oldRocket, "cg_oldRocket", "1", CVAR_ARCHIVE},
 	{ &cg_oldPlasma, "cg_oldPlasma", "1", CVAR_ARCHIVE},
 	{ &cg_trueLightning, "cg_trueLightning", "1", CVAR_ARCHIVE},
 	// own instant-hit shots drawn at once from the predicted aim
 	{ &cg_predictLocalRailshots, "cg_predictLocalRailshots", "1", CVAR_ARCHIVE},
 	// 1: record every match, 2: screenshot at its end
-	{ &cg_autoAction, "cg_autoAction", "3", CVAR_ARCHIVE},
+	{ &cg_autoAction, "cg_autoAction", CGDEF_AUTOACTION, CVAR_ARCHIVE},
 	// Settings > Champions
-	{ &cg_trailGrey, "cg_trailGrey", "0", CVAR_ARCHIVE },
+	{ &cg_trailGrey, "cg_trailGrey", CGDEF_TRAILGREY, CVAR_ARCHIVE },
 	{ &cl_voipTalking, "cl_voipTalking", "", CVAR_ROM },
 	{ &cl_voipMuted, "cl_voipMuted", "", CVAR_ROM },
-	{ &cg_trailColor, "cg_trailColor", "", CVAR_ARCHIVE },
-	{ &cg_trailEnemyColor, "cg_trailEnemyColor", "", CVAR_ARCHIVE },
-	{ &cg_abilityLights, "cg_abilityLights", "1", CVAR_ARCHIVE },
-	{ &cg_backflips, "cg_backflips", "1", CVAR_ARCHIVE },
+	{ &cg_trailColor, "cg_trailColor", CGDEF_TRAILCOLOR, CVAR_ARCHIVE },
+	{ &cg_trailEnemyColor, "cg_trailEnemyColor", CGDEF_TRAILENEMYCOLOR, CVAR_ARCHIVE },
+	{ &cg_abilityLights, "cg_abilityLights", CGDEF_ABILITYLIGHTS, CVAR_ARCHIVE },
+	{ &cg_backflips, "cg_backflips", CGDEF_BACKFLIPS, CVAR_ARCHIVE },
 	// visibility: enemy outline (in sight only) and colour-blind palettes
-	{ &cg_enemyOutline, "cg_enemyOutline", "0", CVAR_ARCHIVE },
-	{ &cg_enemyOutlineColor, "cg_enemyOutlineColor", "0xFF2020FF", CVAR_ARCHIVE },
-	{ &cg_colorBlind, "cg_colorBlind", "0", CVAR_ARCHIVE },
+	{ &cg_enemyOutline, "cg_enemyOutline", CGDEF_ENEMYOUTLINE, CVAR_ARCHIVE },
+	{ &cg_enemyOutlineColor, "cg_enemyOutlineColor", CGDEF_ENEMYOUTLINECOLOR, CVAR_ARCHIVE },
+	{ &cg_colorBlind, "cg_colorBlind", CGDEF_COLORBLIND, CVAR_ARCHIVE },
 	// 1: the champions HUD, 0: the classic status bar
-	{ &cg_hudLayout, "cg_hudLayout", "modern", CVAR_ARCHIVE},		// hud/<name>.hud: modern or classic
+	{ &cg_hudLayout, "cg_hudLayout", CGDEF_HUDLAYOUT, CVAR_ARCHIVE},		// hud/<name>.hud: modern or classic
 	{ &cg_rmlScoreboard, "cg_rmlScoreboard", "1", CVAR_ARCHIVE },		// the RmlUi Tab board (scoreboard.md)
 	{ &cg_netWarnings, "cg_netWarnings", "0", CVAR_ARCHIVE },			// ping / loss / spike / fps warnings
 	{ &cg_hitMarker, "cg_hitMarker", "1", CVAR_ARCHIVE },				// a crosshair mark on each confirmed hit
 	{ &cg_specHints, "cg_specHints", "1", CVAR_ARCHIVE },				// the spectator key-hints bar
 	// the ability arc by the crosshair: 0 off, 2 top, 3 bottom, 4 left, 5 right
-	{ &cg_drawCooldownArc, "cg_drawCooldownArc", "1", CVAR_ARCHIVE},	// 0 off, 1 layout (bottom), 2 top, 3 right, 4 bottom, 5 left
-	{ &cg_obituaryRowSize, "cg_obituaryRowSize", "5", CVAR_ARCHIVE},
-	{ &cg_chatHistoryLength, "cg_chatHistoryLength", "5", CVAR_ARCHIVE},
-	{ &cg_specItemTimers, "cg_specItemTimers", "15", CVAR_ARCHIVE},
-	{ &cg_weaponBar, "cg_weaponBar", "0", CVAR_ARCHIVE},		// 0 right column, 1 bottom centre, 2 held weapon only, 3 hidden
-	{ &cg_drawCooldown, "cg_drawCooldown", "1", CVAR_ARCHIVE},	// the ability ring and its arc
-	{ &cg_drawPassive, "cg_drawPassive", "1", CVAR_ARCHIVE},		// the passive ring under the portrait
+	{ &cg_drawCooldownArc, "cg_drawCooldownArc", CGDEF_DRAWCOOLDOWNARC, CVAR_ARCHIVE},	// 0 off, 1 layout (bottom), 2 top, 3 right, 4 bottom, 5 left
+	{ &cg_obituaryRowSize, "cg_obituaryRowSize", CGDEF_OBITUARYROWSIZE, CVAR_ARCHIVE},
+	{ &cg_chatHistoryLength, "cg_chatHistoryLength", CGDEF_CHATHISTORYLENGTH, CVAR_ARCHIVE},
+	{ &cg_specItemTimers, "cg_specItemTimers", CGDEF_SPECITEMTIMERS, CVAR_ARCHIVE},
+	{ &cg_weaponBar, "cg_weaponBar", CGDEF_WEAPONBAR, CVAR_ARCHIVE},		// 0 right column, 1 bottom centre, 2 held weapon only, 3 hidden
+	{ &cg_drawCooldown, "cg_drawCooldown", CGDEF_DRAWCOOLDOWN, CVAR_ARCHIVE},	// the ability ring and its arc
+	{ &cg_drawPassive, "cg_drawPassive", CGDEF_DRAWPASSIVE, CVAR_ARCHIVE},		// the passive ring under the portrait
 	{ &cg_followKiller, "cg_followKiller", "0", CVAR_ARCHIVE},
 	{ &cg_specFov, "cg_specFov", "0", CVAR_ARCHIVE},		// spectating: this field of view, 0 = cg_fov
 	{ &cg_specThirdPerson, "cg_specThirdPerson", "0", CVAR_ARCHIVE},	// following: chase from behind
 	{ &cg_followPowerup, "cg_followPowerup", "0", CVAR_ARCHIVE},		// spectators follow whoever takes a power-up
-	{ &cg_zoomSensitivity, "cg_zoomSensitivity", "0", CVAR_ARCHIVE},
-	{ &cg_crosshairColor, "cg_crosshairColor", "3", CVAR_ARCHIVE},
-	{ &cg_drawSpeed, "cg_drawSpeed", "0", CVAR_ARCHIVE},
+	{ &cg_zoomSensitivity, "cg_zoomSensitivity", CGDEF_ZOOMSENSITIVITY, CVAR_ARCHIVE},
+	{ &cg_crosshairColor, "cg_crosshairColor", CGDEF_CROSSHAIRCOLOR, CVAR_ARCHIVE},
+	{ &cg_drawSpeed, "cg_drawSpeed", CGDEF_DRAWSPEED, CVAR_ARCHIVE},
 	{ &cg_layoutDebug, "cg_layoutDebug", "0", CVAR_CHEAT},
 	{ &cg_showLoading, "cg_showLoading", "0", CVAR_CHEAT},		// show the loading screen, to check its layout
 	{ &cg_showLineup, "cg_showLineup", "0", CVAR_CHEAT},		// show the pre-match lineup, to check its layout
-	{ &cg_loadingTips, "cg_loadingTips", "1", CVAR_ARCHIVE},		// a gameplay tip while a map loads
-	{ &cg_damageArc, "cg_damageArc", "1", CVAR_ARCHIVE},		// arc toward where damage came from
-	{ &cg_zoomToggle, "cg_zoomToggle", "0", CVAR_ARCHIVE},		// 1: +zoom toggles instead of holding
+	{ &cg_loadingTips, "cg_loadingTips", CGDEF_LOADINGTIPS, CVAR_ARCHIVE},		// a gameplay tip while a map loads
+	{ &cg_damageArc, "cg_damageArc", CGDEF_DAMAGEARC, CVAR_ARCHIVE},		// arc toward where damage came from
+	{ &cg_zoomToggle, "cg_zoomToggle", CGDEF_ZOOMTOGGLE, CVAR_ARCHIVE},		// 1: +zoom toggles instead of holding
 	{ &cg_joinScreen, "cg_joinScreen", "1", CVAR_ARCHIVE},		// the join screen for spectators on a new map
-	{ &cg_damagePlum, "cg_damagePlum", "1", CVAR_ARCHIVE},		// damage numbers over hit enemies
+	{ &cg_damagePlum, "cg_damagePlum", CGDEF_DAMAGEPLUM, CVAR_ARCHIVE},		// damage numbers over hit enemies
 	{ &cg_damagePlumScale, "cg_damagePlumScale", "1", CVAR_ARCHIVE },	// their size, 1.0-2.0
 	{ &cg_damagePlumSum, "cg_damagePlumSum", "2", CVAR_ARCHIVE },		// 0 each hit, 1 per damage type, 2 all hits on a target
 	{ &cg_damagePlumHidden, "cg_damagePlumHidden", "0", CVAR_ARCHIVE },	// numbers for targets out of sight
-	{ &cg_hitBeep, "cg_hitBeep", "2", CVAR_ARCHIVE},	// 0 off, 1 one beep, 2 by damage, 3 by damage reversed
-	{ &cg_killBeep, "cg_killBeep", "1", CVAR_ARCHIVE},
-	{ &cg_worldItemTimers, "cg_worldItemTimers", "1", CVAR_ARCHIVE},	// markers and countdowns on away items
-	{ &cg_lowHealthWarning, "cg_lowHealthWarning", "1", CVAR_ARCHIVE},	// the red screen edge at 50 health and below
-	{ &cg_lowHealthSound, "cg_lowHealthSound", "1", CVAR_ARCHIVE},	// the heartbeat at 25 and below
-	{ &cg_heavyBreathing, "cg_heavyBreathing", "1", CVAR_ARCHIVE},	// your champion breathing hard at 25 and below
-	{ &cg_lowArmorWarning, "cg_lowArmorWarning", "0", CVAR_ARCHIVE},
-	{ &cg_clockDirection, "cg_clockDirection", "0", CVAR_ARCHIVE},	// the match clock: 0 counts down, 1 counts up from 0:00	// LOW ARMOR, steady for 2 s on dropping to 25 (off by default)
-	{ &cg_championVO, "cg_championVO", "1", CVAR_ARCHIVE},		// champion voice lines
+	{ &cg_hitBeep, "cg_hitBeep", CGDEF_HITBEEP, CVAR_ARCHIVE},	// 0 off, 1 one beep, 2 by damage, 3 by damage reversed
+	{ &cg_killBeep, "cg_killBeep", CGDEF_KILLBEEP, CVAR_ARCHIVE},
+	{ &cg_worldItemTimers, "cg_worldItemTimers", CGDEF_WORLDITEMTIMERS, CVAR_ARCHIVE},	// markers and countdowns on away items
+	{ &cg_lowHealthWarning, "cg_lowHealthWarning", CGDEF_LOWHEALTHWARNING, CVAR_ARCHIVE},	// the red screen edge at 50 health and below
+	{ &cg_lowHealthSound, "cg_lowHealthSound", CGDEF_LOWHEALTHSOUND, CVAR_ARCHIVE},	// the heartbeat at 25 and below
+	{ &cg_heavyBreathing, "cg_heavyBreathing", CGDEF_HEAVYBREATHING, CVAR_ARCHIVE},	// your champion breathing hard at 25 and below
+	{ &cg_lowArmorWarning, "cg_lowArmorWarning", CGDEF_LOWARMORWARNING, CVAR_ARCHIVE},
+	{ &cg_clockDirection, "cg_clockDirection", CGDEF_CLOCKDIRECTION, CVAR_ARCHIVE},	// the match clock: 0 counts down, 1 counts up from 0:00	// LOW ARMOR, steady for 2 s on dropping to 25 (off by default)
+	{ &cg_championVO, "cg_championVO", CGDEF_CHAMPIONVO, CVAR_ARCHIVE},		// champion voice lines
 	{ &cg_drawLineup, "cg_drawLineup", "1", CVAR_ARCHIVE},
 	{ &cg_layoutDump, "cg_layoutDump", "0", 0}
 //	{ &cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR_USERINFO | CVAR_ARCHIVE }

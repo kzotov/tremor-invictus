@@ -8034,7 +8034,7 @@ static void CG_DrawAbilityBlock( void ) {
 	static int			activateTime, lastState, cooldownShown, cooldownHidden, lastClient = -1;
 	playerState_t		*ps = &cg.snap->ps;
 	const champion_t	*champ = BG_Champion( ps->stats[STAT_CHAMPION] );
-	static const vec4_t	back = { 0.12f, 0.12f, 0.13f, 0.6f };
+	static const vec4_t	back = { 1, 1, 1, 0.18f };		// the ring's track, so the share left reads
 	vec4_t				fill, burst, numColor;
 	float				cx = HX_C( 961 ), cy = HY( 920 ), r = 53 * DP, frac, f, size;
 	int					recharge, left, state, maxCharges;
@@ -8160,6 +8160,15 @@ static void CG_DrawAbilityBlock( void ) {
 	iconAlpha = 1;
 	trap_R_SetColor( NULL );
 
+	// while it runs: the seconds of it left over the red arc
+	if ( active && !( ps->eFlags & EF_DRONE ) && BG_AbilityParam( champ->active, AP_DURATION ) > 0 ) {
+		int		run = ps->stats[STAT_ABILITY_TIME] * BG_AbilityTimeUnit( champ->active );
+
+		if ( run > 0 ) {
+			CG_HudText( cx, cy - 28 * DP, 56, va( "%i", ( run + 999 ) / 1000 ), colorWhite, 1, 1 );
+		}
+		left = 0;		// (the cooldown's number waits for the end)
+	}
 	// the cooldown number, tenths in the last second
 	if ( !off && left > 0 && !( ready && left <= 0 ) && !BG_AbilityCharges( ps ) ) {
 		if ( !cooldownShown ) {

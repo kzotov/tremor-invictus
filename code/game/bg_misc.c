@@ -3464,3 +3464,64 @@ void BG_PlayerStateToEntityStateExtraPolate( playerState_t *ps, entityState_t *s
 	s->loopSound = ps->loopSound;
 	s->generic1 = ps->generic1;
 }
+
+/*
+==============
+bg_settingDefaults
+
+The game module's settings on the menus' Settings page, with their defaults
+==============
+*/
+const cvarDefault_t bg_settingDefaults[] = {
+	{ "cg_abilityLights", CGDEF_ABILITYLIGHTS, CVAR_ARCHIVE },
+	{ "cg_autoAction", CGDEF_AUTOACTION, CVAR_ARCHIVE },
+	{ "cg_autoHop", CGDEF_AUTOHOP, CVAR_USERINFO | CVAR_ARCHIVE },
+	{ "cg_autoProjectileNudge", CGDEF_AUTOPROJECTILENUDGE, CVAR_ARCHIVE },
+	{ "cg_autoswitch", CGDEF_AUTOSWITCH, CVAR_ARCHIVE },
+	{ "cg_backflips", CGDEF_BACKFLIPS, CVAR_ARCHIVE },
+	{ "cg_championVO", CGDEF_CHAMPIONVO, CVAR_ARCHIVE },
+	{ "cg_chatHistoryLength", CGDEF_CHATHISTORYLENGTH, CVAR_ARCHIVE },
+	{ "cg_clockDirection", CGDEF_CLOCKDIRECTION, CVAR_ARCHIVE },
+	{ "cg_colorBlind", CGDEF_COLORBLIND, CVAR_ARCHIVE },
+	{ "cg_crosshairColor", CGDEF_CROSSHAIRCOLOR, CVAR_ARCHIVE },
+	{ "cg_crosshairSize", CGDEF_CROSSHAIRSIZE, CVAR_ARCHIVE },
+	{ "cg_damageArc", CGDEF_DAMAGEARC, CVAR_ARCHIVE },
+	{ "cg_damagePlum", CGDEF_DAMAGEPLUM, CVAR_ARCHIVE },
+	{ "cg_drawCooldown", CGDEF_DRAWCOOLDOWN, CVAR_ARCHIVE },
+	{ "cg_drawCooldownArc", CGDEF_DRAWCOOLDOWNARC, CVAR_ARCHIVE },
+	{ "cg_drawCrosshair", CGDEF_DRAWCROSSHAIR, CVAR_ARCHIVE },
+	{ "cg_drawFPS", CGDEF_DRAWFPS, CVAR_ARCHIVE },
+	{ "cg_drawItemPickups", CGDEF_DRAWITEMPICKUPS, CVAR_ARCHIVE },
+	{ "cg_drawPassive", CGDEF_DRAWPASSIVE, CVAR_ARCHIVE },
+	{ "cg_drawSpeed", CGDEF_DRAWSPEED, CVAR_ARCHIVE },
+	{ "cg_drawTeamOverlay", CGDEF_DRAWTEAMOVERLAY, CVAR_ARCHIVE },
+	{ "cg_enemyOutline", CGDEF_ENEMYOUTLINE, CVAR_ARCHIVE },
+	{ "cg_enemyOutlineColor", CGDEF_ENEMYOUTLINECOLOR, CVAR_ARCHIVE },
+	{ "cg_eventLine", CGDEF_EVENTLINE, CVAR_ARCHIVE },
+	{ "cg_fov", CGDEF_FOV, CVAR_ARCHIVE },
+	{ "cg_fragLine", CGDEF_FRAGLINE, CVAR_ARCHIVE },
+	{ "cg_gibs", CGDEF_GIBS, CVAR_ARCHIVE },
+	{ "cg_heavyBreathing", CGDEF_HEAVYBREATHING, CVAR_ARCHIVE },
+	{ "cg_hitBeep", CGDEF_HITBEEP, CVAR_ARCHIVE },
+	{ "cg_hudLayout", CGDEF_HUDLAYOUT, CVAR_ARCHIVE },
+	{ "cg_killBeep", CGDEF_KILLBEEP, CVAR_ARCHIVE },
+	{ "cg_lagometer", CGDEF_LAGOMETER, CVAR_ARCHIVE },
+	{ "cg_loadingTips", CGDEF_LOADINGTIPS, CVAR_ARCHIVE },
+	{ "cg_lowArmorWarning", CGDEF_LOWARMORWARNING, CVAR_ARCHIVE },
+	{ "cg_lowHealthSound", CGDEF_LOWHEALTHSOUND, CVAR_ARCHIVE },
+	{ "cg_lowHealthWarning", CGDEF_LOWHEALTHWARNING, CVAR_ARCHIVE },
+	{ "cg_medals", CGDEF_MEDALS, CVAR_ARCHIVE },
+	{ "cg_obituaryRowSize", CGDEF_OBITUARYROWSIZE, CVAR_ARCHIVE },
+	{ "cg_oldRail", CGDEF_OLDRAIL, CVAR_ARCHIVE },
+	{ "cg_specItemTimers", CGDEF_SPECITEMTIMERS, CVAR_ARCHIVE },
+	{ "cg_systemMessages", CGDEF_SYSTEMMESSAGES, CVAR_ARCHIVE },
+	{ "cg_trailColor", CGDEF_TRAILCOLOR, CVAR_ARCHIVE },
+	{ "cg_trailEnemyColor", CGDEF_TRAILENEMYCOLOR, CVAR_ARCHIVE },
+	{ "cg_trailGrey", CGDEF_TRAILGREY, CVAR_ARCHIVE },
+	{ "cg_weaponBar", CGDEF_WEAPONBAR, CVAR_ARCHIVE },
+	{ "cg_worldItemTimers", CGDEF_WORLDITEMTIMERS, CVAR_ARCHIVE },
+	{ "cg_zoomSensitivity", CGDEF_ZOOMSENSITIVITY, CVAR_ARCHIVE },
+	{ "cg_zoomToggle", CGDEF_ZOOMTOGGLE, CVAR_ARCHIVE },
+	{ "cg_zoomfov", CGDEF_ZOOMFOV, CVAR_ARCHIVE },
+};
+const int bg_numSettingDefaults = ARRAY_LEN( bg_settingDefaults );

@@ -1500,6 +1500,68 @@ extern	const classInfo_t	bg_classInfo[CLASS_NUM_CLASSES];
 
 #define	DEFAULT_CHAMPION	"ranger"
 
+
+// the game module's settings defaults, shared with the menus' Settings page so a
+// profile that has never run a game shows (and keeps) the same values
+#define CGDEF_ABILITYLIGHTS	"1"
+#define CGDEF_AUTOACTION	"3"
+#define CGDEF_AUTOHOP	"1"
+#define CGDEF_AUTOPROJECTILENUDGE	"1"
+#define CGDEF_AUTOSWITCH	"1"
+#define CGDEF_BACKFLIPS	"1"
+#define CGDEF_CHAMPIONVO	"1"
+#define CGDEF_CHATHISTORYLENGTH	"5"
+#define CGDEF_CLOCKDIRECTION	"0"
+#define CGDEF_COLORBLIND	"0"
+#define CGDEF_CROSSHAIRCOLOR	"3"
+#define CGDEF_CROSSHAIRSIZE	"14"
+#define CGDEF_DAMAGEARC	"1"
+#define CGDEF_DAMAGEPLUM	"1"
+#define CGDEF_DRAWCOOLDOWN	"1"
+#define CGDEF_DRAWCOOLDOWNARC	"1"
+#define CGDEF_DRAWCROSSHAIR	"1"
+#define CGDEF_DRAWFPS	"0"
+#define CGDEF_DRAWITEMPICKUPS	"1"
+#define CGDEF_DRAWPASSIVE	"1"
+#define CGDEF_DRAWSPEED	"0"
+#define CGDEF_DRAWTEAMOVERLAY	"1"
+#define CGDEF_ENEMYOUTLINE	"0"
+#define CGDEF_ENEMYOUTLINECOLOR	"0xFF2020FF"
+#define CGDEF_EVENTLINE	"1"
+#define CGDEF_FOV	"90"
+#define CGDEF_FRAGLINE	"1"
+#define CGDEF_GIBS	"1"
+#define CGDEF_HEAVYBREATHING	"1"
+#define CGDEF_HITBEEP	"2"
+#define CGDEF_HUDLAYOUT	"modern"
+#define CGDEF_KILLBEEP	"1"
+#define CGDEF_LAGOMETER	"0"
+#define CGDEF_LOADINGTIPS	"1"
+#define CGDEF_LOWARMORWARNING	"0"
+#define CGDEF_LOWHEALTHSOUND	"1"
+#define CGDEF_LOWHEALTHWARNING	"1"
+#define CGDEF_MEDALS	"1"
+#define CGDEF_OBITUARYROWSIZE	"5"
+#define CGDEF_OLDRAIL	"0"
+#define CGDEF_SPECITEMTIMERS	"15"
+#define CGDEF_SYSTEMMESSAGES	"1"
+#define CGDEF_TRAILCOLOR	""
+#define CGDEF_TRAILENEMYCOLOR	""
+#define CGDEF_TRAILGREY	"0"
+#define CGDEF_WEAPONBAR	"0"
+#define CGDEF_WORLDITEMTIMERS	"1"
+#define CGDEF_ZOOMSENSITIVITY	"0"
+#define CGDEF_ZOOMTOGGLE	"0"
+#define CGDEF_ZOOMFOV	"22.5"
+
+typedef struct {
+	const char	*name, *value;
+	int			flags;
+} cvarDefault_t;
+
+extern const cvarDefault_t	bg_settingDefaults[];
+extern const int			bg_numSettingDefaults;
+
 int					BG_ChampionForName( const char *name );
 void				BG_ChampionModel( int champion, char *out, int size );
 void				BG_ChampionHead( int champion, char *out, int size );

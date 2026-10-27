@@ -288,6 +288,8 @@ static void InGame_Draw( void ) {
 			Q_strncpyz( map, Info_ValueForKey( info, "mapname" ), sizeof( map ) );
 			Q_strupr( map );
 			trap_Cvar_Set( "ui_ingameMap", map );
+			// the server's game type for the document (not the local g_gametype)
+			trap_Cvar_Set( "ui_ingameGametype", Info_ValueForKey( info, "g_gametype" ) );
 			mode = Info_ValueForKey( info, "g_mode" );
 			for ( i = 0 ; i < ARRAY_LEN( keys ) ; i++ ) {
 				if ( !Q_stricmp( mode, keys[i] ) ) {
