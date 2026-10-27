@@ -52,11 +52,14 @@ module each, each with a look():
                        Clutch on tankjr (looks/clutch.py): orange-brown
                        armour, steel plates over the emblems, steel feet, a
                        steel-cased head with cyan eyes
+  models/players/ranger/*_ranger*.skin, ...
+                       Ranger (looks/ranger.py): olive-drab vest, pads and
+                       helmet over a dark undersuit, a brass buckle
 """
 import importlib
 
 MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer", "raine", "beastmaster",
-           "unumrey", "sorlag", "doom", "clutch")
+           "unumrey", "sorlag", "doom", "clutch", "ranger")
 
 
 def ALL():
