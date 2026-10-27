@@ -267,6 +267,7 @@ static void CG_Obituary( entityState_t *ent ) {
 		CG_Printf( "[skipnotify]%s %s.\n", targetName, message);	// the console keeps the sentence
 #ifndef MISSIONPACK
 		CG_AddKillFeed( "", targetName, WP_NONE, -1, target );
+		CG_KillFeedCause( mod, attacker == target || mod == MOD_SUICIDE );
 #endif
 		return;
 	}

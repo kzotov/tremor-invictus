@@ -719,6 +719,8 @@ typedef struct {
 	int		killerNum, victimNum;		// -1 for none
 	int		killerTeam, victimTeam;
 	qboolean	quad;				// the killer had Quad Damage
+	qboolean	suicide;			// a real suicide: the name and the word, no icon
+	qhandle_t	cause;				// a world death's cause icon (lava, falling...), 0 for none
 	int		time;
 	float	rowY, fromY;			// modern: where the row is drawn, and where it slides from
 	int		moveTime;				// when it started sliding, 0 when placed
@@ -761,6 +763,35 @@ void CG_AddKillFeed( const char *killer, const char *victim, int weapon, int kil
 	k->time = cg.time;
 	k->rowY = k->fromY = 0;		// a reused slot starts afresh
 	k->moveTime = 0;
+	k->suicide = qfalse;
+	k->cause = 0;
+}
+
+/*
+=================
+CG_KillFeedCause
+
+The newest row's cause when the world killed (hud.md 10.8: a white cause
+icon from the icon set), or a real suicide (the word, no icon)
+=================
+*/
+void CG_KillFeedCause( int mod, qboolean suicide ) {
+	killFeed_t	*k = &killFeed[( killFeedHead - 1 + KILLFEED_QUEUE ) % KILLFEED_QUEUE];
+	const char	*key = NULL;
+
+	k->suicide = suicide;
+	switch ( mod ) {
+	case MOD_TELEFRAG:	key = "telefrag"; break;
+	case MOD_FALLING: case MOD_TRIGGER_HURT:	key = "fall"; break;
+	case MOD_LAVA:		key = "lava"; break;
+	case MOD_SLIME:		key = "acid"; break;
+	case MOD_CRUSH:		key = "crushed"; break;
+	case MOD_WATER:		key = "drowning"; break;
+	default:			break;
+	}
+	if ( key && !suicide ) {
+		k->cause = trap_R_RegisterShaderNoMip( va( "gfx/tremor/icons/causes/%s", key ) );
+	}
 }
 
 /*
@@ -789,6 +820,63 @@ static void CG_KillFeedName( int x, int y, const char *name, int team, const vec
 
 /*
 =================
+CG_WeaponArt
+
+hud.md 10.12 and the icon set (gfx/tremor/icons): a weapon's side view
+(256 x 128, white) and its hue, its ammo type's glyph and that hue
+=================
+*/
+typedef struct {
+	int			weapon;
+	const char	*icon, *ammo;
+	float		hue[3], ammoHue[3];
+} weaponArt_t;
+
+static const weaponArt_t	weaponArt[] = {
+	{ WP_GAUNTLET, "melee", NULL, { 0.91f, 0.91f, 0.91f }, { 0.91f, 0.91f, 0.91f } },
+	{ WP_MACHINEGUN, "machinegun", "bullets", { 0.973f, 0.831f, 0.078f }, { 0.973f, 0.831f, 0.078f } },
+	{ WP_HEAVY_MACHINEGUN, "hmg", "bullets", { 0.973f, 0.831f, 0.078f }, { 0.973f, 0.831f, 0.078f } },
+	{ WP_SHOTGUN, "shotgun", "shells", { 0.91f, 0.627f, 0.251f }, { 0.91f, 0.627f, 0.251f } },
+	{ WP_SUPER_SHOTGUN, "ssg", "shells", { 0.91f, 0.627f, 0.251f }, { 0.91f, 0.627f, 0.251f } },
+	{ WP_NAILGUN, "nailgun", "nails", { 0, 0.353f, 0.988f }, { 0.494f, 0.259f, 0.965f } },
+	{ WP_SUPER_NAILGUN, "sng", "nails", { 0, 0.353f, 0.988f }, { 0.494f, 0.259f, 0.965f } },
+	{ WP_TRIBOLT, "tribolt", "bolts", { 0.69f, 0.627f, 0.314f }, { 0.69f, 0.627f, 0.314f } },
+	{ WP_ROCKET_LAUNCHER, "rocket", "rockets", { 0.847f, 0.188f, 0.188f }, { 0.847f, 0.188f, 0.188f } },
+	{ WP_LIGHTNING, "lightning", "cells", { 0.188f, 0.784f, 0.784f }, { 0.188f, 0.816f, 0.847f } },
+	{ WP_RAILGUN, "railgun", "slugs", { 0.063f, 0.722f, 0.063f }, { 0.204f, 0.863f, 0.173f } }
+};
+
+static const weaponArt_t *CG_WeaponArt( int w ) {
+	int		i;
+
+	for ( i = 0 ; i < ARRAY_LEN( weaponArt ) ; i++ ) {
+		if ( weaponArt[i].weapon == w ) {
+			return &weaponArt[i];
+		}
+	}
+	return NULL;
+}
+
+static qhandle_t CG_WeaponArtIcon( int w, qboolean ammo ) {
+	static qhandle_t	icons[WP_NUM_WEAPONS][2];
+	static qboolean		loaded[WP_NUM_WEAPONS][2];
+	const weaponArt_t	*art = CG_WeaponArt( w );
+
+	if ( !art || w <= WP_NONE || w >= WP_NUM_WEAPONS ) {
+		return 0;
+	}
+	if ( !loaded[w][ammo] ) {
+		loaded[w][ammo] = qtrue;
+		if ( ammo ? art->ammo != NULL : qtrue ) {
+			icons[w][ammo] = trap_R_RegisterShaderNoMip( ammo ? va( "gfx/tremor/icons/ammo/%s", art->ammo )
+				: va( "gfx/tremor/icons/weapons/%s", art->icon ) );
+		}
+	}
+	return icons[w][ammo];
+}
+
+/*
+=================
 CG_DrawKillFeedModern
 
 hud.md 9.3: from the killfeed place (44, 267) down, 23 dp text, the
@@ -813,7 +901,7 @@ static void CG_KillFeedNameModern( float x, float y, const char *name, int team,
 		// the team's own colour)
 		int		mine = cg.snap->ps.persistant[PERS_TEAM];
 
-		if ( mine == TEAM_RED || mine == TEAM_BLUE ) {
+		if ( ( mine == TEAM_RED || mine == TEAM_BLUE ) && !cg_colorBlind.integer ) {
 			if ( team == mine ) {
 				VectorSet( c, 0.329f, 0.627f, 0.816f );
 			} else {
@@ -893,7 +981,7 @@ static void CG_DrawKillFeedModern( int rows ) {
 		(void)w; (void)band; (void)me;
 		x = fx;
 		// a suicide: the name, then the word, no icon
-		if ( !k->killer[0] || k->killerNum == k->victimNum ) {
+		if ( k->suicide || ( k->killer[0] && k->killerNum == k->victimNum ) ) {
 			CG_KillFeedNameModern( x, y + ( icon - ch ) / 2, victim, k->victimTeam, fade, cw, ch );
 			x += CG_DrawStrlen( victim ) * cw + 13 * DP;
 			CG_DrawStringExt( x, y + ( icon - ch ) / 2, BG_String( STR_KF_SUICIDE ), fade, qtrue, qtrue, cw, ch, 0 );
@@ -916,8 +1004,22 @@ static void CG_DrawKillFeedModern( int rows ) {
 			x += cw + 4;
 		}
 		trap_R_SetColor( fade );
-		if ( k->weapon > WP_NONE && k->weapon < WP_NUM_WEAPONS && cg_weapons[k->weapon].weaponIcon ) {
+		if ( k->weapon > WP_NONE && k->weapon < WP_NUM_WEAPONS && CG_WeaponArtIcon( k->weapon, qfalse ) ) {
+			// hud.md 10.8: the weapon's side view in its hue
+			const weaponArt_t	*art = CG_WeaponArt( k->weapon );
+			vec4_t				hue = { 1, 1, 1, 1 };
+
+			if ( art ) {
+				VectorCopy( art->hue, hue );
+			}
+			hue[3] = fade[3];
+			trap_R_SetColor( hue );
+			CG_DrawPic( x, y + icon / 4, icon * 2, icon, CG_WeaponArtIcon( k->weapon, qfalse ) );
+			x += icon;
+		} else if ( k->weapon > WP_NONE && k->weapon < WP_NUM_WEAPONS && cg_weapons[k->weapon].weaponIcon ) {
 			CG_DrawPic( x, y, icon, icon, cg_weapons[k->weapon].weaponIcon );
+		} else if ( k->cause ) {
+			CG_DrawPic( x, y, icon, icon, k->cause );		// white: the world's causes
 		} else if ( skull ) {
 			CG_DrawPic( x, y, icon, icon, skull );		// suicide or the world
 		}
@@ -4723,7 +4825,7 @@ static void CG_DrawHitReadout( void ) {
 	float	scale = cg_damagePlumScale.value < 1 ? 1 : cg_damagePlumScale.value > 2 ? 2 : cg_damagePlumScale.value;
 	int		i, t;
 
-	if ( !cg_damagePlum.integer || cg_damagePlum.integer == 2 ) {
+	if ( !cg_damagePlum.integer || cg_damagePlum.integer == 2 || !CG_HudModern() ) {
 		return;
 	}
 #ifndef MISSIONPACK
@@ -7486,7 +7588,7 @@ static void CG_DrawVitalsSide( vitalsAnim_t *va_, const playerState_t *ps, int v
 	vec4_t		numColor, plate, c;
 	float		scale = 1, f, cw = 25 * DP, chh = 16 * DP, inset = 3 * DP, pitch = 31 * DP, valueW;
 	int			cells, i, over = 0, kind;
-	qboolean	low = lowRed && value <= 25, prot = ps->powerups[PW_BATTLESUIT] > cg.time;
+	qboolean	low = lowRed && !isArmor && value <= 25, prot = ps->powerups[PW_BATTLESUIT] > cg.time;
 	char		*s;
 
 	// a new life or a different followed player: no animation
@@ -7658,63 +7760,6 @@ static void CG_DrawVitals( void ) {
 
 /*
 =================
-CG_WeaponArt
-
-hud.md 10.12 and the icon set (gfx/tremor/icons): a weapon's side view
-(256 x 128, white) and its hue, its ammo type's glyph and that hue
-=================
-*/
-typedef struct {
-	int			weapon;
-	const char	*icon, *ammo;
-	float		hue[3], ammoHue[3];
-} weaponArt_t;
-
-static const weaponArt_t	weaponArt[] = {
-	{ WP_GAUNTLET, "melee", NULL, { 0.91f, 0.91f, 0.91f }, { 0.91f, 0.91f, 0.91f } },
-	{ WP_MACHINEGUN, "machinegun", "bullets", { 0.973f, 0.831f, 0.078f }, { 0.973f, 0.831f, 0.078f } },
-	{ WP_HEAVY_MACHINEGUN, "hmg", "bullets", { 0.973f, 0.831f, 0.078f }, { 0.973f, 0.831f, 0.078f } },
-	{ WP_SHOTGUN, "shotgun", "shells", { 0.91f, 0.627f, 0.251f }, { 0.91f, 0.627f, 0.251f } },
-	{ WP_SUPER_SHOTGUN, "ssg", "shells", { 0.91f, 0.627f, 0.251f }, { 0.91f, 0.627f, 0.251f } },
-	{ WP_NAILGUN, "nailgun", "nails", { 0, 0.353f, 0.988f }, { 0.494f, 0.259f, 0.965f } },
-	{ WP_SUPER_NAILGUN, "sng", "nails", { 0, 0.353f, 0.988f }, { 0.494f, 0.259f, 0.965f } },
-	{ WP_TRIBOLT, "tribolt", "bolts", { 0.69f, 0.627f, 0.314f }, { 0.69f, 0.627f, 0.314f } },
-	{ WP_ROCKET_LAUNCHER, "rocket", "rockets", { 0.847f, 0.188f, 0.188f }, { 0.847f, 0.188f, 0.188f } },
-	{ WP_LIGHTNING, "lightning", "cells", { 0.188f, 0.784f, 0.784f }, { 0.188f, 0.816f, 0.847f } },
-	{ WP_RAILGUN, "railgun", "slugs", { 0.063f, 0.722f, 0.063f }, { 0.204f, 0.863f, 0.173f } }
-};
-
-static const weaponArt_t *CG_WeaponArt( int w ) {
-	int		i;
-
-	for ( i = 0 ; i < ARRAY_LEN( weaponArt ) ; i++ ) {
-		if ( weaponArt[i].weapon == w ) {
-			return &weaponArt[i];
-		}
-	}
-	return NULL;
-}
-
-static qhandle_t CG_WeaponArtIcon( int w, qboolean ammo ) {
-	static qhandle_t	icons[WP_NUM_WEAPONS][2];
-	static qboolean		loaded[WP_NUM_WEAPONS][2];
-	const weaponArt_t	*art = CG_WeaponArt( w );
-
-	if ( !art || w <= WP_NONE || w >= WP_NUM_WEAPONS ) {
-		return 0;
-	}
-	if ( !loaded[w][ammo] ) {
-		loaded[w][ammo] = qtrue;
-		if ( ammo ? art->ammo != NULL : qtrue ) {
-			icons[w][ammo] = trap_R_RegisterShaderNoMip( ammo ? va( "gfx/tremor/icons/ammo/%s", art->ammo )
-				: va( "gfx/tremor/icons/weapons/%s", art->icon ) );
-		}
-	}
-	return icons[w][ammo];
-}
-
-/*
-=================
 CG_DrawAmmoCounter
 
 hud.md 9.7: 83 dp digits right-aligned in x 1507-1734, top 893, the
@@ -7852,7 +7897,7 @@ static void CG_DrawWeaponColumn( void ) {
 			// the held plate: mostly transparent; the orange bracket round the gauge
 			static const vec4_t	bracket = { 0.847f, 0.533f, 0.314f, 1 };
 
-			CG_FillRect( HX_R( 1729 ), y - 8 * DP, 173 * DP, 75 * DP, plate );
+			(void)plate;		// (the plate itself is clear: only the bracket shows)
 			CG_FillRect( HX_R( 1843 ), y, 19 * DP, 1.5f * DP, bracket );
 			CG_FillRect( HX_R( 1843 ), y + 57.5f * DP, 19 * DP, 1.5f * DP, bracket );
 			CG_FillRect( HX_R( 1843 ), y, 1.5f * DP, 59 * DP, bracket );

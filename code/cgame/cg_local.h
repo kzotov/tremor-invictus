@@ -1707,6 +1707,7 @@ void CG_InvulnerabilityJuiced( vec3_t org );
 void CG_LightningBoltBeam( vec3_t start, vec3_t end );
 #endif
 void CG_HitReadoutAdd( int target, int weapon, int damage );
+qboolean CG_HudModern( void );
 void CG_DamagePlum( int client, int target, int weapon, vec3_t org, int damage );
 void CG_ScorePlum( int client, vec3_t org, int score );
 
@@ -2016,6 +2017,7 @@ void CG_FragBanner( const char *fragger, const char *victim, const char *line );
 void CG_AddSystemLine( const char *text );
 void CG_ConnectLine( const char *text );
 void CG_ServerLine( const char *text );
+void CG_KillFeedCause( int mod, qboolean suicide );
 void CG_AddKillFeed( const char *killer, const char *victim, int weapon, int killerNum, int victimNum );
 void CG_AddChat( const char *text );
 void CG_DrawDuelBoard( void );

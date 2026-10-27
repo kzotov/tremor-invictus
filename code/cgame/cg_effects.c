@@ -548,7 +548,7 @@ void CG_DamagePlum( int client, int target, int weapon, vec3_t org, int damage )
 	}
 	// hud.md 10.9: by default the numbers go to the hit readout by the
 	// crosshair; cg_damagePlum 2 floats them up from the target as before
-	if ( cg_damagePlum.integer != 2 ) {
+	if ( cg_damagePlum.integer != 2 && CG_HudModern() ) {
 		CG_HitReadoutAdd( target, weapon, damage );
 		return;
 	}

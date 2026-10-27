@@ -797,6 +797,22 @@ static void ComputeColors( shaderStage_t *pStage )
 		}
 	}
 	
+	// an entity drawn see-through (RF_FORCE_ENT_ALPHA): its alpha scales every
+	// stage's, and the colour too where a stage adds light
+	if ( backEnd.currentEntity && ( backEnd.currentEntity->e.renderfx & RF_FORCE_ENT_ALPHA ) ) {
+		int		k = backEnd.currentEntity->e.shaderRGBA[3];
+		int		blend = pStage->stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS );
+
+		for ( i = 0 ; i < tess.numVertexes ; i++ ) {
+			tess.svars.colors[i][3] = tess.svars.colors[i][3] * k / 255;
+			if ( blend && blend != ( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA ) ) {
+				tess.svars.colors[i][0] = tess.svars.colors[i][0] * k / 255;
+				tess.svars.colors[i][1] = tess.svars.colors[i][1] * k / 255;
+				tess.svars.colors[i][2] = tess.svars.colors[i][2] * k / 255;
+			}
+		}
+	}
+
 	// if in greyscale rendering mode turn all color values into greyscale.
 	if(r_greyscale->integer)
 	{
@@ -966,7 +982,15 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			//
 			R_BindAnimatedImage( &pStage->bundle[0] );
 
-			GL_State( pStage->stateBits );
+			// a see-through entity: opaque stages blend by alpha and leave
+			// the depth alone
+			if ( backEnd.currentEntity && ( backEnd.currentEntity->e.renderfx & RF_FORCE_ENT_ALPHA )
+				&& !( pStage->stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) ) {
+				GL_State( ( pStage->stateBits & ~( GLS_DEPTHMASK_TRUE | GLS_ATEST_BITS ) )
+					| GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
+			} else {
+				GL_State( pStage->stateBits );
+			}
 
 			//
 			// draw
@@ -1334,7 +1358,12 @@ void RB_EndSurface( void ) {
 	//
 	// call off to shader specific tess end function
 	//
-	tess.currentStageIteratorFunc();
+	// (see-through entities need the generic iterator's blending)
+	if ( backEnd.currentEntity && ( backEnd.currentEntity->e.renderfx & RF_FORCE_ENT_ALPHA ) ) {
+		RB_StageIteratorGeneric();
+	} else {
+		tess.currentStageIteratorFunc();
+	}
 
 	//
 	// draw debugging stuff

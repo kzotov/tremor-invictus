@@ -1285,6 +1285,15 @@ CG_AddWeaponWithPowerups
 static void CG_AddWeaponWithPowerups( refEntity_t *gun, int powerups, const entityState_t *state ) {
 	int		ghost = state ? CG_GhostLook( state ) : ( powerups & ( 1 << PW_INVIS ) ) ? GHOST_SHIMMER : GHOST_NORMAL;
 
+	// Nyx's own view in Ghost Walk: her gun see-through, its own look at
+	// 35 % (Konstantin's idea), not the shimmer
+	if ( ( gun->renderfx & RF_FIRST_PERSON ) && state && CG_InGhostWalk( state ) ) {
+		gun->renderfx |= RF_FORCE_ENT_ALPHA;
+		gun->shaderRGBA[0] = gun->shaderRGBA[1] = gun->shaderRGBA[2] = 255;
+		gun->shaderRGBA[3] = 90;
+		trap_R_AddRefEntityToScene( gun );
+		return;
+	}
 	// add powerup effects (Ghost Walk: as the body, CG_GhostLook)
 	if ( ghost == GHOST_HIDDEN ) {
 		return;
