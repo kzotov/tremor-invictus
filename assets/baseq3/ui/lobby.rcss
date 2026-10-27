@@ -84,3 +84,7 @@ div { display: block; }
 .tname { font-size: 13dp; color: #e8e4dc; white-space: nowrap; overflow: hidden; }
 
 .esc { position: absolute; left: 82dp; bottom: 228dp; font-size: 13dp; color: #77777c; }
+
+/* a spectator in a team lobby: join a side */
+.joinbar { position: absolute; left: 0; right: 0; bottom: 250dp; text-align: center; }
+.joinbar button { display: inline-block; font-size: 30dp; margin: 0 12dp; }

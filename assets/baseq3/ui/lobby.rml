@@ -112,6 +112,11 @@
 				</div>
 			</div>
 		</div>
+		<div class="joinbar" data-when="lb_spec=1">
+			<button class="opt" onclick="team red">[join_red]</button>
+			<button class="opt" onclick="team blue">[join_blue]</button>
+			<button class="opt" onclick="team free">[join_auto]</button>
+		</div>
 		<div class="esc">[lb_esc]</div>
 	</div>
 </body>

@@ -1699,6 +1699,8 @@ If one or more players have not acknowledged the continue, the game will
 wait 10 seconds before going on.
 =================
 */
+#define INTERMISSION_PODIUM_MSEC	6000	// the podium before the end board (cgame)
+
 void CheckIntermissionExit( void ) {
 	int			ready, notReady, playerCount;
 	int			i;
@@ -1749,8 +1751,10 @@ void CheckIntermissionExit( void ) {
 		return;
 	}
 
-	// the end board never outstays g_intermissionTime, whatever the vote
-	if ( g_intermissionTime.integer > 0 && level.time >= level.intermissiontime + g_intermissionTime.integer * 1000 ) {
+	// with no map vote (the lobby votes, or g_mapVote 0) the end board
+	// leaves g_intermissionTime after the podium; a vote decides it otherwise
+	if ( !G_MapVoteActive() && !G_MapVoteWinner() && g_intermissionTime.integer > 0
+		&& level.time >= level.intermissiontime + INTERMISSION_PODIUM_MSEC + g_intermissionTime.integer * 1000 ) {
 		ExitLevel();
 		return;
 	}

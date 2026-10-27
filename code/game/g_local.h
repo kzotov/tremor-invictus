@@ -288,6 +288,7 @@ typedef struct {
 	qboolean	motdShown;
 	int			teamVoteCount;		// to prevent people from constantly calling votes
 	qboolean	teamInfo;			// send team overlay updates?
+	qboolean	lobbyJoined;		// put on a team once by the lobby (team modes)
 } clientPersistant_t;
 
 // a player's part in the running vote (callvote.md 3: who may vote is fixed

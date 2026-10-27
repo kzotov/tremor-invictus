@@ -6010,9 +6010,9 @@ static void CG_DrawIntermission( void ) {
 	// how long the end board stays (g_intermissionTime)
 	{
 		int		total = atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_intermissionTime" ) );
-		int		left = total - ( cg.time - cg.podiumTime ) / 1000;
+		int		left = total - ( cg.time - cg.podiumTime - 6000 ) / 1000;		// (from the podium's end)
 
-		if ( total > 0 && cg.podiumTime ) {
+		if ( total > 0 && cg.podiumTime && !CG_ConfigString( CS_MAPVOTE )[0] ) {		// (a map vote has its own clock)
 			CG_HudText( 320, 462, 16, va( (char *)BG_String( STR_END_NEXT ), left > 0 ? left : 0 ), colorWhite, 1, 1 );
 		}
 	}
@@ -6790,6 +6790,7 @@ static qboolean CG_DrawLobby( void ) {
 	}
 
 	CG_LobbyCvar( "lb_phase", phases[phase] );
+	CG_LobbyCvar( "lb_spec", cgs.gametype >= GT_TEAM && cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR ? "1" : "0" );
 	CG_LobbyCvar( "lb_mode", mode == 1 ? "blind" : mode == 2 ? "none" : "free" );
 	secs = end ? ( end - cg.time + 999 ) / 1000 : 0;
 	CG_LobbyCvar( "lb_secs", secs > 0 ? va( "%i", secs ) : "" );

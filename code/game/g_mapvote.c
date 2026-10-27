@@ -648,6 +648,19 @@ void G_LobbyThink( void ) {
 	if ( lobbyPhase == LOBBY_OFF ) {
 		return;
 	}
+	// team modes: a human who came in spectating, and never chose, is put
+	// on a team once while the lobby waits (frontend-ux FIX-54 3); the
+	// lobby page also offers JOIN RED / BLUE / AUTO to a spectator
+	if ( g_gametype.integer >= GT_TEAM && ( lobbyPhase == LOBBY_WAIT || lobbyPhase == LOBBY_SOON ) ) {
+		for ( i = 0 ; i < level.maxclients ; i++ ) {
+			cl = &level.clients[i];
+			if ( cl->pers.connected == CON_CONNECTED && cl->sess.sessionTeam == TEAM_SPECTATOR && !cl->pers.lobbyJoined
+				&& !( g_entities[i].r.svFlags & SVF_BOT ) && cl->sess.spectatorState == SPECTATOR_FREE ) {
+				cl->pers.lobbyJoined = qtrue;
+				SetTeam( &g_entities[i], "free" );
+			}
+		}
+	}
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
 		cl = &level.clients[i];
 		if ( cl->pers.connected != CON_CONNECTED || cl->sess.sessionTeam == TEAM_SPECTATOR ) {
