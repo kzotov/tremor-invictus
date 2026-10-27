@@ -31,10 +31,13 @@ module each, each with a look():
                        Scalebearer on razor's "id" armour with visor's helm
                        (looks/scalebearer.py): gold-rimmed red scales, bronze
                        scales over the arms, a gold shield, a red bronze helm
+  models/players/major/*_raine*.skin, ...
+                       Raine on major (looks/raine.py): a slate survivor's
+                       suit with blue lights, the hair darkened
 """
 import importlib
 
-MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer")
+MODULES = ("nyx", "deathknight", "athena", "bj", "eisen", "galena", "scalebearer", "raine")
 
 
 def ALL():
