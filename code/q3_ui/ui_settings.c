@@ -1115,8 +1115,11 @@ static void Rml_Option( const settingRow_t *row, const char *condition, const ch
 	// (the callers may pass va() strings, which the next va() reuses)
 	Q_strncpyz( cond, condition, sizeof( cond ) );
 	Q_strncpyz( cmd, command, sizeof( cmd ) );
+	// the screen's size and mode apply at once (the video restarts, and the
+	// Video tab comes back after it); other restart settings wait for Apply
 	Rml_Add( va( "<button class=\"opt\" data-class=\"on:%s\" onclick=\"%s%s\">%s</button>", cond, cmd,
-		row->restart ? "; set ui_setRestart 1" : "", UI_RmlText( label ) ) );
+		row->type == ROW_RESOLUTION || row->type == ROW_DISPLAY ? "; set ui_afterRestart 1; vid_restart"
+		: row->restart ? "; set ui_setRestart 1" : "", UI_RmlText( label ) ) );
 }
 
 /*

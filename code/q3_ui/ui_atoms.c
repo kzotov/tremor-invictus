@@ -1401,6 +1401,17 @@ void UI_Init( void ) {
 	// initialize the menu system
 	Menu_Cache();
 
+	// back on the Video tab after a resolution or display change restarted
+	// the video (ui_settings.c)
+	if ( trap_Cvar_VariableValue( "ui_afterRestart" ) ) {
+		uiClientState_t	cs;
+
+		trap_Cvar_Set( "ui_afterRestart", "0" );
+		trap_GetClientState( &cs );
+		trap_Cmd_ExecuteText( EXEC_APPEND, cs.connState == CA_ACTIVE ? "togglemenu\nwait 2\nrml_hide\nui_settings 0\n"
+			: "wait 2\nui_settings 0\n" );
+	}
+
 	// F3 readies up in warm-up, unless the player has bound something there
 	{
 		char	binding[64];
