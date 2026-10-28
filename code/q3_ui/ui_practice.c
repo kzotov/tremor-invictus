@@ -455,7 +455,11 @@ static void Practice_DrawMap( void *self ) {
 	}
 	Q_strncpyz( name, Practice_MapName( i ), sizeof( name ) );
 	shot = trap_R_RegisterShaderNoMip( va( "levelshots/%s", name ) );
-	UI_DrawLevelshot( x, y, MAP_W, MAP_H, shot );
+	if ( shot ) {
+		UI_DrawHandlePic( x, y, MAP_W, MAP_H, shot );
+	} else {
+		UI_FillRect( x, y, MAP_W, MAP_H, colorBlack );
+	}
 	if ( i == s_practice.selected ) {
 		UI_DrawRect( x - 2, y - 2, MAP_W + 4, MAP_H + 4, color_white );
 		UI_DrawRect( x - 1, y - 1, MAP_W + 2, MAP_H + 2, color_white );

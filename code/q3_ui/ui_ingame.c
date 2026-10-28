@@ -305,7 +305,9 @@ static void InGame_Draw( void ) {
 	UI_FillRect( left, 0, 220 - left, 480, panel );
 	UI_FillRect( 220, 0, 1, 480, hairline );
 
-	UI_DrawLogo( 20, 14, 48 );
+	if ( uis.logoShader ) {
+		UI_DrawHandlePic( 20, 16, 180, 47, uis.logoShader );
+	}
 	trap_GetConfigString( CS_SERVERINFO, info, sizeof( info ) );
 	Q_strncpyz( map, Info_ValueForKey( info, "mapname" ), sizeof( map ) );
 	Q_strupr( map );

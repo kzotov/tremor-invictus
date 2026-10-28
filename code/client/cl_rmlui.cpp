@@ -110,41 +110,6 @@ void StraightAlpha( unsigned char *rgba ) {
 	}
 }
 
-// levelshots, and the missing-map picture in their place, hold a 4:3
-// picture squeezed into their texture: in documents they count as this size
-const int	LEVELSHOT_W = 1024, LEVELSHOT_H = 768;
-
-bool IsLevelshot( const char *path ) {
-	return !strncmp( path[0] == '/' ? path + 1 : path, "levelshots/", 11 );
-}
-
-/*
-=================
-FitLevelshot
-
-A levelshot <img> shows the middle of its 4:3 picture in the shape of its
-box (rect, in LEVELSHOT_W x LEVELSHOT_H terms), cropped instead of stretched
-=================
-*/
-void FitLevelshot( Rml::Element *img ) {
-	Rml::Vector2f	size = img->GetBox().GetSize();
-	float			w = LEVELSHOT_W, h = LEVELSHOT_H;
-	char			rect[64];
-
-	if ( size.x <= 0 || size.y <= 0 ) {
-		return;		// not laid out yet
-	}
-	if ( size.x / size.y > w / h ) {
-		h = w * size.y / size.x;
-	} else {
-		w = h * size.x / size.y;
-	}
-	snprintf( rect, sizeof( rect ), "%.0f %.0f %.0f %.0f", ( LEVELSHOT_W - w ) / 2, ( LEVELSHOT_H - h ) / 2, w, h );
-	if ( img->GetAttribute<Rml::String>( "rect", "" ) != rect ) {
-		img->SetAttribute( "rect", Rml::String( rect ) );
-	}
-}
-
 int WhiteShader( void ) {
 	if ( !whiteShader ) {
 		static const unsigned char	white[4 * 4] = {
@@ -192,17 +157,10 @@ public:
 	}
 
 	// images by game path; their size comes from the file's header (PNG,
-	// TGA), else documents give it in their style. A levelshot is a 4:3
-	// picture whatever its pixels (FitLevelshot crops it in those terms);
-	// a map without one shows the missing-map picture, made the same way
+	// TGA), else documents give it in their style
 	Rml::TextureHandle LoadTexture( Rml::Vector2i &dimensions, const Rml::String &source ) override {
 		unsigned char	*data = nullptr;
-		int				len;
-
-		if ( source.empty() ) {
-			return 0;		// an <img> whose cvar is empty: reading "" is an error
-		}
-		len = imp.ReadFile( source.c_str(), (void **)&data );
+		int				len = imp.ReadFile( source.c_str(), (void **)&data );
 		Rml::String		name = source;
 		size_t			dot;
 
@@ -222,12 +180,6 @@ public:
 		dot = name.find_last_of( '.' );
 		if ( dot != Rml::String::npos ) {
 			name = name.substr( 0, dot );
-		}
-		if ( IsLevelshot( name.c_str() ) ) {
-			int		shader = imp.RegisterShaderNoMip( name.c_str() );
-
-			dimensions = Rml::Vector2i( LEVELSHOT_W, LEVELSHOT_H );
-			return (Rml::TextureHandle)( shader ? shader : imp.RegisterShaderNoMip( "gfx/tremor/splash/nomap" ) );
 		}
 		return (Rml::TextureHandle)imp.RegisterShaderNoMip( name.c_str() );
 	}
@@ -758,11 +710,6 @@ void ApplyConditions( Rml::Element *element ) {
 			imp.GetCvar( src->Get<Rml::String>().c_str(), value, sizeof( value ) );
 			if ( child->GetAttribute<Rml::String>( "src", "" ) != Rml::String( "/" ) + value ) {
 				child->SetAttribute( "src", Rml::String( "/" ) + value );
-			}
-			if ( IsLevelshot( value ) ) {
-				FitLevelshot( child );
-			} else if ( child->HasAttribute( "rect" ) ) {
-				child->RemoveAttribute( "rect" );
 			}
 		}
 

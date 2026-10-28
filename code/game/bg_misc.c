@@ -2216,17 +2216,15 @@ static char *BG_ModelNameEnd( char *model ) {
 BG_ChampionForModel
 
 Returns the champion that uses this player model ("name" or "name/skin"),
-or -1 if none does. A model or skin named after a champion is that champion
-(a bot made for one, "galena" or "ranger/wrack"). Otherwise two champions can
-wear the same body (Death Knight wears visor's under his own skin), so the
-closest match wins: the same model and skin, the model worn without a skin of
-its own, any skin of the model, the model as a head, then the table's body and
-head models when local models stand in for them
+or -1 if none does. Two champions can wear the same body (Death Knight wears
+visor's under his own skin), so the closest match wins: the same model and
+skin, the model worn without a skin of its own, any skin of the model, the
+model as a head, then the table's model when a local test model stands in
 ==============
 */
 int BG_ChampionForModel( const char *model ) {
 	char	name[MAX_QPATH], own[MAX_QPATH];
-	char	*end, *skin;
+	char	*end;
 	int		i, pass;
 
 	Q_strncpyz( name, model, sizeof( name ) );
@@ -2234,13 +2232,7 @@ int BG_ChampionForModel( const char *model ) {
 	if ( end ) {
 		*end = 0;
 	}
-	skin = strchr( name, '/' );
-	for ( i = 0 ; i < bg_numChampions ; i++ ) {
-		if ( !Q_stricmp( name, bg_championList[i].name ) || ( skin && !Q_stricmp( skin + 1, bg_championList[i].name ) ) ) {
-			return i;
-		}
-	}
-	for ( pass = 0 ; pass < 6 ; pass++ ) {
+	for ( pass = 0 ; pass < 5 ; pass++ ) {
 		if ( pass == 1 ) {
 			end = strchr( name, '/' );
 			if ( end ) {
@@ -2252,9 +2244,6 @@ int BG_ChampionForModel( const char *model ) {
 				BG_ChampionHead( i, own, sizeof( own ) );
 			} else if ( pass == 4 ) {
 				Q_strncpyz( own, bg_championList[i].model, sizeof( own ) );
-			} else if ( pass == 5 ) {
-				end = strchr( bg_championList[i].model, ':' );
-				Q_strncpyz( own, end ? end + 1 : bg_championList[i].model, sizeof( own ) );
 			} else {
 				BG_ChampionModel( i, own, sizeof( own ) );
 			}
