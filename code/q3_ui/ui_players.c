@@ -1154,6 +1154,12 @@ static qboolean UI_RegisterClientSkin( playerInfo_t *pi, const char *modelName, 
 
 	Com_sprintf( filename, sizeof( filename ), "models/players/%s/head_%s.skin", modelName, skinName );
 	pi->headSkin = trap_R_RegisterSkin( filename );
+	if ( !pi->headSkin ) {
+		// a look whose head comes from another model has no head skin
+		// here (UI_PlayerInfo_SetHead puts that head on): the model's own
+		Com_sprintf( filename, sizeof( filename ), "models/players/%s/head_default.skin", modelName );
+		pi->headSkin = trap_R_RegisterSkin( filename );
+	}
 
 	if ( !pi->legsSkin || !pi->torsoSkin || !pi->headSkin ) {
 		return qfalse;
