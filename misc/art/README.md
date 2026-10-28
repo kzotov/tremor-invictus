@@ -16,6 +16,11 @@ home folder. Plain Python 3, no packages.
 
 The pillar and podium textures come from `misc/textures/make-pillar-textures.py`.
 
+The splash pictures, the console background and the menu logo drawn here
+are placeholders: `import-brand-art.py` copies the approved branding pack
+(kept outside the repository, see "UI branding" in the top README) over them
+after every configure and build, and stages the app icons.
+
 To change a picture, change its script; the next configure redraws
 everything here. To draw by hand into a folder:
 

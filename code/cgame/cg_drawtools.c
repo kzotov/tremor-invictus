@@ -208,6 +208,100 @@ void CG_DrawPic( float x, float y, float width, float height, qhandle_t hShader 
 	trap_R_DrawStretchPic( x, y, width, height, 0, 0, 1, 1, hShader );
 }
 
+/*
+================
+CG_LevelshotAspect
+
+The shape (width over height) of a map's levelshot picture. The classic
+ones are square textures holding a 4:3 picture; others (1920 x 1080...)
+are their own shape. A map without one shows the missing-map picture, 4:3
+in a square texture too. Remembers the last few maps asked for
+================
+*/
+float CG_LevelshotAspect( const char *map ) {
+	static struct {
+		char	map[MAX_QPATH];
+		float	aspect;
+	}				known[8];
+	static int		next;
+	static byte		head[4096];
+	static const char	*exts[] = { "tga", "jpg", "png" };
+	fileHandle_t	f;
+	int				i, len, w, h;
+	float			aspect = 4.0f / 3.0f;
+
+	for ( i = 0 ; i < 8 ; i++ ) {
+		if ( known[i].map[0] && !Q_stricmp( known[i].map, map ) ) {
+			return known[i].aspect;
+		}
+	}
+	for ( i = 0 ; i < 3 ; i++ ) {
+		len = trap_FS_FOpenFile( va( "levelshots/%s.%s", map, exts[i] ), &f, FS_READ );
+		if ( !f ) {
+			continue;
+		}
+		if ( len > (int)sizeof( head ) ) {
+			len = sizeof( head );
+		}
+		trap_FS_Read( head, len, f );
+		trap_FS_FCloseFile( f );
+		if ( Q_ImageSize( head, len, &w, &h ) && w != h && w > 0 && h > 0 ) {
+			aspect = (float)w / h;
+		}
+		break;
+	}
+	Q_strncpyz( known[next].map, map, sizeof( known[next].map ) );
+	known[next].aspect = aspect;
+	next = ( next + 1 ) % 8;
+	return aspect;
+}
+
+/*
+================
+CG_DrawLevelshotPic
+
+A map's levelshot in a box, or the missing-map picture when it has none,
+cropped to the box in the picture's own shape instead of stretched
+================
+*/
+void CG_DrawLevelshotPic( float x, float y, float width, float height, const char *map ) {
+	qhandle_t	shot = trap_R_RegisterShaderNoMip( va( "levelshots/%s.tga", map ) );
+	float		picture = CG_LevelshotAspect( map ), box, s0 = 0, s1 = 1, t0 = 0, t1 = 1;
+
+	if ( !shot ) {
+		shot = trap_R_RegisterShaderNoMip( "gfx/tremor/splash/nomap" );
+	}
+	CG_LayoutRecord( 'p', x, y, width, height, NULL );
+	CG_AdjustFrom640( &x, &y, &width, &height );
+	box = width / height;
+	if ( box > picture ) {
+		t0 = 0.5f - 0.5f * picture / box;
+		t1 = 1.0f - t0;
+	} else {
+		s0 = 0.5f - 0.5f * box / picture;
+		s1 = 1.0f - s0;
+	}
+	trap_R_DrawStretchPic( x, y, width, height, s0, t0, s1, t1, shot );
+}
+
+/*
+================
+CG_DrawLogo
+
+The horizontal logo with its artwork's top left corner at x, y and the
+artwork h high. The texture holds the artwork with transparent margins
+(misc/art/import-brand-art.py fits the placeholder logo into the same box)
+================
+*/
+void CG_DrawLogo( float x, float y, float h ) {
+	qhandle_t	logo = trap_R_RegisterShaderNoMip( "gfx/tremor/logo" );
+	float		th = h * 270 / 188.0f, tw = th * 1024 / 270.0f;
+
+	if ( logo ) {
+		CG_DrawPic( x - tw * 188 / 1024.0f, y - th * 46 / 270.0f, tw, th, logo );
+	}
+}
+
 
 
 /*

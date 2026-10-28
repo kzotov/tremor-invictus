@@ -44,6 +44,7 @@ typedef struct {
 	int		(*Milliseconds)( void );
 	int		(*ReadFile)( const char *path, void **buffer );	// game file system; -1 when missing
 	void	(*FreeFile)( void *buffer );
+	int		(*ImageSize)( const char *path, int *width, int *height );	// a picture file's size; 0 when missing or unknown
 	void	(*SetCvar)( const char *name, const char *value );
 	void	(*GetCvar)( const char *name, char *buffer, int size );
 } rmlImport_t;

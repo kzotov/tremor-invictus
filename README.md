@@ -71,6 +71,24 @@ example in `local.cfg`:
 The commit guard refuses archives and model files, and `.gitignore` skips
 them.
 
+## UI branding
+
+The approved logo, emblem, backdrops, console and missing-map pictures and
+the app icons are finished art, so they stay outside this repository too: a
+pack in `~/projects/quake/local/branding/tremor-invictus-v1` (or
+`$TREMOR_LOCAL/branding/...`, or wherever `TREMOR_BRAND` points; CMake's
+`TREMOR_BRAND_DIR`). Configure, every build, `scripts/run-macos.sh`,
+`scripts/test-run.sh` and `scripts/package.sh` copy it over the placeholder
+art the build draws, with `misc/art/import-brand-art.py`:
+
+    python3 misc/art/import-brand-art.py sync build-macos/generated --icons build-macos/brand
+    python3 misc/art/import-brand-art.py status build-macos/generated
+
+Without the pack the game shows the drawn placeholders (the working logo
+from `misc/logo`) and the scripts warn; `scripts/package.sh` refuses to
+package them unless `TREMOR_ALLOW_PLACEHOLDER_BRAND=1`. The app icons come
+from the pack at configure time: configure again after adding it.
+
 ## Test runs
 
 `scripts/test-run.sh` runs the game for automated tests without disturbing

@@ -3285,6 +3285,18 @@ static int CL_RmlReadFile( const char *path, void **buffer ) {
 static void CL_RmlFreeFile( void *buffer ) {
 	FS_FreeFile( buffer );
 }
+static int CL_RmlImageSize( const char *path, int *width, int *height ) {
+	void	*data;
+	int		len = FS_ReadFile( path, &data );
+	int		ok;
+
+	if ( len <= 0 ) {
+		return 0;
+	}
+	ok = Q_ImageSize( data, len, width, height );
+	FS_FreeFile( data );
+	return ok;
+}
 static void CL_RmlSetCvar( const char *name, const char *value ) {
 	Cvar_Set( name, value );
 }
@@ -3424,6 +3436,7 @@ static void CL_RmlStart( void ) {
 	imp.ExecuteText = CL_RmlExecuteText;
 	imp.Milliseconds = Sys_Milliseconds;
 	imp.ReadFile = CL_RmlReadFile;
+	imp.ImageSize = CL_RmlImageSize;
 	imp.FreeFile = CL_RmlFreeFile;
 	imp.SetCvar = CL_RmlSetCvar;
 	imp.GetCvar = CL_RmlGetCvar;

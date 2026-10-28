@@ -167,18 +167,7 @@ void UI_DrawConnectScreen( qboolean overlay ) {
 	Menu_Cache();
 
 	if ( !overlay ) {
-		// the backdrop over the whole screen, cropped to keep its 2:1 shape
-		float	screen = (float)uis.glconfig.vidWidth / uis.glconfig.vidHeight;
-		float	s0 = 0.5f - 0.25f * screen, s1 = 1.0f - s0, t0 = 0, t1 = 1;
-
-		if ( screen > 2.0f ) {
-			s0 = 0;
-			s1 = 1;
-			t0 = 0.5f - 1.0f / screen;
-			t1 = 1.0f - t0;
-		}
-		UI_SetColor( color_white );
-		trap_R_DrawStretchPic( 0, 0, uis.glconfig.vidWidth, uis.glconfig.vidHeight, s0, t0, s1, t1, uis.menuBackShader );
+		UI_DrawBackdrop();
 	}
 
 	// see what information we should display

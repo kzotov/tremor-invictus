@@ -14,7 +14,8 @@ set(WINDOWS_ICON_PATH ${CMAKE_SOURCE_DIR}/misc/windows/quake3.ico)
 
 set(MACOS_ICON_PATH ${CMAKE_SOURCE_DIR}/misc/macos/quake3_flat.icns)
 
-# the app icon is made from the logo emblem at configure time (macOS tools only)
+# a placeholder app icon is made from the working logo's emblem at configure
+# time (macOS tools only); the branding pack's icons replace it (below)
 if(CMAKE_HOST_APPLE)
     set(TREMOR_ICON_SVG ${CMAKE_SOURCE_DIR}/misc/logo/tremor-invictus-emblem-on-dark.svg)
     set(TREMOR_ICON_ICNS ${CMAKE_BINARY_DIR}/TremorInvictus.icns)
@@ -74,6 +75,55 @@ if(TREMOR_PYTHON3)
         endforeach()
         file(TOUCH ${TREMOR_ART_STAMP})
     endif()
+endif()
+
+# the approved UI branding: a pack of finished art kept outside the repository
+# (misc/art/import-brand-art.py), copied over the drawn placeholders above and
+# again on every build (target tremor-brand), with the app icons staged in
+# build/brand. Without the pack the placeholders stay and configure says so.
+# Container builds have no Python: scripts/build-windows.sh stages build/brand
+# on the host first.
+if(DEFINED ENV{TREMOR_BRAND})
+    set(TREMOR_BRAND_DEFAULT $ENV{TREMOR_BRAND})
+elseif(DEFINED ENV{TREMOR_LOCAL})
+    set(TREMOR_BRAND_DEFAULT $ENV{TREMOR_LOCAL}/branding/tremor-invictus-v1)
+else()
+    set(TREMOR_BRAND_DEFAULT $ENV{HOME}/projects/quake/local/branding/tremor-invictus-v1)
+endif()
+set(TREMOR_BRAND_DIR ${TREMOR_BRAND_DEFAULT} CACHE PATH "The approved UI branding pack (outside the repository)")
+set(TREMOR_BRAND_ICONS ${CMAKE_BINARY_DIR}/brand)
+if(TREMOR_PYTHON3)
+    execute_process(COMMAND ${TREMOR_PYTHON3} -I ${CMAKE_SOURCE_DIR}/misc/art/import-brand-art.py sync
+            ${CMAKE_BINARY_DIR}/generated --pack ${TREMOR_BRAND_DIR} --icons ${TREMOR_BRAND_ICONS}
+        RESULT_VARIABLE TREMOR_BRAND_RESULT
+        ERROR_VARIABLE TREMOR_BRAND_ERRORS)
+    if(TREMOR_BRAND_ERRORS)
+        message(WARNING "UI branding:\n${TREMOR_BRAND_ERRORS}")
+    endif()
+    # the icons too, before the client: a changed .icns reaches the app bundle
+    function(tremor_brand_target)
+        add_custom_target(tremor-brand ALL
+            COMMAND ${TREMOR_PYTHON3} -I ${CMAKE_SOURCE_DIR}/misc/art/import-brand-art.py sync
+                ${CMAKE_BINARY_DIR}/generated --pack ${TREMOR_BRAND_DIR} --icons ${TREMOR_BRAND_ICONS}
+            COMMENT "UI branding" VERBATIM)
+        if(TARGET ${CLIENT_BINARY})
+            add_dependencies(${CLIENT_BINARY} tremor-brand)
+        endif()
+    endfunction()
+    list(APPEND POST_CONFIGURE_FUNCTIONS tremor_brand_target)
+endif()
+if(EXISTS ${TREMOR_BRAND_ICONS}/TremorInvictus.icns)
+    set(MACOS_ICON_PATH ${TREMOR_BRAND_ICONS}/TremorInvictus.icns)
+endif()
+if(EXISTS ${TREMOR_BRAND_ICONS}/tremor-invictus.ico)
+    set(WINDOWS_ICON_PATH ${TREMOR_BRAND_ICONS}/tremor-invictus.ico)
+endif()
+# the window icon SDL sets on Windows and Linux (code/sdl/sdl_glimp.c)
+if(EXISTS ${TREMOR_BRAND_ICONS}/tremor_window_icon.h)
+    list(APPEND CLIENT_DEFINITIONS TREMOR_WINDOW_ICON)
+    list(APPEND RENDERER_DEFINITIONS TREMOR_WINDOW_ICON)
+    list(APPEND CLIENT_INCLUDE_DIRS ${TREMOR_BRAND_ICONS})
+    list(APPEND RENDERER_INCLUDE_DIRS ${TREMOR_BRAND_ICONS})
 endif()
 set(MACOS_BUNDLE_ID org.tremor-invictus.game)
 set(MACOS_APP_DISPLAY_NAME "Tremor Invictus")

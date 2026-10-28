@@ -448,18 +448,12 @@ static void Practice_DrawMap( void *self ) {
 	qboolean		focus = ( a->generic.parent->cursor == a->generic.menuPosition );
 	int				x = a->generic.left, y = a->generic.top;
 	char			name[MAX_QPATH];
-	qhandle_t		shot;
 
 	if ( i >= s_practice.numMaps ) {
 		return;
 	}
 	Q_strncpyz( name, Practice_MapName( i ), sizeof( name ) );
-	shot = trap_R_RegisterShaderNoMip( va( "levelshots/%s", name ) );
-	if ( shot ) {
-		UI_DrawHandlePic( x, y, MAP_W, MAP_H, shot );
-	} else {
-		UI_FillRect( x, y, MAP_W, MAP_H, colorBlack );
-	}
+	UI_DrawLevelshot( x, y, MAP_W, MAP_H, name );
 	if ( i == s_practice.selected ) {
 		UI_DrawRect( x - 2, y - 2, MAP_W + 4, MAP_H + 4, color_white );
 		UI_DrawRect( x - 1, y - 1, MAP_W + 2, MAP_H + 2, color_white );

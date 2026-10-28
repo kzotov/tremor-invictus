@@ -1495,6 +1495,9 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 void CG_AdjustFrom640( float *x, float *y, float *w, float *h );
 void CG_FillRect( float x, float y, float width, float height, const float *color );
 void CG_DrawPic( float x, float y, float width, float height, qhandle_t hShader );
+float CG_LevelshotAspect( const char *map );
+void CG_DrawLevelshotPic( float x, float y, float width, float height, const char *map );
+void CG_DrawLogo( float x, float y, float h );
 void CG_DrawString( float x, float y, const char *string, 
 				   float charWidth, float charHeight, const float *modulate );
 

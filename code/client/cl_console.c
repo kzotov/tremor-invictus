@@ -732,6 +732,9 @@ static void Con_DrawChatLine( int labelIndex ) {
 	re.SetColor( NULL );
 }
 
+// the console's corner: the game and its build
+#define CONSOLE_VERSION		"TREMOR INVICTUS " PRODUCT_VERSION
+
 /*
 ================
 Con_DrawSolidConsole
@@ -766,7 +769,18 @@ void Con_DrawSolidConsole( float frac ) {
 		y = 0;
 	}
 	else {
-		SCR_DrawPic( 0, 0, SCREEN_WIDTH, y, cls.consoleShader );
+		// the 2:1 console picture keeps its shape, its foot (the emblem and
+		// the seam) on the console's bottom edge: as the console drops, more
+		// of it shows from the top; taller than the picture, it fills the
+		// height and is cropped at the sides
+		float	w = cls.glconfig.vidWidth, h = w / 2, s0 = 0, s1 = 1;
+
+		if ( lines > h ) {
+			h = lines;
+			s0 = 0.5f - 0.25f * w / lines;
+			s1 = 1.0f - s0;
+		}
+		re.DrawStretchPic( 0, 0, w, lines, s0, 1.0f - lines / h, s1, 1, cls.consoleShader );
 	}
 
 	color[0] = 1;
@@ -776,15 +790,15 @@ void Con_DrawSolidConsole( float frac ) {
 	SCR_FillRect( 0, y, SCREEN_WIDTH, 2, color );
 
 
-	// draw the version number
-
+	// the game's name and build in the corner (Q3_VERSION, "ioq3 ...", stays
+	// the version servers and masters see)
 	re.SetColor( g_color_table[ColorIndex(COLOR_RED)] );
 
-	i = strlen( Q3_VERSION );
+	i = strlen( CONSOLE_VERSION );
 
 	for (x=0 ; x<i ; x++) {
 		SCR_DrawSmallChar( cls.glconfig.vidWidth - ( i - x + 1 ) * g_smallchar_width,
-			lines - g_smallchar_height, Q3_VERSION[x] );
+			lines - g_smallchar_height, CONSOLE_VERSION[x] );
 	}
 
 

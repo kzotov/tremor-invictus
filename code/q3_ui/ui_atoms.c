@@ -1531,48 +1531,148 @@ void UI_UpdateScreen( void ) {
 
 /*
 =================
+UI_DrawCroppedPic
+
+A picture made for one shape (aspect, width over height) drawn into a box of
+another, cropped to fill it without stretching
+=================
+*/
+void UI_DrawCroppedPic( float x, float y, float w, float h, float aspect, qhandle_t shader ) {
+	float	box, s0 = 0, s1 = 1, t0 = 0, t1 = 1;
+
+	UI_AdjustFrom640( &x, &y, &w, &h );
+	box = w / h;
+	if ( box > aspect ) {
+		t0 = 0.5f - 0.5f * aspect / box;
+		t1 = 1.0f - t0;
+	} else {
+		s0 = 0.5f - 0.5f * box / aspect;
+		s1 = 1.0f - s0;
+	}
+	trap_R_DrawStretchPic( x, y, w, h, s0, t0, s1, t1, shader );
+}
+
+/*
+=================
+UI_LevelshotAspect
+
+The shape (width over height) of a map's levelshot picture: the classic
+square ones hold a 4:3 picture, others (1920 x 1080...) are their own
+shape, and the missing-map picture is 4:3 in a square texture too
+=================
+*/
+static float UI_LevelshotAspect( const char *map ) {
+	static char		known[MAX_QPATH];
+	static float	knownAspect;
+	static byte		head[4096];
+	static const char	*exts[] = { "tga", "jpg", "png" };
+	fileHandle_t	f;
+	int				i, len, w, h;
+
+	if ( known[0] && !Q_stricmp( known, map ) ) {
+		return knownAspect;
+	}
+	knownAspect = 4.0f / 3.0f;
+	for ( i = 0 ; i < 3 ; i++ ) {
+		len = trap_FS_FOpenFile( va( "levelshots/%s.%s", map, exts[i] ), &f, FS_READ );
+		if ( !f ) {
+			continue;
+		}
+		if ( len > (int)sizeof( head ) ) {
+			len = sizeof( head );
+		}
+		trap_FS_Read( head, len, f );
+		trap_FS_FCloseFile( f );
+		if ( Q_ImageSize( head, len, &w, &h ) && w != h && w > 0 && h > 0 ) {
+			knownAspect = (float)w / h;
+		}
+		break;
+	}
+	Q_strncpyz( known, map, sizeof( known ) );
+	return knownAspect;
+}
+
+/*
+=================
+UI_DrawLevelshot
+
+A map's levelshot, or the missing-map picture when it has none, cropped to
+the box in the picture's own shape instead of stretched
+=================
+*/
+void UI_DrawLevelshot( float x, float y, float w, float h, const char *map ) {
+	qhandle_t	shot = trap_R_RegisterShaderNoMip( va( "levelshots/%s", map ) );
+
+	if ( !shot ) {
+		shot = trap_R_RegisterShaderNoMip( "gfx/tremor/splash/nomap" );
+	}
+	UI_DrawCroppedPic( x, y, w, h, UI_LevelshotAspect( map ), shot );
+}
+
+/*
+=================
+UI_DrawLogo
+
+The horizontal logo with its artwork's top left corner at x, y and the
+artwork h high. The texture holds the artwork with transparent margins
+(misc/art/import-brand-art.py fits the placeholder logo into the same box)
+=================
+*/
+#define LOGO_ART_LEFT	( 188 / 1024.0f )
+#define LOGO_ART_TOP	( 46 / 270.0f )
+#define LOGO_ART_HEIGHT	( 188 / 270.0f )
+#define LOGO_ASPECT		( 1024 / 270.0f )
+
+void UI_DrawLogo( float x, float y, float h ) {
+	float	th = h / LOGO_ART_HEIGHT, tw;
+
+	if ( !uis.logoShader ) {
+		return;
+	}
+	// the texture keeps the artwork's shape on any screen: in real pixels
+	tw = th * uis.yscale * LOGO_ASPECT / uis.xscale;
+	UI_DrawHandlePic( x - LOGO_ART_LEFT * tw, y - LOGO_ART_TOP * th, tw, th, uis.logoShader );
+}
+
+/*
+=================
+UI_DrawBackdrop
+
+The branding's dark metal backdrop over the whole screen: a 16:9 picture
+(the pack's 1672 x 941 master) squeezed into its 1024 x 512 texture, so
+it is cropped as 16:9 to fill the screen, never stretched
+=================
+*/
+#define BACKDROP_ASPECT		( 16.0f / 9.0f )
+
+void UI_DrawBackdrop( void ) {
+	float	w = uis.glconfig.vidWidth, h = uis.glconfig.vidHeight;
+	float	screen = w / h, s0 = 0, s1 = 1, t0 = 0, t1 = 1;
+
+	if ( screen > BACKDROP_ASPECT ) {
+		t0 = 0.5f - 0.5f * BACKDROP_ASPECT / screen;
+		t1 = 1.0f - t0;
+	} else {
+		s0 = 0.5f - 0.5f * screen / BACKDROP_ASPECT;
+		s1 = 1.0f - s0;
+	}
+	trap_R_SetColor( NULL );
+	trap_R_DrawStretchPic( 0, 0, w, h, s0, t0, s1, t1, uis.menuBackShader );
+}
+
+/*
+=================
 UI_DrawMenuBackground
 
-Near-black with a lighter middle, and the emblem's pulse line sweeping
-across every 8 s
+The backdrop, dimmed: its emblem sits where the menus show the champion
 =================
 */
 static void UI_DrawMenuBackground( void ) {
-	static const vec4_t	back = { 0.051f, 0.051f, 0.063f, 1.0f };
-	vec4_t		c;
-	float		w = uis.glconfig.vidWidth, h = uis.glconfig.vidHeight;
-	float		sweep, x, y, d, a;
-	int			i;
+	static const vec4_t	dim = { 0, 0, 0, 0.45f };
 
-	trap_R_SetColor( back );
-	trap_R_DrawStretchPic( 0, 0, w, h, 0, 0, 1, 1, uis.whiteShader );
-
-	// a soft lighter middle from stacked translucent boxes
-	for ( i = 1 ; i <= 6 ; i++ ) {
-		c[0] = 0.10f; c[1] = 0.10f; c[2] = 0.12f; c[3] = 0.06f;
-		trap_R_SetColor( c );
-		trap_R_DrawStretchPic( w * i / 14.0f, h * i / 14.0f, w * ( 1 - i / 7.0f ), h * ( 1 - i / 7.0f ), 0, 0, 1, 1, uis.whiteShader );
-	}
-
-	// the pulse line: flat, one heartbeat spike in the middle, lit near the sweep
-	sweep = ( uis.realtime % 8000 ) / 8000.0f * w * 1.4f - w * 0.2f;
-	for ( i = 0 ; i < 320 ; i++ ) {
-		x = w * i / 320.0f;
-		d = ( x - w * 0.62f ) / ( w * 0.02f );
-		y = h * 0.78f;
-		if ( d > -1 && d < 0 ) {
-			y -= h * 0.08f * ( d + 1 );
-		} else if ( d >= 0 && d < 2 ) {
-			y += h * 0.05f * ( 1 - fabs( d - 1 ) ) - h * 0.08f * ( d < 0.5f ? 1 - d * 2 : 0 );
-		}
-		a = 0.08f + 0.5f * ( 1 - fabs( x - sweep ) / ( w * 0.15f ) );
-		if ( a < 0.08f ) {
-			a = 0.08f;
-		}
-		c[0] = 0.82f; c[1] = 0.10f; c[2] = 0.10f; c[3] = a;
-		trap_R_SetColor( c );
-		trap_R_DrawStretchPic( x, y, w / 320.0f + 1, 2, 0, 0, 1, 1, uis.whiteShader );
-	}
+	UI_DrawBackdrop();
+	trap_R_SetColor( dim );
+	trap_R_DrawStretchPic( 0, 0, uis.glconfig.vidWidth, uis.glconfig.vidHeight, 0, 0, 1, 1, uis.whiteShader );
 	trap_R_SetColor( NULL );
 }
 
@@ -1604,9 +1704,8 @@ void UI_Refresh( int realtime )
 		{
 			// our own background over the whole screen, not just the 4:3 area
 			UI_DrawMenuBackground();
-			if( uis.activemenu->showlogo && uis.logoShader ) {
-				// the logo top left, keeping its 760 x 200 shape
-				UI_DrawHandlePic( 24, 20, 266, 70, uis.logoShader );
+			if( uis.activemenu->showlogo ) {
+				UI_DrawLogo( 24, 20, 64 );
 			}
 		}
 

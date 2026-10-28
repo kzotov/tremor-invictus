@@ -18,6 +18,13 @@ RUN apt-get update \
 DOCKERFILE
 fi
 
+# the container has no Python: the UI branding pack's icons (and textures, for
+# a package made from this build) are staged here on the host, from outside
+# the repository (misc/art/import-brand-art.py)
+mkdir -p "$ROOT/build-windows/generated/gfx/tremor"
+python3 -I "$ROOT/misc/art/import-brand-art.py" sync "$ROOT/build-windows/generated" \
+	--icons "$ROOT/build-windows/brand" || true
+
 docker run --rm -v "$ROOT":/src -w /src "$IMAGE" sh -ec '
 	git config --global --add safe.directory /src
 	cmake -S . -B build-windows -G Ninja -DCMAKE_BUILD_TYPE=Release \

@@ -750,6 +750,42 @@ int Q_isalpha( int c )
 	return ( 0 );
 }
 
+/*
+=================
+Q_ImageSize
+
+The width and height of a picture from the start of its file (TGA, PNG or
+JPEG); qfalse when the bytes given don't tell
+=================
+*/
+qboolean Q_ImageSize( const byte *data, int len, int *width, int *height ) {
+	int		i, marker;
+
+	if ( len >= 24 && data[0] == 0x89 && data[1] == 'P' && data[2] == 'N' && data[3] == 'G' ) {
+		*width = ( data[16] << 24 ) | ( data[17] << 16 ) | ( data[18] << 8 ) | data[19];
+		*height = ( data[20] << 24 ) | ( data[21] << 16 ) | ( data[22] << 8 ) | data[23];
+		return qtrue;
+	}
+	if ( len >= 4 && data[0] == 0xff && data[1] == 0xd8 ) {
+		// the first frame header (SOF0-SOF15 but DHT, JPG and DAC) holds the size
+		for ( i = 2 ; i + 9 <= len && data[i] == 0xff ; i += 2 + ( ( data[i + 2] << 8 ) | data[i + 3] ) ) {
+			marker = data[i + 1];
+			if ( marker >= 0xc0 && marker <= 0xcf && marker != 0xc4 && marker != 0xc8 && marker != 0xcc ) {
+				*height = ( data[i + 5] << 8 ) | data[i + 6];
+				*width = ( data[i + 7] << 8 ) | data[i + 8];
+				return qtrue;
+			}
+		}
+		return qfalse;
+	}
+	if ( len >= 18 && ( data[2] == 2 || data[2] == 3 || data[2] == 10 || data[2] == 11 ) ) {
+		*width = data[12] | ( data[13] << 8 );
+		*height = data[14] | ( data[15] << 8 );
+		return *width > 0 && *height > 0;
+	}
+	return qfalse;
+}
+
 qboolean Q_isanumber( const char *s )
 {
 	char *p;

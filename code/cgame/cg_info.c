@@ -225,11 +225,12 @@ static void CG_DrawTip( void ) {
 CG_DrawLevelshot
 
 The map's picture over the whole screen, cropped to keep its shape
+(CG_LevelshotAspect: a classic square levelshot or the missing-map picture
+is 4:3, a 1920 x 1080 one 16:9)
 ====================
 */
-static void CG_DrawLevelshot( qhandle_t shader ) {
+static void CG_DrawLevelshot( qhandle_t shader, float picture ) {
 	float	screen = (float)cgs.glconfig.vidWidth / cgs.glconfig.vidHeight;
-	float	picture = 4.0f / 3.0f;		// levelshots are made 4:3
 	float	s0 = 0, s1 = 1, t0 = 0, t1 = 1;
 
 	if ( screen > picture ) {
@@ -257,7 +258,7 @@ void CG_DrawInformation( void ) {
 	const char	*info = CG_ConfigString( CS_SERVERINFO );
 	const char	*authors = CG_ConfigString( CS_MAPAUTHORS );
 	const char	*title, *s;
-	qhandle_t	levelshot, logo;
+	qhandle_t	levelshot;
 	int			y;
 
 	s = Info_ValueForKey( info, "mapname" );
@@ -266,15 +267,12 @@ void CG_DrawInformation( void ) {
 		levelshot = trap_R_RegisterShaderNoMip( "gfx/tremor/splash/nomap" );
 	}
 	trap_R_SetColor( NULL );
-	CG_DrawLevelshot( levelshot );
+	CG_DrawLevelshot( levelshot, CG_LevelshotAspect( s ) );
 
 	// top: logo left, mode right, on a dark bar across the screen
 	CG_FillRect( 0, 0, SCREEN_WIDTH, 48, barColor );
-	logo = trap_R_RegisterShaderNoMip( "gfx/tremor/logo" );
 	cg_hudAnchor = ANCHOR_LEFT;
-	if ( logo ) {
-		CG_DrawPic( 12, 6, 137, 36, logo );
-	}
+	CG_DrawLogo( 14, 5, 38 );
 	cg_hudAnchor = ANCHOR_RIGHT;
 	UI_DrawProportionalString( SCREEN_WIDTH - 16, 14, CG_ModeString(), UI_RIGHT | UI_SMALLFONT | UI_DROPSHADOW, colorWhite );
 

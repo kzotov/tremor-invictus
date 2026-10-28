@@ -9,12 +9,15 @@ body {
 	height: 100%;
 }
 
+/* the horizontal logo (1024 x 270, the artwork at 188-838 x 46-234 in
+   transparent margins): placed by its texture box so the artwork lines up
+   with the menu, 520dp wide at 80dp, 60dp */
 .logo {
 	position: absolute;
-	left: 80dp;
-	top: 70dp;
-	width: 512dp;
-	height: 135dp;
+	left: -70.4dp;
+	top: 23.2dp;
+	width: 819.2dp;
+	height: 216dp;
 	decorator: image( /gfx/tremor/logo.png );
 }
 
@@ -79,11 +82,12 @@ button.small {
 	border-right: 2dp #2a2b30;
 }
 
+/* the artwork 340dp wide at 40dp, 30dp, above the map line */
 .panel .logo {
-	left: 40dp;
-	top: 36dp;
-	width: 380dp;
-	height: 100dp;
+	left: -58.3dp;
+	top: 5.9dp;
+	width: 535.6dp;
+	height: 141.2dp;
 }
 
 .panel .menu {

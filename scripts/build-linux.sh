@@ -18,6 +18,12 @@ RUN apt-get update \
 DOCKERFILE
 fi
 
+# the container cannot see the UI branding pack (outside the repository): its
+# icons and textures are staged here on the host (misc/art/import-brand-art.py)
+mkdir -p "$ROOT/build-linux/generated/gfx/tremor"
+python3 -I "$ROOT/misc/art/import-brand-art.py" sync "$ROOT/build-linux/generated" \
+	--icons "$ROOT/build-linux/brand" || true
+
 docker run --rm --platform linux/amd64 -v "$ROOT":/src -w /src "$IMAGE" sh -ec '
 	git config --global --add safe.directory /src
 	cmake -S . -B build-linux -G Ninja -DCMAKE_BUILD_TYPE=Release "$@"

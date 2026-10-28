@@ -110,6 +110,67 @@ void StraightAlpha( unsigned char *rgba ) {
 	}
 }
 
+// a levelshot's picture size in documents: classic levelshots, and the
+// missing-map picture in their place, are square textures holding a 4:3
+// picture (1024 x 768 here); others (1920 x 1080...) are their own size
+std::map<Rml::String, Rml::Vector2i>	levelshotSizes;
+
+bool IsLevelshot( const char *path ) {
+	return !strncmp( path[0] == '/' ? path + 1 : path, "levelshots/", 11 );
+}
+
+Rml::Vector2i LevelshotSize( const char *path ) {
+	static const char	*exts[] = { "", ".tga", ".jpg", ".png" };
+	Rml::String			name( path[0] == '/' ? path + 1 : path );
+	size_t				dot = name.find_last_of( '.' ), slash = name.find_last_of( '/' );
+	Rml::Vector2i		size( 1024, 768 );
+	int					w, h;
+
+	auto known = levelshotSizes.find( name );
+	if ( known != levelshotSizes.end() ) {
+		return known->second;
+	}
+	Rml::String	base = dot != Rml::String::npos && ( slash == Rml::String::npos || dot > slash ) ? name.substr( 0, dot ) : name;
+	for ( const char *ext : exts ) {
+		if ( imp.ImageSize( ( ( *ext ? base : name ) + ext ).c_str(), &w, &h ) ) {
+			if ( w != h && w > 0 && h > 0 ) {
+				size = Rml::Vector2i( w, h );
+			}
+			break;
+		}
+	}
+	levelshotSizes[name] = size;
+	return size;
+}
+
+/*
+=================
+FitLevelshot
+
+A levelshot <img> shows the middle of its picture in the shape of its box
+(rect, in LevelshotSize terms), cropped instead of stretched
+=================
+*/
+void FitLevelshot( Rml::Element *img, const char *path ) {
+	Rml::Vector2f	size = img->GetBox().GetSize();
+	Rml::Vector2i	picture = LevelshotSize( path );
+	float			w = picture.x, h = picture.y;
+	char			rect[64];
+
+	if ( size.x <= 0 || size.y <= 0 ) {
+		return;		// not laid out yet
+	}
+	if ( size.x / size.y > w / h ) {
+		h = w * size.y / size.x;
+	} else {
+		w = h * size.x / size.y;
+	}
+	snprintf( rect, sizeof( rect ), "%.0f %.0f %.0f %.0f", ( picture.x - w ) / 2, ( picture.y - h ) / 2, w, h );
+	if ( img->GetAttribute<Rml::String>( "rect", "" ) != rect ) {
+		img->SetAttribute( "rect", Rml::String( rect ) );
+	}
+}
+
 int WhiteShader( void ) {
 	if ( !whiteShader ) {
 		static const unsigned char	white[4 * 4] = {
@@ -157,10 +218,17 @@ public:
 	}
 
 	// images by game path; their size comes from the file's header (PNG,
-	// TGA), else documents give it in their style
+	// TGA), else documents give it in their style. A levelshot counts as
+	// its picture's size (LevelshotSize; FitLevelshot crops it in those
+	// terms); a map without one shows the missing-map picture
 	Rml::TextureHandle LoadTexture( Rml::Vector2i &dimensions, const Rml::String &source ) override {
 		unsigned char	*data = nullptr;
-		int				len = imp.ReadFile( source.c_str(), (void **)&data );
+		int				len;
+
+		if ( source.empty() ) {
+			return 0;		// an <img> whose cvar is empty: reading "" is an error
+		}
+		len = imp.ReadFile( source.c_str(), (void **)&data );
 		Rml::String		name = source;
 		size_t			dot;
 
@@ -180,6 +248,12 @@ public:
 		dot = name.find_last_of( '.' );
 		if ( dot != Rml::String::npos ) {
 			name = name.substr( 0, dot );
+		}
+		if ( IsLevelshot( name.c_str() ) ) {
+			int		shader = imp.RegisterShaderNoMip( name.c_str() );
+
+			dimensions = LevelshotSize( source.c_str() );
+			return (Rml::TextureHandle)( shader ? shader : imp.RegisterShaderNoMip( "gfx/tremor/splash/nomap" ) );
 		}
 		return (Rml::TextureHandle)imp.RegisterShaderNoMip( name.c_str() );
 	}
@@ -710,6 +784,11 @@ void ApplyConditions( Rml::Element *element ) {
 			imp.GetCvar( src->Get<Rml::String>().c_str(), value, sizeof( value ) );
 			if ( child->GetAttribute<Rml::String>( "src", "" ) != Rml::String( "/" ) + value ) {
 				child->SetAttribute( "src", Rml::String( "/" ) + value );
+			}
+			if ( IsLevelshot( value ) ) {
+				FitLevelshot( child, value );
+			} else if ( child->HasAttribute( "rect" ) ) {
+				child->RemoveAttribute( "rect" );
 			}
 		}
 

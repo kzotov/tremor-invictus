@@ -5895,7 +5895,6 @@ static void CG_DrawMapVote( void ) {
 	char		maps[3][MAX_QPATH];
 	int			endTime, votes[3], i, x, left;
 	char		*p;
-	qhandle_t	shot;
 	const char	*cs = CG_ConfigString( CS_MAPVOTE );
 
 	static char	shownFor[MAX_STRING_CHARS];		// the vote state the document shows
@@ -5977,11 +5976,7 @@ static void CG_DrawMapVote( void ) {
 		if ( cg.mapVote == i + 1 ) {
 			CG_FillRect( x - 3, 359, 126, 100, mine );
 		}
-		shot = trap_R_RegisterShaderNoMip( va( "levelshots/%s.tga", maps[i] ) );
-		if ( !shot ) {
-			shot = trap_R_RegisterShaderNoMip( "gfx/tremor/splash/nomap" );
-		}
-		CG_DrawPic( x, 362, 120, 66, shot );
+		CG_DrawLevelshotPic( x, 362, 120, 66, maps[i] );
 		CG_DrawSmallStringColor( x, 430, va( "%i %s", i + 1, maps[i] ), colorWhite );
 		CG_DrawSmallStringColor( x, 444, va( (char *)BG_String( STR_MV_VOTES ), votes[i] ), colorLtGrey );
 	}

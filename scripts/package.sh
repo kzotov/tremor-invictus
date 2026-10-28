@@ -31,6 +31,20 @@ RELEASE="$BUILD/Release"
 # (a container build may draw it too, but without the fonts)
 GENERATED="$ROOT/build-dist-macos/generated"
 [ -f "$GENERATED/tremor-assets.pk3" ] || GENERATED="$ROOT/build-macos/generated"
+# the approved UI branding (a pack outside the repo) over the drawn
+# placeholders; a package never ships the placeholder logo by accident:
+# TREMOR_ALLOW_PLACEHOLDER_BRAND=1 allows it
+python3 -I "$ROOT/misc/art/import-brand-art.py" sync "$GENERATED" || true
+if BRAND=$(python3 -I "$ROOT/misc/art/import-brand-art.py" status "$GENERATED"); then
+	echo "package: UI branding $BRAND"
+elif [ "$TARGET" != server ]; then
+	[ "${TREMOR_ALLOW_PLACEHOLDER_BRAND:-}" = 1 ] || {
+		echo "package: $GENERATED has the placeholder UI art, not the branding pack (see misc/art/import-brand-art.py)" >&2
+		exit 1; }
+	echo "package: packing the placeholder UI art" >&2
+fi
+[ "$TARGET" = server ] || [ -f "$BUILD/brand/tremor-invictus.ico" ] ||
+	echo "package: $BUILD was configured without the branding pack: the app icon is the placeholder (configure and build again)" >&2
 VERSION=$(cat "$BUILD/version.txt" 2>/dev/null || echo dev)
 NAME="tremor-invictus-$VERSION-$TARGET"
 OUT="$ROOT/build-dist"
@@ -57,7 +71,7 @@ for d in scripts ui presets mappools configs hud; do
 done
 mkdir -p "$DATA/gfx"
 cp -R "$GENERATED/gfx/tremor" "$DATA/gfx/tremor"
-(cd "$DATA" && zip -qrX "$GAMEDIR/tremor-0data.pk3" . -x '*.DS_Store' 'gfx/tremor/art.stamp')
+(cd "$DATA" && zip -qrX "$GAMEDIR/tremor-0data.pk3" . -x '*.DS_Store' 'gfx/tremor/art.stamp' 'gfx/tremor/brand.txt')
 cp "$GENERATED/tremor-assets.pk3" "$GAMEDIR/"
 
 for f in "$@"; do

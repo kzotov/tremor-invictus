@@ -12,12 +12,14 @@
 #   scripts/test-run.sh status
 #
 # Quake III Arena data: set TREMOR_Q3 to the folder that holds baseq3/pak0.pk3.
+# TREMOR_TEST_BUILD names another build folder (default build-test), for a
+# session whose build must not replace one another session is running.
 # The console log is build-test/home-<name>/baseq3/qconsole.log (complete
 # after stop).
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-BUILD="$ROOT/build-test"
+BUILD="${TREMOR_TEST_BUILD:-$ROOT/build-test}"
 RELEASE="$BUILD/Release"
 APP="$BUILD/tremor-test.app"
 BUNDLE_ID="org.tremor-invictus.test"
@@ -100,7 +102,9 @@ start)
 	ln -sfn "$ROOT/assets/baseq3/mappools" "$HOME_DIR/baseq3/mappools"
 	ln -sfn "$ROOT/assets/baseq3/configs" "$HOME_DIR/baseq3/configs"
 	ln -sfn "$ROOT/assets/baseq3/hud" "$HOME_DIR/baseq3/hud"
-	# images made at build time (the menu logo)
+	# images made at build time (the menu logo), with the UI branding pack from
+	# outside the repo copied over the drawn placeholders (it warns without one)
+	python3 -I "$ROOT/misc/art/import-brand-art.py" sync "$BUILD/generated" || true
 	mkdir -p "$HOME_DIR/baseq3/gfx"
 	ln -sfn "$BUILD/generated/gfx/tremor" "$HOME_DIR/baseq3/gfx/tremor"
 	# models and replaceable ability assets made at build time (a pack;
@@ -160,7 +164,7 @@ status)
 	;;
 
 *)
-	sed -n '2,17p' "$0"
+	sed -n '2,18p' "$0"
 	exit 1
 	;;
 esac

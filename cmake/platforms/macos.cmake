@@ -58,10 +58,10 @@ function(finish_macos_app)
     set_target_properties(${CLIENT_BINARY} PROPERTIES
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_BINARY_DIR}/Info.plist)
 
-    set(RESOURCES_DIR $<TARGET_FILE_DIR:${CLIENT_BINARY}>/../Resources)
-    add_custom_command(TARGET ${CLIENT_BINARY} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${RESOURCES_DIR}
-        COMMAND ${CMAKE_COMMAND} -E copy ${MACOS_ICON_PATH} ${RESOURCES_DIR})
+    # the icon as a bundle resource: copied again whenever the file changes
+    # (a new icon from the branding pack), not only when the program relinks
+    target_sources(${CLIENT_BINARY} PRIVATE ${MACOS_ICON_PATH})
+    set_source_files_properties(${MACOS_ICON_PATH} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
     if(USE_RENDERER_DLOPEN)
         set(MACOS_APP_BINARY_DIR ${CLIENT_BINARY}.app/Contents/MacOS)
