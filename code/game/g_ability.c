@@ -1765,11 +1765,14 @@ static void G_TrailBurst( gentity_t *seg ) {
 		// the detonation spares Slash (champion-audit.md)
 		G_RadiusDamage( at, seg->parent, g_trailBlast.integer, g_trailRadius.integer, seg->parent, MOD_PLASMATRAIL );
 	}
-	seg->s.eType = ET_GENERAL;
-	G_AddEvent( seg, EV_MISSILE_MISS, DirToByte( dir ) );
-	seg->freeAfterEvent = qtrue;
-	seg->think = NULL;
-	trap_LinkEntity( seg );
+	// the burst seen and heard: a green plasma blast of its own
+	{
+		gentity_t	*tent = G_TempEntity( at, EV_MISSILE_MISS );
+
+		tent->s.eventParm = DirToByte( dir );
+		tent->s.weapon = WP_BFG;
+	}
+	G_FreeEntity( seg );
 }
 
 // the segments burst one by one, oldest first, 30 ms apart
