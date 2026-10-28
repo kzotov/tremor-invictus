@@ -233,6 +233,27 @@ def orb_swirl(u, v, n=Fbm(23, 5, 4)):
     return [0.45 * k + 0.08, 0.12 * k + 0.02, 0.75 * k + 0.12, 1]
 
 
+def thrust(u, v, n=Fbm(61, 4, 6)):
+    """Slash's skate thrust (the jet under each skate, drawn facing the
+    viewer): a white-hot core fading through green to nothing, its edge
+    ragged with noise, black outside for an additive blend."""
+    x, y = u * 2 - 1, v * 2 - 1
+    r = math.hypot(x, y)
+    d = r * (0.85 + 0.3 * n.at(u * 4, v * 4))
+    core = math.exp(-(d / 0.16) ** 2)
+    glow = math.exp(-(d / 0.4) ** 2) * (1 - smooth(0.55, 0.85, r))       # nothing at the edges
+    return [clamp(0.15 * glow + 0.9 * core), clamp(0.85 * glow + core), clamp(0.3 * glow + 0.8 * core), 1]
+
+
+def thrust_flicker(u, v, n=Fbm(67, 4, 8)):
+    """Streaks round the jet's middle, turned and flickered by the shader so
+    the thrust boils."""
+    x, y = u * 2 - 1, v * 2 - 1
+    d, a = math.hypot(x, y), math.atan2(y, x)
+    streak = smooth(0.35, 0.9, n.at(a * 1.6 + 7, d * 3)) * math.exp(-(d / 0.5) ** 2) * (1 - smooth(0.6, 0.85, d))
+    return [0.1 * streak, 0.75 * streak, 0.3 * streak, 1]
+
+
 def blood_edge(u, v, n=Fbm(47, 5, 5), m=Fbm(53, 3, 14)):
     """hud.md 9.7, the low-health overlay: dark red at the screen edges in
     blotches, clear in the middle (ours, drawn for the purpose)."""
@@ -1396,6 +1417,28 @@ gfx/abilities/drone_blast
 	}
 }
 
+// Slash's skate thrust: a jet turned to the viewer, lifted off the floor
+// and bobbing as if it held her up, pulsing, with boiling streaks round it
+// (the skates' own surfaces wear it; looks/slash.py)
+tremor/slash_thrust
+{
+	sort additive
+	cull disable
+	deformVertexes move 0 0 1 sin 5 2 0 4
+	deformVertexes autoSprite
+	{
+		clampmap gfx/tremor/thrust.tga
+		blendFunc GL_ONE GL_ONE
+		tcMod stretch sin 0.92 0.12 0 7
+	}
+	{
+		clampmap gfx/tremor/thrust_flicker.tga
+		blendFunc GL_ONE GL_ONE
+		tcMod rotate 240
+		rgbGen wave noise 0.7 0.5 0 9
+	}
+}
+
 // the low-health overlay (hud.md 9.7), coloured and faded by the HUD
 gfx/tremor/blood_edge
 {
@@ -1704,6 +1747,8 @@ def main():
     sounds(src)
     texture(os.path.join(src, "gfx/abilities/plasmatrail.tga"), 128, 64, trail, False)
     texture(os.path.join(src, "gfx/tremor/blood_edge.tga"), 256, 256, blood_edge)
+    texture(os.path.join(src, "gfx/tremor/thrust.tga"), 128, 128, thrust, False)
+    texture(os.path.join(src, "gfx/tremor/thrust_flicker.tga"), 128, 128, thrust_flicker, False)
     texture(os.path.join(src, "gfx/abilities/drone_blast.tga"), 128, 128, drone_blast)
     os.makedirs(os.path.join(src, "scripts"), exist_ok=True)
     with open(os.path.join(src, "scripts/tremor-assets.shader"), "w") as f:

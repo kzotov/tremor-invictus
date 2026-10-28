@@ -186,18 +186,13 @@ def head_detail(geo):
     return f
 
 
-def skate_grade(u, v):
-    return [0.2, 0.9, 0.35, 1]                   # the blue glow turned green
-
-
 def look():
     return Look("slash", "slash", {
         "body": Sheet({"": "slash", "_red": "slash", "_blue": "slash"},
                       grade={v: body_grade_fn(v) for v in SHORTS},
                       detail={v: body_detail_fn(v) for v in SHORTS}, size=512),
         "head": Sheet({"": "slash_h", "_red": "slash_h", "_blue": "slash_h"}, detail=head_detail, size=256),
-        "skate": Sheet({"": "slashskate", "_red": "slashskate", "_blue": "slashskate"}, grade=skate_grade, size=128),
-    }, {"lower": {"l_legs": "body", "l_skatel": "skate", "l_skater": "skate"},
+    }, {"lower": {"l_legs": "body", "l_skatel": "tremor/slash_thrust", "l_skater": "tremor/slash_thrust"},
         "upper": {"u_torso": "body"},
         "head": {"h_head": "head"}},
         {"lower": ["tag_torso"], "upper": ["tag_head", "tag_torso", "tag_weapon"], "head": ["tag_head"]})
