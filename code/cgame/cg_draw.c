@@ -4459,15 +4459,15 @@ static void CG_DrawCrosshair(void)
 		return;
 	}
 
-	// the chosen colour, else colour by health
-	if ( cg_crosshairColor.integer > 0 ) {
+	// the chosen colour (0 white ... 7 orange); -1 colours it by health
+	if ( cg_crosshairColor.integer >= 0 ) {
 		static const vec4_t	palette[] = {
 			{ 1, 1, 1, 1 }, { 1, 0.2f, 0.2f, 1 }, { 0.2f, 1, 0.2f, 1 }, { 0.91f, 0.894f, 0.424f, 1 },		// (3: hud.md's #E8E46C)
 			{ 0.2f, 0.4f, 1, 1 }, { 0.2f, 1, 1, 1 }, { 1, 0.3f, 1, 1 }, { 1, 0.6f, 0.1f, 1 }
 		};
 
 		trap_R_SetColor( palette[cg_crosshairColor.integer % ARRAY_LEN( palette )] );
-	} else if ( cg_crosshairHealth.integer ) {
+	} else if ( cg_crosshairColor.integer == -1 || cg_crosshairHealth.integer ) {
 		vec4_t		hcolor;
 
 		CG_ColorForHealth( hcolor );

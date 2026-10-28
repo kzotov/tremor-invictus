@@ -169,6 +169,7 @@
 			<button class="small" data-class="on:ui_chWeapon=mg" onclick="ui_champWeapon mg">[ch_mg]</button>
 			<button class="small" data-class="on:ui_chWeapon=sg" onclick="ui_champWeapon sg">[ch_sg]</button>
 			<button class="small" data-class="on:ui_chWeapon=ng" onclick="ui_champWeapon ng">[ch_ng]</button>
+			<button class="small all" onclick="ui_champWeaponAll">[ch_weapon_all]</button>
 		</div>
 	</div>
 	<div class="chactions">

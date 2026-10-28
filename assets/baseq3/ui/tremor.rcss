@@ -1408,39 +1408,101 @@ scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc {
 /* credits */
 .credits {
 	position: absolute;
-	left: 10%;
-	top: 6%;
-	width: 80%;
+	left: 8%;
+	top: 4%;
+	width: 84%;
 	text-align: center;
-	font-size: 22dp;
+	font-family: "Roboto Condensed";
+	font-weight: bold;
 	color: #8a8780;
 }
 
-.credits h1 {
+/* the title spaced wide above the billing block */
+.credits .crtitle {
 	display: block;
-	font-family: "Roboto Black";
-	font-size: 50dp;
+	font-family: "Roboto Condensed";
+	font-size: 30dp;
 	color: #f2efe9;
+	margin-bottom: 26dp;
 }
 
-.credits .crgame {
+/* the billing block: a small role, two words stacked, before a tall name */
+.credits .billing {
 	display: block;
-	font-family: "Roboto Black";
-	font-size: 36dp;
+	margin-bottom: 30dp;
+}
+
+.credits .bill {
+	display: block;
+	margin: 6dp 0;
+}
+
+.credits .bill .role {
+	display: inline-block;
+	width: 120dp;
+	text-align: right;
+	font-size: 13dp;
+	line-height: 15dp;
+	color: #8a8780;
+	vertical-align: middle;
+	margin-right: 14dp;
+}
+
+.credits .bill .role span {
+	display: block;
+}
+
+.credits .bill .name {
+	display: inline-block;
+	font-size: 40dp;
 	color: #f2efe9;
+	vertical-align: middle;
 }
 
-.credits .crline {
+.credits .crhead {
 	display: block;
-	margin: 3dp 0;
-}
-
-.credits .red {
+	font-size: 16dp;
 	color: #d3191f;
+	margin: 18dp 0 8dp 0;
 }
 
-.credits .white {
-	color: #f2efe9;
+/* names in columns, a licence small beside its library */
+.credits .crgrid {
+	display: block;
+	width: 80%;
+	margin: 0 auto;
+}
+
+.credits .crcell {
+	display: inline-block;
+	width: 32%;
+	font-size: 20dp;
+	color: #e8e4dc;
+	margin: 2dp 0;
+}
+
+.credits .crcell .lic {
+	font-size: 12dp;
+	color: #8a8780;
+}
+
+/* the closing card */
+.credits .crclose {
+	display: block;
+	margin-top: 26dp;
+	font-size: 14dp;
+	font-weight: normal;
+	color: #6a6760;
+}
+
+.credits .crclose div {
+	display: block;
+	margin: 2dp 0;
+}
+
+.credits .crclose .site {
+	color: #d3191f;
+	margin-top: 8dp;
 }
 
 .credits .sactions button {

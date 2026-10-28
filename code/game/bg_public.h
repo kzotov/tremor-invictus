@@ -1363,6 +1363,7 @@ typedef enum {
 	STR_CRB_IOQ3,
 	STR_CRB_LIBHEAD,
 	STR_CRB_LIBS,
+	STR_SET_XHHEALTH,				// the crosshair coloured by health
 
 	STR_NUM_STRINGS
 } stringId_t;

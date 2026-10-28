@@ -808,12 +808,33 @@ qboolean UI_ChampionCommand( const char *cmd ) {
 		hoverEndTime = uis.realtime;
 		return qtrue;
 	}
-	if ( !Q_stricmp( cmd, "ui_champWeapon" ) ) {
+	if ( !Q_stricmp( cmd, "ui_champWeapon" ) || !Q_stricmp( cmd, "ui_champWeaponAll" ) ) {
+		// the shown champion's starting weapon (each remembers its own,
+		// ux-hig-review 5); on the champion you play it is also the next
+		// spawn's at once. ui_champWeaponAll gives every champion the shown
+		// one's weapon
+		char	code[8];
+
 		trap_Cvar_VariableStringBuffer( "ui_chShown", name, sizeof( name ) );
 		i = BG_ChampionForName( name );
-		if ( i >= 0 ) {
-			trap_Cvar_Set( Champion_WeaponCvar( i ), UI_Argv( 1 ) );
-			trap_Cvar_Set( "ui_chWeapon", UI_Argv( 1 ) );
+		if ( i < 0 ) {
+			return qtrue;
+		}
+		if ( !Q_stricmp( cmd, "ui_champWeapon" ) ) {
+			Q_strncpyz( code, UI_Argv( 1 ), sizeof( code ) );
+			trap_Cvar_Set( Champion_WeaponCvar( i ), code );
+			trap_Cvar_Set( "ui_chWeapon", code );
+		} else {
+			int		c;
+
+			Q_strncpyz( code, UI_Cvar_VariableString( Champion_WeaponCvar( i ) ), sizeof( code ) );
+			for ( c = 0 ; c < bg_numChampions ; c++ ) {
+				trap_Cvar_Register( NULL, Champion_WeaponCvar( c ), "mg", CVAR_ARCHIVE );
+				trap_Cvar_Set( Champion_WeaponCvar( c ), code );
+			}
+		}
+		if ( !Q_stricmp( cmd, "ui_champWeaponAll" ) || !Q_stricmp( UI_Cvar_VariableString( "champion" ), bg_championList[i].name ) ) {
+			trap_Cvar_Set( "cg_startWeapon", code );
 		}
 		return qtrue;
 	}
