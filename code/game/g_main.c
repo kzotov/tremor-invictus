@@ -129,7 +129,6 @@ vmCvar_t	g_stroyentLife;
 vmCvar_t	g_lagHaxMs;
 vmCvar_t	g_cylinderScale;
 vmCvar_t	g_rewindDebug;
-vmCvar_t	g_championModels;
 vmCvar_t	g_knockbackScale;
 vmCvar_t	g_protectionScale;
 vmCvar_t	g_shotgunFalloffStep;
@@ -478,7 +477,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_cylinderScale, "g_cylinderScale", "1.1", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_rewindDebug, "g_rewindDebug", "0", 0, 0, qtrue },
 	// local test models: "champion=model champion=model/skin ..."; set outside the repo
-	{ &g_championModels, "g_championModels", "", 0, 0, qtrue },
+	{ NULL, "g_championModels", "", 0, 0, qfalse },	// read whole by BG_ChampionModels: may be longer than a vmCvar holds
 	{ &g_knockbackScale, "g_knockbackScale", "1", 0, 0, qtrue },
 	{ &g_protectionScale, "g_protectionScale", "0.3333", 0, 0, qtrue },
 	{ &g_shotgunFalloffStep, "g_shotgunFalloffStep", "768", 0, 0, qtrue },	// a point off each pellet per this many units

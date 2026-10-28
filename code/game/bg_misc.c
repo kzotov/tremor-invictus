@@ -2280,9 +2280,10 @@ in the table or in g_championModels.
 ==============
 */
 static void BG_ChampionModels( int champion, char *out, int size ) {
-	static char		seen[MAX_CVAR_VALUE_STRING] = "\\unset";
+	// the list can name every champion, longer than a usual cvar value
+	static char		seen[MAX_STRING_CHARS] = "\\unset";
 	static char		models[MAX_CHAMPIONS][MAX_QPATH];
-	char			list[MAX_CVAR_VALUE_STRING];
+	char			list[MAX_STRING_CHARS];
 
 	if ( champion < 0 || champion >= bg_numChampions ) {
 		champion = 0;

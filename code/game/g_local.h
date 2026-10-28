@@ -1229,7 +1229,6 @@ extern	vmCvar_t	g_stroyentLife;
 extern	vmCvar_t	g_lagHaxMs;
 extern	vmCvar_t	g_cylinderScale;
 extern	vmCvar_t	g_rewindDebug;
-extern	vmCvar_t	g_championModels;
 extern	vmCvar_t	g_knockbackScale;
 extern	vmCvar_t	g_protectionScale;
 extern	vmCvar_t	g_shotgunFalloffStep;
