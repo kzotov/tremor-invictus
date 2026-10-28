@@ -603,8 +603,9 @@ static void Champion_Bars( const champion_t *c ) {
 =================
 Champion_Pictures
 
-Each tile's picture (ui_pic_<champion>): a portrait pack's
-gfx/champions/<champion>, else the model's icon, else our generated badge
+Each tile's picture (ui_pic_<champion>): a portrait pack's champion-select
+portrait gfx/champions/<champion>_select (closer, facing the camera more), else
+its gfx/champions/<champion>, else the model's icon, else our generated badge
 =================
 */
 static void Champion_Pictures( void ) {
@@ -614,7 +615,10 @@ static void Champion_Pictures( void ) {
 	for ( i = 0; i < bg_numChampions; i++ ) {
 		const champion_t	*c = &bg_championList[i];
 
-		Com_sprintf( path, sizeof( path ), "gfx/champions/%s", c->name );
+		Com_sprintf( path, sizeof( path ), "gfx/champions/%s_select", c->name );
+		if ( !trap_R_RegisterShaderNoMip( path ) ) {
+			Com_sprintf( path, sizeof( path ), "gfx/champions/%s", c->name );
+		}
 		if ( !trap_R_RegisterShaderNoMip( path ) ) {
 			BG_ChampionModel( i, model, sizeof( model ) );
 			skin = strchr( model, '/' );

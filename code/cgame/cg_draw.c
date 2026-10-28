@@ -6984,6 +6984,7 @@ static qboolean CG_DrawDraft( void ) {
 					}
 				}
 				trap_Cvar_Set( va( "dr_t_%s", BG_Champion( c )->name ), taken ? BG_String( STR_RD_DRAFT_TAKEN ) : "" );
+				trap_Cvar_Set( va( "dr_pic_%s", BG_Champion( c )->name ), c < 32 ? cg_portraitPath[c] : "" );
 			}
 			// the page for the two drafting; spectators only watch (their
 			// keys stay theirs). Opening it lets go of held keys. Not over

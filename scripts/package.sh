@@ -79,7 +79,7 @@ for f in "$@"; do
 	# the looks painted from the player's own models (zz-tremor-*), nor
 	# anything from the reference folders
 	case "$f" in
-	*reference*|*sound*|*weapon*|*portrait*|*model*|*.zip|*zz-tremor-*)
+	*reference*|*sound*|*weapon*|*portrait*|*model*|*champion*|*/last/*|*.zip|*zz-tremor-*)
 		echo "package: refusing $f (not a map pack)" >&2; exit 1 ;;
 	esac
 	cp "$f" "$GAMEDIR/zz-local-$(basename "$f")"

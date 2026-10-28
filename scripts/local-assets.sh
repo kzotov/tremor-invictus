@@ -6,6 +6,9 @@
 # for assets that may be tried locally but never committed or shipped:
 #   *.pk3 / *.zip   player models, maps and other test data, loaded as pk3 files
 #                   (also baseq3/*.pk3)
+#   last/*.pk3      packs that must win over every other pack, the local ones
+#                   and the painted looks included (finished champion art):
+#                   linked as zzzz-local-<name>, the last name in load order
 #   local.cfg       run on start, for example:
 #                   set g_championModels "deathknight=dark_knight galena=galena"
 # Prints the extra command-line arguments to pass to the game.
@@ -14,12 +17,16 @@ TREMOR_LOCAL="${TREMOR_LOCAL:-$HOME/projects/quake/local}"
 
 link_local_assets() {
 	gamedir="$1"
-	rm -f "$gamedir"/zz-local-*.pk3 "$gamedir/tremor-local.cfg"
+	rm -f "$gamedir"/zz-local-*.pk3 "$gamedir"/zzzz-local-*.pk3 "$gamedir/tremor-local.cfg"
 	[ -d "$TREMOR_LOCAL" ] || return 0
 	for f in "$TREMOR_LOCAL"/*.pk3 "$TREMOR_LOCAL"/*.zip "$TREMOR_LOCAL"/baseq3/*.pk3; do
 		[ -f "$f" ] || continue
 		name=$(basename "$f")
 		ln -sf "$f" "$gamedir/zz-local-$name.pk3"
+	done
+	for f in "$TREMOR_LOCAL"/last/*.pk3; do
+		[ -f "$f" ] || continue
+		ln -sf "$f" "$gamedir/zzzz-local-$(basename "$f")"
 	done
 	if [ -f "$TREMOR_LOCAL/local.cfg" ]; then
 		ln -s "$TREMOR_LOCAL/local.cfg" "$gamedir/tremor-local.cfg"
