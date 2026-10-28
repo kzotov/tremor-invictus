@@ -1417,15 +1417,14 @@ gfx/abilities/drone_blast
 	}
 }
 
-// Slash's skate thrust: a jet turned to the viewer, lifted off the floor
-// and bobbing as if it held her up, pulsing, with boiling streaks round it
-// (the skates' own surfaces wear it; looks/slash.py)
+// Slash's skate thrust: a jet along each skate's sole, turned about the
+// skate's length toward the viewer so it never shows as a flat card,
+// pulsing, with boiling streaks (the skates' own surfaces wear it; looks/slash.py)
 tremor/slash_thrust
 {
 	sort additive
 	cull disable
-	deformVertexes move 0 0 1 sin 5 2 0 4
-	deformVertexes autoSprite
+	deformVertexes autoSprite2
 	{
 		clampmap gfx/tremor/thrust.tga
 		blendFunc GL_ONE GL_ONE
