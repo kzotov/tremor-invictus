@@ -1,8 +1,10 @@
 #!/bin/sh
 # Package a finished build for testers.
-# Usage: scripts/package.sh macos|windows|server [extra.pk3 ...]
+# Usage: scripts/package.sh macos|windows|linux|server [extra.pk3 ...]
 #   macos    build-dist-macos  -> build-dist/tremor-invictus-<version>-macos.dmg
 #   windows  build-windows     -> build-dist/tremor-invictus-<version>-windows.zip
+#   linux    build-linux       -> build-dist/tremor-invictus-<version>-linux.tar.gz
+#            (the game; build with scripts/build-linux.sh -DBUILD_CLIENT=ON)
 #   server   build-linux       -> build-dist/tremor-invictus-<version>-server.tar.gz
 # Build first with scripts/build-macos.sh (into build-dist-macos, see below),
 # build-windows.sh or build-linux.sh. Extra .pk3 files (local test data from
@@ -16,13 +18,13 @@
 #   cmake -S . -B build-dist-macos -DCMAKE_BUILD_TYPE=Release && cmake --build build-dist-macos
 set -e
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-TARGET="${1:?usage: scripts/package.sh macos|windows|server [extra.pk3 ...]}"
+TARGET="${1:?usage: scripts/package.sh macos|windows|linux|server [extra.pk3 ...]}"
 shift
 
 case "$TARGET" in
 macos) BUILD="$ROOT/build-dist-macos"; EXT=dylib ;;
 windows) BUILD="$ROOT/build-windows"; EXT=dll ;;
-server) BUILD="$ROOT/build-linux"; EXT=so ;;
+linux|server) BUILD="$ROOT/build-linux"; EXT=so ;;
 *) echo "unknown target $TARGET" >&2; exit 1 ;;
 esac
 RELEASE="$BUILD/Release"
@@ -145,6 +147,9 @@ windows)
 		[ -f "$f" ] && cp "$f" "$STAGE/"
 	done
 	;;
+linux)
+	cp "$RELEASE/tremor-invictus" "$RELEASE"/renderer_*.so "$STAGE/"
+	;;
 esac
 
 cat > "$STAGE/README.txt" <<EOF
@@ -159,11 +164,15 @@ Tremor Invictus $VERSION, test build
    macOS:   ~/Library/Application Support/TremorInvictus/baseq3/
    Windows: %APPDATA%\TremorInvictus\baseq3\  (or the baseq3 folder
             next to tremor-invictus.exe)
+   Linux:   ~/.local/share/TremorInvictus/baseq3/  (or the baseq3 folder
+            next to tremor-invictus)
    Without it the game says where it looks and opens that folder.
 2. Start the game:
    macOS:   drag tremor-invictus.app to Applications and open it (first
             time: right-click, Open, as the build is not notarised)
    Windows: tremor-invictus.exe
+   Linux:   ./tremor-invictus (needs SDL2: on Debian or Ubuntu,
+            sudo apt install libsdl2-2.0-0; built for x86-64, glibc 2.35+)
 3. Connect from the console (~):  connect <server address>
    A password-protected server needs:  password <password>  before connect.
 
@@ -191,7 +200,7 @@ windows)
 	(cd "$OUT/$NAME" && zip -qr "$OUT/$NAME.zip" "Tremor Invictus")
 	echo "Packaged $OUT/$NAME.zip"
 	;;
-server)
+linux|server)
 	tar -C "$OUT/$NAME" -czf "$OUT/$NAME.tar.gz" "Tremor Invictus"
 	echo "Packaged $OUT/$NAME.tar.gz"
 	;;
