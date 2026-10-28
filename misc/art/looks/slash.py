@@ -1,7 +1,7 @@
 """Slash in her own colours: an olive-gold corset with boning, orange
 shorts with stitched hems, olive legs, dark knee pads, bracers and
-shoulder pad, tan skate boots, pale skin, dark hair and green glowing
-skates; the colours are tinted over the model's own shading, with
+shoulder pad, tan skate boots, pale skin, dark hair and a green jet
+under each skate; the colours are tinted over the model's own shading, with
 shadows in the creases and worn edges. Team versions paint the shorts
 in the team's colour."""
 import math
@@ -186,13 +186,44 @@ def head_detail(geo):
     return f
 
 
+@painted
+def skate_jet(geo):
+    """The jet under each skate, painted where the card sits on the model:
+    from a white-hot nozzle at the top of the card down to the sole, a
+    tapering green flame, ragged with noise, and nothing below the sole
+    (the card's lower half is under the floor)."""
+    pts = [t.pos for row in geo.grid for t in row if t is not None and t.covered]
+    if not pts:
+        return lambda u, v: [0, 0, 0, 1]
+    top, bottom = max(p[2] for p in pts), min(p[2] for p in pts)
+    sole = (top + bottom) * 0.5
+    ys = [p[1] for p in pts]
+    mid, half = (max(ys) + min(ys)) * 0.5, max(1.0, (max(ys) - min(ys)) * 0.5)
+    n = Noise(1907, 16, 16)
+
+    def f(u, v):
+        t = geo.at(u, v)
+        if t is None or not t.covered:
+            return [0, 0, 0, 1]
+        down = (top - t.z) / max(1.0, top - sole)          # 0 at the nozzle, 1 at the sole
+        if down > 1.05:
+            return [0, 0, 0, 1]
+        across = abs(t.y - mid) / half
+        width = 0.45 * (1 - 0.75 * min(1.0, down)) * (0.85 + 0.3 * n.at(u * 8, v * 3))
+        k = max(0.0, 1 - across / max(0.05, width)) * (1 - max(0.0, down - 0.8) / 0.25)
+        core = math.exp(-(down / 0.18) ** 2) * math.exp(-(across / 0.18) ** 2)
+        return [clamp(0.25 * k + core), clamp(0.95 * k + core), clamp(0.45 * k + core), 1]
+    return f
+
+
 def look():
     return Look("slash", "slash", {
         "body": Sheet({"": "slash", "_red": "slash", "_blue": "slash"},
                       grade={v: body_grade_fn(v) for v in SHORTS},
                       detail={v: body_detail_fn(v) for v in SHORTS}, size=512),
         "head": Sheet({"": "slash_h", "_red": "slash_h", "_blue": "slash_h"}, detail=head_detail, size=256),
-    }, {"lower": {"l_legs": "body", "l_skatel": "tremor/slash_thrust", "l_skater": "tremor/slash_thrust"},
+        "skate": Sheet({"": "slashskate", "_red": "slashskate", "_blue": "slashskate"}, detail=skate_jet, size=64, fx=True),
+    }, {"lower": {"l_legs": "body", "l_skatel": "skate", "l_skater": "skate"},
         "upper": {"u_torso": "body"},
         "head": {"h_head": "head"}},
         {"lower": ["tag_torso"], "upper": ["tag_head", "tag_torso", "tag_weapon"], "head": ["tag_head"]})

@@ -666,13 +666,15 @@ class Sheet:
     colour); detail, our painting blended by its alpha; glow, added unlit.
     form: the sheet also takes form shading worked out from the model (a
     look's FORM entry, see form_layers): a x2 multiply and a lit highlight
-    after the detail.
+    after the detail. fx: an effect, not paint: only its detail, added
+    unlit and flickering on a card turned to the viewer (the model's own
+    image is not drawn).
     A layer is a function (u, v) -> rgba, or None; one given for "" alone
     serves every variant. model names the sheet's model when it is not the
     look's own (a head taken from another model)."""
 
-    def __init__(self, base, grade=None, detail=None, glow=None, size=256, pulse=False, model=None, form=None):
-        self.base, self.size, self.pulse, self.model, self.form = base, size, pulse, model, form
+    def __init__(self, base, grade=None, detail=None, glow=None, size=256, pulse=False, model=None, form=None, fx=False):
+        self.base, self.size, self.pulse, self.model, self.form, self.fx = base, size, pulse, model, form, fx
         self.layers = {"grade": grade, "detail": detail, "glow": glow}
 
     def layer(self, kind, variant):
@@ -750,6 +752,19 @@ def build_look(out, look, ctx, draw=True):
         rel = "models/players/%s/" % (sheet.model or look.model)
         for variant, base in sheet.base.items():
             text = "%s\n{\n" % shader(name, variant)
+            if sheet.fx:
+                fn = sheet.layer("detail", variant)
+                if id(fn) not in made:
+                    img = "%s%s_%s_fx%s.tga" % (rel, look.skin, name, variant)
+                    if draw or not os.path.isfile(os.path.join(out, img)):
+                        tex(os.path.join(out, img), sheet.size, sheet.size, fn(ctx.sheet(look, name, sheet.size))
+                            if getattr(fn, "needs_geo", False) else fn, False)
+                    made[id(fn)] = img
+                text += ("\tsort additive\n\tcull disable\n\tdeformVertexes autoSprite\n"
+                         "\t{\n\t\tclampmap %s\n\t\tblendFunc GL_ONE GL_ONE\n\t\ttcMod stretch sin 1 0.05 0 11\n"
+                         "\t\trgbGen wave noise 0.8 0.35 0 14\n\t}\n" % made[id(fn)])
+                shaders += text + "}\n\n"
+                continue
             text += "\t{\n\t\tmap %s%s.tga\n\t\trgbGen lightingDiffuse\n\t}\n" % (rel, base)
             for kind in ("grade", "detail", "form", "glow"):
                 if kind == "form":
