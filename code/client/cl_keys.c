@@ -1073,6 +1073,31 @@ void Key_WriteBindings( fileHandle_t f ) {
 
 /*
 ============
+Key_WriteBinds_f
+
+writebinds <file>: the key bindings alone into a config file in the home
+folder (the per-champion keys save the normal keys with it)
+============
+*/
+static void Key_WriteBinds_f( void ) {
+	fileHandle_t	f;
+
+	if ( Cmd_Argc() != 2 ) {
+		Com_Printf( "usage: writebinds <file>\n" );
+		return;
+	}
+	f = FS_FOpenFileWrite_HomeConfig( Cmd_Argv( 1 ) );
+	if ( !f ) {
+		Com_Printf( "Couldn't write %s.\n", Cmd_Argv( 1 ) );
+		return;
+	}
+	FS_Printf( f, "// your normal keys, restored when you switch away from a champion with its own keys\n" );
+	Key_WriteBindings( f );
+	FS_FCloseFile( f );
+}
+
+/*
+============
 Key_Bindlist_f
 
 ============
@@ -1156,6 +1181,7 @@ void CL_InitKeyCommands( void ) {
 	Cmd_SetCommandCompletionFunc( "unbind", Key_CompleteUnbind );
 	Cmd_AddCommand ("unbindall",Key_Unbindall_f);
 	Cmd_AddCommand ("bindlist",Key_Bindlist_f);
+	Cmd_AddCommand ("writebinds",Key_WriteBinds_f);
 }
 
 /*

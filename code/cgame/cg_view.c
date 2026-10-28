@@ -1008,6 +1008,54 @@ CG_DrawActiveFrame
 Generates and draws a game scene and status information at the given time.
 =================
 */
+/*
+=================
+CG_ChampionKeys
+
+Per-champion keys (ux-hig-review 6, option A): when you become a champion
+that has champions/<name>.cfg in your home folder, your normal keys are
+saved to champions/default.cfg and that file runs; switching away runs
+champions/default.cfg again. Never while watching a demo or following
+someone. A line says so for 3 s.
+=================
+*/
+static void CG_ChampionKeys( void ) {
+	static int		last = -1;
+	const char		*name;
+	fileHandle_t	f;
+	char			active[8];
+	int				champion, len;
+
+	if ( cg.demoPlayback || ( cg.snap->ps.pm_flags & PMF_FOLLOW ) || cg.snap->ps.clientNum != cg.clientNum ) {
+		return;
+	}
+	champion = cg.snap->ps.stats[STAT_CHAMPION];
+	if ( champion == last ) {
+		return;
+	}
+	last = champion;
+	trap_Cvar_VariableStringBuffer( "cl_championKeys", active, sizeof( active ) );
+	if ( atoi( active ) ) {
+		trap_SendConsoleCommand( "exec champions/default.cfg\n" );
+		trap_Cvar_Set( "cl_championKeys", "0" );
+	}
+	if ( champion < 0 || champion >= bg_numChampions ) {
+		return;
+	}
+	name = BG_Champion( champion )->name;
+	len = trap_FS_FOpenFile( va( "champions/%s.cfg", name ), &f, FS_READ );
+	if ( f ) {
+		trap_FS_FCloseFile( f );
+	}
+	if ( len <= 0 ) {
+		return;
+	}
+	trap_SendConsoleCommand( va( "writebinds champions/default.cfg\nexec champions/%s.cfg\n", name ) );
+	trap_Cvar_Set( "cl_championKeys", "1" );
+	CG_CenterPrint( va( (char *)BG_String( STR_CHAMPION_KEYS ), BG_String( BG_Champion( champion )->nameString ) ),
+		SCREEN_HEIGHT * 0.3f, BIGCHAR_WIDTH );
+}
+
 void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demoPlayback ) {
 	int		inwater;
 
@@ -1045,6 +1093,8 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 		CG_RmlScoreboardEndFrame();
 		return;
 	}
+
+	CG_ChampionKeys();
 
 	// let the client system know what our weapon and zoom settings are
 	trap_SetUserCmdValue( cg.weaponSelect, cg.zoomSensitivity );

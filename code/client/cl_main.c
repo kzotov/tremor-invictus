@@ -3867,6 +3867,11 @@ void CL_Init( void ) {
 
 	CL_InitInput ();
 
+	// a champion's keys still set from a run that ended without its game
+	// shutting down: the normal keys back
+	Cvar_Get( "cl_championKeys", "0", CVAR_ARCHIVE );
+	CL_RestoreNormalKeys();
+
 	//
 	// register our variables
 	//

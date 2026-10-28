@@ -379,12 +379,51 @@ void CL_CM_LoadMap( const char *mapname ) {
 
 /*
 ====================
+CL_RestoreNormalKeys
+
+A champion's own keys (champions/<name>.cfg, run by cgame) end with the
+game: the normal keys come back now, and the config is written with them,
+so quitting never leaves a champion's keys as your normal ones.
+====================
+*/
+void Com_WriteConfiguration( void );
+
+void CL_RestoreNormalKeys( void ) {
+	union {
+		char	*c;
+		void	*v;
+	} f;
+	char	*line, *end;
+
+	if ( !Cvar_VariableIntegerValue( "cl_championKeys" ) ) {
+		return;
+	}
+	// line by line now: exec would only queue it, and a quit never runs the queue
+	if ( FS_ReadFile( "champions/default.cfg", &f.v ) > 0 ) {
+		for ( line = f.c; *line; line = end ) {
+			end = strchr( line, '\n' );
+			if ( end ) {
+				*end++ = 0;
+			} else {
+				end = line + strlen( line );
+			}
+			Cmd_ExecuteString( line );
+		}
+		FS_FreeFile( f.v );
+	}
+	Cvar_Set( "cl_championKeys", "0" );
+	Com_WriteConfiguration();
+}
+
+/*
+====================
 CL_ShutdownCGame
 
 ====================
 */
 void CL_ShutdownCGame( void ) {
 	Key_SetCatcher( Key_GetCatcher( ) & ~KEYCATCH_CGAME );
+	CL_RestoreNormalKeys();
 	cls.cgameStarted = qfalse;
 	if ( !cgvm ) {
 		return;
