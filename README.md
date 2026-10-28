@@ -89,6 +89,21 @@ from `misc/logo`) and the scripts warn; `scripts/package.sh` refuses to
 package them unless `TREMOR_ALLOW_PLACEHOLDER_BRAND=1`. The app icons come
 from the pack at configure time: configure again after adding it.
 
+The painted ability icons are a second pack, kept the same way:
+`~/projects/quake/local/branding/invictus-ability-gradients-v1` (or
+`$TREMOR_LOCAL/branding/...`, or `TREMOR_ABILITY_ART`; CMake's
+`TREMOR_ABILITY_ART_DIR`). `misc/art/import-ability-art.py` checks its
+checksums and that every ability in `bg_abilityInfo` has its glyphs, then
+copies it over the drawn ability icons (loose files win over any pk3, so a
+pk3 of the pack alone would lose to them) at the same points:
+
+    python3 misc/art/import-ability-art.py sync build-macos/generated
+    python3 misc/art/import-ability-art.py status build-macos/generated
+
+Without the pack it puts the drawn icons back and warns;
+`scripts/package.sh` refuses to package the drawn ones unless
+`TREMOR_ALLOW_DRAWN_ABILITY_ART=1`.
+
 ## Test runs
 
 `scripts/test-run.sh` runs the game for automated tests without disturbing

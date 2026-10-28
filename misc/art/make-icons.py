@@ -551,7 +551,7 @@ def ab_spinevolley():
     return Icon(out | C(32, 55, 7), C(32, 55, 3))
 
 
-def ab_eternal():
+def ab_masterofdeath():
     sk = skullg(32, 36, 13)
     halo = A(32, 34, 25, 4, 150, 390)
     head = P((48, 46), (56, 46), (52, 54))
@@ -602,7 +602,7 @@ ABILITIES = {
     "totem": ab_totem, "grenades": ab_grenades, "ghostwalk": ab_ghostwalk, "orb": ab_orb,
     "plasmatrail": ab_plasmatrail, "acidspit": ab_acidspit, "drone": ab_drone,
     "piercingsight": ab_piercingsight, "shellshock": ab_shellshock, "spinevolley": ab_spinevolley,
-    "eternal": ab_eternal, "supplydrop": ab_supplydrop, "markprey": ab_markprey, "downpour": ab_downpour,
+    "masterofdeath": ab_masterofdeath, "supplydrop": ab_supplydrop, "markprey": ab_markprey, "downpour": ab_downpour,
     "hound": ab_hound, "riftanchor": ab_riftanchor,
     "pip_hook": ab_hookpip, "pip_totem": ab_totempip, "pip_grenade": ab_grenadepip,
 }

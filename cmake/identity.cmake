@@ -112,6 +112,34 @@ if(TREMOR_PYTHON3)
     endfunction()
     list(APPEND POST_CONFIGURE_FUNCTIONS tremor_brand_target)
 endif()
+# the painted ability icons: a second pack kept outside the repository
+# (misc/art/import-ability-art.py), copied over the drawn ability icons
+# above and again on every build (target tremor-ability-art). Without the
+# pack the drawn icons stay (put back if an earlier sync replaced them) and
+# configure says so.
+if(DEFINED ENV{TREMOR_ABILITY_ART})
+    set(TREMOR_ABILITY_ART_DEFAULT $ENV{TREMOR_ABILITY_ART})
+elseif(DEFINED ENV{TREMOR_LOCAL})
+    set(TREMOR_ABILITY_ART_DEFAULT $ENV{TREMOR_LOCAL}/branding/invictus-ability-gradients-v1)
+else()
+    set(TREMOR_ABILITY_ART_DEFAULT $ENV{HOME}/projects/quake/local/branding/invictus-ability-gradients-v1)
+endif()
+set(TREMOR_ABILITY_ART_DIR ${TREMOR_ABILITY_ART_DEFAULT} CACHE PATH "The painted ability icon pack (outside the repository)")
+if(TREMOR_PYTHON3)
+    execute_process(COMMAND ${TREMOR_PYTHON3} -I ${CMAKE_SOURCE_DIR}/misc/art/import-ability-art.py sync
+            ${CMAKE_BINARY_DIR}/generated --pack ${TREMOR_ABILITY_ART_DIR}
+        ERROR_VARIABLE TREMOR_ABILITY_ART_ERRORS)
+    if(TREMOR_ABILITY_ART_ERRORS)
+        message(WARNING "Ability icons:\n${TREMOR_ABILITY_ART_ERRORS}")
+    endif()
+    function(tremor_ability_art_target)
+        add_custom_target(tremor-ability-art ALL
+            COMMAND ${TREMOR_PYTHON3} -I ${CMAKE_SOURCE_DIR}/misc/art/import-ability-art.py sync
+                ${CMAKE_BINARY_DIR}/generated --pack ${TREMOR_ABILITY_ART_DIR}
+            COMMENT "Ability icons" VERBATIM)
+    endfunction()
+    list(APPEND POST_CONFIGURE_FUNCTIONS tremor_ability_art_target)
+endif()
 if(EXISTS ${TREMOR_BRAND_ICONS}/TremorInvictus.icns)
     set(MACOS_ICON_PATH ${TREMOR_BRAND_ICONS}/TremorInvictus.icns)
 endif()

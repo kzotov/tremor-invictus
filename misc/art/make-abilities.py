@@ -151,7 +151,7 @@ def a_spinevolley():
     return spine(0.24, 0.62, 0.32) | spine(0.42, 0.8, 0.32), spine(0.3, 0.73, 0.4)
 
 
-def a_eternal():
+def a_masterofdeath():
     pts = []
     for i in range(61):
         t = i / 60 * 2 * math.pi
@@ -192,7 +192,7 @@ def a_riftanchor():
 
 ABILITIES = ["hook", "bullrush", "injection", "dualwield", "barrier", "flamestrike", "berserk", "turret",
              "totem", "grenades", "ghostwalk", "orb", "plasmatrail", "acidspit", "drone", "piercingsight",
-             "shellshock", "spinevolley", "eternal", "supplydrop", "markprey", "downpour", "hound", "riftanchor"]
+             "shellshock", "spinevolley", "masterofdeath", "supplydrop", "markprey", "downpour", "hound", "riftanchor"]
 
 
 def make_icon(name):

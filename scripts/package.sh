@@ -43,6 +43,17 @@ elif [ "$TARGET" != server ]; then
 		exit 1; }
 	echo "package: packing the placeholder UI art" >&2
 fi
+# the painted ability icons (a second pack outside the repo) the same way:
+# TREMOR_ALLOW_DRAWN_ABILITY_ART=1 allows the drawn ones
+python3 -I "$ROOT/misc/art/import-ability-art.py" sync "$GENERATED" || true
+if ABILITY_ART=$(python3 -I "$ROOT/misc/art/import-ability-art.py" status "$GENERATED"); then
+	echo "package: ability icons $ABILITY_ART"
+elif [ "$TARGET" != server ]; then
+	[ "${TREMOR_ALLOW_DRAWN_ABILITY_ART:-}" = 1 ] || {
+		echo "package: $GENERATED has the drawn ability icons, not the painted pack (see misc/art/import-ability-art.py)" >&2
+		exit 1; }
+	echo "package: packing the drawn ability icons" >&2
+fi
 [ "$TARGET" = server ] || [ -f "$BUILD/brand/tremor-invictus.ico" ] ||
 	echo "package: $BUILD was configured without the branding pack: the app icon is the placeholder (configure and build again)" >&2
 VERSION=$(cat "$BUILD/version.txt" 2>/dev/null || echo dev)
@@ -71,6 +82,8 @@ for d in scripts ui presets mappools configs hud; do
 done
 mkdir -p "$DATA/gfx"
 cp -R "$GENERATED/gfx/tremor" "$DATA/gfx/tremor"
+# the painted charge icons (import-ability-art.py), when there are any
+[ ! -d "$GENERATED/gfx/abilities" ] || cp -R "$GENERATED/gfx/abilities" "$DATA/gfx/abilities"
 (cd "$DATA" && zip -qrX "$GAMEDIR/tremor-0data.pk3" . -x '*.DS_Store' 'gfx/tremor/art.stamp' 'gfx/tremor/brand.txt')
 cp "$GENERATED/tremor-assets.pk3" "$GAMEDIR/"
 

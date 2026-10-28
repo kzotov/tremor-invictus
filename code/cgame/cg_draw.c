@@ -1629,16 +1629,19 @@ CG_DrawChargeIcons
 
 One icon per charge under the portrait: lit when ready, its shadow while
 recharging. A pack may give gfx/abilities/charges/<ability> and
-<ability>_shadow; otherwise the ability's own icon, dimmed for the shadow.
+<ability>_shadow (the shadow comes dimmed: drawn as it is); otherwise the
+drawn charge glyph (pip_<name>), else the ability's own icon, dimmed for
+the shadow.
 =================
 */
 static float	chargeIconsY = 470;		// the modern layout lifts them above the ring
+static float	chargeIconsSize = 16;	// large enough to count at a glance; 28 dp in the modern layout (hud.md 10.5)
 
 static void CG_DrawChargeIcons( int active, int charges, int maxCharges ) {
 	static qhandle_t	lit[ACTIVE_NUM_ABILITIES], shadow[ACTIVE_NUM_ABILITIES];
 	static qboolean		loaded[ACTIVE_NUM_ABILITIES];
 	static const vec4_t	dim = { 0.3f, 0.3f, 0.3f, 0.8f };
-	float				size = 16;		// large enough to count at a glance
+	float				size = chargeIconsSize;
 	int					i;
 
 	if ( active <= ACTIVE_NONE || active >= ACTIVE_NUM_ABILITIES ) {
@@ -1649,6 +1652,11 @@ static void CG_DrawChargeIcons( int active, int charges, int maxCharges ) {
 
 		lit[active] = trap_R_RegisterShaderNoMip( va( "gfx/abilities/charges/%s", name ) );
 		shadow[active] = trap_R_RegisterShaderNoMip( va( "gfx/abilities/charges/%s_shadow", name ) );
+		if ( !lit[active] ) {
+			// the drawn charge glyphs are named for one charge (pip_grenade)
+			lit[active] = trap_R_RegisterShaderNoMip( va( "gfx/tremor/icons/abilities/pip_%s",
+				active == ACTIVE_GRENADES ? "grenade" : name ) );
+		}
 		if ( !lit[active] ) {
 			lit[active] = trap_R_RegisterShaderNoMip( va( "gfx/tremor/abilities/%s", name ) );
 		}
@@ -1724,11 +1732,70 @@ dimmed while it recharges
 */
 static float	iconAlpha = 1;		// the ability block's glyph opacity (hud.md 10.5)
 
+/*
+=================
+CG_AbilityAnchor
+
+The point of an ability glyph (u, v from the texture's top left, 0-1) that
+sits on the centre of its ring: the painted icons' visible artwork is not
+centred in its square (fading trails). misc/art/import-ability-art.py
+writes gfx/tremor/icons/abilities/anchors.txt ("<key> <u> <v>" per line)
+for the painted textures it checked; any other glyph is centred (0.5, 0.5).
+=================
+*/
+static void CG_AbilityAnchor( int active, float *u, float *v ) {
+	static float	anchor[ACTIVE_NUM_ABILITIES][2];
+	static qboolean	loaded;
+
+	if ( !loaded ) {
+		fileHandle_t	f;
+		char			buf[4096], *p, *tok;
+		int				i, len;
+
+		loaded = qtrue;
+		for ( i = 0 ; i < ACTIVE_NUM_ABILITIES ; i++ ) {
+			anchor[i][0] = anchor[i][1] = 0.5f;
+		}
+		len = trap_FS_FOpenFile( "gfx/tremor/icons/abilities/anchors.txt", &f, FS_READ );
+		if ( f ) {
+			if ( len > (int)sizeof( buf ) - 1 ) {
+				len = sizeof( buf ) - 1;
+			}
+			trap_FS_Read( buf, len, f );
+			buf[len] = 0;
+			trap_FS_FCloseFile( f );
+			p = buf;
+			while ( 1 ) {
+				float	au, av;
+
+				tok = COM_Parse( &p );
+				if ( !tok[0] ) {
+					break;
+				}
+				for ( i = ACTIVE_NONE + 1 ; i < ACTIVE_NUM_ABILITIES ; i++ ) {
+					if ( !Q_stricmp( tok, bg_abilityInfo[i].cvarName ) ) {
+						break;
+					}
+				}
+				au = atof( COM_Parse( &p ) );
+				av = atof( COM_Parse( &p ) );
+				if ( i < ACTIVE_NUM_ABILITIES && au > 0 && au < 1 && av > 0 && av < 1 ) {
+					anchor[i][0] = au;
+					anchor[i][1] = av;
+				}
+			}
+		}
+	}
+	*u = anchor[active][0];
+	*v = anchor[active][1];
+}
+
 static void CG_DrawAbilityIcon( float cx, float cy, float size ) {
 	static qhandle_t	icons[ACTIVE_NUM_ABILITIES];
 	static qboolean		loaded[ACTIVE_NUM_ABILITIES];
 	static const vec4_t	dim = { 0.45f, 0.45f, 0.45f, 0.7f };
 	int					active = BG_Champion( cg.snap->ps.stats[STAT_CHAMPION] )->active;
+	float				u, v;
 
 	if ( active <= ACTIVE_NONE || active >= ACTIVE_NUM_ABILITIES ) {
 		return;
@@ -1752,7 +1819,8 @@ static void CG_DrawAbilityIcon( float cx, float cy, float size ) {
 	} else if ( BG_AbilityCharges( &cg.snap->ps ) <= 0 ) {
 		trap_R_SetColor( dim );
 	}
-	CG_DrawPic( cx - size / 2, cy - size / 2, size, size, icons[active] );
+	CG_AbilityAnchor( active, &u, &v );
+	CG_DrawPic( cx - u * size, cy - v * size, size, size, icons[active] );
 	trap_R_SetColor( NULL );
 }
 
@@ -8239,9 +8307,11 @@ static void CG_DrawAbilityBlock( void ) {
 	// charges above the ring
 	maxCharges = BG_AbilityParam( champ->active, AP_CHARGES );
 	if ( champ->active == ACTIVE_TOTEM ) {
-		chargeIconsY = cy - r - 20;
+		chargeIconsSize = 28 * DP;
+		chargeIconsY = cy - r - 4 - chargeIconsSize;
 		CG_DrawChargeIcons( champ->active, ps->stats[STAT_TOTEMS] & 0xffff, TOTEMS_SHOWN );
 		chargeIconsY = 470;
+		chargeIconsSize = 16;
 	} else if ( champ->active == ACTIVE_TURRET ) {
 		// Eisen's turret (abilities-data): 0 / 1 out, its health and armour
 		int		t = ps->stats[STAT_TURRET] & 0xffff;
@@ -8250,15 +8320,29 @@ static void CG_DrawAbilityBlock( void ) {
 		Vector4Set( c, 1, 1, 1, 1 );
 		CG_HudText( cx + r + 10 * DP, cy - 26 * DP, 20, va( "%i / 1", ( t & TURRET_OUT ) ? 1 : 0 ), c, 0, 1 );
 		if ( t & TURRET_OUT ) {
+			static qhandle_t	glyph;
+			static qboolean		loaded;
+
+			// hud.md 10.5 object stats: health right-aligned, the object's
+			// glyph (18 dp, when the ability pack has one), armour left-aligned
+			if ( !loaded ) {
+				glyph = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/abilities/stat_turret" );
+				loaded = qtrue;
+			}
 			Vector4Set( c, 1, 1, 1, 0.9f );
-			CG_HudText( cx + r + 10 * DP, cy - 2 * DP, 18, va( "%i", t & 255 ), c, 0, 1 );
+			CG_HudText( cx + r + 42 * DP, cy - 2 * DP, 18, va( "%i", t & 255 ), c, 2, 1 );
+			if ( glyph ) {
+				CG_DrawPic( cx + r + 47 * DP, cy - 2 * DP, 18 * DP, 18 * DP, glyph );
+			}
 			Vector4Set( c, 0.35f, 0.95f, 0.45f, 0.9f );
-			CG_HudText( cx + r + 60 * DP, cy - 2 * DP, 18, va( "%i", ( t >> 8 ) & 63 ), c, 0, 1 );
+			CG_HudText( cx + r + 70 * DP, cy - 2 * DP, 18, va( "%i", ( t >> 8 ) & 63 ), c, 0, 1 );
 		}
 	} else if ( maxCharges > 1 ) {
-		chargeIconsY = cy - r - 20;
+		chargeIconsSize = 28 * DP;
+		chargeIconsY = cy - r - 4 - chargeIconsSize;
 		CG_DrawChargeIcons( champ->active, BG_AbilityCharges( ps ), maxCharges );
 		chargeIconsY = 470;
+		chargeIconsSize = 16;
 	}
 
 	if ( ( champ->passives & PASSIVE_LEAPINGKICK ) && KICK_COUNT( ps ) > 0 ) {

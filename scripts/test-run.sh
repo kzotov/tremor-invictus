@@ -105,8 +105,16 @@ start)
 	# images made at build time (the menu logo), with the UI branding pack from
 	# outside the repo copied over the drawn placeholders (it warns without one)
 	python3 -I "$ROOT/misc/art/import-brand-art.py" sync "$BUILD/generated" || true
+	# and the painted ability icons (a second pack outside the repo) over the
+	# drawn ones; its charge icons live in gfx/abilities/charges
+	python3 -I "$ROOT/misc/art/import-ability-art.py" sync "$BUILD/generated" || true
 	mkdir -p "$HOME_DIR/baseq3/gfx"
 	ln -sfn "$BUILD/generated/gfx/tremor" "$HOME_DIR/baseq3/gfx/tremor"
+	if [ -d "$BUILD/generated/gfx/abilities" ]; then
+		ln -sfn "$BUILD/generated/gfx/abilities" "$HOME_DIR/baseq3/gfx/abilities"
+	else
+		rm -f "$HOME_DIR/baseq3/gfx/abilities"
+	fi
 	# models and replaceable ability assets made at build time (a pack;
 	# local packs sort after it and win)
 	ln -sfn "$BUILD/generated/tremor-assets.pk3" "$HOME_DIR/baseq3/tremor-assets.pk3"
