@@ -299,6 +299,8 @@ qboolean G_CallSpawn( gentity_t *ent ) {
 		ent->classname = "weapon_plasmagun";
 	} else if ( !strcmp( ent->classname, "weapon_tribolt" ) ) {
 		ent->classname = "weapon_grenadelauncher";
+	} else if ( !strcmp( ent->classname, "ammo_bolts" ) ) {
+		ent->classname = "ammo_grenades";
 	} else if ( !strcmp( ent->classname, "item_protection" ) ) {
 		ent->classname = "item_enviro";
 	} else if ( !strcmp( ent->classname, "item_health_special" ) ) {
@@ -524,7 +526,10 @@ void G_SpawnGEntityFromSpawnVars( void ) {
 		return;
 	}
 #else
-	G_SpawnInt( "notq3a", "0", &i );
+	// mechanics.md "Map item sets": maps made for the champion game carry
+	// two item layouts, "notqc" entities the classic one and "notq3a" the
+	// champion one; g_itemLayout 1 (default) plays the champion one
+	G_SpawnInt( g_itemLayout.integer ? "notqc" : "notq3a", "0", &i );
 	if ( i ) {
 		ADJUST_AREAPORTAL();
 		G_FreeEntity( ent );

@@ -1112,6 +1112,7 @@ extern	vmCvar_t	g_spawnProtectionScale;
 extern	vmCvar_t	g_teamSize;
 extern	vmCvar_t	g_voteFlags;
 extern	vmCvar_t	g_hourglassFromShards;
+extern	vmCvar_t	g_itemLayout;
 extern	vmCvar_t	g_voteDelay;
 extern	vmCvar_t	g_voteLimit;
 extern	vmCvar_t	g_allowSpecVote;

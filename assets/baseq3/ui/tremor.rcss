@@ -1684,7 +1684,9 @@ scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc {
 
 /* keyboard and controller: Tab or the arrows move between everything that
    can be clicked, Enter or Space (controller A) clicks it; the focused one
-   gets a bone-white ring, only when moved to from the keyboard */
+   gets a light tint, only when moved to from the keyboard (a text field
+   shows its caret; box-shadow is not used: this renderer draws it as a
+   white block, and a second one at the top of the screen) */
 body {
 	nav: auto;
 }
@@ -1694,8 +1696,9 @@ button, input, [onclick] {
 	nav: auto;
 }
 
-button:focus-visible, input:focus-visible, [onclick]:focus-visible {
-	box-shadow: #f2efe9 0dp 0dp 0dp 3dp;
+[onclick]:focus-visible {
+	color: #f2efe9;
+	background-color: #f2efe926;
 }
 
 /* the crosshair styles as pictures */
