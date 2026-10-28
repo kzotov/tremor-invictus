@@ -10,9 +10,9 @@
 		<div class="submenu" id="play_menu">
 			<button class="small" data-when="mm_ok=1" onclick="mm_profile; rml_show ui/findmatch.rml">[menu_find_match]</button>
 			<button class="small" onclick="rml_hide; ui_practice">[menu_practice]</button>
-			<button class="small" onclick="ui_servers">[menu_find_servers]</button>
 			<button class="small" onclick="rml_hide; ui_createServer">[menu_create_server]</button>
 		</div>
+		<button onclick="ui_servers">[menu_find_servers]</button>
 		<button onclick="ui_champions">[menu_champions]</button>
 		<button data-when="mm_ok=1" onclick="ui_profile">[menu_profile]</button>
 		<button onclick="ui_colors">[menu_player_colors]</button>
