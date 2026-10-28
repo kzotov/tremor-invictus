@@ -1409,6 +1409,16 @@ static qboolean CL_ChatPassesPage( int key ) {
 #endif
 
 void CL_KeyEvent (int key, qboolean down, unsigned time) {
+	// Option, Alt or Cmd + Enter switches fullscreen and windowed, also over
+	// the menus (which would take the key)
+	if ( down && ( key == K_ENTER || key == K_KP_ENTER )
+		&& ( keys[K_ALT].down || keys[K_COMMAND].down || keys[K_SUPER].down ) ) {
+		if ( !keys[key].down ) {		// (not again while held)
+			Cvar_SetValue( "r_fullscreen", !Cvar_VariableIntegerValue( "r_fullscreen" ) );
+		}
+		keys[key].down = qtrue;
+		return;
+	}
 #ifdef USE_RMLUI
 	// an RmlUi menu takes the keys, except the console's and the chat's
 	if ( !( Key_GetCatcher() & KEYCATCH_CONSOLE ) && key != K_CONSOLE && !( key == K_ESCAPE && keys[K_SHIFT].down )

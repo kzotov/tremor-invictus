@@ -1085,6 +1085,9 @@ addBody:
 			turretModel = trap_R_RegisterModel( "models/abilities/turret/turret.md3" );
 			totemModel = trap_R_RegisterModel( "models/abilities/totem/totem.md3" );
 		}
+		if ( BG_Champion( pi->champion )->active == ACTIVE_TOTEM ) {
+			ang[YAW] = 90;		// its flat face (the model's y) toward the camera
+		}
 		memset( &prop, 0, sizeof( prop ) );
 		AnglesToAxis( ang, prop.axis );
 		VectorCopy( origin, prop.origin );
