@@ -652,6 +652,25 @@ class LabelMap:
         return 1 - depth * (1 - smooth(0, width, self.edge(u, v)))
 
 
+def recoloured(hue, saturation=1.0, value=1.0):
+    """A layer factory painting the model's own texture with its hue turned
+    to hue (0..1) and its saturation and brightness scaled, on the player's
+    machine (the image stays theirs)."""
+    import colorsys
+
+    @painted
+    def make(geo):
+        def f(u, v):
+            c = geo.colour(u, v)
+            if c is None:
+                return [0, 0, 0, 0]
+            h, s, l = colorsys.rgb_to_hsv(*c)
+            r, g, b = colorsys.hsv_to_rgb(hue, clamp(s * saturation), clamp(l * value))
+            return [r, g, b, 1]
+        return f
+    return make
+
+
 def painted(factory):
     """Mark a layer factory that takes the sheet's SheetGeo (geo.py) and
     returns the layer's (u, v) -> rgba."""
@@ -667,8 +686,7 @@ class Sheet:
     form: the sheet also takes form shading worked out from the model (a
     look's FORM entry, see form_layers): a x2 multiply and a lit highlight
     after the detail. fx: an effect, not paint: only its detail, added
-    unlit and flickering on a card turned to the viewer (the model's own
-    image is not drawn).
+    unlit and pulsing (the model's own image is not drawn).
     A layer is a function (u, v) -> rgba, or None; one given for "" alone
     serves every variant. model names the sheet's model when it is not the
     look's own (a head taken from another model)."""
@@ -760,9 +778,9 @@ def build_look(out, look, ctx, draw=True):
                         tex(os.path.join(out, img), sheet.size, sheet.size, fn(ctx.sheet(look, name, sheet.size))
                             if getattr(fn, "needs_geo", False) else fn, False)
                     made[id(fn)] = img
-                text += ("\tsort additive\n\tcull disable\n\tdeformVertexes autoSprite\n"
-                         "\t{\n\t\tclampmap %s\n\t\tblendFunc GL_ONE GL_ONE\n\t\ttcMod stretch sin 1 0.05 0 11\n"
-                         "\t\trgbGen wave noise 0.8 0.35 0 14\n\t}\n" % made[id(fn)])
+                text += ("\tsort additive\n\tcull disable\n"
+                         "\t{\n\t\tclampmap %s\n\t\tblendFunc GL_ONE GL_ONE\n\t\ttcMod stretch sin 0.9 0.1 0 1.1\n"
+                         "\t\trgbGen identity\n\t}\n" % made[id(fn)])
                 shaders += text + "}\n\n"
                 continue
             text += "\t{\n\t\tmap %s%s.tga\n\t\trgbGen lightingDiffuse\n\t}\n" % (rel, base)

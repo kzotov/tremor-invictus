@@ -170,35 +170,86 @@ void UI_CreditMenu( void ) {
 ===============
 UI_CreditsRml
 
-The credits as an RmlUi page, written from the same strings to
-ui-gen/credits.rml
+The credits as an RmlUi page, written from the string table to
+ui-gen/credits.rml in the manner of a film poster's billing block: the
+title spaced wide, then lines of a small two-word role stacked before a
+tall condensed name, the contributors and libraries in columns, and a
+closing card with the copyright and licence
 ===============
 */
+
+// a role ("MADE|BY") stacked beside its name
+static void Credits_Billing( char *page, int size, int role, int name ) {
+	char	words[64], *bar;
+
+	Q_strncpyz( words, BG_String( role ), sizeof( words ) );
+	bar = strchr( words, '|' );
+	if ( bar ) {
+		*bar++ = 0;
+	}
+	Q_strcat( page, size, va( "<div class=\"bill\"><span class=\"role\"><span>%s</span>", UI_RmlText( words ) ) );
+	Q_strcat( page, size, va( "<span>%s</span></span><span class=\"name\">%s</span></div>\n", bar ? UI_RmlText( bar ) : "",
+		UI_RmlText( BG_String( name ) ) ) );
+}
+
 void UI_CreditsRml( void ) {
-	static const int	lines[] = {
-		STR_CR_ENGINE, STR_CR_IDCOPY, -1, STR_CR_GPL1, STR_CR_GPL2, -1, STR_CR_FONT, -1, STR_CR_THIRDPARTY,
-		STR_CR_LIB1, STR_CR_LIB2, STR_CR_LIB3, STR_CR_LIB4
-	};
-	static char		page[16384];
+	static char		page[32768];
+	char			title[128], libs[MAX_STRING_CHARS], *lib, *next, *bar;
+	const char		*t;
 	fileHandle_t	f;
 	int				i;
 
 	page[0] = 0;
 	Q_strcat( page, sizeof( page ), "<rml>\n<head>\n<title>Credits</title>\n<link type=\"text/rcss\" href=\"/ui/tremor.rcss\"/>\n</head>\n"
 		"<body data-escape=\"rml_show ui/main.rml\">\n<div class=\"credits\">\n" );
-	Q_strcat( page, sizeof( page ), va( "<h1>%s</h1>\n", UI_RmlText( BG_String( STR_CR_TITLE ) ) ) );
-	Q_strcat( page, sizeof( page ), va( "<div class=\"crgame\">%s</div>\n", UI_RmlText( BG_String( STR_CR_GAME ) ) ) );
-	Q_strcat( page, sizeof( page ), va( "<div class=\"crline\">%s</div>\n", UI_RmlText( BG_String( STR_CR_MADEBY ) ) ) );
-	Q_strcat( page, sizeof( page ), va( "<div class=\"crline red\">%s</div><br/>\n", UI_RmlText( BG_String( STR_CR_SITE ) ) ) );
-	for ( i = 0; i < ARRAY_LEN( lines ); i++ ) {
-		Q_strcat( page, sizeof( page ), lines[i] < 0 ? "<br/>\n" : va( "<div class=\"crline\">%s</div>\n", UI_RmlText( BG_String( lines[i] ) ) ) );
+
+	// the title, its letters spread out
+	title[0] = 0;
+	for ( t = BG_String( STR_CR_GAME ) ; *t && strlen( title ) < sizeof( title ) - 12 ; t++ ) {
+		Q_strcat( title, sizeof( title ), *t == ' ' ? "&#160; &#160;" : va( "%c ", toupper( *t ) ) );
 	}
-	Q_strcat( page, sizeof( page ), va( "<br/><div class=\"crline white\">%s</div>\n", UI_RmlText( BG_String( STR_CR_IOQ3 ) ) ) );
-	Q_strcat( page, sizeof( page ), "<div class=\"crline\">" );
+	Q_strcat( page, sizeof( page ), va( "<div class=\"crtitle\">%s</div>\n", title ) );		// (letters only: no escaping)
+
+	// the billing block
+	Q_strcat( page, sizeof( page ), "<div class=\"billing\">\n" );
+	Credits_Billing( page, sizeof( page ), STR_CRB_MADEBY, STR_CRB_MADEBY_NAME );
+	Credits_Billing( page, sizeof( page ), STR_CRB_BUILTON, STR_CRB_BUILTON_NAME );
+	Credits_Billing( page, sizeof( page ), STR_CRB_LOGO, STR_CRB_LOGO_NAME );
+	Credits_Billing( page, sizeof( page ), STR_CRB_TYPE, STR_CRB_TYPE_NAME );
+	Credits_Billing( page, sizeof( page ), STR_CRB_MENUS, STR_CRB_MENUS_NAME );
+	Q_strcat( page, sizeof( page ), "</div>\n" );
+
+	// the engine's contributors, in columns
+	Q_strcat( page, sizeof( page ), va( "<div class=\"crhead\">%s</div>\n<div class=\"crgrid\">", UI_RmlText( BG_String( STR_CRB_IOQ3 ) ) ) );
 	for ( i = 0; ioq3Names[i]; i++ ) {
-		Q_strcat( page, sizeof( page ), va( "%s%s", i ? ",  " : "", UI_RmlText( ioq3Names[i] ) ) );
+		Q_strcat( page, sizeof( page ), va( "<span class=\"crcell\">%s</span>", UI_RmlText( ioq3Names[i] ) ) );
 	}
-	Q_strcat( page, sizeof( page ), "</div>\n<div class=\"sactions\"><button onclick=\"rml_show ui/main.rml\">[menu_back]</button></div>\n</div>\n</body>\n</rml>\n" );
+	Q_strcat( page, sizeof( page ), "</div>\n" );
+
+	// the libraries, each with its licence beside it
+	Q_strcat( page, sizeof( page ), va( "<div class=\"crhead\">%s</div>\n<div class=\"crgrid\">", UI_RmlText( BG_String( STR_CRB_LIBHEAD ) ) ) );
+	Q_strncpyz( libs, BG_String( STR_CRB_LIBS ), sizeof( libs ) );
+	for ( lib = libs ; lib && *lib ; lib = next ) {
+		next = strchr( lib, ';' );
+		if ( next ) {
+			*next++ = 0;
+		}
+		bar = strchr( lib, '|' );
+		if ( bar ) {
+			*bar++ = 0;
+		}
+		Q_strcat( page, sizeof( page ), va( "<span class=\"crcell\">%s <span class=\"lic\">%s</span></span>",
+			UI_RmlText( lib ), bar ? UI_RmlText( bar ) : "" ) );
+	}
+	Q_strcat( page, sizeof( page ), "</div>\n" );
+
+	// the closing card
+	Q_strcat( page, sizeof( page ), "<div class=\"crclose\">" );
+	Q_strcat( page, sizeof( page ), va( "<div>%s</div>", UI_RmlText( BG_String( STR_CR_IDCOPY ) ) ) );
+	Q_strcat( page, sizeof( page ), va( "<div>%s %s</div>", UI_RmlText( BG_String( STR_CR_GPL1 ) ), UI_RmlText( BG_String( STR_CR_GPL2 ) ) ) );
+	Q_strcat( page, sizeof( page ), va( "<div>%s</div>", UI_RmlText( BG_String( STR_CR_LIB4 ) ) ) );
+	Q_strcat( page, sizeof( page ), va( "<div class=\"site\">%s</div></div>\n", UI_RmlText( BG_String( STR_CR_SITE ) ) ) );
+	Q_strcat( page, sizeof( page ), "<div class=\"sactions\"><button onclick=\"rml_show ui/main.rml\">[menu_back]</button></div>\n</div>\n</body>\n</rml>\n" );
 
 	trap_FS_FOpenFile( "ui-gen/credits.rml", &f, FS_WRITE );
 	if ( !f ) {

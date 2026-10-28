@@ -1,5 +1,7 @@
-"""Scalebearer: keel's heavy armour under biker's head, the body painted
-from scratch: a coat of big overlapping iron scales rimmed in copper over
+"""Scalebearer: keel's heavy armour under biker's head. The body wears
+keel's own armour with its colours turned to a cold blue-grey and the
+gem lit over it (look() below); detail_fn keeps the earlier paint, from
+scratch: a coat of big overlapping iron scales rimmed in copper over
 the back, sides and pauldrons, a chest plate of banded lames with a
 copper trim and a glowing gem, gauntlets in small scales, a leather
 waist and a wide belt with hanging tassets, worn brown leather trousers
@@ -9,7 +11,7 @@ The head is a pale grey-blue brute with glowing blue eyes under a dark
 helm rimmed in copper. Team versions enamel the pads and toe caps and
 light the gem and the eyes in the team's colour."""
 import math
-from skins import Sheet, Look, LabelMap, painted
+from skins import Sheet, Look, LabelMap, painted, recoloured
 from tremorart import Fbm, Noise, clamp, smooth, mix
 
 # what each texel of keel.tga is, worked out on the player's machine from
@@ -296,9 +298,11 @@ def head_glow_fn(colour):
 
 def look():
     return Look("keel", "scalebearer", {
+        # keel's own armour with its colours turned to a cold blue-grey
+        # (Konstantin, 2026-10-28), the gem lit over it
         "body": Sheet({"": "keel", "_red": "keel", "_blue": "keel"},
-                      detail={v: detail_fn(v) for v in ENAMEL},
-                      glow={v: glow_fn(LIGHT[v]) for v in LIGHT}, size=1024, form=FORM["body"]),
+                      detail=recoloured(0.6, 0.35, 0.95),
+                      glow={v: glow_fn(LIGHT[v]) for v in LIGHT}, size=512),
         "neck": Sheet({"": "keel_h", "_red": "keel_h", "_blue": "keel_h"}, detail=neck_detail, size=64),
         "head": Sheet({"": "biker_h", "_red": "biker_h", "_blue": "biker_h"}, model="biker",
                       grade=head_grade, detail=head_detail_fn,

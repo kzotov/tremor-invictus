@@ -1348,6 +1348,21 @@ typedef enum {
 	STR_SET_BIND_TAUNT,
 	STR_SET_BIND_TAKEN,				// a key moved from another action: key, its old action
 	STR_END_NEXT,					// the end board: seconds to the next match
+	// the credits' billing block (ui_credits.c): a role as two stacked
+	// words split by '|', then its name; the libraries as name|licence;...
+	STR_CRB_MADEBY,
+	STR_CRB_MADEBY_NAME,
+	STR_CRB_BUILTON,
+	STR_CRB_BUILTON_NAME,
+	STR_CRB_LOGO,
+	STR_CRB_LOGO_NAME,
+	STR_CRB_TYPE,
+	STR_CRB_TYPE_NAME,
+	STR_CRB_MENUS,
+	STR_CRB_MENUS_NAME,
+	STR_CRB_IOQ3,
+	STR_CRB_LIBHEAD,
+	STR_CRB_LIBS,
 
 	STR_NUM_STRINGS
 } stringId_t;
