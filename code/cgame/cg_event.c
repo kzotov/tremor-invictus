@@ -604,24 +604,33 @@ void CG_PainEvent( centity_t *cent, int health ) {
 	char	*snd;
 	// Strogg's body during the drone is his own (its clientNum)
 	int		who = cent->currentState.eType == ET_PLAYER ? cent->currentState.number : cent->currentState.clientNum;
+	int		since = cg.time - cent->pe.painVoiceTime;
+	int		tier, lastTier;
 
-	// don't do more than two pain sounds a second; your own while low,
-	// one each 0.8 s (calmer, konstantin-list-audit)
+	Com_Printf( "PAINEV who %i health %i\n", who, health );
+	// don't do more than two pain twitches a second
 	if ( cg.time - cent->pe.painTime < 500 ) {
 		return;
 	}
+	// save pain time for programitic twitch animation
+	cent->pe.painTime = cg.time;
+	cent->pe.painDirection ^= 1;
 
-
-	// (25 and below is the Low step's tier)
-	if ( health <= 25 ) {
-		snd = "*pain25_1.wav";
-	} else if ( health <= 50 ) {
-		snd = "*pain50_1.wav";
-	} else if ( health <= 75 ) {
-		snd = "*pain75_1.wav";
-	} else {
-		snd = "*pain100_1.wav";
+	// the voice is not on every hit: a shout each time would sound like
+	// dying all fight long. It comes on the first hit of a fight, on falling
+	// to a lower health step (100 / 75 / 50 / 25, 25 and below being the
+	// Low step's tier), and otherwise only after 20 more damage at least
+	// 1.5 s after the last one
+	tier = health <= 25 ? 0 : health <= 50 ? 1 : health <= 75 ? 2 : 3;
+	lastTier = cent->pe.painVoiceHealth <= 25 ? 0 : cent->pe.painVoiceHealth <= 50 ? 1 : cent->pe.painVoiceHealth <= 75 ? 2 : 3;
+	if ( cent->pe.painVoiceTime && since < 5000 && health <= cent->pe.painVoiceHealth && tier >= lastTier
+		&& ( since < 1500 || cent->pe.painVoiceHealth - health < 20 ) ) {
+		return;
 	}
+	cent->pe.painVoiceTime = cg.time;
+	cent->pe.painVoiceHealth = health;
+
+	snd = tier == 0 ? "*pain25_1.wav" : tier == 1 ? "*pain50_1.wav" : tier == 2 ? "*pain75_1.wav" : "*pain100_1.wav";
 	// play a gurp sound instead of a normal pain sound
 	if (CG_WaterLevel(cent) == 3) {
 		if (rand()&1) {
@@ -632,9 +641,7 @@ void CG_PainEvent( centity_t *cent, int health ) {
 	} else {
 		trap_S_StartSound(NULL, cent->currentState.number, CHAN_VOICE, CG_CustomSound(who, snd));
 	}
-	// save pain time for programitic twitch animation
-	cent->pe.painTime = cg.time;
-	cent->pe.painDirection ^= 1;
+	Com_Printf( "PAINDBG who %i health %i snd %s\n", who, health, snd );
 }
 
 

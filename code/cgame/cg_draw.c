@@ -5978,10 +5978,7 @@ static void CG_DrawMapVote( void ) {
 			CG_FillRect( x - 3, 359, 126, 100, mine );
 		}
 		shot = trap_R_RegisterShaderNoMip( va( "levelshots/%s.tga", maps[i] ) );
-		if ( !shot ) {
-			shot = trap_R_RegisterShaderNoMip( "gfx/tremor/splash/nomap" );
-		}
-		CG_DrawPic( x, 362, 120, 66, shot );
+		CG_DrawLevelshotPic( x, 362, 120, 66, shot );
 		CG_DrawSmallStringColor( x, 430, va( "%i %s", i + 1, maps[i] ), colorWhite );
 		CG_DrawSmallStringColor( x, 444, va( (char *)BG_String( STR_MV_VOTES ), votes[i] ), colorLtGrey );
 	}
@@ -6989,6 +6986,7 @@ static qboolean CG_DrawDraft( void ) {
 					}
 				}
 				trap_Cvar_Set( va( "dr_t_%s", BG_Champion( c )->name ), taken ? BG_String( STR_RD_DRAFT_TAKEN ) : "" );
+				trap_Cvar_Set( va( "dr_pic_%s", BG_Champion( c )->name ), c < 32 ? cg_portraitPath[c] : "" );
 			}
 			// the page for the two drafting; spectators only watch (their
 			// keys stay theirs). Opening it lets go of held keys. Not over

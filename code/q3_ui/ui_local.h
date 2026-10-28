@@ -648,7 +648,7 @@ typedef struct {
 	qhandle_t			whiteShader;
 	qhandle_t			menuBackShader;
 	qhandle_t			menuBackNoLogoShader;
-	qhandle_t			logoShader;			// our logo, rendered from misc/logo at build time
+	qhandle_t			logoShader;			// the horizontal logo (UI_DrawLogo)
 	qhandle_t			charset;
 	qhandle_t			charsetProp;
 	// the TrueType text (FIX-11), as the cgame's: a glyph handle of 0 means
@@ -675,6 +675,9 @@ extern qboolean		UI_ConsoleCommand( int realTime );
 extern float		UI_ClampCvar( float min, float max, float value );
 extern void			UI_DrawNamedPic( float x, float y, float width, float height, const char *picname );
 extern void			UI_DrawHandlePic( float x, float y, float w, float h, qhandle_t hShader ); 
+extern void			UI_DrawCroppedPic( float x, float y, float w, float h, float aspect, qhandle_t shader );
+extern void			UI_DrawLevelshot( float x, float y, float w, float h, qhandle_t shot );
+extern void			UI_DrawLogo( float x, float y, float h );
 extern void			UI_FillRect( float x, float y, float width, float height, const float *color );
 extern void			UI_DrawRect( float x, float y, float width, float height, const float *color );
 extern void			UI_UpdateScreen( void );

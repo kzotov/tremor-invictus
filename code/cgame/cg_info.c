@@ -257,12 +257,13 @@ void CG_DrawInformation( void ) {
 	const char	*info = CG_ConfigString( CS_SERVERINFO );
 	const char	*authors = CG_ConfigString( CS_MAPAUTHORS );
 	const char	*title, *s;
-	qhandle_t	levelshot, logo;
+	qhandle_t	levelshot;
 	int			y;
 
 	s = Info_ValueForKey( info, "mapname" );
 	levelshot = trap_R_RegisterShaderNoMip( va( "levelshots/%s.tga", s ) );
 	if ( !levelshot ) {
+		// a 4:3 picture in a square texture, like a levelshot
 		levelshot = trap_R_RegisterShaderNoMip( "gfx/tremor/splash/nomap" );
 	}
 	trap_R_SetColor( NULL );
@@ -270,11 +271,8 @@ void CG_DrawInformation( void ) {
 
 	// top: logo left, mode right, on a dark bar across the screen
 	CG_FillRect( 0, 0, SCREEN_WIDTH, 48, barColor );
-	logo = trap_R_RegisterShaderNoMip( "gfx/tremor/logo" );
 	cg_hudAnchor = ANCHOR_LEFT;
-	if ( logo ) {
-		CG_DrawPic( 12, 6, 137, 36, logo );
-	}
+	CG_DrawLogo( 14, 5, 38 );
 	cg_hudAnchor = ANCHOR_RIGHT;
 	UI_DrawProportionalString( SCREEN_WIDTH - 16, 14, CG_ModeString(), UI_RIGHT | UI_SMALLFONT | UI_DROPSHADOW, colorWhite );
 

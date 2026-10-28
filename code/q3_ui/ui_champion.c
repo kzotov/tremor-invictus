@@ -532,7 +532,8 @@ The Champions screen in RmlUi (ui/champions.rml)
 
 The document shows cvars this module fills: ui_chShown is the champion on
 view (the stage draws it), ui_ch* its details. Commands from the document:
-ui_champPreview <name>, ui_champWeapon <mg|sg|ng>, ui_champSelect.
+ui_champPreview <name>, ui_champWeapon <mg|sg|ng>, ui_champView <card|model>,
+ui_champSelect.
 
 ===============================================================================
 */
@@ -636,6 +637,19 @@ static void Champion_Pictures( void ) {
 
 /*
 =================
+Champion_PreviewKind
+
+What the large preview shows (ui_chPreview): the card, unless there is none
+or the player asked for the model (ui_chView, kept for the session)
+=================
+*/
+static void Champion_PreviewKind( void ) {
+	trap_Cvar_Set( "ui_chPreview", UI_Cvar_VariableString( "ui_chCard" )[0]
+		&& Q_stricmp( UI_Cvar_VariableString( "ui_chView" ), "model" ) ? "card" : "model" );
+}
+
+/*
+=================
 Champion_Publish
 
 The details of champion i for the document
@@ -691,6 +705,30 @@ static void Champion_Publish( int i ) {
 
 	// the stat bars, ten segments against the best of the roster
 	Champion_Bars( c );
+
+	// the full-body card (gfx/champions/<champion>_card, 2:3) for the large
+	// preview, when a portrait pack has one; without it the stage shows the model.
+	// The file's own name goes to the document, which reads the picture's size
+	// from it (a name without the extension would show it square)
+	trap_Cvar_Set( "ui_chCard", "" );
+	{
+		static const char	*exts[] = { "tga", "png", "jpg" };
+		fileHandle_t		f;
+		int					e, len;
+
+		for ( e = 0; e < ARRAY_LEN( exts ); e++ ) {
+			Com_sprintf( text, sizeof( text ), "gfx/champions/%s_card.%s", c->name, exts[e] );
+			len = trap_FS_FOpenFile( text, &f, FS_READ );
+			if ( f ) {
+				trap_FS_FCloseFile( f );
+			}
+			if ( len > 0 ) {
+				trap_Cvar_Set( "ui_chCard", text );
+				break;
+			}
+		}
+	}
+	Champion_PreviewKind();
 
 	// an outside credit under the ability (Xaero's concept, a link)
 	trap_Cvar_Set( "ui_chCredit", !Q_stricmp( c->name, "xaero" ) ? "xaero" : "" );
@@ -800,6 +838,12 @@ qboolean UI_ChampionCommand( const char *cmd ) {
 		if ( i >= 0 && Q_stricmp( UI_Cvar_VariableString( "ui_chShown" ), bg_championList[i].name ) ) {
 			Champion_Publish( i );
 		}
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_champView" ) ) {
+		// card or model in the large preview
+		trap_Cvar_Set( "ui_chView", !Q_stricmp( UI_Argv( 1 ), "model" ) ? "model" : "card" );
+		Champion_PreviewKind();
 		return qtrue;
 	}
 	if ( !Q_stricmp( cmd, "ui_champHoverEnd" ) ) {

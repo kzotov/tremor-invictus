@@ -33,7 +33,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "../renderercommon/tr_common.h"
 #include "../sys/sys_local.h"
+#ifdef TREMOR_WINDOW_ICON
+#include "tremor_window_icon.h"		// the branding pack's emblem, staged by the build
+#else
 #include "sdl_icon.h"
+#endif
 
 #ifdef USE_METAL
 #include "../renderermetal/mtl_sdlgl.h"

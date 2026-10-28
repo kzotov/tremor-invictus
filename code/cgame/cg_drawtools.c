@@ -208,6 +208,52 @@ void CG_DrawPic( float x, float y, float width, float height, qhandle_t hShader 
 	trap_R_DrawStretchPic( x, y, width, height, 0, 0, 1, 1, hShader );
 }
 
+/*
+================
+CG_DrawLevelshotPic
+
+A map's levelshot in a box, or the missing-map picture when it has none
+(0). Both hold a 4:3 picture squeezed into their texture, so they are
+cropped to the box as a 4:3 picture instead of stretched
+================
+*/
+void CG_DrawLevelshotPic( float x, float y, float width, float height, qhandle_t shot ) {
+	float	box, s0 = 0, s1 = 1, t0 = 0, t1 = 1;
+
+	if ( !shot ) {
+		shot = trap_R_RegisterShaderNoMip( "gfx/tremor/splash/nomap" );
+	}
+	CG_LayoutRecord( 'p', x, y, width, height, NULL );
+	CG_AdjustFrom640( &x, &y, &width, &height );
+	box = width / height;
+	if ( box > 4.0f / 3.0f ) {
+		t0 = 0.5f - 0.5f * ( 4.0f / 3.0f ) / box;
+		t1 = 1.0f - t0;
+	} else {
+		s0 = 0.5f - 0.5f * box / ( 4.0f / 3.0f );
+		s1 = 1.0f - s0;
+	}
+	trap_R_DrawStretchPic( x, y, width, height, s0, t0, s1, t1, shot );
+}
+
+/*
+================
+CG_DrawLogo
+
+The horizontal logo with its artwork's top left corner at x, y and the
+artwork h high. The texture holds the artwork with transparent margins
+(misc/art/import-brand-art.py fits the placeholder logo into the same box)
+================
+*/
+void CG_DrawLogo( float x, float y, float h ) {
+	qhandle_t	logo = trap_R_RegisterShaderNoMip( "gfx/tremor/logo" );
+	float		th = h * 270 / 188.0f, tw = th * 1024 / 270.0f;
+
+	if ( logo ) {
+		CG_DrawPic( x - tw * 188 / 1024.0f, y - th * 46 / 270.0f, tw, th, logo );
+	}
+}
+
 
 
 /*
