@@ -1207,6 +1207,13 @@ static void Rml_Row( int tab, int r ) {
 
 			Com_sprintf( cond, sizeof( cond ), "%s=%s", row->cvar, row->values[i] );
 			Q_strncpyz( command, cmd, sizeof( command ) );
+			if ( !Q_stricmp( row->cvar, "cg_drawCrosshair" ) ) {
+				// the crosshairs themselves, not their numbers
+				Rml_Add( va( "<button class=\"opt xhair\" data-class=\"on:%s\" onclick=\"%s\">", cond, command ) );
+				Rml_Add( i ? va( "<img src=\"/gfx/2d/crosshair%c\"/>", 'a' + atoi( row->values[i] ) ) : UI_RmlText( name ) );
+				Rml_Add( "</button>" );
+				continue;
+			}
 			Rml_Option( row, cond, command, name );
 		}
 		break;

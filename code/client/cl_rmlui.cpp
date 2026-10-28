@@ -1064,6 +1064,17 @@ extern "C" int RML_KeyEvent( int key, int down ) {
 	if ( document->GetAttribute( "data-mouse-only" ) && !( key >= K_MOUSE1 && key <= K_MWHEELUP ) ) {
 		return 0;
 	}
+	// a controller works the menus as the keyboard does: A clicks, B goes
+	// back, the pad moves between items
+	switch ( key ) {
+	case K_PAD0_A:			key = K_ENTER; break;
+	case K_PAD0_B:			key = K_ESCAPE; break;
+	case K_PAD0_DPAD_UP:	key = K_UPARROW; break;
+	case K_PAD0_DPAD_DOWN:	key = K_DOWNARROW; break;
+	case K_PAD0_DPAD_LEFT:	key = K_LEFTARROW; break;
+	case K_PAD0_DPAD_RIGHT:	key = K_RIGHTARROW; break;
+	default: break;
+	}
 	if ( key == K_MOUSE1 ) {
 		// dragging on the stage turns the champion
 		Rml::Element	*hover = context->GetHoverElement();
