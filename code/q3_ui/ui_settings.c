@@ -1193,7 +1193,8 @@ static void Rml_Row( int tab, int r ) {
 	if ( row->slot && row->type == ROW_BIND ) {
 		Settings_SlotLabel( row->slot, label, sizeof( label ) );
 	}
-	Rml_Add( va( "<div class=\"srow\"><span class=\"slabel\">%s</span><span class=\"svalue\">", UI_RmlText( label ) ) );
+	Rml_Add( va( "<div class=\"srow\" onmouseover=\"ui_setHelp %i %i\"><span class=\"slabel\">%s%s</span><span class=\"svalue\">",
+		tab, r, UI_RmlText( label ), row->restart && row->type != ROW_RESOLUTION && row->type != ROW_DISPLAY ? "<span class=\"stag\">[set_tag_apply]</span>" : "" ) );
 
 	switch ( row->type ) {
 	case ROW_SPIN:
@@ -1264,7 +1265,53 @@ static void Rml_Row( int tab, int r ) {
 		Rml_Add( va( "<span class=\"sread wait\" data-when=\"ui_setWait=%i_%i\">%s</span>", tab, r, UI_RmlText( BG_String( STR_SET_BIND_WAIT ) ) ) );
 		break;
 	}
-	Rml_Add( va( "</span><div class=\"shelp\">%s</div></div>\n", UI_RmlText( BG_String( row->help ) ) ) );
+	Rml_Add( "</span></div>\n" );
+}
+
+/*
+=================
+Settings_Help
+
+The help line of a row: its name, what it does, and its default where the
+game has one
+=================
+*/
+static void Settings_Help( int tab, int r ) {
+	const settingRow_t	*row;
+	const char			*def = NULL;
+	char				label[96], help[MAX_CVAR_VALUE_STRING];
+	int					i;
+
+	if ( tab < 0 || tab >= NUM_TABS || r < 0 || r >= settingTabs[tab].numRows ) {
+		return;
+	}
+	row = &settingTabs[tab].rows[r];
+	Q_strncpyz( label, BG_String( row->label ), sizeof( label ) );
+	if ( row->slot && row->type == ROW_BIND ) {
+		Settings_SlotLabel( row->slot, label, sizeof( label ) );
+	}
+	Q_strncpyz( help, BG_String( row->help ), sizeof( help ) );
+	if ( row->type != ROW_BIND && row->cvar ) {
+		for ( i = 0; i < bg_numSettingDefaults; i++ ) {
+			if ( !Q_stricmp( bg_settingDefaults[i].name, row->cvar ) ) {
+				def = bg_settingDefaults[i].value;
+				break;
+			}
+		}
+	}
+	if ( def ) {
+		for ( i = 0; i < row->numValues; i++ ) {
+			if ( row->values[i] && !Q_stricmp( row->values[i], def ) ) {
+				if ( row->names[i] ) {
+					def = BG_String( row->names[i] );
+				}
+				break;
+			}
+		}
+		Q_strcat( help, sizeof( help ), va( (char *)BG_String( STR_SET_DEFAULT_IS ), def ) );
+	}
+	trap_Cvar_Set( "ui_setHelpLabel", label );
+	trap_Cvar_Set( "ui_setHelpText", help );
 }
 
 /*
@@ -1314,12 +1361,18 @@ void UI_SettingsRml( void ) {
 		}
 		Rml_Add( "</div>\n" );
 	}
+	// the help of the row under the mouse, in one place under the panel
+	trap_Cvar_Set( "ui_setHelpLabel", "" );
+	trap_Cvar_Set( "ui_setHelpText", "" );
+	Rml_Add( "<div class=\"shelpbox\"><span class=\"shelplabel\" data-text-cvar=\"ui_setHelpLabel\"></span>"
+		"<span data-text-cvar=\"ui_setHelpText\"></span></div>\n" );
+	// changes waiting for Apply
+	Rml_Add( "<div class=\"srestart\" data-when=\"ui_setRestart=1\">[set_restart_bar]"
+		"<button onclick=\"set ui_setRestart 0; vid_restart\">[set_apply_now]</button></div>\n" );
 	Rml_Add( "<div class=\"sactions\">" );
 	Rml_Add( "<button onclick=\"ui_back\">[menu_back]</button>" );
 	Rml_Add( va( "<button data-when=\"ui_setAsk!=1\" onclick=\"ui_setDefaults\">%s</button>", UI_RmlText( BG_String( STR_SET_DEFAULTS ) ) ) );
 	Rml_Add( "<button class=\"go\" data-when=\"ui_setAsk=1\" onclick=\"ui_setDefaults\">[set_defaults_sure]</button>" );
-	Rml_Add( va( "<button class=\"apply\" data-when=\"ui_setRestart=1\" onclick=\"set ui_setRestart 0; vid_restart\">%s</button>",
-		UI_RmlText( BG_String( STR_SET_APPLY ) ) ) );
 	Rml_Add( va( "<button onclick=\"ui_credits\">%s</button>", UI_RmlText( BG_String( STR_SET_CREDITS ) ) ) );
 	Rml_Add( "</div>\n</div>\n</body>\n</rml>\n" );
 
@@ -1464,6 +1517,12 @@ qboolean UI_SettingsCommand( const char *cmd ) {
 
 	if ( !Q_stricmp( cmd, "ui_setTab" ) ) {
 		trap_Cvar_Set( "ui_setTab", UI_Argv( 1 ) );
+		trap_Cvar_Set( "ui_setHelpLabel", "" );
+		trap_Cvar_Set( "ui_setHelpText", "" );
+		return qtrue;
+	}
+	if ( !Q_stricmp( cmd, "ui_setHelp" ) ) {
+		Settings_Help( atoi( UI_Argv( 1 ) ), atoi( UI_Argv( 2 ) ) );
 		return qtrue;
 	}
 	if ( !Q_stricmp( cmd, "ui_setMicPick" ) ) {

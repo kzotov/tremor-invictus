@@ -1365,6 +1365,7 @@ typedef enum {
 	STR_CRB_LIBS,
 	STR_SET_XHHEALTH,				// the crosshair coloured by health
 	STR_CHAMPION_KEYS,				// per-champion keys loaded: the champion
+	STR_SET_DEFAULT_IS,				// settings help: the default value
 
 	STR_NUM_STRINGS
 } stringId_t;

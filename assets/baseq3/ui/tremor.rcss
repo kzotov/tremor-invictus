@@ -1145,7 +1145,7 @@ button.small {
 
 .settings .spage {
 	display: block;
-	height: 72%;
+	height: 64%;
 	overflow-y: auto;
 	padding: 10dp 20dp;
 	background-color: #16171bf0;
@@ -1204,25 +1204,47 @@ button.small {
 	color: #e0a030;
 }
 
-.shelp {
-	display: none;
-}
-
-.srow {
-	position: relative;
-}
-
-/* the help line floats under its row, so the rows below don't move */
-.srow:hover .shelp {
+/* the help of the row under the mouse, in one place under the panel */
+.settings .shelpbox {
 	display: block;
-	position: absolute;
-	left: 34%;
-	top: 100%;
-	z-index: 5;
-	background-color: #16171bf0;
-	padding: 2dp 8dp;
-	font-size: 18dp;
+	height: 56dp;
+	padding: 6dp 20dp 0dp 20dp;
+	font-size: 22dp;
 	color: #c8c4bc;
+	background-color: #0d0e11f0;
+	border-left: 6dp #d3191f;
+}
+
+.shelplabel {
+	font-weight: bold;
+	color: #f2efe9;
+	margin-right: 10dp;
+}
+
+/* rows that need Apply */
+.stag {
+	margin-left: 8dp;
+	padding: 0dp 4dp;
+	font-size: 14dp;
+	color: #e0a030;
+	border: 1dp #e0a030;
+}
+
+.settings .srestart {
+	display: block;
+	padding: 4dp 20dp 4dp 26dp;
+	font-size: 22dp;
+	color: #16171b;
+	background-color: #e0a030;
+}
+
+.settings .srestart button {
+	display: inline-block;
+	margin-left: 20dp;
+	font-size: 22dp;
+	color: #16171b;
+	border-left-width: 0dp;
+	padding-left: 0dp;
 }
 
 .settings .sactions {

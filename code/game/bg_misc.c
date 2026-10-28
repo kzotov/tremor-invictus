@@ -1470,16 +1470,16 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Unlimited",
 	"Desktop",
 	"Renderer",
-	"Metal is the macOS default; OpenGL is the fallback. Applies after a restart.",
+	"Metal is the macOS default; OpenGL is the fallback. Needs Apply.",
 	"Resolution",
-	"Desktop uses the display's own size. Applies after a restart.",
+	"Desktop uses the display's own size. The screen switches at once.",
 	"Display",
-	"Fullscreen, a window, or a borderless window. Applies after a restart.",
+	"Fullscreen, a window, or a borderless window (also Alt+Enter). The screen switches at once.",
 	"Fullscreen",
 	"Windowed",
 	"Borderless",
 	"Vertical sync",
-	"Waits for the display's refresh; adds input delay. Applies after a restart.",
+	"Waits for the display's refresh; adds input delay. Needs Apply.",
 	"Frame cap",
 	"Most frames drawn per second.",
 	"Field of view",
@@ -1489,7 +1489,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"Brightness",
 	"Overall brightness of the picture.",
 	"Texture detail",
-	"Lower detail uses smaller textures. Applies after a restart.",
+	"Lower detail uses smaller textures. Needs Apply.",
 	"High",
 	"Medium",
 	"Low",
@@ -1827,7 +1827,7 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"No internet server list yet: showing LAN servers.",
 	"No servers found.",
 	"Retina",
-	"Draws at the display's full resolution; sharper, slower. Applies after a restart.",
+	"Draws at the display's full resolution; sharper, slower. Needs Apply.",
 	"Zoom sensitivity",
 	"Sensitivity while zoomed; Auto scales with the zoom.",
 	"Auto",
@@ -2095,7 +2095,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"THIRD-PARTY LIBRARIES",
 	"SDL2|ZLIB LICENCE;ZLIB|ZLIB LICENCE;LIBJPEG|IJG LICENCE;LIBCURL|CURL LICENCE;OPENAL SOFT|GNU LGPL;OGG VORBIS OPUS|BSD LICENCE;RMLUI|MIT LICENCE;FREETYPE|FTL",
 	"Health",
-	"%s keys loaded"
+	"%s keys loaded",
+	" Default: %s."
 };
 
 /*
