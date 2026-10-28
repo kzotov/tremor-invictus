@@ -18,8 +18,7 @@
 		<button onclick="ui_colors">[menu_player_colors]</button>
 		<button onclick="rml_hide; ui_settings">[menu_settings]</button>
 		<button onclick="ui_demos">[menu_demos]</button>
-		<button data-when="ui_ask!=quit" onclick="ui_confirm quit quit">[menu_quit]</button>
-		<button class="go" data-when="ui_ask=quit" onclick="ui_confirm quit quit">[menu_quit_sure]</button>
+		<button onclick="quit">[menu_quit]</button>
 		<div class="namefield"><span class="label">[menu_name]</span><input type="text" maxlength="31" data-value-cvar="name" onchange="set name {value}"/></div>
 	</div>
 	<div class="searchbar" data-when="mm_state=searching">

@@ -30,8 +30,7 @@
 			<div class="gap"/>
 			<button data-when="ui_ask!=leave" onclick="ui_confirm leave &quot;rml_hide; disconnect&quot;">[menu_leave]</button>
 			<button class="go" data-when="ui_ask=leave" onclick="ui_confirm leave &quot;rml_hide; disconnect&quot;">[menu_leave_sure]</button>
-			<button data-when="ui_ask!=quit" onclick="ui_confirm quit quit">[menu_quit]</button>
-			<button class="go" data-when="ui_ask=quit" onclick="ui_confirm quit quit">[menu_quit_sure]</button>
+			<button onclick="quit">[menu_quit]</button>
 		</div>
 	</div>
 </body>
