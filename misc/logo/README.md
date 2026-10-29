@@ -1,6 +1,9 @@
 # Logo
 
-Working logo for tremor-invictus. It is a starting point and will be revised.
+The first working logo for tremor-invictus, superseded by the approved
+branding (an art pack kept outside the repository; see "UI branding" in the
+top README). It stays only as the drawn placeholder menu logo for builds
+without that pack; nothing uses it as an app icon any more.
 
 - **Emblem:** a seismograph trace inside a worn metal ring. The trace stays
   inside the ring.

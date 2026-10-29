@@ -1,10 +1,3 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="misc/logo/tremor-invictus-horizontal-on-dark.svg">
-    <img alt="Tremor Invictus" src="misc/logo/tremor-invictus-horizontal-on-light.svg" width="520">
-  </picture>
-</p>
-
 # tremor-invictus
 
 A fast arena shooter with champion classes, built on the
