@@ -208,6 +208,7 @@ extern	int		s_rawend[MAX_RAW_STREAMS];
 
 extern cvar_t *s_volume;
 extern cvar_t *s_announcerVolume;
+extern cvar_t *s_hitVolume;
 extern cvar_t *s_musicVolume;
 extern cvar_t *s_muted;
 extern cvar_t *s_doppler;

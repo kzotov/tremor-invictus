@@ -672,6 +672,8 @@ static void S_Base_StartSoundEx( vec3_t origin, int entityNum, int entchannel, s
 	ch->master_vol = 127;
 	if ( entchannel == CHAN_ANNOUNCER ) {
 		ch->master_vol = (int)( 127 * Com_Clamp( 0, 2, s_announcerVolume->value ) );
+	} else if ( entchannel == CHAN_HITBEEP ) {
+		ch->master_vol = (int)( 127 * Com_Clamp( 0, 3, s_hitVolume->value ) );
 	}
 	ch->entnum = entityNum;
 	ch->thesfx = sfx;

@@ -241,6 +241,7 @@ static const settingRow_t soundRows[] = {
 	{ ROW_SLIDER, STR_SET_ANNOUNCER, STR_SET_ANNOUNCER_HELP, "s_announcerVolume", 0, { NULL }, { 0 }, 0, 2 },
 	{ ROW_SPIN, STR_SET_HITBEEP, STR_SET_HITBEEP_HELP, "cg_hitBeep", 4, { "0", "1", "2", "3" },
 		{ STR_SET_OFF, STR_SET_HITBEEP_ONE, STR_SET_HITBEEP_TIERS, STR_SET_HITBEEP_REVERSED } },
+	{ ROW_SLIDER, STR_SET_HITVOLUME, STR_SET_HITVOLUME_HELP, "s_hitVolume", 0, { NULL }, { 0 }, 0, 3 },
 	{ ROW_SPIN, STR_SET_KILLBEEP, STR_SET_KILLBEEP_HELP, "cg_killBeep", OFF_ON },
 	{ ROW_SPIN, STR_SET_LHSOUND, STR_SET_LHSOUND_HELP, "cg_lowHealthSound", OFF_ON },
 	{ ROW_SPIN, STR_SET_BREATHING, STR_SET_BREATHING_HELP, "cg_heavyBreathing", OFF_ON },
@@ -1000,7 +1001,7 @@ static void Settings_RegisterGameCvars( void ) {
 	static const char	*defaults[][2] = {
 		{ "cg_hitBeep", "1" }, { "cg_killBeep", "1" }, { "cg_damagePlum", "1" }, { "cg_damageArc", "1" },
 		{ "cg_lowHealthWarning", "1" }, { "cg_worldItemTimers", "1" }, { "cg_zoomToggle", "0" },
-		{ "cg_loadingTips", "1" }, { "r_contrast", "1" }, { "s_announcerVolume", "1" }, { "cg_gibs", "1" },
+		{ "cg_loadingTips", "1" }, { "r_contrast", "1" }, { "s_announcerVolume", "1" }, { "s_hitVolume", "2" }, { "cg_gibs", "1" },
 		{ "cg_oldRail", "0" }
 	};
 	int		i;

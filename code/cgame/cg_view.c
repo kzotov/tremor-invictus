@@ -965,7 +965,7 @@ static void CG_PlayHitBeep( void ) {
 		sfx = cgs.media.killBeepSound ? cgs.media.killBeepSound : cgs.media.hitSound;
 	}
 	if ( sfx ) {
-		trap_S_StartLocalSound( sfx, CHAN_LOCAL_SOUND );
+		trap_S_StartLocalSound( sfx, CHAN_HITBEEP );
 	}
 	cg.pendingHitBeep = 0;
 	cg.pendingKillBeep = qfalse;

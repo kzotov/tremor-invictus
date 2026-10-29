@@ -762,6 +762,8 @@ qboolean S_AL_SrcInit( void )
 		qalGenSources(1, &srcList[i].alSource);
 		if(qalGetError() != AL_NO_ERROR)
 			break;
+		// gains above 1 (the announcer and hit volumes) are heard, not capped
+		qalSourcef(srcList[i].alSource, AL_MAX_GAIN, 4.0f);
 		srcCount++;
 	}
 
@@ -832,6 +834,8 @@ static void S_AL_SrcSetup(srcHandle_t src, sfxHandle_t sfx, alSrcPriority_t prio
 	curSource->curGain = s_alGain->value * s_volume->value;
 	if ( channel == CHAN_ANNOUNCER ) {
 		curSource->curGain *= Com_Clamp( 0, 2, s_announcerVolume->value );
+	} else if ( channel == CHAN_HITBEEP ) {
+		curSource->curGain *= Com_Clamp( 0, 3, s_hitVolume->value );
 	}
 	curSource->scaleGain = curSource->curGain;
 	curSource->local = local;
@@ -1655,11 +1659,13 @@ void S_AL_SrcUpdate( void )
 			continue;
 
 		// Update source parameters
-		if((s_alGain->modified) || (s_volume->modified) || (s_announcerVolume->modified))
+		if((s_alGain->modified) || (s_volume->modified) || (s_announcerVolume->modified) || (s_hitVolume->modified))
 		{
 			curSource->curGain = s_alGain->value * s_volume->value;
 			if ( curSource->channel == CHAN_ANNOUNCER )
 				curSource->curGain *= Com_Clamp( 0, 2, s_announcerVolume->value );
+			else if ( curSource->channel == CHAN_HITBEEP )
+				curSource->curGain *= Com_Clamp( 0, 3, s_hitVolume->value );
 		}
 		if((s_alRolloff->modified) && (!curSource->local))
 			qalSourcef(curSource->alSource, AL_ROLLOFF_FACTOR, s_alRolloff->value);
@@ -2554,6 +2560,7 @@ void S_AL_Update( void )
 	s_alGain->modified = qfalse;
 	s_volume->modified = qfalse;
 	s_announcerVolume->modified = qfalse;
+	s_hitVolume->modified = qfalse;
 	s_musicVolume->modified = qfalse;
 	s_alMinDistance->modified = qfalse;
 	s_alMaxDistance->modified = qfalse;

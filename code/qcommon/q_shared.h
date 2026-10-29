@@ -1063,7 +1063,8 @@ typedef enum {
 	CHAN_ANNOUNCER,		// announcer voices, etc
 	CHAN_HEARTBEAT,		// the low-health heartbeat: a new sound replaces the one still playing
 	CHAN_LOWVOICE,		// the low-health breathing: the same, and stopped on death
-	CHAN_LOWLINE		// the low-health voice line: the same, on its own
+	CHAN_LOWLINE,		// the low-health voice line: the same, on its own
+	CHAN_HITBEEP		// the hit and kill beeps (s_hitVolume)
 } soundChannel_t;
 
 // channels whose new sound replaces the one still playing, and whose

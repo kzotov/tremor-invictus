@@ -2096,7 +2096,9 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"SDL2|ZLIB LICENCE;ZLIB|ZLIB LICENCE;LIBJPEG|IJG LICENCE;LIBCURL|CURL LICENCE;OPENAL SOFT|GNU LGPL;OGG VORBIS OPUS|BSD LICENCE;RMLUI|MIT LICENCE;FREETYPE|FTL",
 	"Health",
 	"%s keys loaded",
-	" Default: %s."
+	" Default: %s.",
+	"Hit sound volume",
+	"How loud the hit and kill beeps are, against the other effects: 1 is as loud, 2 twice (the default)."
 };
 
 /*
