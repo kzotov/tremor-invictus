@@ -232,7 +232,20 @@ static keyNum_t IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, qboolean down )
 {
 	keyNum_t key = 0;
 
-	if( keysym->scancode >= SDL_SCANCODE_1 && keysym->scancode <= SDL_SCANCODE_0 )
+	// the key left of 1 is the console key whatever the layout types there
+	// (a Russian layout's "ё" or "]", "§" or "<" on a Mac ISO keyboard).
+	// On Apple ISO keyboards that key is reported as the non-US backslash
+	// and the key next to left Shift as the grave key, so both of them
+	// are it there; on other keyboards the non-US backslash stays "<"
+	if( keysym->scancode == SDL_SCANCODE_GRAVE
+#ifdef __APPLE__
+		|| keysym->scancode == SDL_SCANCODE_NONUSBACKSLASH
+#endif
+		)
+	{
+		key = '`';
+	}
+	else if( keysym->scancode >= SDL_SCANCODE_1 && keysym->scancode <= SDL_SCANCODE_0 )
 	{
 		// Always map the number keys as such even if they actually map
 		// to other characters (eg, "1" is "&" on an AZERTY keyboard).
