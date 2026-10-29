@@ -1455,7 +1455,18 @@ int FS_FindVM(void **startSearch, char *found, int foundlen, const char *name, i
 		}
 		else if(search->pack)
 		{
+			char	idName[MAX_OSPATH];
+
 			pack = search->pack;
+
+			// never Quake III's own modules (pak0-8 hold id's QVMs): this
+			// game would come up as plain Quake III with its menus and HUD
+			Com_sprintf( idName, sizeof( idName ), "%s/%s", BASEGAME, pack->pakBasename );
+			if ( !Q_stricmp( pack->pakGamename, BASEGAME ) && FS_idPak( idName, BASEGAME, NUM_ID_PAKS ) )
+			{
+				search = search->next;
+				continue;
+			}
 
 			if(lastSearch && lastSearch->pack)
 			{

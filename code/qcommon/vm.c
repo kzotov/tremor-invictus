@@ -70,9 +70,11 @@ VM_Init
 ==============
 */
 void VM_Init( void ) {
-	Cvar_Get( "vm_cgame", "2", CVAR_ARCHIVE );	// !@# SHIP WITH SET TO 2
-	Cvar_Get( "vm_game", "2", CVAR_ARCHIVE );	// !@# SHIP WITH SET TO 2
-	Cvar_Get( "vm_ui", "2", CVAR_ARCHIVE );		// !@# SHIP WITH SET TO 2
+	// this game ships its modules as native libraries (a QVM build is for
+	// pure servers and checks), so they load by default without a config
+	Cvar_Get( "vm_cgame", "0", CVAR_ARCHIVE );
+	Cvar_Get( "vm_game", "0", CVAR_ARCHIVE );
+	Cvar_Get( "vm_ui", "0", CVAR_ARCHIVE );
 
 	Cmd_AddCommand ("vmprofile", VM_VmProfile_f );
 	Cmd_AddCommand ("vminfo", VM_VmInfo_f );
@@ -636,6 +638,15 @@ vm_t *VM_Create( const char *module, intptr_t (*systemCalls)(intptr_t *),
 
 			// VM_Free overwrites the name on failed load
 			Q_strncpyz(vm->name, module, sizeof(vm->name));
+		}
+		// no QVM of this game anywhere (an old config asking for QVMs): its
+		// library instead
+		if(retval < 0 && interpret != VMI_NATIVE)
+		{
+			Com_Printf("No %s.qvm of this game; loading its library\n", module);
+			interpret = VMI_NATIVE;
+			startSearch = NULL;
+			retval = 0;
 		}
 	} while(retval >= 0);
 	
