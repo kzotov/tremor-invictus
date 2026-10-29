@@ -100,6 +100,16 @@ for f in "$@"; do
 	cp "$f" "$GAMEDIR/zz-local-$(basename "$f")"
 done
 
+# the champion looks for testers, a pack made outside the repo: skins,
+# portraits and icons only (no model files: the meshes are Quake III's own,
+# from the player's pak0), with champions.cfg naming the looks
+if [ "$TARGET" != server ] && [ -n "${TREMOR_TESTER_CHAMPIONS:-}" ]; then
+	if unzip -l "$TREMOR_TESTER_CHAMPIONS" | grep -qiE '\.(md3|mdr|iqm)$'; then
+		echo "package: $TREMOR_TESTER_CHAMPIONS holds model files" >&2; exit 1
+	fi
+	cp "$TREMOR_TESTER_CHAMPIONS" "$GAMEDIR/zzzz-tremor-champions.pk3"
+fi
+
 # Quake III's free 1.32 point release files (pak1-pak8) from TREMOR_Q3_PATCH,
 # a folder with baseq3/pak1-8.pk3 and id-point-release-EULA.txt as ioquake3
 # hands them out; id's licence must travel with them. pak0 is the player's
@@ -134,6 +144,7 @@ else
 	done
 	# load the native game modules above (the engine default is QVMs)
 	printf '%s\n' 'set vm_game 0' 'set vm_cgame 0' 'set vm_ui 0' > "$GAMEDIR/autoexec.cfg"
+	[ ! -f "$GAMEDIR/zzzz-tremor-champions.pk3" ] || echo 'exec champions.cfg' >> "$GAMEDIR/autoexec.cfg"
 fi
 
 case "$TARGET" in
