@@ -56,6 +56,16 @@ elif [ "$TARGET" != server ]; then
 		exit 1; }
 	echo "package: packing the drawn ability icons" >&2
 fi
+# The painted HUD pack; fail on corrupt art, and require it for client packages
+# unless a developer explicitly permits the generated placeholders.
+python3 -I "$ROOT/misc/art/import-hud-art.py" sync "$GENERATED"
+if HUD_ART=$(python3 -I "$ROOT/misc/art/import-hud-art.py" status "$GENERATED"); then
+	echo "package: HUD icons $HUD_ART"
+elif [ "$TARGET" != server ]; then
+	[ "${TREMOR_ALLOW_DRAWN_HUD_ART:-}" = 1 ] || {
+		echo "package: painted HUD art pack missing (see misc/art/import-hud-art.py)" >&2
+		exit 1; }
+fi
 [ "$TARGET" = server ] || [ -f "$BUILD/brand/tremor-invictus.ico" ] ||
 	echo "package: $BUILD was configured without the branding pack: the app icon is the placeholder (configure and build again)" >&2
 VERSION=$(cat "$BUILD/version.txt" 2>/dev/null || echo dev)

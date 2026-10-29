@@ -977,6 +977,38 @@ CG_RegisterItemVisuals
 The server says this item is used on this level
 =================
 */
+/* Shared by 2D pickup/status rendering and the Rml scoreboard. Team flags
+ * retain their ownership-coloured game-data icons. Models are unaffected. */
+const char *CG_ItemArtPath( const gitem_t *item ) {
+	const char *key = NULL;
+	if ( item->giType == IT_HEALTH ) {
+		key = item->quantity >= 100 ? "mega" : item->quantity > 5 ? "health_large" : "health_small";
+	} else if ( item->giType == IT_ARMOR ) {
+		key = item->quantity >= 100 ? "armor_heavy" : item->quantity > 5 ? "armor_light" : "shard";
+	} else if ( item->giType == IT_HOURGLASS ) {
+		key = "hourglass";
+	} else if ( item->giType == IT_POWERUP ) {
+		if ( item->giTag == PW_QUAD ) key = "quad";
+		if ( item->giTag == PW_BATTLESUIT ) key = "protection";
+	} else if ( item->giType == IT_AMMO ) {
+		switch ( item->giTag ) {
+		case WP_NONE: key = "ammo_crate"; break;
+		case WP_MACHINEGUN:
+		case WP_HEAVY_MACHINEGUN: key = "ammo_bullets"; break;
+		case WP_SHOTGUN:
+		case WP_SUPER_SHOTGUN: key = "ammo_shells"; break;
+		case WP_NAILGUN:
+		case WP_SUPER_NAILGUN: key = "ammo_nails"; break;
+		case WP_TRIBOLT: key = "ammo_bolts"; break;
+		case WP_ROCKET_LAUNCHER: key = "ammo_rockets"; break;
+		case WP_LIGHTNING: key = "ammo_cells"; break;
+		case WP_RAILGUN: key = "ammo_slugs"; break;
+		default: break;
+		}
+	}
+	return key ? va( "gfx/tremor/icons/items/%s", key ) : item->icon;
+}
+
 void CG_RegisterItemVisuals( int itemNum ) {
 	itemInfo_t		*itemInfo;
 	gitem_t			*item;
@@ -997,7 +1029,10 @@ void CG_RegisterItemVisuals( int itemNum ) {
 
 	itemInfo->models[0] = trap_R_RegisterModel( item->world_model[0] );
 
-	itemInfo->icon = trap_R_RegisterShader( item->icon );
+	itemInfo->icon = trap_R_RegisterShaderNoMip( CG_ItemArtPath( item ) );
+	if ( !itemInfo->icon ) {
+		itemInfo->icon = trap_R_RegisterShaderNoMip( item->icon );
+	}
 
 	// the hourglass's own model and icon come in tremor-assets.pk3; without
 	// it, the holdable teleporter stands in

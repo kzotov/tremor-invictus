@@ -50,6 +50,8 @@ if(TREMOR_PYTHON3)
     # every misc/art/make-*.py, run again when any script there changes
     file(GLOB TREMOR_ART_SCRIPTS ${CMAKE_SOURCE_DIR}/misc/art/make-*.py)
     file(GLOB TREMOR_ART_SOURCES ${CMAKE_SOURCE_DIR}/misc/art/*.py ${CMAKE_SOURCE_DIR}/misc/art/looks/*.py)
+    # Importers overlay finished packs; changing them does not redraw source art.
+    list(FILTER TREMOR_ART_SOURCES EXCLUDE REGEX "/import-[^/]+[.]py$")
     # the Roboto fonts packed into the art (make-models.py): new ones redraw it
     if(DEFINED ENV{TREMOR_FONTS})
         file(GLOB TREMOR_FONT_FILES $ENV{TREMOR_FONTS}/*.ttf)
@@ -139,6 +141,30 @@ if(TREMOR_PYTHON3)
             COMMENT "Ability icons" VERBATIM)
     endfunction()
     list(APPEND POST_CONFIGURE_FUNCTIONS tremor_ability_art_target)
+endif()
+# The rest of the painted HUD: independent of logo and ability artwork.
+if(DEFINED ENV{TREMOR_HUD_ART})
+    set(TREMOR_HUD_ART_DEFAULT $ENV{TREMOR_HUD_ART})
+elseif(DEFINED ENV{TREMOR_LOCAL})
+    set(TREMOR_HUD_ART_DEFAULT $ENV{TREMOR_LOCAL}/branding/invictus-hud-gradients-v1)
+else()
+    set(TREMOR_HUD_ART_DEFAULT $ENV{HOME}/projects/quake/local/branding/invictus-hud-gradients-v1)
+endif()
+set(TREMOR_HUD_ART_DIR ${TREMOR_HUD_ART_DEFAULT} CACHE PATH "The painted HUD icon pack (outside the repository)")
+if(TREMOR_PYTHON3)
+    execute_process(COMMAND ${TREMOR_PYTHON3} -I ${CMAKE_SOURCE_DIR}/misc/art/import-hud-art.py sync
+            ${CMAKE_BINARY_DIR}/generated --pack ${TREMOR_HUD_ART_DIR}
+        RESULT_VARIABLE TREMOR_HUD_ART_RESULT)
+    if(NOT TREMOR_HUD_ART_RESULT EQUAL 0)
+        message(FATAL_ERROR "Invalid HUD art pack: ${TREMOR_HUD_ART_DIR}")
+    endif()
+    function(tremor_hud_art_target)
+        add_custom_target(tremor-hud-art ALL
+            COMMAND ${TREMOR_PYTHON3} -I ${CMAKE_SOURCE_DIR}/misc/art/import-hud-art.py sync
+                ${CMAKE_BINARY_DIR}/generated --pack ${TREMOR_HUD_ART_DIR}
+            COMMENT "HUD icons" VERBATIM)
+    endfunction()
+    list(APPEND POST_CONFIGURE_FUNCTIONS tremor_hud_art_target)
 endif()
 if(EXISTS ${TREMOR_BRAND_ICONS}/TremorInvictus.icns)
     set(MACOS_ICON_PATH ${TREMOR_BRAND_ICONS}/TremorInvictus.icns)

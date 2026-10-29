@@ -125,11 +125,13 @@ void CG_PlayerColors( centity_t *cent, clientInfo_t *ci ) {
 	tintWeapon = qfalse;
 	outlineOn = qfalse;
 
-	// the enemy outline: a living enemy in plain sight (never through walls)
-	if ( cg_enemyOutline.integer && cent->currentState.number != ps->clientNum
+	// Identity outlines for living players in sight (never through walls).
+	if ( ( cg_enemyOutline.integer || cg_identityColors.integer ) && cent->currentState.number != ps->clientNum
 		&& !( cent->currentState.powerups & ( 1 << PW_INVIS ) ) && !CG_InGhostWalk( &cent->currentState )
 		&& !( cent->currentState.eFlags & EF_DEAD )
-		&& ( cgs.gametype < GT_TEAM || ci->team != viewTeam ) && viewTeam != TEAM_SPECTATOR ) {
+		&& ( cg_identityColors.integer || cgs.gametype < GT_TEAM || ci->team != viewTeam )
+		&& ( viewTeam != TEAM_SPECTATOR || ( cg_identityColors.integer
+			&& ( ( ps->pm_flags & PMF_FOLLOW ) || cgs.gametype >= GT_TEAM || cgs.gametype == GT_TOURNAMENT ) ) ) ) {
 		trace_t	tr;
 		vec3_t	chest;
 
@@ -138,7 +140,13 @@ void CG_PlayerColors( centity_t *cent, clientInfo_t *ci ) {
 		CG_Trace( &tr, cg.refdef.vieworg, NULL, NULL, chest, ps->clientNum, MASK_SOLID );
 		if ( tr.fraction == 1.0f ) {
 			outlineOn = qtrue;
-			CG_ParseColor( &cg_enemyOutlineColor, "0xFF2020FF", outlineColor );
+			if ( cg_identityColors.integer ) {
+				vec4_t identity;
+				CG_IdentityColor( cent->currentState.number, ci->team, identity );
+				for ( i = 0 ; i < 4 ; i++ ) outlineColor[i] = (byte)( identity[i] * 255 );
+			} else {
+				CG_ParseColor( &cg_enemyOutlineColor, "0xFF2020FF", outlineColor );
+			}
 		}
 	}
 

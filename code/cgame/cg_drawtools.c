@@ -202,8 +202,68 @@ CG_DrawPic
 Coordinates are 640*480 virtual values
 =================
 */
+/* The pack importer emits only anchors validated against installed pixels.
+ * Missing metadata/unknown shaders retain the ordinary texture center. The
+ * approved ability glyphs have their own anchors and are absent from this file. */
+void CG_IconAnchor( qhandle_t shader, float *u, float *v ) {
+	static struct { qhandle_t shader; float u, v; } anchors[128];
+	static int count;
+	static qboolean loaded;
+	int i;
+
+	*u = *v = 0.5f;
+	if ( !loaded ) {
+		fileHandle_t f;
+		static char buf[16384];
+		char *p, *token;
+		int len;
+
+		loaded = qtrue;
+		len = trap_FS_FOpenFile( "gfx/tremor/icons/anchors.txt", &f, FS_READ );
+		if ( f ) {
+			if ( len > 0 && len < (int)sizeof( buf ) ) {
+				trap_FS_Read( buf, len, f );
+				buf[len] = 0;
+			} else {
+				buf[0] = 0;
+			}
+			trap_FS_FCloseFile( f );
+			p = buf;
+			while ( count < ARRAY_LEN( anchors ) ) {
+				char path[MAX_QPATH];
+				float au, av;
+				qhandle_t handle;
+
+				token = COM_Parse( &p );
+				if ( !token[0] ) break;
+				Q_strncpyz( path, token, sizeof( path ) );
+				au = atof( COM_Parse( &p ) );
+				av = atof( COM_Parse( &p ) );
+				if ( Q_strncmp( path, "gfx/tremor/icons/", 17 ) || strstr( path, ".." )
+					|| !( au > 0 && au < 1 && av > 0 && av < 1 ) ) continue;
+				handle = trap_R_RegisterShaderNoMip( path );
+				if ( !handle ) continue;
+				anchors[count].shader = handle;
+				anchors[count].u = au;
+				anchors[count++].v = av;
+			}
+		}
+	}
+	for ( i = 0 ; i < count ; i++ ) {
+		if ( anchors[i].shader == shader ) {
+			*u = anchors[i].u;
+			*v = anchors[i].v;
+			return;
+		}
+	}
+}
+
 void CG_DrawPic( float x, float y, float width, float height, qhandle_t hShader ) {
+	float u, v;
 	CG_LayoutRecord( 'p', x, y, width, height, NULL );
+	CG_IconAnchor( hShader, &u, &v );
+	x += ( 0.5f - u ) * width;
+	y += ( 0.5f - v ) * height;
 	CG_AdjustFrom640( &x, &y, &width, &height );
 	trap_R_DrawStretchPic( x, y, width, height, 0, 0, 1, 1, hShader );
 }
@@ -618,6 +678,55 @@ float *CG_FadeColor( int startMsec, int totalMsec ) {
 CG_TeamColor
 ================
 */
+/* Player identity is relative while playing/following. A free camera keeps
+ * actual red/blue ownership. Objective/flag code still uses actual teams. */
+int CG_IdentityTeam( int client, int team ) {
+	int view, mine;
+	if ( !cg_identityColors.integer || !cg.snap ) {
+		return team;
+	}
+	view = cg.snap->ps.clientNum;
+	mine = cg.snap->ps.persistant[PERS_TEAM];
+	if ( team == TEAM_SPECTATOR ) {
+		return TEAM_SPECTATOR;
+	}
+	if ( mine == TEAM_SPECTATOR ) {
+		if ( cg.snap->ps.pm_flags & PMF_FOLLOW ) {
+			if ( view >= 0 && view < MAX_CLIENTS ) {
+				mine = cgs.clientinfo[view].team;
+			}
+		} else {
+			/* Duel has no team IDs: keep the first active client blue in
+			 * free view, independent of which direction the camera looks. */
+			if ( cgs.gametype == GT_TOURNAMENT && client >= 0 && client < MAX_CLIENTS ) {
+				int i;
+				for ( i = 0 ; i < MAX_CLIENTS ; i++ ) {
+					if ( cgs.clientinfo[i].infoValid && cgs.clientinfo[i].team != TEAM_SPECTATOR ) {
+						return client == i ? TEAM_BLUE : TEAM_RED;
+					}
+				}
+			}
+			return team;
+		}
+	}
+	if ( cgs.gametype >= GT_TEAM ) {
+		return team == TEAM_RED || team == TEAM_BLUE
+			? ( team == mine ? TEAM_BLUE : TEAM_RED ) : team;
+	}
+	return client >= 0 && client < MAX_CLIENTS ? ( client == view ? TEAM_BLUE : TEAM_RED ) : TEAM_FREE;
+}
+
+void CG_IdentityColor( int client, int team, vec4_t out ) {
+	int side = CG_IdentityTeam( client, team );
+	VectorSet( out, 1, 1, 1 );
+	out[3] = 1;
+	if ( side == TEAM_RED || side == TEAM_BLUE ) {
+		CG_TeamPalette( side, out );
+	} else if ( side == TEAM_SPECTATOR ) {
+		VectorSet( out, 0.65f, 0.65f, 0.65f );
+	}
+}
+
 float *CG_TeamColor( int team ) {
 	static vec4_t	red = {1, 0.2f, 0.2f, 1};
 	static vec4_t	blue = {0.2f, 0.2f, 1, 1};

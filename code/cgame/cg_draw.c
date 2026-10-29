@@ -258,6 +258,51 @@ static float CG_HudPlace( const char *name, float *x, float *y ) {
 
 /*
 =================
+CG_WeaponArt
+
+hud.md 10.12 and the icon set (gfx/tremor/icons): a weapon's side view
+(256 x 128, white) and its hue, its ammo type's glyph and that hue
+=================
+*/
+typedef struct {
+	int			weapon;
+	const char	*icon, *ammo;
+	float		hue[3], ammoHue[3];
+} weaponArt_t;
+
+static const weaponArt_t	weaponArt[] = {
+	{ WP_GAUNTLET, "melee", NULL, { 0.91f, 0.91f, 0.91f }, { 0.91f, 0.91f, 0.91f } },
+	{ WP_MACHINEGUN, "machinegun", "bullets", { 0.973f, 0.831f, 0.078f }, { 0.973f, 0.831f, 0.078f } },
+	{ WP_HEAVY_MACHINEGUN, "hmg", "bullets", { 0.973f, 0.831f, 0.078f }, { 0.973f, 0.831f, 0.078f } },
+	{ WP_SHOTGUN, "shotgun", "shells", { 0.91f, 0.627f, 0.251f }, { 0.91f, 0.627f, 0.251f } },
+	{ WP_SUPER_SHOTGUN, "ssg", "shells", { 0.91f, 0.627f, 0.251f }, { 0.91f, 0.627f, 0.251f } },
+	{ WP_NAILGUN, "nailgun", "nails", { 0, 0.353f, 0.988f }, { 0.494f, 0.259f, 0.965f } },
+	{ WP_SUPER_NAILGUN, "sng", "nails", { 0, 0.353f, 0.988f }, { 0.494f, 0.259f, 0.965f } },
+	{ WP_TRIBOLT, "tribolt", "bolts", { 0.69f, 0.627f, 0.314f }, { 0.69f, 0.627f, 0.314f } },
+	{ WP_ROCKET_LAUNCHER, "rocket", "rockets", { 0.847f, 0.188f, 0.188f }, { 0.847f, 0.188f, 0.188f } },
+	{ WP_LIGHTNING, "lightning", "cells", { 0.188f, 0.784f, 0.784f }, { 0.188f, 0.816f, 0.847f } },
+	{ WP_RAILGUN, "railgun", "slugs", { 0.063f, 0.722f, 0.063f }, { 0.204f, 0.863f, 0.173f } },
+	{ WP_BFG, "bfg", "cells", { 0.7f, 0.3f, 0.95f }, { 0.7f, 0.3f, 0.95f } }
+};
+
+static const weaponArt_t *CG_WeaponArt( int w ) {
+	int		i;
+
+	for ( i = 0 ; i < ARRAY_LEN( weaponArt ) ; i++ ) {
+		if ( weaponArt[i].weapon == w ) {
+			return &weaponArt[i];
+		}
+	}
+	return NULL;
+}
+
+const char *CG_WeaponArtPath( int w ) {
+	const weaponArt_t *art = CG_WeaponArt( w );
+	return art ? va( "gfx/tremor/icons/weapons/%s", art->icon ) : NULL;
+}
+
+/*
+=================
 CG_HudModern
 
 Whether the modern layout draws the HUD (cg_hudLayout other than classic)
@@ -802,59 +847,11 @@ A name in the feed: our team cyan, enemies red in team modes, white in
 free-for-all (messages.md 2.1)
 =================
 */
-static void CG_KillFeedName( int x, int y, const char *name, int team, const vec4_t fade ) {
-	vec4_t	c;
-
-	Vector4Copy( fade, c );
-	if ( cgs.gametype >= GT_TEAM && ( team == TEAM_RED || team == TEAM_BLUE ) ) {
-		if ( team == cg.snap->ps.persistant[PERS_TEAM] ) {
-			c[0] = 0.3f; c[1] = 0.9f; c[2] = 1;
-		} else {
-			c[0] = 1; c[1] = 0.3f; c[2] = 0.25f;
-		}
-		CG_DrawStringExt( x, y, name, c, qtrue, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
-	} else {
-		CG_DrawStringExt( x, y, name, c, qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
-	}
-}
-
-/*
-=================
-CG_WeaponArt
-
-hud.md 10.12 and the icon set (gfx/tremor/icons): a weapon's side view
-(256 x 128, white) and its hue, its ammo type's glyph and that hue
-=================
-*/
-typedef struct {
-	int			weapon;
-	const char	*icon, *ammo;
-	float		hue[3], ammoHue[3];
-} weaponArt_t;
-
-static const weaponArt_t	weaponArt[] = {
-	{ WP_GAUNTLET, "melee", NULL, { 0.91f, 0.91f, 0.91f }, { 0.91f, 0.91f, 0.91f } },
-	{ WP_MACHINEGUN, "machinegun", "bullets", { 0.973f, 0.831f, 0.078f }, { 0.973f, 0.831f, 0.078f } },
-	{ WP_HEAVY_MACHINEGUN, "hmg", "bullets", { 0.973f, 0.831f, 0.078f }, { 0.973f, 0.831f, 0.078f } },
-	{ WP_SHOTGUN, "shotgun", "shells", { 0.91f, 0.627f, 0.251f }, { 0.91f, 0.627f, 0.251f } },
-	{ WP_SUPER_SHOTGUN, "ssg", "shells", { 0.91f, 0.627f, 0.251f }, { 0.91f, 0.627f, 0.251f } },
-	{ WP_NAILGUN, "nailgun", "nails", { 0, 0.353f, 0.988f }, { 0.494f, 0.259f, 0.965f } },
-	{ WP_SUPER_NAILGUN, "sng", "nails", { 0, 0.353f, 0.988f }, { 0.494f, 0.259f, 0.965f } },
-	{ WP_TRIBOLT, "tribolt", "bolts", { 0.69f, 0.627f, 0.314f }, { 0.69f, 0.627f, 0.314f } },
-	{ WP_ROCKET_LAUNCHER, "rocket", "rockets", { 0.847f, 0.188f, 0.188f }, { 0.847f, 0.188f, 0.188f } },
-	{ WP_LIGHTNING, "lightning", "cells", { 0.188f, 0.784f, 0.784f }, { 0.188f, 0.816f, 0.847f } },
-	{ WP_RAILGUN, "railgun", "slugs", { 0.063f, 0.722f, 0.063f }, { 0.204f, 0.863f, 0.173f } }
-};
-
-static const weaponArt_t *CG_WeaponArt( int w ) {
-	int		i;
-
-	for ( i = 0 ; i < ARRAY_LEN( weaponArt ) ; i++ ) {
-		if ( weaponArt[i].weapon == w ) {
-			return &weaponArt[i];
-		}
-	}
-	return NULL;
+static void CG_KillFeedName( int x, int y, const char *name, int client, int team, const vec4_t fade ) {
+	vec4_t c;
+	CG_IdentityColor( client, team, c );
+	c[3] = fade[3];
+	CG_DrawStringExt( x, y, name, c, qtrue, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
 }
 
 static qhandle_t CG_WeaponArtIcon( int w, qboolean ammo ) {
@@ -892,29 +889,11 @@ static const char *CG_CapName( const char *name, float size, float maxDp );
 #define KF_OUT		310
 #define KF_SLIDE	340
 
-static void CG_KillFeedNameModern( float x, float y, const char *name, int team, const vec4_t fade, float cw, float ch ) {
-	vec4_t	c;
-
-	Vector4Copy( fade, c );
-	if ( cgs.gametype >= GT_TEAM && ( team == TEAM_RED || team == TEAM_BLUE ) ) {
-		// hud.md 10.8: your side #54A0D0, the other #C04834 (a free camera:
-		// the team's own colour)
-		int		mine = cg.snap->ps.persistant[PERS_TEAM];
-
-		if ( ( mine == TEAM_RED || mine == TEAM_BLUE ) && !cg_colorBlind.integer ) {
-			if ( team == mine ) {
-				VectorSet( c, 0.329f, 0.627f, 0.816f );
-			} else {
-				VectorSet( c, 0.753f, 0.282f, 0.204f );
-			}
-		} else {
-			CG_TeamPalette( team, c );
-		}
-		c[3] = fade[3];
-		CG_DrawStringExt( x, y, name, c, qtrue, qtrue, cw, ch, 0 );
-	} else {
-		CG_DrawStringExt( x, y, name, c, qtrue, qtrue, cw, ch, 0 );		// white in FFA and duel
-	}
+static void CG_KillFeedNameModern( float x, float y, const char *name, int client, int team, const vec4_t fade, float cw, float ch ) {
+	vec4_t c;
+	CG_IdentityColor( client, team, c );
+	c[3] = fade[3];
+	CG_DrawStringExt( x, y, name, c, qtrue, qtrue, cw, ch, 0 );
 }
 
 static void CG_DrawKillFeedModern( int rows ) {
@@ -982,7 +961,7 @@ static void CG_DrawKillFeedModern( int rows ) {
 		x = fx;
 		// a suicide: the name, then the word, no icon
 		if ( k->suicide || ( k->killer[0] && k->killerNum == k->victimNum ) ) {
-			CG_KillFeedNameModern( x, y + ( icon - ch ) / 2, victim, k->victimTeam, fade, cw, ch );
+			CG_KillFeedNameModern( x, y + ( icon - ch ) / 2, victim, k->victimNum, k->victimTeam, fade, cw, ch );
 			x += CG_DrawStrlen( victim ) * cw + 13 * DP;
 			CG_DrawStringExt( x, y + ( icon - ch ) / 2, BG_String( STR_KF_SUICIDE ), fade, qtrue, qtrue, cw, ch, 0 );
 			continue;
@@ -994,7 +973,7 @@ static void CG_DrawKillFeedModern( int rows ) {
 				trap_R_SetColor( NULL );
 				x += icon + 4;
 			}
-			CG_KillFeedNameModern( x, y + ( icon - ch ) / 2, killer, k->killerTeam, fade, cw, ch );
+			CG_KillFeedNameModern( x, y + ( icon - ch ) / 2, killer, k->killerNum, k->killerTeam, fade, cw, ch );
 			x += CG_DrawStrlen( killer ) * cw + 13 * DP;
 		}
 		if ( k->quad ) {
@@ -1031,7 +1010,7 @@ static void CG_DrawKillFeedModern( int rows ) {
 			trap_R_SetColor( NULL );
 			x += icon + 4;
 		}
-		CG_KillFeedNameModern( x, y + ( icon - ch ) / 2, victim, k->victimTeam, fade, cw, ch );
+		CG_KillFeedNameModern( x, y + ( icon - ch ) / 2, victim, k->victimNum, k->victimTeam, fade, cw, ch );
 		if ( k->victimNum == me && skull ) {
 			x += CG_DrawStrlen( victim ) * cw + 4;
 			trap_R_SetColor( fade );
@@ -1103,7 +1082,7 @@ static void CG_DrawKillFeed( void ) {
 		x = right;
 		w = CG_DrawStrlen( k->victim ) * TINYCHAR_WIDTH;
 		x -= w;
-		CG_KillFeedName( x, y + 4, k->victim, k->victimTeam, fade );
+		CG_KillFeedName( x, y + 4, k->victim, k->victimNum, k->victimTeam, fade );
 		trap_R_SetColor( fade );
 		if ( k->victimPic ) {
 			x -= 18;
@@ -1125,7 +1104,7 @@ static void CG_DrawKillFeed( void ) {
 		if ( k->killer[0] ) {
 			w = CG_DrawStrlen( k->killer ) * TINYCHAR_WIDTH;
 			x -= w + 4;
-			CG_KillFeedName( x, y + 4, k->killer, k->killerTeam, fade );
+			CG_KillFeedName( x, y + 4, k->killer, k->killerNum, k->killerTeam, fade );
 			if ( k->killerPic ) {
 				x -= 18;
 				trap_R_SetColor( fade );
@@ -1935,7 +1914,8 @@ standings
 */
 static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, qboolean overtime ) {
 	static vec4_t	pale = { 1, 0.871f, 0.624f, 1 }, grey = { 0.75f, 0.75f, 0.75f, 1 }, darkGrey = { 0.6f, 0.6f, 0.6f, 1 };
-	static vec4_t	red = { 1, 0.3f, 0.3f, 1 }, ourBlue = { 0, 0.6f, 1, 1 }, theirRed = { 1, 0.22f, 0.22f, 1 };
+	static vec4_t	red = { 1, 0.3f, 0.3f, 1 };
+	vec4_t			ourBlue = { 0, 0, 0, 1 }, theirRed = { 0, 0, 0, 1 };
 	static vec4_t	box = { 0, 0, 0, 0.45f };
 	float			clockX, clockTop, lineX, lineTop;
 	int				i, me = cg.snap->ps.clientNum;
@@ -1943,6 +1923,8 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 	int				roundInfo[3] = { 0, 0, 0 };
 
 	(void)overtime;
+	CG_TeamPalette( TEAM_BLUE, ourBlue );
+	CG_TeamPalette( TEAM_RED, theirRed );
 	sscanf( CG_ConfigString( CS_ROUNDINFO ), "%i %i %i", &roundInfo[0], &roundInfo[1], &roundInfo[2] );
 
 	// the places come from the layout's clock and clockline (top 35 and 92)
@@ -2089,8 +2071,9 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 			}
 			CG_FillRect( 320 + ( side ? inner : outer ) * DP, 23 * DP, 129 * DP, 69 * DP, box );
 			score = va( "%i", CG_ClientScore( who ) );
-			CG_TopText( ( inner + outer ) / 2, 23, 70 * 0.9f, score, colorWhite, 0 );
-			CG_TopText( ( inner + outer ) / 2, 92, 15, CG_CapName( cgs.clientinfo[who].name, 15, 200 ), darkGrey, 0 );
+			CG_TopText( ( inner + outer ) / 2, 23, 70 * 0.9f, score, cg_identityColors.integer ? ( side ? theirRed : ourBlue ) : colorWhite, 0 );
+			CG_TopText( ( inner + outer ) / 2, 92, 15, CG_CapName( cgs.clientinfo[who].name, 15, 200 ),
+				cg_identityColors.integer ? ( side ? theirRed : ourBlue ) : darkGrey, 0 );
 		}
 		return;
 	}
@@ -2098,24 +2081,17 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 	if ( cgs.gametype >= GT_TEAM ) {
 		// score boxes from -280 to -65 and +48 to +284, scores at the outer
 		// ends; team names above, your side blue, the other red
-		int			myTeam = cg.snap->ps.persistant[PERS_TEAM];
-		qboolean	blueLeft = myTeam == TEAM_BLUE;
+		qboolean	blueLeft = CG_IdentityTeam( -1, TEAM_BLUE ) == TEAM_BLUE;
 		int			leftScore = blueLeft ? cgs.scores2 : cgs.scores1, rightScore = blueLeft ? cgs.scores1 : cgs.scores2;
 		const char	*leftName = blueLeft ? cgs.blueTeam : cgs.redTeam, *rightName = blueLeft ? cgs.redTeam : cgs.blueTeam;
-		const float	*leftColor = myTeam == TEAM_SPECTATOR ? theirRed : ourBlue;
-		const float	*rightColor = myTeam == TEAM_SPECTATOR ? ourBlue : theirRed;
-
-		if ( myTeam == TEAM_SPECTATOR ) {
-			leftColor = blueLeft ? ourBlue : theirRed;
-		}
+		const float	*leftColor = ourBlue;
+		const float	*rightColor = theirRed;
 		// hud.md 9.7: boxes 221 x 39 at x 675-896 and 1026-1247, the scores
 		// 32 dp in them in the side's colour, the team names 18 dp under the
 		// boxes (top 87): grey, or blue / red in the objective modes
 		{
-			static vec4_t	nameGrey = { 0.76f, 0.76f, 0.76f, 1 }, objBlue = { 0.38f, 0.57f, 0.73f, 1 }, objRed = { 0.71f, 0.26f, 0.26f, 1 };
-			qboolean		objective = cgs.gametype == GT_CTF;
-			const float		*leftNameColor = objective ? ( blueLeft ? objBlue : objRed ) : nameGrey;
-			const float		*rightNameColor = objective ? ( blueLeft ? objRed : objBlue ) : nameGrey;
+			static vec4_t	nameGrey = { 0.85f, 0.87f, 0.9f, 1 };
+			const float		*leftNameColor = nameGrey, *rightNameColor = nameGrey;
 
 			// (rulings 2026-10-24: boxes at top 51, scores at the outer ends,
 			// the names on 221 x 22 strips under the boxes)
@@ -2162,10 +2138,12 @@ static void CG_DrawTopBar( const char *clock, qboolean finalSeconds, int limit, 
 		for ( r = 0 ; r < count ; r++ ) {
 			score_t		*sc = &cg.scores[order[rows[r]]];
 			float		top = r ? 80 : 53;
-			const float	*c = sc->client == me && !freeCam ? colorWhite : grey;
+			vec4_t identity;
+			const float *c = identity;
 			int			rank = rows[r], k;
 			qboolean	tied = qfalse;
 
+			CG_IdentityColor( sc->client, sc->team, identity );
 			for ( k = 0 ; k < n ; k++ ) {
 				if ( k != rows[r] && cg.scores[order[k]].score == sc->score ) {
 					tied = qtrue;
@@ -2514,7 +2492,12 @@ static void CG_DrawPassiveState( void ) {
 
 		s = va( (char *)BG_String( STR_HUD_SLIDE ), BG_SlideCharge( ps ) / 1000.0f );
 		if ( CG_HudModern() ) {
+			static qhandle_t slide;
+			float size = 22 * DP;
 			CG_HudPlace( "passive", &px, &py );		// under the portrait, off the ring
+			if ( !slide ) slide = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/passives/slide" );
+			CG_DrawPic( px - CG_DrawStrlen( s ) * TINYCHAR_WIDTH / 2 - size - 4 * DP,
+				py + TINYCHAR_HEIGHT / 2 - size / 2, size, size, slide );
 		}
 		CG_DrawStringExt( px - CG_DrawStrlen( s ) * TINYCHAR_WIDTH / 2, py, s, colorWhite,
 			qfalse, qtrue, TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
@@ -2685,7 +2668,7 @@ teal)
 */
 void CG_TeamPalette( int team, vec4_t out ) {
 	static const float	pairs[4][2][3] = {
-		{ { 1, 0, 0 }, { 0, 0, 1 } },
+		{ { 0.988f, 0.125f, 0.235f }, { 0, 0.655f, 1 } },
 		{ { 1, 0.55f, 0 }, { 0.1f, 0.45f, 1 } },
 		{ { 1, 0.85f, 0.1f }, { 0.1f, 0.45f, 1 } },
 		{ { 1, 0.15f, 0.2f }, { 0, 0.75f, 0.75f } }
@@ -2702,12 +2685,12 @@ void CG_DrawTeamBackground( int x, int y, int w, int h, float alpha, int team )
 {
 	vec4_t		hcolor;
 
-	hcolor[3] = alpha;
 	if ( team == TEAM_RED || team == TEAM_BLUE ) {
-		CG_TeamPalette( team, hcolor );
+		CG_IdentityColor( -1, team, hcolor );
 	} else {
 		return;
 	}
+	hcolor[3] = alpha;
 	trap_R_SetColor( hcolor );
 	CG_DrawPic( x, y, w, h, cgs.media.teamStatusBar );
 	trap_R_SetColor( NULL );
@@ -3025,7 +3008,7 @@ static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 		ret_y = y;
 	}
 
-	CG_TeamPalette( overlayTeam, hcolor );
+	CG_IdentityColor( -1, overlayTeam, hcolor );
 	hcolor[3] = 0.33f;
 	trap_R_SetColor( hcolor );
 	CG_DrawPic( x, y, w, h, cgs.media.teamStatusBar );
@@ -3573,7 +3556,7 @@ The medal's ring (hud.md 11.5, the icon set's tiers): common, rare, epic
 or legendary, by the medal's key; 1 (rare) for anything not listed
 =================
 */
-static int CG_MedalTier( int nameString ) {
+static int CG_MedalTier( int nameString, qhandle_t shader ) {
 	static const char	*common = " firstblood airborne pointblank stopwatch capture defend offense assist accuracy frags victory ";
 	static const char	*epic = " gauntlet collateral doublewhammy partybreaker perforated fromthegrave kamikaze showstopper fighter "
 		"crusher exterminator demolisher grimreaper rage fury frenzy riot dominating ";
@@ -3581,6 +3564,11 @@ static int CG_MedalTier( int nameString ) {
 	char				key[64];
 	int					i, len;
 
+	if ( !nameString ) {
+		if ( shader == cgs.media.medalGauntlet ) return 2;
+		if ( shader == cgs.media.medalDefend || shader == cgs.media.medalAssist || shader == cgs.media.medalCapture ) return 0;
+		return 1;
+	}
 	for ( i = 0 ; i < MEDAL_NUM ; i++ ) {
 		if ( bg_medalInfo[i].name != nameString || !bg_medalInfo[i].key ) {
 			continue;
@@ -3704,18 +3692,19 @@ static void CG_DrawReward( void ) {
 		// the replaced medal slides down out from under it
 		if ( medalOutTime && cg.time - medalOutTime < MEDAL_ONE_POP ) {
 			float	f = (float)( cg.time - medalOutTime ) / MEDAL_ONE_POP, ob = 96 * DP;
-			vec4_t	oc = { 1, 1, 1, 1 };
+			vec4_t	oc = { 0.925f, 0.753f, 0.031f, 1 };
 
 			oc[3] = medalOutAlpha * ( 1 - f );
 			if ( medalOutShader ) {
 				trap_R_SetColor( oc );
-				CG_DrawPic( mx - ob / 2, my + f * 60 * DP, ob, ob, medalOutShader );
+				CG_DrawPic( mx - ob * 0.30f, my + 48 * DP - ob * 0.30f + f * 60 * DP, ob * 0.60f, ob * 0.60f, medalOutShader );
 				trap_R_SetColor( NULL );
 			}
 			name = medalOutName ? BG_String( medalOutName ) : "";
 			if ( medalOutCount > 1 ) {
 				name = va( "%s x%i", name, medalOutCount );
 			}
+			oc[0] = oc[1] = oc[2] = 1;
 			CG_DrawStringExt( mx - CG_DrawStrlen( name ) * nw / 2, my + 87 * DP + f * 60 * DP, name, oc, qfalse, qtrue, nw, nh, 0 );
 		}
 		name = medalRow[0].name ? BG_String( medalRow[0].name ) : "";
@@ -3724,7 +3713,7 @@ static void CG_DrawReward( void ) {
 		{
 			static qhandle_t	rings[4], streak;
 			static const char	*tiers[4] = { "common", "rare", "epic", "legendary" };
-			int					tier = CG_MedalTier( medalRow[0].name );
+			int					tier = CG_MedalTier( medalRow[0].name, medalRow[0].shader );
 			vec4_t				st = { 0.706f, 0.682f, 0.988f, 0 };
 
 			if ( !streak ) {
@@ -3743,8 +3732,10 @@ static void CG_DrawReward( void ) {
 			trap_R_SetColor( NULL );
 		}
 		if ( medalRow[0].shader ) {
-			trap_R_SetColor( color );
-			CG_DrawPic( mx - bh / 2, my + ( 96 * DP - bh ) / 2, bh, bh, medalRow[0].shader );		// the icon is square inside the box
+			vec4_t gold = { 0.925f, 0.753f, 0.031f, 1 };
+			gold[3] = color[3];
+			trap_R_SetColor( gold );
+			CG_DrawPic( mx - bh * 0.30f, my + 48 * DP - bh * 0.30f, bh * 0.60f, bh * 0.60f, medalRow[0].shader );
 			trap_R_SetColor( NULL );
 		}
 		if ( medalRow[0].count > 1 ) {
@@ -4756,6 +4747,7 @@ static void CG_DrawCrosshairNames( void ) {
 		vec4_t	white = { 1, 1, 1, 0 };
 		float	ch = 18 * DP, cw = ch * 0.6f;
 
+		CG_IdentityColor( cg.crosshairClientNum, cgs.clientinfo[cg.crosshairClientNum].team, white );
 		white[3] = color[3] * 0.8f;
 		cg_hudAnchor = ANCHOR_CENTER;
 		w = CG_DrawStrlen( name ) * cw;
@@ -4763,7 +4755,7 @@ static void CG_DrawCrosshairNames( void ) {
 			cw *= 401 * DP / w;
 			w = 401 * DP;
 		}
-		CG_DrawStringExt( 320 - w / 2, 456 * DP, name, white, qfalse, qtrue, cw, ch, 0 );
+		CG_DrawStringExt( 320 - w / 2, 456 * DP, name, white, qtrue, qtrue, cw, ch, 0 );
 
 		// a teammate: their health and armour (from the team overlay info)
 		if ( cgs.gametype >= GT_TEAM && cgs.clientinfo[cg.crosshairClientNum].team == cg.snap->ps.persistant[PERS_TEAM]
@@ -4771,6 +4763,7 @@ static void CG_DrawCrosshairNames( void ) {
 			const char	*s = va( "%i / %i", cgs.clientinfo[cg.crosshairClientNum].health,
 				cgs.clientinfo[cg.crosshairClientNum].armor );
 
+			white[0] = white[1] = white[2] = 1;
 			cw = ch * 0.6f;
 			CG_DrawStringExt( 320 - CG_DrawStrlen( s ) * cw / 2, 478 * DP, s, white, qfalse, qtrue, cw, ch, 0 );
 		}
@@ -7870,15 +7863,15 @@ plates at (528, 846) and (500, 935)
 static void CG_DrawVitals( void ) {
 	static vitalsAnim_t	health, armor;
 	static qhandle_t	healthIcon, armorIcon;
-	static const vec4_t	healthTint = { 1, 1, 1, 1 }, armorTint = { 1, 1, 1, 1 };		// (the images carry their colour)
+	static const vec4_t	healthTint = { 1, 1, 1, 1 }, armorTint = { 0.4f, 0.9f, 0.35f, 1 };
 	playerState_t		*ps = &cg.snap->ps;
 	const champion_t	*champ = BG_Champion( ps->stats[STAT_CHAMPION] );
 	const classInfo_t	*ci = &bg_classInfo[champ->bodyClass];
 	int					spawnArmor = cgs.gametype == GT_TOURNAMENT ? ci->spawnArmorDuel : ci->spawnArmor;
 
 	if ( !healthIcon ) {
-		healthIcon = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/vital_health_icon" );
-		armorIcon = trap_R_RegisterShaderNoMip( "gfx/tremor/hud/vital_armour_icon" );
+		healthIcon = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/glyphs/stat_health" );
+		armorIcon = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/glyphs/stat_armor" );
 	}
 	cg_hudAnchor = ANCHOR_LEFT;
 	CG_DrawVitalsSide( &health, ps, CG_OwnHealth( ps ), 100, 100 + ci->maxHealthBonus,
@@ -8430,13 +8423,13 @@ static void CG_DrawStatusRow( void ) {
 
 		for ( i = 0 ; i < ARRAY_LEN( effects ) ; i++ ) {
 			item = BG_FindItemForPowerup( effects[i] );
-			icons[effects[i]] = item ? trap_R_RegisterShaderNoMip( item->icon ) : 0;
+			icons[effects[i]] = item ? trap_R_RegisterShaderNoMip( CG_ItemArtPath( item ) ) : 0;
 		}
 		// hud.md 11.7: the status glyphs of the icon set
 		icons[PW_BURNING] = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/glyphs/status_burning" );
 		icons[PW_POISONED] = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/glyphs/status_acid" );
 		icons[PW_REGEN] = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/glyphs/status_regen" );
-		icons[PW_SHELLSHOCK] = trap_R_RegisterShaderNoMip( "gfx/tremor/abilities/shellshock" );		// stunned
+		icons[PW_SHELLSHOCK] = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/glyphs/status_slowed" );		// stunned
 		loaded = qtrue;
 	}
 	cg_hudAnchor = ANCHOR_LEFT;

@@ -800,7 +800,8 @@ static void CG_BoardRow( const char *cvar, const score_t *s, const char *rank, c
 	CG_BoardPing( s->client, s->ping, ping, sizeof( ping ), &pingClass );
 	Com_sprintf( row, sizeof( row ), "%s%s%s%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s",
 		classes,
-		ci->team == TEAM_RED ? " red" : ci->team == TEAM_BLUE ? " blue" : "",
+		CG_IdentityTeam( s->client, ci->team ) == TEAM_RED ? " red"
+			: CG_IdentityTeam( s->client, ci->team ) == TEAM_BLUE ? " blue" : "",
 		s->client == CG_BoardViewed() ? " self" : "",
 		s->ping == 999 ? " connecting" : "",
 		CG_BoardPortrait( s->client ), rank, CG_BoardName( s->client ),
@@ -1020,6 +1021,9 @@ static void CG_BoardList( void ) {
 	// board; the viewed player first in their team
 	for ( side = 0 ; side < 2 ; side++ ) {
 		team = side ? TEAM_RED : TEAM_BLUE;
+		if ( CG_IdentityTeam( -1, TEAM_RED ) == TEAM_BLUE ) {
+			team = side ? TEAM_BLUE : TEAM_RED;
+		}
 		for ( j = 0 ; j < 2 ; j++ ) {		// pass 0: the viewed player, pass 1: the rest
 			for ( i = 0 ; i < cg.numScores && rows[side] < SB_TEAM_ROWS ; i++ ) {
 				s = &cg.scores[i];
@@ -1039,7 +1043,7 @@ static void CG_BoardList( void ) {
 			CG_BoardCvar( va( "sb_%c%i", side ? 'r' : 'l', rows[side] ), "" );
 		}
 		// the team header: classes|name|score|totals
-		Com_sprintf( head, sizeof( head ), "%s|%s|%i|%s", team == TEAM_RED ? "red" : "blue",
+		Com_sprintf( head, sizeof( head ), "%s|%s|%i|%s", CG_IdentityTeam( -1, team ) == TEAM_RED ? "red" : "blue",
 			BG_String( team == TEAM_RED ? STR_HUD_RED : STR_HUD_BLUE ), cg.teamScores[team == TEAM_RED ? 0 : 1],
 			va( (char *)BG_String( STR_BD_TEAM_DAMAGE ), total[side] ) );
 		CG_BoardCvar( side ? "sb_rt" : "sb_lt", head );
@@ -1054,6 +1058,13 @@ The two players side by side; the opponent's detailed stats hidden during
 the match (shown to spectators and at the end)
 =================
 */
+/* Rml image elements use the same measured anchors as CG_DrawPic. */
+static void CG_BoardIconAnchor( const char *path, char *out, int size ) {
+	float u, v;
+	CG_IconAnchor( trap_R_RegisterShaderNoMip( path ), &u, &v );
+	Com_sprintf( out, size, "%.6f %.6f", u, v );
+}
+
 static void CG_BoardDuel( void ) {
 	char		row[MAX_CVAR_VALUE_STRING], ping[16], text[MAX_CVAR_VALUE_STRING], map[MAX_QPATH];
 	char		cell[2][4][16];
@@ -1142,13 +1153,18 @@ static void CG_BoardDuel( void ) {
 			counts[5] = cg.duelStats[idx].prot;
 			for ( k = 0 ; k < 6 ; k++ ) {
 				gitem_t	*item = BG_FindItem( names[k] );
+				char iconPath[MAX_QPATH], anchorText[48], countText[16];
 
 				// Quad and Protection only on maps that have them
 				if ( !item || ( k >= 4 && items[item - bg_itemlist] != '1' ) ) {
 					continue;
 				}
 				// hidden counts come as -1
-				Com_sprintf( text, sizeof( text ), counts[k] < 0 ? "%s.tga|\xe2\x80\x93" : "%s.tga|%i", item->icon, counts[k] );
+				Q_strncpyz( iconPath, CG_ItemArtPath( item ), sizeof( iconPath ) );
+				CG_BoardIconAnchor( iconPath, anchorText, sizeof( anchorText ) );
+				if ( counts[k] < 0 ) Q_strncpyz( countText, "\xe2\x80\x93", sizeof( countText ) );
+				else Com_sprintf( countText, sizeof( countText ), "%i", counts[k] );
+				Com_sprintf( text, sizeof( text ), "%s.tga|%s|%s", iconPath, countText, anchorText );
 				CG_BoardCvar( va( "sb_pk%i", n++ ), text );
 			}
 		}
@@ -1164,6 +1180,8 @@ static void CG_BoardDuel( void ) {
 	for ( i = 0 ; i < WP_NUM_WEAPONS * 10 && line < SB_WEAPON_ROWS ; i++ ) {
 		int		slot = i / WP_NUM_WEAPONS + 1;
 		gitem_t	*item;
+		const char *artPath;
+		char anchorText[48];
 
 		w = i % WP_NUM_WEAPONS;
 		if ( w < WP_GAUNTLET || BG_WeaponSlot( w ) != ( slot == 10 ? 0 : slot ) ) {
@@ -1199,8 +1217,12 @@ static void CG_BoardDuel( void ) {
 			}
 		}
 		// icon|L hits|L acc|L dmg|L score|R score|R dmg|R acc|R hits
-		Com_sprintf( row, sizeof( row ), "%s.tga|%s|%s|%s|%s|%s|%s|%s|%s", item->icon,
-			cell[0][0], cell[0][1], cell[0][2], cell[0][3], cell[1][3], cell[1][2], cell[1][1], cell[1][0] );
+		artPath = CG_WeaponArtPath( w );
+		if ( artPath && !trap_R_RegisterShaderNoMip( artPath ) ) artPath = NULL;
+		CG_BoardIconAnchor( artPath ? artPath : item->icon, anchorText, sizeof( anchorText ) );
+		Com_sprintf( row, sizeof( row ), "%s.tga|%s|%s|%s|%s|%s|%s|%s|%s|%s", artPath ? artPath : item->icon,
+			cell[0][0], cell[0][1], cell[0][2], cell[0][3], cell[1][3], cell[1][2], cell[1][1], cell[1][0],
+			anchorText );
 		CG_BoardCvar( va( "sb_w%i", line++ ), row );
 	}
 	for ( ; line < SB_WEAPON_ROWS ; line++ ) {
@@ -1270,6 +1292,7 @@ qboolean CG_RmlScoreboard( void ) {
 	if ( cg.time - lastFill >= 100 || cg.time < lastFill ) {
 		lastFill = cg.time;
 		CG_BoardCvar( "sb_mode", cgs.gametype == GT_TOURNAMENT ? "duel" : cgs.gametype >= GT_TEAM ? "team" : "ffa" );
+		CG_BoardCvar( "sb_palette", va( "palette%i", cg_colorBlind.integer >= 1 && cg_colorBlind.integer <= 3 ? cg_colorBlind.integer : 0 ) );
 		CG_BoardHeader();
 		if ( cgs.gametype == GT_TOURNAMENT ) {
 			CG_BoardDuel();

@@ -1205,7 +1205,10 @@ static void CG_Medal( int medal, int count ) {
 	if ( !loaded[medal] ) {
 		loaded[medal] = qtrue;
 		sounds[medal] = trap_S_RegisterSound( va( "sound/feedback/%s.wav", bg_medalInfo[medal].key ), qtrue );
-		icons[medal] = trap_R_RegisterShaderNoMip( va( "gfx/tremor/medals/%s", bg_medalInfo[medal].key ) );
+		icons[medal] = trap_R_RegisterShaderNoMip( va( "gfx/tremor/icons/medals/%s", bg_medalInfo[medal].key ) );
+		if ( !icons[medal] ) {
+			icons[medal] = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/medals/frags" );
+		}
 	}
 	CG_PushReward( sounds[medal], icons[medal], count, bg_medalInfo[medal].name, cg_medalRank[medal] );
 }

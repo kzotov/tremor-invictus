@@ -478,7 +478,36 @@ typedef struct {
 	void	(*function)(void);
 } consoleCommand_t;
 
+/* Visual review only: queues an ordinary medal without changing server
+ * scores, awards or persistence. Enable developer explicitly to use it. */
+static void CG_HudPreviewMedal_f( void ) {
+	char developer[8], key[64];
+	int i;
+	trap_Cvar_VariableStringBuffer( "developer", developer, sizeof( developer ) );
+	if ( !atoi( developer ) ) return;
+	Q_strncpyz( key, CG_Argv( 1 ), sizeof( key ) );
+	for ( i = 0 ; i < MEDAL_NUM ; i++ ) {
+		if ( !Q_stricmp( key, bg_medalInfo[i].key ) ) {
+			qhandle_t icon = trap_R_RegisterShaderNoMip( va( "gfx/tremor/icons/medals/%s", key ) );
+			CG_PushReward( 0, icon, 1, bg_medalInfo[i].name, 0 );
+			return;
+		}
+	}
+	/* Quake III awards are separate from bg_medalInfo and have no name ID. */
+	{
+		static const char *classic[] = { "excellent", "impressive", "gauntlet", "defend", "assist", "capture" };
+		for ( i = 0 ; i < ARRAY_LEN( classic ) ; i++ ) {
+			if ( !Q_stricmp( key, classic[i] ) ) {
+				CG_PushReward( 0, trap_R_RegisterShaderNoMip( va( "gfx/tremor/icons/medals/%s", key ) ), 1, 0, 0 );
+				return;
+			}
+		}
+	}
+	CG_Printf( "hud_previewMedal <medal key>: unknown key '%s'\n", key );
+}
+
 static consoleCommand_t	commands[] = {
+	{ "hud_previewMedal", CG_HudPreviewMedal_f },
 	{ "testgun", CG_TestGun_f },
 	{ "lobbypick", CG_LobbyPick_f },
 	{ "togglespechints", CG_ToggleSpecHints_f },

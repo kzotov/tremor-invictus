@@ -704,6 +704,7 @@ void ApplyConditions( Rml::Element *element ) {
 		Rml::Variant	*row = child->GetAttribute( "data-row" );
 		Rml::Variant	*cell = child->GetAttribute( "data-cell" );
 		Rml::Variant	*cellSrc = child->GetAttribute( "data-cell-src" );
+		Rml::Variant	*cellAnchor = child->GetAttribute( "data-cell-anchor" );
 		Rml::Variant	*cellClass = child->GetAttribute( "data-cell-class" );
 
 		if ( row ) {
@@ -749,6 +750,22 @@ void ApplyConditions( Rml::Element *element ) {
 				if ( child->GetAttribute<Rml::String>( "src", "" ) != "/" + path ) {
 					child->SetAttribute( "src", "/" + path );
 				}
+			}
+		}
+		// Explicit image anchors translate ink within its fixed layout slot.
+		// Percent translations resolve against the image's own width/height.
+		if ( cellAnchor ) {
+			float u = 0.5f, v = 0.5f;
+			const Rml::String &anchor = RowField( cellAnchor );
+			if ( sscanf( anchor.c_str(), "%f %f", &u, &v ) != 2
+				|| !( u > 0 && u < 1 && v > 0 && v < 1 ) ) {
+				u = v = 0.5f;
+			}
+			char transform[96];
+			snprintf( transform, sizeof( transform ), "translate(%.4f%%, %.4f%%)", ( 0.5f - u ) * 100, ( 0.5f - v ) * 100 );
+			if ( child->GetAttribute<Rml::String>( "data-applied-anchor", "" ) != transform ) {
+				child->SetProperty( "transform", transform );
+				child->SetAttribute( "data-applied-anchor", transform );
 			}
 		}
 		if ( cellClass ) {

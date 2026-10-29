@@ -108,6 +108,7 @@ start)
 	# and the painted ability icons (a second pack outside the repo) over the
 	# drawn ones; its charge icons live in gfx/abilities/charges
 	python3 -I "$ROOT/misc/art/import-ability-art.py" sync "$BUILD/generated" || true
+	python3 -I "$ROOT/misc/art/import-hud-art.py" sync "$BUILD/generated"
 	mkdir -p "$HOME_DIR/baseq3/gfx"
 	ln -sfn "$BUILD/generated/gfx/tremor" "$HOME_DIR/baseq3/gfx/tremor"
 	if [ -d "$BUILD/generated/gfx/abilities" ]; then

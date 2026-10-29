@@ -222,6 +222,7 @@ vmCvar_t	cg_trailEnemyColor;
 vmCvar_t	cg_abilityLights;
 vmCvar_t	cg_backflips;
 vmCvar_t	cg_enemyOutline;
+vmCvar_t	cg_identityColors;
 vmCvar_t	cg_enemyOutlineColor;
 vmCvar_t	cg_colorBlind;
 vmCvar_t	cg_hudLayout;
@@ -442,6 +443,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_backflips, "cg_backflips", CGDEF_BACKFLIPS, CVAR_ARCHIVE },
 	// visibility: enemy outline (in sight only) and colour-blind palettes
 	{ &cg_enemyOutline, "cg_enemyOutline", CGDEF_ENEMYOUTLINE, CVAR_ARCHIVE },
+	{ &cg_identityColors, "cg_identityColors", "1", CVAR_ARCHIVE },
 	{ &cg_enemyOutlineColor, "cg_enemyOutlineColor", CGDEF_ENEMYOUTLINECOLOR, CVAR_ARCHIVE },
 	{ &cg_colorBlind, "cg_colorBlind", CGDEF_COLORBLIND, CVAR_ARCHIVE },
 	// 1: the champions HUD, 0: the classic status bar
@@ -1296,12 +1298,12 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.invulnerabilityPowerupModel = trap_R_RegisterModel( "models/powerups/shield/shield.md3" );
 #endif
 
-	cgs.media.medalImpressive = trap_R_RegisterShaderNoMip( "gfx/tremor/medals/impressive" );
-	cgs.media.medalExcellent = trap_R_RegisterShaderNoMip( "gfx/tremor/medals/excellent" );
-	cgs.media.medalGauntlet = trap_R_RegisterShaderNoMip( "gfx/tremor/medals/gauntlet" );
-	cgs.media.medalDefend = trap_R_RegisterShaderNoMip( "gfx/tremor/medals/defend" );
-	cgs.media.medalAssist = trap_R_RegisterShaderNoMip( "gfx/tremor/medals/assist" );
-	cgs.media.medalCapture = trap_R_RegisterShaderNoMip( "gfx/tremor/medals/capture" );
+	cgs.media.medalImpressive = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/medals/impressive" );
+	cgs.media.medalExcellent = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/medals/excellent" );
+	cgs.media.medalGauntlet = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/medals/gauntlet" );
+	cgs.media.medalDefend = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/medals/defend" );
+	cgs.media.medalAssist = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/medals/assist" );
+	cgs.media.medalCapture = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/medals/capture" );
 
 
 	memset( cg_items, 0, sizeof( cg_items ) );

@@ -33,6 +33,7 @@ python3 -I "$ROOT/misc/art/import-brand-art.py" sync "$ROOT/build-macos/generate
 # and the painted ability icons (a second pack outside the repo) over the
 # drawn ones; its charge icons live in gfx/abilities/charges
 python3 -I "$ROOT/misc/art/import-ability-art.py" sync "$ROOT/build-macos/generated" || true
+python3 -I "$ROOT/misc/art/import-hud-art.py" sync "$ROOT/build-macos/generated"
 mkdir -p "$HOME_DIR/baseq3/gfx"
 ln -sfn "$ROOT/build-macos/generated/gfx/tremor" "$HOME_DIR/baseq3/gfx/tremor"
 if [ -d "$ROOT/build-macos/generated/gfx/abilities" ]; then

@@ -753,6 +753,9 @@ typedef struct {
 
 qhandle_t CG_ChampionPortrait( int champion, qboolean small );
 void CG_TeamPalette( int team, vec4_t out );
+int CG_IdentityTeam( int client, int team );
+void CG_IdentityColor( int client, int team, vec4_t out );
+void CG_IconAnchor( qhandle_t shader, float *u, float *v );
 
 
 // all of the model, shader, and sound references that are
@@ -1358,6 +1361,7 @@ extern	vmCvar_t		cg_trailEnemyColor;
 extern	vmCvar_t		cg_abilityLights;
 extern	vmCvar_t		cg_backflips;
 extern	vmCvar_t		cg_enemyOutline;
+extern	vmCvar_t		cg_identityColors;
 extern	vmCvar_t		cg_enemyOutlineColor;
 extern	vmCvar_t		cg_colorBlind;
 void CG_ParseColor( vmCvar_t *cv, const char *defaultValue, byte out[4] );
@@ -1647,6 +1651,8 @@ void CG_Weapon_f( void );
 
 void CG_RegisterWeapon( int weaponNum );
 void CG_RegisterItemVisuals( int itemNum );
+const char *CG_ItemArtPath( const gitem_t *item );
+const char *CG_WeaponArtPath( int weapon );
 
 void CG_FireWeapon( centity_t *cent );
 void CG_TriboltSounds( centity_t *cent );

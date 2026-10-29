@@ -11,7 +11,7 @@
      pickups     icon|count
      weapons     icon|hits|acc|dmg|score (blue)|score|dmg|acc|hits (red), sb_wt the total -->
 <body>
-	<div class="board">
+	<div class="board" data-row="sb_palette" data-cell-class="0">
 		<div class="top" data-when="sb_mode!=duel">
 			<div>
 				<div class="title" data-text-cvar="sb_title"></div>
@@ -99,7 +99,7 @@
 			</div>
 			<div class="dbody">
 				<div class="dpickups">
-					<div class="dpk" data-row="sb_pk#" data-repeat="6"><img data-cell-src="0"/><span data-cell="1"></span></div>
+					<div class="dpk" data-row="sb_pk#" data-repeat="6"><img data-cell-src="0" data-cell-anchor="2"/><span data-cell="1"></span></div>
 				</div>
 				<div class="dtable">
 					<div class="drow dhead" data-row="sb_dh">
@@ -109,7 +109,7 @@
 					</div>
 					<div class="drow" data-row="sb_w#" data-repeat="16">
 						<span data-cell="1"></span><span data-cell="2"></span><span data-cell="3"></span><span data-cell="4"></span>
-						<span class="dicon"><img data-cell-src="0"/></span>
+						<span class="dicon"><img data-cell-src="0" data-cell-anchor="9"/></span>
 						<span data-cell="5"></span><span data-cell="6"></span><span data-cell="7"></span><span data-cell="8"></span>
 					</div>
 					<div class="drow dtotal" data-row="sb_wt">
