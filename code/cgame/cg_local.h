@@ -1401,7 +1401,6 @@ extern	vmCvar_t		cg_oldPlasma;
 extern	vmCvar_t		cg_trueLightning;
 extern	vmCvar_t		cg_predictLocalRailshots;
 extern	vmCvar_t		cg_autoAction;
-extern	vmCvar_t		cg_drawCooldownArc;
 extern	vmCvar_t		cg_obituaryRowSize;
 extern	vmCvar_t		cg_chatHistoryLength;
 extern	vmCvar_t		cg_specItemTimers;

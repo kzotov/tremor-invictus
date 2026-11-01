@@ -2622,16 +2622,6 @@ static void CG_DrawHud( void ) {
 	}
 	cg_hudAnchor = ANCHOR_CENTER;
 
-	// the ability arc by the crosshair: 1 layout (bottom), 2 top, 3 right, 4 bottom, 5 left
-	switch ( cg_drawCooldown.integer ? cg_drawCooldownArc.integer : 0 ) {
-	case 1:		// the layout's place: under the crosshair
-	case 4:		CG_DrawAbilityRing( 320, 240, 26, 45, 90, 12, 2 ); break;
-	case 2:		CG_DrawAbilityRing( 320, 240, 26, 225, 90, 12, 2 ); break;
-	case 3:		CG_DrawAbilityRing( 320, 240, 26, -45, 90, 12, 2 ); break;
-	case 5:		CG_DrawAbilityRing( 320, 240, 26, 135, 90, 12, 2 ); break;
-	default:	break;
-	}
-
 	cg_hudAnchor = ANCHOR_RIGHT;
 	CG_DrawWeaponBar();
 	cg_hudAnchor = ANCHOR_CENTER;
@@ -8714,16 +8704,7 @@ static void CG_DrawModernHud( void ) {
 		CG_DrawAmmoCounter();
 	}
 
-	// the crosshair arc repeats the ring
 	cg_hudAnchor = ANCHOR_CENTER;
-	switch ( cg_drawCooldown.integer ? cg_drawCooldownArc.integer : 0 ) {
-	case 1:		// the layout's place: under the crosshair
-	case 4:		CG_DrawAbilityRing( 320, 240, 26, 45, 90, 12, 2 ); break;
-	case 2:		CG_DrawAbilityRing( 320, 240, 26, 225, 90, 12, 2 ); break;
-	case 3:		CG_DrawAbilityRing( 320, 240, 26, -45, 90, 12, 2 ); break;
-	case 5:		CG_DrawAbilityRing( 320, 240, 26, 135, 90, 12, 2 ); break;
-	default:	break;
-	}
 
 	if ( cg_weaponBar.integer == 0 ) {
 		CG_DrawWeaponColumn();
