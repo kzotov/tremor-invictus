@@ -1324,8 +1324,8 @@ void IN_Frame( void )
 
 	if( in_ignoreInput->integer )
 	{
-		// Never grab the mouse during a test run
-		IN_DeactivateMouse( cls.glconfig.isFullscreen );
+		// a test run never touches the mouse or the cursor at all (not
+		// even showing it each frame): the user may be playing
 	}
 	else if( !cls.glconfig.isFullscreen && ( Key_GetCatcher( ) & KEYCATCH_CONSOLE ) )
 	{
@@ -1413,7 +1413,8 @@ void IN_Init( void *windowData )
 	rawMouseActive = mouseAvailable && in_rawMouse->integer && IN_RawMouseStart( );
 	Com_Printf( "Mouse input: %s\n", rawMouseActive ? "raw counts from the mouse" : "SDL relative motion" );
 #endif
-	IN_DeactivateMouse( Cvar_VariableIntegerValue( "r_fullscreen" ) != 0 );
+	if( !in_ignoreInput->integer )
+		IN_DeactivateMouse( Cvar_VariableIntegerValue( "r_fullscreen" ) != 0 );
 
 	appState = SDL_GetWindowFlags( SDL_window );
 	Cvar_SetValue( "com_unfocused",	!( appState & SDL_WINDOW_INPUT_FOCUS ) );

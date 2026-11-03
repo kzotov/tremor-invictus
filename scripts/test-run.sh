@@ -72,7 +72,8 @@ our_pid() {
 case "$cmd" in
 build)
 	cmake -S "$ROOT" -B "$BUILD" -DCMAKE_BUILD_TYPE=Release
-	cmake --build "$BUILD" -j"$(sysctl -n hw.ncpu)"
+	# at background priority on half the cores: the user may be playing
+	taskpolicy -b cmake --build "$BUILD" -j"$(( $(sysctl -n hw.ncpu) / 2 ))"
 	# quiet runs load the dylibs, so a failed QVM build would go unseen
 	"$ROOT/scripts/check-qvm.sh" "$RELEASE" || die "a QVM didn't build; see the errors above"
 	# own bundle id, accessory app (no Dock icon, never activated)
@@ -130,7 +131,9 @@ start)
 	echo "$port" > "$HOME_DIR/port"
 	head -c 12 /dev/urandom | od -An -tx1 | tr -d ' \n' > "$HOME_DIR/rcon"
 
-	SDL_MAC_BACKGROUND_APP=1 "$APP/Contents/MacOS/tremor-invictus" \
+	# background priority too, so a test never takes CPU or input time from
+	# a game being played on the same Mac
+	SDL_MAC_BACKGROUND_APP=1 taskpolicy -b "$APP/Contents/MacOS/tremor-invictus" \
 		+set fs_basepath "$TREMOR_Q3" +set fs_homepath "$HOME_DIR" \
 		+set vm_game 0 +set vm_cgame 0 +set vm_ui 0 +set sv_pure 0 \
 		+set s_initsound 0 +set s_volume 0 +set s_musicvolume 0 +set s_alCapture 0 \
