@@ -57,7 +57,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../../ui/menudef.h"
 #endif
 
-#define TIME_BETWEENCHATTING	25
+#define TIME_BETWEENCHATTING	60		// one line a minute at most (bots-audit BOT-01)
 
 
 /*
@@ -249,21 +249,55 @@ BotWeaponNameForMeansOfDeath
 ==================
 */
 
+/*
+==================
+BotChatAllowed
+
+bots-audit BOT-01: a bot talks while dead or with no enemy seen for 5 s,
+at most one line a minute
+==================
+*/
+static qboolean BotChatAllowed(bot_state_t *bs) {
+	if (bs->lastchat_time > FloatTime() - TIME_BETWEENCHATTING) return qfalse;
+	return BotIsDead(bs) || FloatTime() - bs->enemyvisible_time > 5;
+}
+
 char *BotWeaponNameForMeansOfDeath(int mod) {
 	switch(mod) {
 		case MOD_SHOTGUN: return "Shotgun";
 		case MOD_GAUNTLET: return "Gauntlet";
 		case MOD_MACHINEGUN: return "Machinegun";
 		case MOD_GRENADE:
-		case MOD_GRENADE_SPLASH: return "Grenade Launcher";
+		case MOD_GRENADE_SPLASH: return "Tri-bolt";
 		case MOD_ROCKET:
 		case MOD_ROCKET_SPLASH: return "Rocket Launcher";
 		case MOD_PLASMA:
-		case MOD_PLASMA_SPLASH: return "Plasmagun";
+		case MOD_PLASMA_SPLASH: return "Super Nailgun";
 		case MOD_RAILGUN: return "Railgun";
 		case MOD_LIGHTNING: return "Lightning Gun";
 		case MOD_BFG:
-		case MOD_BFG_SPLASH: return "BFG10K";
+		case MOD_BFG_SPLASH: return "Railgun";
+		//this game's abilities
+		case MOD_HEAVYWEIGHT: return "Heavyweight";
+		case MOD_BULLRUSH: return "Bull Rush";
+		case MOD_ORB:
+		case MOD_ORBTELEFRAG: return "Dire Orb";
+		case MOD_FIREBALL: return "Flame Strike";
+		case MOD_BURN: return "fire";
+		case MOD_ACID: return "Acid Spit";
+		case MOD_TOTEM: return "Totem";
+		case MOD_TURRET: return "Turret";
+		case MOD_LASER: return "Barrier";
+		case MOD_PLASMATRAIL: return "Plasma Trail";
+		case MOD_DRONE: return "Drone";
+		case MOD_SPINES: return "Spine Volley";
+		case MOD_STORM: return "Downpour";
+		case MOD_HOUND: return "Hound";
+		case MOD_HOOKIMPACT: return "Hook";
+		case MOD_GHOSTWALK: return "Ghost Walk";
+		case MOD_BERSERK: return "Berserk";
+		case MOD_LEAPINGKICK: return "Leaping Kick";
+		case MOD_RINGOUT: return "a push";
 #ifdef MISSIONPACK
 		case MOD_NAIL: return "Nailgun";
 		case MOD_CHAINGUN: return "Chaingun";
@@ -389,7 +423,7 @@ int BotChat_EnterGame(bot_state_t *bs) {
 	float rnd;
 
 	if (bot_nochat.integer) return qfalse;
-	if (bs->lastchat_time > FloatTime() - TIME_BETWEENCHATTING) return qfalse;
+	if (!BotChatAllowed(bs)) return qfalse;
 	//don't chat in teamplay
 	if (TeamPlayIsOn()) return qfalse;
 	// don't chat in tournament mode
@@ -422,7 +456,7 @@ int BotChat_ExitGame(bot_state_t *bs) {
 	float rnd;
 
 	if (bot_nochat.integer) return qfalse;
-	if (bs->lastchat_time > FloatTime() - TIME_BETWEENCHATTING) return qfalse;
+	if (!BotChatAllowed(bs)) return qfalse;
 	//don't chat in teamplay
 	if (TeamPlayIsOn()) return qfalse;
 	// don't chat in tournament mode
@@ -456,7 +490,7 @@ int BotChat_StartLevel(bot_state_t *bs) {
 
 	if (bot_nochat.integer) return qfalse;
 	if (BotIsObserver(bs)) return qfalse;
-	if (bs->lastchat_time > FloatTime() - TIME_BETWEENCHATTING) return qfalse;
+	if (!BotChatAllowed(bs)) return qfalse;
 	//don't chat in teamplay
 	if (TeamPlayIsOn()) {
 #ifdef MISSIONPACK
@@ -490,7 +524,7 @@ int BotChat_EndLevel(bot_state_t *bs) {
 
 	if (bot_nochat.integer) return qfalse;
 	if (BotIsObserver(bs)) return qfalse;
-	if (bs->lastchat_time > FloatTime() - TIME_BETWEENCHATTING) return qfalse;
+	if (!BotChatAllowed(bs)) return qfalse;
 	// teamplay
 	if (TeamPlayIsOn()) 
 	{
@@ -551,7 +585,7 @@ int BotChat_Death(bot_state_t *bs) {
 	float rnd;
 
 	if (bot_nochat.integer) return qfalse;
-	if (bs->lastchat_time > FloatTime() - TIME_BETWEENCHATTING) return qfalse;
+	if (!BotChatAllowed(bs)) return qfalse;
 	rnd = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_CHAT_DEATH, 0, 1);
 	// don't chat in tournament mode
 	if (gametype == GT_TOURNAMENT) return qfalse;
@@ -654,7 +688,7 @@ int BotChat_Kill(bot_state_t *bs) {
 	float rnd;
 
 	if (bot_nochat.integer) return qfalse;
-	if (bs->lastchat_time > FloatTime() - TIME_BETWEENCHATTING) return qfalse;
+	if (!BotChatAllowed(bs)) return qfalse;
 	rnd = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_CHAT_KILL, 0, 1);
 	// don't chat in tournament mode
 	if (gametype == GT_TOURNAMENT) return qfalse;
@@ -720,7 +754,7 @@ int BotChat_EnemySuicide(bot_state_t *bs) {
 	float rnd;
 
 	if (bot_nochat.integer) return qfalse;
-	if (bs->lastchat_time > FloatTime() - TIME_BETWEENCHATTING) return qfalse;
+	if (!BotChatAllowed(bs)) return qfalse;
 	if (BotNumActivePlayers() <= 1) return qfalse;
 	//
 	rnd = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_CHAT_ENEMYSUICIDE, 0, 1);
@@ -755,7 +789,7 @@ int BotChat_HitTalking(bot_state_t *bs) {
 	float rnd;
 
 	if (bot_nochat.integer) return qfalse;
-	if (bs->lastchat_time > FloatTime() - TIME_BETWEENCHATTING) return qfalse;
+	if (!BotChatAllowed(bs)) return qfalse;
 	if (BotNumActivePlayers() <= 1) return qfalse;
 	lasthurt_client = g_entities[bs->client].client->lasthurt_client;
 	if (!lasthurt_client) return qfalse;
@@ -801,7 +835,7 @@ int BotChat_HitNoDeath(bot_state_t *bs) {
 	if (lasthurt_client < 0 || lasthurt_client >= MAX_CLIENTS) return qfalse;
 	//
 	if (bot_nochat.integer) return qfalse;
-	if (bs->lastchat_time > FloatTime() - TIME_BETWEENCHATTING) return qfalse;
+	if (!BotChatAllowed(bs)) return qfalse;
 	if (BotNumActivePlayers() <= 1) return qfalse;
 	rnd = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_CHAT_HITNODEATH, 0, 1);
 	//don't chat in teamplay
@@ -839,7 +873,7 @@ int BotChat_HitNoKill(bot_state_t *bs) {
 	aas_entityinfo_t entinfo;
 
 	if (bot_nochat.integer) return qfalse;
-	if (bs->lastchat_time > FloatTime() - TIME_BETWEENCHATTING) return qfalse;
+	if (!BotChatAllowed(bs)) return qfalse;
 	if (BotNumActivePlayers() <= 1) return qfalse;
 	rnd = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_CHAT_HITNOKILL, 0, 1);
 	//don't chat in teamplay
@@ -877,7 +911,7 @@ int BotChat_Random(bot_state_t *bs) {
 
 	if (bot_nochat.integer) return qfalse;
 	if (BotIsObserver(bs)) return qfalse;
-	if (bs->lastchat_time > FloatTime() - TIME_BETWEENCHATTING) return qfalse;
+	if (!BotChatAllowed(bs)) return qfalse;
 	// don't chat in tournament mode
 	if (gametype == GT_TOURNAMENT) return qfalse;
 	//don't chat when doing something important :)

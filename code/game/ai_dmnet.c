@@ -1215,31 +1215,11 @@ AINode_Stand
 ==================
 */
 int AINode_Stand(bot_state_t *bs) {
-
-	//if the bot's health decreased
-	if (bs->lastframe_health > bs->inventory[INVENTORY_HEALTH]) {
-		if (BotChat_HitTalking(bs)) {
-			bs->standfindenemy_time = FloatTime() + BotChatTime(bs) + 0.1;
-			bs->stand_time = FloatTime() + BotChatTime(bs) + 0.1;
-		}
-	}
-	if (bs->standfindenemy_time < FloatTime()) {
-		if (BotFindEnemy(bs, -1)) {
-			AIEnter_Battle_Fight(bs, "stand: found enemy");
-			return qfalse;
-		}
-		bs->standfindenemy_time = FloatTime() + 1;
-	}
-	// put up chat icon
-	trap_EA_Talk(bs->client);
-	// when done standing
-	if (bs->stand_time < FloatTime()) {
-		trap_BotEnterChat(bs->cs, 0, bs->chatto);
-		AIEnter_Seek_LTG(bs, "stand: time out");
-		return qfalse;
-	}
-	//
-	return qtrue;
+	//bots-audit BOT-01: the line goes out at once and the bot carries on;
+	//it no longer stands still for the time it would take to type it
+	trap_BotEnterChat(bs->cs, 0, bs->chatto);
+	AIEnter_Seek_LTG(bs, "stand: chat sent");
+	return qfalse;
 }
 
 /*

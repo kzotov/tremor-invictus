@@ -1,0 +1,9 @@
+// this game's own bots for champions no stock bot plays (bots-audit BOT-01);
+// "champion" names the champion, the model is the champion's own
+{
+name		Eisen
+funname		Eisen
+model		sarge/eisen
+champion	eisen
+aifile		bots/sarge_c.c
+}

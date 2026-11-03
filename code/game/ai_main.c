@@ -996,7 +996,10 @@ static qboolean BotHookTarget(bot_state_t *bs, qboolean seen, int health, vec3_t
 	return qtrue;
 }
 
+void G_DroneEnd( gentity_t *ent, qboolean launch );
+
 static qboolean BotWantsAbility(bot_state_t *bs) {
+	static int droneBodyHealth[MAX_CLIENTS];	//the body's health at launch
 	playerState_t *ps = &g_entities[bs->client].client->ps;
 	int active = BG_Champion(ps->stats[STAT_CHAMPION])->active;
 	int health = ps->stats[STAT_HEALTH], armor = ps->stats[STAT_ARMOR];
@@ -1019,8 +1022,21 @@ static qboolean BotWantsAbility(bot_state_t *bs) {
 	// a second press: recall to the rift anchor when hurt; back from the
 	// drone after 4 s or as soon as an enemy shows
 	if (state == ABILITY_ACTIVE) {
-		// the drone's second press charges it: only at an enemy in view
-		if (active == ACTIVE_DRONE) return seen && !(ps->pm_flags & PMF_DRONE_CHARGE);		// (then it waits for contact)
+		// the drone (bots-audit BOT-01): back to the body at once when the
+		// body is hit, or 6 s after launch with no enemy in view; the second
+		// press charges it only at an enemy in view within 600 u
+		if (active == ACTIVE_DRONE) {
+			gentity_t *self = &g_entities[bs->client];
+			gentity_t *body = self->client->droneBody;
+
+			if (body && !self->client->droneCharging
+				&& (body->health < droneBodyHealth[bs->client]
+				|| (!seen && FloatTime() - bs->abilitystart_time > 6))) {
+				G_DroneEnd(self, qfalse);
+				return qfalse;
+			}
+			return seen && dist < 600 && !(ps->pm_flags & PMF_DRONE_CHARGE);		// (then it waits for contact)
+		}
 		// Clutch turns the Barrier into the laser at an enemy in view
 		if (active == ACTIVE_BARRIER) return seen && dist < 1200 && random() < 0.5;
 		// Slash sets the trail off with an enemy within 120 u of it
@@ -1066,7 +1082,7 @@ static qboolean BotWantsAbility(bot_state_t *bs) {
 	case ACTIVE_DOWNPOUR:		want = seen && dist < 1000; break;
 	case ACTIVE_HOUND:			want = bs->enemy >= 0 && dist < 1500; break;
 	case ACTIVE_RIFTANCHOR:		want = seen && health > 70; break;
-	case ACTIVE_DRONE:			want = bs->enemy < 0 && health > 60 && random() < 0.03; break;
+	case ACTIVE_DRONE:			want = bs->enemy >= 0 && dist < 2000 && health > 60; break;
 	case ACTIVE_HOOK:
 		if (BotHookTarget(bs, seen, health, bs->abilityaim)) {
 			want = qtrue;
@@ -1080,7 +1096,10 @@ static qboolean BotWantsAbility(bot_state_t *bs) {
 		// keep looking at the bite point through the press delay
 		bs->abilityaim_time = FloatTime() + 0.3;
 	}
-	if (active == ACTIVE_DRONE) bs->abilitystart_time = FloatTime();
+	if (active == ACTIVE_DRONE) {
+		bs->abilitystart_time = FloatTime();
+		droneBodyHealth[bs->client] = health;
+	}
 	return qtrue;
 }
 
@@ -1197,6 +1216,78 @@ static void BotEdgeGuard(bot_state_t *bs, bot_input_t *bi) {
 
 /*
 ==============
+BotIdleWatchdog
+
+bots-audit BOT-01: a living bot that is not chatting and moves under 32 u
+in 3 s is logged ("BotIdle: <client> <secs>"), loses its goals and runs a
+random way for 1 s
+==============
+*/
+static void BotIdleWatchdog(bot_state_t *bs, bot_input_t *bi) {
+	static vec3_t	checkOrigin[MAX_CLIENTS];
+	static int		checkTime[MAX_CLIENTS], idleSince[MAX_CLIENTS], wanderUntil[MAX_CLIENTS];
+	static vec3_t	wanderDir[MAX_CLIENTS];
+	gentity_t		*ent = &g_entities[bs->client];
+	float			a;
+
+	if (level.time < wanderUntil[bs->client]) {
+		VectorCopy(wanderDir[bs->client], bi->dir);
+		bi->speed = 400;
+		return;
+	}
+	if (BotIsDead(bs) || BotIsObserver(bs) || BotIntermission(bs) || (ent->s.eFlags & EF_TALK)
+		|| bs->cur_ps.pm_type != PM_NORMAL || level.warmupTime) {
+		checkTime[bs->client] = 0;
+		idleSince[bs->client] = 0;
+		return;
+	}
+	if (!checkTime[bs->client]) {
+		checkTime[bs->client] = level.time;
+		VectorCopy(bs->origin, checkOrigin[bs->client]);
+		return;
+	}
+	if (level.time - checkTime[bs->client] < 3000) return;
+	if (Distance(bs->origin, checkOrigin[bs->client]) >= 32) {
+		idleSince[bs->client] = 0;
+	} else {
+		if (!idleSince[bs->client]) idleSince[bs->client] = checkTime[bs->client];
+		G_LogPrintf("BotIdle: %i %i\n", bs->client, (level.time - idleSince[bs->client]) / 1000);
+		trap_BotEmptyGoalStack(bs->gs);
+		a = random() * 2 * M_PI;
+		VectorSet(wanderDir[bs->client], cos(a), sin(a), 0);
+		wanderUntil[bs->client] = level.time + 1000;
+	}
+	checkTime[bs->client] = level.time;
+	VectorCopy(bs->origin, checkOrigin[bs->client]);
+}
+
+/*
+==============
+BotLogAccuracy
+
+At the match's end, each bot's hits and shots per weapon
+("Accuracy: <client> <weapon> <hits>/<shots>", bots-audit BOT-01)
+==============
+*/
+void BotLogAccuracy(void) {
+	gentity_t	*ent;
+	gitem_t		*item;
+	int			i, w;
+
+	for (i = 0; i < level.maxclients; i++) {
+		ent = &g_entities[i];
+		if (!ent->inuse || !ent->client || !(ent->r.svFlags & SVF_BOT)) continue;
+		for (w = WP_GAUNTLET; w < WP_NUM_WEAPONS; w++) {
+			if (!ent->client->pers.accShots[w]) continue;
+			item = BG_FindItemForWeapon(w);
+			G_LogPrintf("Accuracy: %i %s %i/%i\n", i, item ? item->classname : va("%i", w),
+				ent->client->pers.accHits[w], ent->client->pers.accShots[w]);
+		}
+	}
+}
+
+/*
+==============
 BotUpdateInput
 ==============
 */
@@ -1218,10 +1309,16 @@ void BotUpdateInput(bot_state_t *bs, int time, int elapsed_time) {
 	}
 	//off a rim with the middle over a drop first
 	BotEdgeGuard(bs, &bi);
+	//not standing about
+	BotIdleWatchdog(bs, &bi);
 	//convert the bot input to a usercmd
 	BotInputToUserCommand(&bi, &bs->lastucmd, bs->cur_ps.delta_angles, time);
 	//the champion's ability
-	if (BotWantsAbility(bs)) bs->lastucmd.buttons |= BUTTON_ABILITY;
+	if (BotWantsAbility(bs)) {
+		bs->lastucmd.buttons |= BUTTON_ABILITY;
+		G_LogPrintf("BotAbility: %i %s\n", bs->client,
+			bg_abilityInfo[BG_Champion(bs->cur_ps.stats[STAT_CHAMPION])->active].cvarName);
+	}
 	//look where the ability aims, and slide
 	BotAbilityMovement(bs, &bs->lastucmd);
 	//subtract the delta angles

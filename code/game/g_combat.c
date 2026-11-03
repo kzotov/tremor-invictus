@@ -1099,6 +1099,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		&& attacker->client && !G_AbilityEnemy( targ->parent, attacker ) ) {
 		return;
 	}
+	// bots-audit FIX-61: a totem or turret takes no damage from its owner's
+	// teammates unless friendly fire is on (its owner's own splash still hurts it)
+	if ( !targ->client && targ->classname && targ->parent && targ->parent->client && attacker->client
+		&& attacker != targ->parent && !g_friendlyFire.integer && OnSameTeam( targ->parent, attacker )
+		&& ( !strcmp( targ->classname, "totem" ) || !strcmp( targ->classname, "sentry_turret" )
+		|| !strcmp( targ->classname, "turret_thrown" ) ) ) {
+		return;
+	}
 	// Nyx in Ghost Walk hurts nobody (she fires nothing; a gauntlet test
 	// slipping through mustn't either)
 	if ( attacker->client && attacker != as && G_AbilityActive( attacker, ACTIVE_GHOSTWALK ) ) {

@@ -1583,6 +1583,8 @@ LogExit
 Append information about this game to the log file
 ================
 */
+void BotLogAccuracy( void );
+
 void LogExit( const char *string ) {
 	int				i, numSorted;
 	gclient_t		*cl;
@@ -1591,6 +1593,7 @@ void LogExit( const char *string ) {
 	team_t team = TEAM_RED;
 #endif
 	G_LogPrintf( "Exit: %s\n", string );
+	BotLogAccuracy();
 
 	level.intermissionQueued = level.time;
 

@@ -211,8 +211,131 @@ qboolean EntityIsDead(aas_entityinfo_t *entinfo) {
 		}
 
 		if (ps.pm_type != PM_NORMAL) return qtrue;
+		return qfalse;
+	}
+	//an ability object (bots-audit BOT-01): gone or broken
+	if (entinfo->number >= MAX_CLIENTS && entinfo->number < ENTITYNUM_MAX_NORMAL) {
+		gentity_t *ent = &g_entities[entinfo->number];
+
+		if (!ent->inuse || !ent->takedamage || ent->health <= 0) return qtrue;
 	}
 	return qfalse;
+}
+
+/*
+==================
+BotObjectKind
+
+bots-audit BOT-01: 1 totem, 2 deployed turret, 3 Strogg's body; 0 for
+anything else
+==================
+*/
+int BotObjectKind(int entnum) {
+	gentity_t *ent;
+
+	if (entnum < MAX_CLIENTS || entnum >= ENTITYNUM_MAX_NORMAL) return 0;
+	ent = &g_entities[entnum];
+	if (!ent->inuse || !ent->classname) return 0;
+	if (!strcmp(ent->classname, "totem")) return ent->takedamage ? 1 : 0;
+	if (!strcmp(ent->classname, "sentry_turret")) return 2;
+	if (!strcmp(ent->classname, "drone_body")) return 3;
+	return 0;
+}
+
+/*
+==================
+BotObjectScore
+
+How much a bot wants to shoot an enemy ability object (the audit's score
+table); 0 when it is no target (own side's, broken, out of sight or reach)
+==================
+*/
+static int BotObjectScore(bot_state_t *bs, int entnum, qboolean playerNear, qboolean playerSeen) {
+	gentity_t	*ent = &g_entities[entnum];
+	gentity_t	*self = &g_entities[bs->client];
+	int			kind = BotObjectKind(entnum), score = 0, i;
+	vec3_t		dir, angles;
+	float		dist;
+
+	if (!kind || !ent->takedamage || ent->health <= 0 || !ent->parent || !ent->parent->client) return 0;
+	if (ent->parent == self || OnSameTeam(ent->parent, self)) return 0;
+	VectorSubtract(ent->r.currentOrigin, bs->origin, dir);
+	dist = VectorLength(dir);
+	if (dist > 1500) return 0;
+	switch (kind) {
+	case 1:		//an enemy totem
+		if (dist > 1000) return 0;
+		score = playerSeen ? 60 : 110;
+		if (bs->inventory[INVENTORY_HEALTH] < 50) {
+			for (i = 0; i < level.maxclients; i++) {
+				gentity_t *other = &g_entities[i];
+
+				if (!other->inuse || !other->client || other->health <= 0 || other == self || OnSameTeam(other, self)) continue;
+				if (Distance(other->r.currentOrigin, ent->r.currentOrigin) < 150) {
+					score += 40;
+					break;
+				}
+			}
+		}
+		break;
+	case 2:		//a turret: shooting at this bot, or with the bot in its arc
+		if (ent->enemy == self) {
+			score = playerNear ? 80 : 130;
+		} else {
+			VectorScale(dir, -1, dir);
+			vectoangles(dir, angles);
+			if (fabs(AngleDelta(angles[YAW], ent->s.angles[YAW])) > 70) return 0;
+			score = 90;
+		}
+		break;
+	case 3:		//Strogg's body while he flies the drone
+		score = 115;
+		break;
+	}
+	if (BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360, entnum) <= 0) return 0;
+	return score;
+}
+
+/*
+==================
+BotFindObjectEnemy
+
+The best enemy ability object to shoot instead of (or before) a player,
+rechecked every 3 s; keeps the current target unless beaten by 20
+==================
+*/
+static int	botObjectScore[MAX_CLIENTS];	//the score of the object being shot
+
+static int BotFindObjectEnemy(bot_state_t *bs, int curenemy) {
+	static int	nextCheck[MAX_CLIENTS];
+	int			i, score, best = -1, bestScore = 0, curScore;
+	qboolean	playerNear = qfalse, playerSeen = qfalse;
+	gentity_t	*self = &g_entities[bs->client];
+
+	if (level.time < nextCheck[bs->client] && !(curenemy >= MAX_CLIENTS && BotObjectKind(curenemy))) return -1;
+	nextCheck[bs->client] = level.time + 3000;
+	for (i = 0; i < level.maxclients; i++) {
+		gentity_t *other = &g_entities[i];
+
+		if (!other->inuse || !other->client || other->health <= 0 || other == self || OnSameTeam(other, self)
+			|| other->client->sess.sessionTeam == TEAM_SPECTATOR) continue;
+		if (Distance(other->r.currentOrigin, bs->origin) < 600) playerNear = qtrue;
+		if (!playerSeen && BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360, i) > 0) playerSeen = qtrue;
+	}
+	//the player being fought counts 100
+	curScore = curenemy >= 0 && curenemy < MAX_CLIENTS ? 100 : curenemy >= MAX_CLIENTS ? BotObjectScore(bs, curenemy, playerNear, playerSeen) : 0;
+	if (curenemy >= MAX_CLIENTS) botObjectScore[bs->client] = curScore;
+	for (i = MAX_CLIENTS; i < level.num_entities; i++) {
+		if (i == curenemy || !BotObjectKind(i)) continue;
+		score = BotObjectScore(bs, i, playerNear, playerSeen);
+		if (score > bestScore) {
+			bestScore = score;
+			best = i;
+		}
+	}
+	if (best < 0 || bestScore < curScore + (curenemy >= 0 ? 20 : 0)) return -1;
+	botObjectScore[bs->client] = bestScore;
+	return best;
 }
 
 /*
@@ -1563,15 +1686,97 @@ int BotSynonymContext(bot_state_t *bs) {
 BotChooseWeapon
 ==================
 */
+/*
+==================
+The weapons a bot knows (bots-audit BOT-01, a stopgap until our own bot
+data): how much it wants each, where each works, and its fight distance
+==================
+*/
+typedef struct {
+	int		weapon, score, minRange, maxRange, idealMin, idealMax;
+} botWeapon_t;
+
+static const botWeapon_t botWeapons[] = {
+	{ WP_RAILGUN,			95, 400, 4000, 600, 1200 },
+	{ WP_LIGHTNING,			90, 0, 780, 300, 500 },
+	{ WP_ROCKET_LAUNCHER,	90, 200, 1200, 250, 400 },
+	{ WP_SUPER_NAILGUN,		85, 80, 1000, 200, 450 },
+	{ WP_HEAVY_MACHINEGUN,	75, 0, 1600, 300, 700 },
+	{ WP_SUPER_SHOTGUN,		75, 0, 500, 100, 250 },
+	{ WP_TRIBOLT,			70, 200, 800, 250, 500 },
+	{ WP_NAILGUN,			65, 80, 1000, 200, 450 },
+	{ WP_SHOTGUN,			55, 0, 560, 100, 250 },
+	{ WP_MACHINEGUN,		50, 0, 1600, 300, 700 },
+	{ WP_GAUNTLET,			10, 0, 64, 0, 0 }
+};
+
+static const botWeapon_t *BotWeaponInfo(int weapon) {
+	int i;
+
+	for (i = 0; i < ARRAY_LEN(botWeapons); i++) {
+		if (botWeapons[i].weapon == weapon) return &botWeapons[i];
+	}
+	return NULL;
+}
+
+static qboolean BotHasWeapon(bot_state_t *bs, int weapon) {
+	int partner = BG_AmmoPartner(weapon);
+
+	if (!(bs->cur_ps.stats[STAT_WEAPONS] & (1 << weapon))) return qfalse;
+	if (weapon == WP_GAUNTLET) return qtrue;
+	return bs->cur_ps.ammo[weapon] != 0 || (partner != WP_NONE && bs->cur_ps.ammo[partner] != 0);
+}
+
+/*
+==================
+BotBestWeapon
+
+The bot's most wanted usable weapon that works at this distance (any
+distance below 0), the best usable one when none fits
+==================
+*/
+static const botWeapon_t *BotBestWeapon(bot_state_t *bs, float dist) {
+	const botWeapon_t *w, *fit = NULL, *any = NULL;
+	int i;
+
+	for (i = 0; i < ARRAY_LEN(botWeapons); i++) {
+		w = &botWeapons[i];
+		if (!BotHasWeapon(bs, w->weapon)) continue;
+		if (!any) any = w;
+		if (dist < 0 || (dist >= w->minRange && dist <= w->maxRange)) {
+			fit = w;
+			break;
+		}
+	}
+	return fit ? fit : any;
+}
+
+/*
+==================
+BotEnemyDistance
+==================
+*/
+static float BotEnemyDistance(bot_state_t *bs) {
+	aas_entityinfo_t entinfo;
+
+	if (bs->enemy < 0) return -1;
+	BotEntityInfo(bs->enemy, &entinfo);
+	if (!entinfo.valid) return -1;
+	return Distance(entinfo.origin, bs->origin);
+}
+
 void BotChooseWeapon(bot_state_t *bs) {
 	int newweaponnum;
+	const botWeapon_t *best;
 
 	if (bs->cur_ps.weaponstate == WEAPON_RAISING ||
 			bs->cur_ps.weaponstate == WEAPON_DROPPING) {
 		trap_EA_SelectWeapon(bs->client, bs->weaponnum);
 	}
 	else {
-		newweaponnum = trap_BotChooseBestFightWeapon(bs->ws, bs->inventory);
+		//this game's weapons from the coded table, the old bot data as a fallback
+		best = BotBestWeapon(bs, BotEnemyDistance(bs));
+		newweaponnum = best ? best->weapon : trap_BotChooseBestFightWeapon(bs->ws, bs->inventory);
 		if (bs->weaponnum != newweaponnum) bs->weaponchange_time = FloatTime();
 		bs->weaponnum = newweaponnum;
 		//BotAI_Print(PRT_MESSAGE, "bs->weaponnum = %d\n", bs->weaponnum);
@@ -2197,6 +2402,10 @@ BotAggression
 ==================
 */
 float BotAggression(bot_state_t *bs) {
+	const botWeapon_t *w;
+	int max;
+	float dist;
+
 	//if the bot has quad
 	if (bs->inventory[INVENTORY_QUAD]) {
 		//if the bot is not holding the gauntlet or the enemy is really nearby
@@ -2207,36 +2416,16 @@ float BotAggression(bot_state_t *bs) {
 	}
 	//if the enemy is located way higher than the bot
 	if (bs->inventory[ENEMY_HEIGHT] > 200) return 0;
-	//if the bot is very low on health
-	if (bs->inventory[INVENTORY_HEALTH] < 60) return 0;
-	//if the bot is low on health
-	if (bs->inventory[INVENTORY_HEALTH] < 80) {
-		//if the bot has insufficient armor
-		if (bs->inventory[INVENTORY_ARMOR] < 40) return 0;
-	}
-	//if the bot can use the bfg
-	if (bs->inventory[INVENTORY_BFG10K] > 0 &&
-			bs->inventory[INVENTORY_BFGAMMO] > 7) return 100;
-	//if the bot can use the railgun
-	if (bs->inventory[INVENTORY_RAILGUN] > 0 &&
-			bs->inventory[INVENTORY_SLUGS] > 5) return 95;
-	//if the bot can use the lightning gun
-	if (bs->inventory[INVENTORY_LIGHTNING] > 0 &&
-			bs->inventory[INVENTORY_LIGHTNINGAMMO] > 50) return 90;
-	//if the bot can use the rocketlauncher
-	if (bs->inventory[INVENTORY_ROCKETLAUNCHER] > 0 &&
-			bs->inventory[INVENTORY_ROCKETS] > 5) return 90;
-	//if the bot can use the plasmagun
-	if (bs->inventory[INVENTORY_PLASMAGUN] > 0 &&
-			bs->inventory[INVENTORY_CELLS] > 40) return 85;
-	//if the bot can use the grenade launcher
-	if (bs->inventory[INVENTORY_GRENADELAUNCHER] > 0 &&
-			bs->inventory[INVENTORY_GRENADES] > 10) return 80;
-	//if the bot can use the shotgun
-	if (bs->inventory[INVENTORY_SHOTGUN] > 0 &&
-			bs->inventory[INVENTORY_SHELLS] > 10) return 50;
-	//otherwise the bot is not feeling too good
-	return 0;
+	//under 40 % of the class's health and armour (bots-audit BOT-01)
+	max = bs->cur_ps.stats[STAT_MAX_HEALTH]
+		+ bg_classInfo[BG_Champion(bs->cur_ps.stats[STAT_CHAMPION])->bodyClass].maxArmor;
+	if (bs->inventory[INVENTORY_HEALTH] + bs->inventory[INVENTORY_ARMOR] < max * 0.4f) return 0;
+	//the best weapon it has: the Super Shotgun only counts up close
+	dist = BotEnemyDistance(bs);
+	w = BotBestWeapon(bs, -1);
+	if (!w) return 0;
+	if (w->weapon == WP_SUPER_SHOTGUN && dist > 500) return 55;
+	return w->score;
 }
 
 /*
@@ -2364,6 +2553,12 @@ int BotWantsToChase(bot_state_t *bs) {
 	//if the bot is getting the flag
 	if (bs->ltgtype == LTG_GETFLAG)
 		return qfalse;
+	//duels: after an enemy seen in the last 5 s that is no stronger
+	if (gametype == GT_TOURNAMENT && bs->enemy >= 0 && bs->enemy < MAX_CLIENTS
+		&& FloatTime() - bs->enemyvisible_time < 5 && g_entities[bs->enemy].client
+		&& bs->inventory[INVENTORY_HEALTH] + bs->inventory[INVENTORY_ARMOR]
+		>= g_entities[bs->enemy].health + g_entities[bs->enemy].client->ps.stats[STAT_ARMOR])
+		return qtrue;
 	//
 	if (BotAggression(bs) > 50)
 		return qtrue;
@@ -2703,8 +2898,11 @@ bot_moveresult_t BotAttackMove(bot_state_t *bs, int tfl) {
 		attack_range = 0;
 	}
 	else {
-		attack_dist = IDEAL_ATTACKDIST;
-		attack_range = 40;
+		//each weapon's own fight distance (bots-audit BOT-01)
+		const botWeapon_t *w = BotWeaponInfo(bs->cur_ps.weapon);
+
+		attack_dist = w ? ( w->idealMin + w->idealMax ) * 0.5f : IDEAL_ATTACKDIST;
+		attack_range = w ? ( w->idealMax - w->idealMin ) * 0.5f : 40;
 	}
 	//if the bot is stupid
 	if (attack_skill <= 0.4) {
@@ -2984,6 +3182,18 @@ int BotFindEnemy(bot_state_t *bs, int curenemy) {
 		}
 	}
 #endif
+	//an enemy totem, turret or Strogg's body worth more than the fight
+	i = BotFindObjectEnemy(bs, curenemy);
+	if (i >= 0) {
+		bs->enemy = i;
+		bs->enemysight_time = FloatTime();
+		bs->enemysuicide = qfalse;
+		bs->enemydeath_time = 0;
+		bs->enemyvisible_time = FloatTime();
+		return qtrue;
+	}
+	//an object being shot stays the target unless a player (100) beats it by 20
+	if (curenemy >= MAX_CLIENTS && BotObjectKind(curenemy) && botObjectScore[bs->client] + 20 > 100) return qfalse;
 	//
 	for (i = 0; i < level.maxclients; i++) {
 
@@ -3318,6 +3528,12 @@ void BotAimAtEnemy(bot_state_t *bs) {
 	if (bs->enemy >= MAX_CLIENTS) {
 		//if the obelisk is visible
 		VectorCopy(entinfo.origin, target);
+		//ability objects: where they are easiest to hit
+		switch (BotObjectKind(bs->enemy)) {
+		case 1: target[2] += 4; break;
+		case 2: target[2] += 12; break;
+		case 3: target[2] += 16; break;
+		}
 #ifdef MISSIONPACK
 		// if attacking an obelisk
 		if ( bs->enemy == redobelisk.entitynum ||
@@ -3698,6 +3914,11 @@ void BotCheckAttack(bot_state_t *bs) {
 			if (BotSameTeam(bs, trace.ent))
 				return;
 		}
+	}
+	//nor through the own side's totem or turret first on the line
+	else if (trace.ent != attackentity && BotObjectKind(trace.ent) && g_entities[trace.ent].parent
+		&& (g_entities[trace.ent].parent == &g_entities[bs->client] || OnSameTeam(g_entities[trace.ent].parent, &g_entities[bs->client]))) {
+		return;
 	}
 	//if won't hit the enemy or not attacking a player (obelisk)
 	if (trace.ent != attackentity || attackentity >= MAX_CLIENTS) {

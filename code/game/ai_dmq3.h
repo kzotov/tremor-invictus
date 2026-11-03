@@ -58,6 +58,8 @@ qboolean BotIntermission(bot_state_t *bs);
 qboolean BotInLavaOrSlime(bot_state_t *bs);
 //returns true if the entity is dead
 qboolean EntityIsDead(aas_entityinfo_t *entinfo);
+//1 totem, 2 turret, 3 Strogg's body, 0 anything else
+int BotObjectKind(int entnum);
 //returns true if the entity is invisible
 qboolean EntityIsInvisible(aas_entityinfo_t *entinfo);
 //returns true if the entity is shooting
