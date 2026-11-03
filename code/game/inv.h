@@ -72,6 +72,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define INVENTORY_NEUTRALFLAG		47
 #define INVENTORY_REDCUBE			48
 #define INVENTORY_BLUECUBE			49
+//this game's weapons and items (bots-audit BOT-02)
+#define INVENTORY_HMG				50
+#define INVENTORY_SSG				51
+#define INVENTORY_HOURGLASS			52
+#define INVENTORY_AMMOBOX			53
 //enemy stuff
 #define ENEMY_HORIZONTAL_DIST		200
 #define ENEMY_HEIGHT				201
@@ -125,6 +130,15 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define MODELINDEX_REDFLAG			34
 #define MODELINDEX_BLUEFLAG			35
+
+#ifndef MISSIONPACK
+//this game's items after the flags (bg_itemlist)
+#define MODELINDEX_HMG				36
+#define MODELINDEX_SSG				37
+#define MODELINDEX_NAILGUN			38
+#define MODELINDEX_HOURGLASS		39
+#define MODELINDEX_AMMOBOX			40
+#endif
 
 // mission pack only defines
 

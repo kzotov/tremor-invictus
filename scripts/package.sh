@@ -89,7 +89,7 @@ mkdir -p "$GAMEDIR"
 # tremor-assets.pk3, the same order the run scripts give the loose folders
 DATA=$(mktemp -d)
 trap 'rm -rf "$DATA"' EXIT
-for d in scripts ui presets mappools configs hud; do
+for d in scripts ui presets mappools configs hud botfiles; do
 	cp -R "$ROOT/assets/baseq3/$d" "$DATA/$d"
 done
 mkdir -p "$DATA/gfx"

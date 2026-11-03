@@ -102,6 +102,7 @@ start)
 	ln -sfn "$ROOT/assets/baseq3/mappools" "$HOME_DIR/baseq3/mappools"
 	ln -sfn "$ROOT/assets/baseq3/configs" "$HOME_DIR/baseq3/configs"
 	ln -sfn "$ROOT/assets/baseq3/hud" "$HOME_DIR/baseq3/hud"
+	ln -sfn "$ROOT/assets/baseq3/botfiles" "$HOME_DIR/baseq3/botfiles"
 	# images made at build time (the menu logo), with the UI branding pack from
 	# outside the repo copied over the drawn placeholders (it warns without one)
 	python3 -I "$ROOT/misc/art/import-brand-art.py" sync "$BUILD/generated" || true
