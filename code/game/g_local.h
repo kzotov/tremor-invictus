@@ -181,6 +181,7 @@ struct gentity_s {
 	int			abilityTime;	// meaning depends on the entity
 	int			itemDue;		// a power-up: level.time it appears (its think may be the warning first)
 	int			itemCycle;		// msec from taken to back, for the timers' pies
+	struct gentity_s	*powerupNext;	// a shared power-up spot's master: the team member coming next (FIX-64)
 	int			medalKills;		// kills by this missile, for Collateral Damage
 	int			medalSpawnTime;	// level.time this item last respawned, for Stopwatch
 

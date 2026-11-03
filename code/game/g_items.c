@@ -418,13 +418,93 @@ int Pickup_Armor( gentity_t *ent, gentity_t *other ) {
 
 /*
 ===============
+G_PowerupTeamNext
+
+mechanics.md FIX-64: the power-up a shared spot (an item team holding
+power-ups) shows next: first its Quad, then strictly Quad, Protection, Quad;
+NULL for an item team without power-ups (it stays random); the item
+itself for an item on its own
+===============
+*/
+gentity_t *G_PowerupTeamNext( gentity_t *ent ) {
+	gentity_t	*master, *member, *quad = NULL, *powerup = NULL;
+
+	if ( !ent->team || !ent->teammaster ) {
+		return ent;
+	}
+	master = ent->teammaster;
+	for ( member = master ; member ; member = member->teamchain ) {
+		if ( member->item && member->item->giType == IT_POWERUP ) {
+			if ( !powerup ) {
+				powerup = member;
+			}
+			if ( !quad && member->item->giTag == PW_QUAD ) {
+				quad = member;
+			}
+		}
+	}
+	if ( !powerup ) {
+		return NULL;
+	}
+	if ( master->powerupNext ) {
+		return master->powerupNext;
+	}
+	return quad ? quad : powerup;
+}
+
+/*
+===============
+G_PowerupTeamTaken
+
+A shared spot's power-up was taken: the other kind comes next
+===============
+*/
+static void G_PowerupTeamTaken( gentity_t *ent ) {
+	gentity_t	*member;
+
+	if ( !ent->team || !ent->teammaster || !G_PowerupTeamNext( ent ) ) {
+		return;
+	}
+	for ( member = ent->teammaster ; member ; member = member->teamchain ) {
+		if ( member != ent && member->item && member->item->giType == IT_POWERUP && member->item->giTag != ent->item->giTag ) {
+			ent->teammaster->powerupNext = member;
+			return;
+		}
+	}
+	ent->teammaster->powerupNext = ent;
+}
+
+/*
+===============
+G_PowerupSpots
+
+Power-up spots of the map that aren't item teams (a shared spot counts as
+one): with two or more each keeps its own power-up
+===============
+*/
+static int G_PowerupSpots( void ) {
+	gentity_t	*ent;
+	int			i, n = 0;
+
+	for ( i = MAX_CLIENTS, ent = &g_entities[MAX_CLIENTS] ; i < level.num_entities ; i++, ent++ ) {
+		if ( ent->inuse && ent->s.eType == ET_ITEM && ent->item && ent->item->giType == IT_POWERUP
+			&& !( ent->flags & FL_DROPPED_ITEM ) && !( ent->flags & FL_TEAMMEMBER ) ) {
+			n++;
+		}
+	}
+	return n;
+}
+
+/*
+===============
 G_PowerupWarning
 
 Tells everyone a power-up is about to appear
 ===============
 */
 static void G_PowerupWarning( gentity_t *ent ) {
-	gitem_t		*item = ent->item;
+	gentity_t	*next = G_PowerupTeamNext( ent );
+	gitem_t		*item = next ? next->item : ent->item;		// the one that will appear
 
 	G_SysMsg( -1, item->giTag == PW_QUAD ? STR_EV_QUAD_SOON : STR_EV_PROTECTION_SOON, va( "%i", g_powerupWarning.integer ), NULL );
 	G_Announce( -1, item->giTag == PW_QUAD ? "quaddamagesoon" : "protectionsoon" );
@@ -443,7 +523,9 @@ holds the other until it is taken in turn
 static void G_PowerupAlternate( gentity_t *ent ) {
 	gitem_t	*other = NULL;
 
-	if ( !g_powerupAlternate.integer ) {
+	// a lone spot only: a shared spot cycles its own items, and on a map
+	// with two spots each keeps its own power-up (FIX-64)
+	if ( !g_powerupAlternate.integer || ent->team || G_PowerupSpots() > 1 ) {
 		return;
 	}
 	if ( ent->item->giTag == PW_QUAD ) {
@@ -504,7 +586,8 @@ void G_UpdateItemTimers( void ) {
 		}
 		// "<item> <back at> <x y z> <cycle>": the cycle, msec from taken to
 		// back, sizes the timer's pie (hud.md 9.4)
-		Q_strcat( info, sizeof( info ), va( "%i %i %i %i %i %i ", ent->s.modelindex,
+		Q_strcat( info, sizeof( info ), va( "%i %i %i %i %i %i ",
+			ent->team && ent->item->giType == IT_POWERUP && G_PowerupTeamNext( ent ) ? G_PowerupTeamNext( ent )->s.modelindex : ent->s.modelindex,
 			( ent->s.eFlags & EF_NODRAW ) && ent->nextthink
 				? ( ent->item->giType == IT_POWERUP && ent->itemDue ? ent->itemDue : ent->nextthink ) : 0,
 			(int)ent->s.pos.trBase[0], (int)ent->s.pos.trBase[1], (int)ent->s.pos.trBase[2], ent->itemCycle ) );
@@ -521,8 +604,11 @@ void RespawnItem( gentity_t *ent ) {
 	}
 
 
-	// randomly select from teamed entities
-	if (ent->team) {
+	// a shared power-up spot in its fixed order (FIX-64), other item teams
+	// randomly
+	if ( ent->team && G_PowerupTeamNext( ent ) ) {
+		ent = G_PowerupTeamNext( ent );
+	} else if (ent->team) {
 		gentity_t	*master;
 		int	count;
 		int choice;
@@ -757,6 +843,7 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
 	} else if ( ent->item->giType == IT_POWERUP ) {
 		// the spot turns into the next power-up now, so timers and warnings
 		// show what is coming
+		G_PowerupTeamTaken( ent );
 		G_PowerupAlternate( ent );
 		G_SchedulePowerup( ent, respawn );
 	} else {
