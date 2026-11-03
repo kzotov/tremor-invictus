@@ -1285,6 +1285,8 @@ static void G_TurretThink( gentity_t *turret ) {
 
 static void G_TurretLost( gentity_t *turret );
 void G_TurretDestroy( gentity_t *turret, qboolean refund );
+static gentity_t *G_TurretTrigger( gentity_t *turret, vec3_t origin, const char *classname );
+static void G_TurretPadVelocity( gentity_t *turret, gentity_t *pad, vec3_t origin, vec3_t vel );
 
 /*
 ================
@@ -1315,10 +1317,11 @@ static qboolean G_TurretRoom( gentity_t *turret, vec3_t spot, vec3_t mins, vec3_
 		if ( touch[i] < MAX_CLIENTS && other->inuse && other->health > 0 ) {
 			return qfalse;
 		}
-		// nor on a jump pad, a teleporter (spectator ones aside) or a hurt trigger
+		// nor in a teleporter (spectator ones aside) or a hurt trigger (a jump
+		// pad launches it instead: G_TurretFlight)
 		if ( other->inuse && other->classname && ( other->r.contents & CONTENTS_TRIGGER )
 			&& trap_EntityContact( absmin, absmax, other )
-			&& ( !strcmp( other->classname, "trigger_push" ) || !strcmp( other->classname, "trigger_hurt" )
+			&& ( !strcmp( other->classname, "trigger_hurt" )
 			|| ( !strcmp( other->classname, "trigger_teleport" ) && !( other->spawnflags & 1 ) ) ) ) {
 			return qfalse;
 		}
@@ -1370,6 +1373,20 @@ static void G_TurretImpact( gentity_t *turret, trace_t *trace ) {
 	vec3_t		point, mins, maxs;
 
 	VectorMA( trace->endpos, 2, trace->plane.normal, point );
+	// launched by a pad, it slides along a wall or a lip as a player does,
+	// so it still reaches the pad's ledge
+	if ( trace->plane.normal[2] < 0.7f && turret->activator ) {
+		vec3_t	vel;
+
+		BG_EvaluateTrajectoryDelta( &turret->s.pos, level.time, vel );
+		VectorMA( vel, -DotProduct( vel, trace->plane.normal ), trace->plane.normal, vel );
+		VectorCopy( point, turret->s.pos.trBase );
+		VectorCopy( vel, turret->s.pos.trDelta );
+		turret->s.pos.trType = TR_GRAVITY;
+		turret->s.pos.trTime = level.time;
+		VectorCopy( point, turret->r.currentOrigin );
+		return;
+	}
 	if ( trace->plane.normal[2] < 0.7f ) {
 		G_AbilityStop( turret, point );
 		turret->s.pos.trType = TR_GRAVITY;
@@ -1384,6 +1401,25 @@ static void G_TurretImpact( gentity_t *turret, trace_t *trace ) {
 	if ( trace->entityNum < ENTITYNUM_MAX_NORMAL && g_entities[trace->entityNum].s.eType == ET_MOVER ) {
 		G_TurretDestroy( turret, qtrue );
 		return;
+	}
+	// landing on a jump pad: it launches the turret, which flies on
+	{
+		gentity_t	*pad;
+
+		VectorSet( mins, -12, -12, 0 );
+		VectorSet( maxs, 12, 12, 24 );
+		pad = G_TurretTrigger( turret, point, "trigger_push" );
+		if ( pad && ( pad != turret->activator || level.time >= turret->pain_debounce_time ) ) {
+			VectorCopy( point, turret->s.pos.trBase );
+			G_TurretPadVelocity( turret, pad, point, turret->s.pos.trDelta );
+			turret->s.pos.trType = TR_GRAVITY;
+			turret->s.pos.trTime = level.time;
+			turret->activator = pad;
+			turret->pain_debounce_time = level.time + 500;
+			turret->wait = level.time + 5000;
+			G_AddEvent( turret, EV_GENERAL_SOUND, G_SoundIndex( "sound/world/jumppad.wav" ) );
+			return;
+		}
 	}
 	if ( !G_TurretSpot( turret, trace->endpos, mins, maxs, point ) ) {
 		G_TurretDestroy( turret, qtrue );
@@ -1458,6 +1494,150 @@ void G_TurretDestroy( gentity_t *turret, qboolean refund ) {
 
 /*
 ================
+G_TurretTrigger
+
+The jump pad or teleporter (not spectator-only) a thrown turret's box
+touches at origin, or NULL
+================
+*/
+static gentity_t *G_TurretTrigger( gentity_t *turret, vec3_t origin, const char *classname ) {
+	vec3_t		mins, maxs, next;
+	int			touch[MAX_GENTITIES], num, i;
+	gentity_t	*hit;
+
+	VectorAdd( origin, turret->r.mins, mins );
+	VectorAdd( origin, turret->r.maxs, maxs );
+	// in flight, the way to the next frame too: a teleporter's face can be
+	// a no-impact surface that would swallow the turret before it is seen
+	if ( turret->s.eType == ET_MISSILE && turret->s.pos.trType != TR_STATIONARY ) {
+		BG_EvaluateTrajectory( &turret->s.pos, level.time + FRAMETIME, next );
+		for ( i = 0 ; i < 3 ; i++ ) {
+			if ( next[i] + turret->r.mins[i] < mins[i] ) mins[i] = next[i] + turret->r.mins[i];
+			if ( next[i] + turret->r.maxs[i] > maxs[i] ) maxs[i] = next[i] + turret->r.maxs[i];
+		}
+	}
+	num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
+	for ( i = 0 ; i < num ; i++ ) {
+		hit = &g_entities[touch[i]];
+		if ( !hit->inuse || !hit->classname || strcmp( hit->classname, classname ) || !( hit->r.contents & CONTENTS_TRIGGER ) ) {
+			continue;
+		}
+		if ( !strcmp( classname, "trigger_teleport" ) && ( hit->spawnflags & 1 ) ) {
+			continue;		// spectator-only
+		}
+		if ( trap_EntityContact( mins, maxs, hit ) ) {
+			return hit;
+		}
+	}
+	return NULL;
+}
+
+/*
+================
+G_TurretPadVelocity
+
+A pad aims players at its target and they steer onto the ledge beside it
+in the air; a turret can't steer, so it is aimed through the same top
+point down onto the nearest floor by the target that is above the pad
+(the pad's own velocity when there is none)
+================
+*/
+static void G_TurretPadVelocity( gentity_t *turret, gentity_t *pad, vec3_t origin, vec3_t vel ) {
+	gentity_t	*target = pad->target ? G_PickTarget( pad->target ) : NULL;
+	vec3_t		top, probe, end, land, mins = { -12, -12, 0 }, maxs = { 12, 12, 24 };
+	trace_t		tr;
+	float		r, a, up, down, g = g_gravity.value, t1, t2;
+	int			i;
+	qboolean	found = qfalse;
+
+	VectorCopy( pad->s.origin2, vel );
+	if ( !target || g <= 0 ) {
+		return;
+	}
+	VectorCopy( target->s.origin, top );
+	for ( r = 0 ; r <= 256 && !found ; r += 32 ) {
+		for ( i = 0 ; i < ( r ? 16 : 1 ) && !found ; i++ ) {
+			a = i * M_PI / 8;
+			VectorSet( probe, top[0] + r * cos( a ), top[1] + r * sin( a ), top[2] );
+			VectorCopy( probe, end );
+			end[2] -= 512;
+			trap_Trace( &tr, probe, mins, maxs, end, turret->s.number, MASK_SOLID );
+			// a floor well above the pad and clear of its shaft
+			if ( !tr.startsolid && tr.fraction < 1 && tr.plane.normal[2] >= 0.7f && tr.endpos[2] > origin[2] + 128
+				&& ( tr.endpos[0] < pad->r.absmin[0] - 16 || tr.endpos[0] > pad->r.absmax[0] + 16
+				|| tr.endpos[1] < pad->r.absmin[1] - 16 || tr.endpos[1] > pad->r.absmax[1] + 16 ) ) {
+				VectorCopy( tr.endpos, land );
+				found = qtrue;
+			}
+		}
+	}
+	if ( !found ) {
+		return;
+	}
+	up = top[2] - origin[2];
+	down = top[2] - land[2];
+	if ( up <= 0 || down < 0 ) {
+		return;
+	}
+	t1 = sqrt( 2 * up / g );
+	t2 = sqrt( 2 * down / g );
+	vel[0] = ( land[0] - origin[0] ) / ( t1 + t2 );
+	vel[1] = ( land[1] - origin[1] ) / ( t1 + t2 );
+	vel[2] = g * t1;
+}
+
+/*
+================
+G_TurretFlight
+
+abilities.md FIX-62 (revised): the thrown turret each frame. A jump pad
+launches it as it launches a player (its velocity toward the pad's target,
+the pad's sound), the same pad not again for 0.5 s; a teleporter is a wall:
+the turret stops where it last was outside it, loses its speed across and
+drops. The charge comes back if it hasn't settled 10 s after the throw or
+5 s after a launch
+================
+*/
+static void G_TurretFlight( gentity_t *turret ) {
+	gentity_t	*pad, *tele;
+	vec3_t		origin;
+
+	turret->nextthink = level.time + FRAMETIME;
+	if ( level.time >= turret->wait ) {
+		G_TurretLost( turret );
+		return;
+	}
+	VectorCopy( turret->r.currentOrigin, origin );
+	pad = G_TurretTrigger( turret, origin, "trigger_push" );
+	if ( pad && ( pad != turret->activator || level.time >= turret->pain_debounce_time ) ) {
+		VectorCopy( origin, turret->s.pos.trBase );
+		G_TurretPadVelocity( turret, pad, origin, turret->s.pos.trDelta );
+		turret->s.pos.trType = TR_GRAVITY;
+		turret->s.pos.trTime = level.time;
+		turret->activator = pad;
+		turret->pain_debounce_time = level.time + 500;
+		turret->wait = level.time + 5000;
+		G_AddEvent( turret, EV_GENERAL_SOUND, G_SoundIndex( "sound/world/jumppad.wav" ) );
+	}
+	tele = G_TurretTrigger( turret, origin, "trigger_teleport" );
+	if ( tele ) {
+		BG_EvaluateTrajectoryDelta( &turret->s.pos, level.time, turret->s.pos.trDelta );
+		VectorCopy( turret->pos1, turret->s.pos.trBase );
+		turret->s.pos.trDelta[0] = turret->s.pos.trDelta[1] = 0;
+		if ( turret->s.pos.trDelta[2] > 0 ) {
+			turret->s.pos.trDelta[2] = 0;
+		}
+		turret->s.pos.trType = TR_GRAVITY;
+		turret->s.pos.trTime = level.time;
+		VectorCopy( turret->pos1, turret->r.currentOrigin );
+		trap_LinkEntity( turret );
+	} else {
+		VectorCopy( origin, turret->pos1 );		// the last place outside any teleporter
+	}
+}
+
+/*
+================
 G_ThrowTurret
 
 Thrown from the eye like the totem; deploys where it lands (konstantin-list-
@@ -1481,8 +1661,10 @@ static void G_ThrowTurret( gentity_t *ent ) {
 	VectorCopy( ent->client->ps.viewangles, turret->movedir );	// the middle of its view
 	turret->s.time = level.time;
 	turret->abilityImpact = G_TurretImpact;
-	turret->think = G_TurretLost;
-	turret->nextthink = level.time + 10000;
+	turret->think = G_TurretFlight;
+	turret->nextthink = level.time + FRAMETIME;
+	turret->wait = level.time + 10000;		// never landed: the charge back
+	VectorCopy( start, turret->pos1 );
 }
 
 /*
