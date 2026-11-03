@@ -1302,6 +1302,40 @@ static void BotEdgeGuard(bot_state_t *bs, bot_input_t *bi) {
 
 /*
 ==============
+BotAvoidHazardAreas
+
+FIX-63: the bots' routes keep out of hurt triggers (the navigation's own
+move prediction stops at lava and slime only): once a level, every
+navigation area whose middle lies in a hurt trigger is taken out of
+routing, so no route walks or drops into one
+==============
+*/
+static void BotAvoidHazardAreas(void) {
+	static int		doneLevel = -1;
+	int				areas[256], num, i, j, k, off = 0;
+	aas_areainfo_t	info;
+	gentity_t		*ent;
+
+	if (doneLevel == level.startTime || !trap_AAS_Initialized()) return;
+	doneLevel = level.startTime;
+	for (i = MAX_CLIENTS, ent = &g_entities[MAX_CLIENTS]; i < level.num_entities; i++, ent++) {
+		if (!ent->inuse || !ent->classname || strcmp(ent->classname, "trigger_hurt")) continue;
+		num = trap_AAS_BBoxAreas(ent->r.absmin, ent->r.absmax, areas, ARRAY_LEN(areas));
+		for (j = 0; j < num; j++) {
+			if (!trap_AAS_AreaInfo(areas[j], &info)) continue;
+			for (k = 0; k < 3; k++) {
+				if (info.center[k] < ent->r.absmin[k] || info.center[k] > ent->r.absmax[k]) break;
+			}
+			if (k < 3) continue;
+			trap_AAS_EnableRoutingArea(areas[j], qfalse);
+			off++;
+		}
+	}
+	G_Printf("bots: %i navigation areas in hurt triggers left out of routes\n", off);
+}
+
+/*
+==============
 BotDodgeRockets / BotBunnyHop
 
 bots-audit BOT-03 with FIX-63: a sidestep on the ground from an enemy
@@ -2129,6 +2163,7 @@ int BotAIStartFrame(int time) {
 	static int lastbotthink_time;
 
 	G_CheckBotSpawn();
+	BotAvoidHazardAreas();
 
 	trap_Cvar_Update(&bot_rocketjump);
 	trap_Cvar_Update(&bot_grapple);

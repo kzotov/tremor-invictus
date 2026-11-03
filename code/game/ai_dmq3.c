@@ -2917,6 +2917,52 @@ qboolean BotSafeStep(bot_state_t *bs, vec3_t dir) {
 }
 
 /*
+==============
+BotEdgeAway
+
+Near a drop or a hazard (no safe floor 80 u some way), the way back from
+it; zero in the open. A fight's moves lean that way, as knockback by a
+rim is what still sends bots down shafts
+==============
+*/
+static void BotEdgeAway(bot_state_t *bs, vec3_t away) {
+	vec3_t	dir, probe;
+	float	a;
+	int		i;
+
+	VectorClear(away);
+	for (i = 0; i < 8; i++) {
+		a = i * M_PI / 4;
+		VectorSet(dir, cos(a), sin(a), 0);
+		VectorMA(bs->origin, 80, dir, probe);
+		if (!BotSafeFloor(bs, probe, 0.7f)) VectorSubtract(away, dir, away);
+	}
+	if (VectorNormalize(away) < 0.01f) VectorClear(away);
+}
+
+/*
+==============
+BotSafeMoveType
+
+A jump in a fight carries the bot about 200 u (backwards too, where it
+can't see): it jumps only when the floor is safe all that way, else walks
+==============
+*/
+static int BotSafeMoveType(bot_state_t *bs, vec3_t dir, int movetype) {
+	vec3_t	flat, probe;
+	int		d;
+
+	if (!(movetype & MOVE_JUMP)) return movetype;
+	VectorSet(flat, dir[0], dir[1], 0);
+	if (VectorNormalize(flat) < 0.01f) return movetype;
+	for (d = 64; d <= 224; d += 80) {
+		VectorMA(bs->origin, d, flat, probe);
+		if (!BotSafeFloor(bs, probe, 0.7f)) return (movetype & ~MOVE_JUMP) | MOVE_WALK;
+	}
+	return movetype;
+}
+
+/*
 ==================
 Fight tactics (bots-audit BOT-04): rules a bot uses sometimes, rolled per
 fight by skill (1 never, 2 10 %, 3 25 %, 4 45 %, 5 65 %) and kept for that
@@ -3039,10 +3085,10 @@ bot_moveresult_t BotAttackMove(bot_state_t *bs, int tfl) {
 	if (attack_skill <= 0.4) {
 		//just walk to or away from the enemy
 		if (dist > attack_dist + attack_range) {
-			if (BotSafeStep(bs, forward) && trap_BotMoveInDirection(bs->ms, forward, 400, movetype)) return moveresult;
+			if (BotSafeStep(bs, forward) && trap_BotMoveInDirection(bs->ms, forward, 400, BotSafeMoveType(bs, forward, movetype))) return moveresult;
 		}
 		if (dist < attack_dist - attack_range) {
-			if (BotSafeStep(bs, backward) && trap_BotMoveInDirection(bs->ms, backward, 400, movetype)) return moveresult;
+			if (BotSafeStep(bs, backward) && trap_BotMoveInDirection(bs->ms, backward, 400, BotSafeMoveType(bs, backward, movetype))) return moveresult;
 		}
 		return moveresult;
 	}
@@ -3086,9 +3132,19 @@ bot_moveresult_t BotAttackMove(bot_state_t *bs, int tfl) {
 				VectorAdd(sideward, backward, sideward);
 			}
 		}
+		//by a drop: lean away from it
+		{
+			vec3_t away;
+
+			BotEdgeAway(bs, away);
+			if (VectorLength(away) > 0) {
+				VectorNormalize(sideward);
+				VectorAdd(sideward, away, sideward);
+			}
+		}
 		//perform the movement (FIX-63: never off safe floor: a hurt trigger
 		//is no stop for the move prediction)
-		if (BotSafeStep(bs, sideward) && trap_BotMoveInDirection(bs->ms, sideward, 400, movetype))
+		if (BotSafeStep(bs, sideward) && trap_BotMoveInDirection(bs->ms, sideward, 400, BotSafeMoveType(bs, sideward, movetype)))
 			return moveresult;
 		//movement failed, flip the strafe direction
 		bs->flags ^= BFL_STRAFERIGHT;
