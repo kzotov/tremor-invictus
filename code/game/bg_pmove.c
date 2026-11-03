@@ -2552,8 +2552,11 @@ Generates weapon events and modifes the weapon counter
 */
 #define LUNGE_MSEC		250		// the jump strike builds over this long
 #define LUNGE_TOP		800		// to this speed
-#define LUNGE_STOP_SPEED	100	// then held under this speed
-#define LUNGE_STOP_MSEC	200		// for this long
+#define LUNGE_DECAY		0.75f	// then the lunge loses 25 %
+#define LUNGE_DECAY_MSEC	50		// every this long
+#define LUNGE_HOP		100		// up at the start on the ground
+#define LUNGE_END		1000	// (STAT_MOVE_STATE: the lunge over this frame)
+#define BERSERK_RUN		500		// it ends under the Berserk run speed
 #define BERSERK_RAISE	800		// no punches while the fists come up
 #define RUSH_LAND_WAIT		1000	// a Bull Rush pressed in the air waits this long for the ground
 #define RUSH_CANCEL_AFTER	1000	// and can be cancelled after this long
@@ -2586,30 +2589,59 @@ static void PM_Weapon( void ) {
 		&& ( PM_AbilityActive( ACTIVE_BERSERK ) || BG_AbilityState( pm->ps ) == ABILITY_WINDUP ) ) {
 		pm->cmd.weapon = WP_GAUNTLET;
 
-		// the guided lunge (champion-audit.md, deep audit): a punch with an
-		// enemy on the aim line (a 12 u guidance cylinder, 200 u long) but
-		// beyond the punch's own 128 u lunges toward it, building from 666
-		// to 800 u/s over 0.25 s and at most 200 u, then held under 100 u/s
-		// for 0.2 s; on the ground or in the air. STAT_MOVE_STATE: msec into
-		// the lunge + 1 (bits 0-9)
+		// the punch lunge (abilities.md FIX-65): every Berserk punch, hit or
+		// miss, carries him forward, building from 666 to 800 u/s over
+		// 0.25 s, then losing 25 % each 50 ms until under the 500 u/s run,
+		// at most 200 u in all; flat along the view's yaw on the ground
+		// (with 100 u/s up at the start so the floor doesn't eat it), along
+		// the view in the air. With an enemy in the guidance cylinder (a
+		// 12 u cylinder 200 u long, found by the game: grapplePoint with
+		// LUNGE_TARGET) it homes on it and turns the view. A wall or a
+		// player stopping him, the punch landing (the game sets 1023) or
+		// Berserk ending ends it. STAT_MOVE_STATE: msec into it + 1 (bits 0-9)
 		{
 			int		state = pm->ps->stats[STAT_MOVE_STATE] & 0xffff, t = state & 1023;
 			vec3_t	forward;
+			qboolean	ground = pml.groundPlane;
 
-			// the game finds the enemy in the guidance cylinder and puts it
-			// in grapplePoint with LUNGE_TARGET (g_active.c); the punch goes
-			// this frame once the weapon time runs out (it counts down later)
-			if ( !t && PM_AbilityActive( ACTIVE_BERSERK ) && ( state & LUNGE_TARGET )
-				&& ( pm->cmd.buttons & BUTTON_ATTACK ) && pm->ps->weaponTime - pml.msec <= 0 ) {
+			// the punch goes this frame once the weapon time runs out (it
+			// counts down later)
+			if ( !t && PM_AbilityActive( ACTIVE_BERSERK ) && ( pm->cmd.buttons & BUTTON_ATTACK )
+				&& pm->ps->weaponTime - pml.msec <= 0 && pm->ps->weaponstate != WEAPON_RAISING ) {
 				t = 1;
+				if ( ground ) {
+					pm->ps->velocity[2] += LUNGE_HOP;
+				}
+			} else if ( t == 1023 || ( t && !PM_AbilityActive( ACTIVE_BERSERK ) ) ) {
+				t = LUNGE_END;		// the punch landed, or Berserk is over
 			} else if ( t ) {
 				t += pml.msec;
 			}
-			if ( t ) {
+			if ( t && t < LUNGE_END ) {
 				float	s = ( t - 1 ) * 0.001f;		// seconds into it
 				float	rate = ( LUNGE_TOP - bg_pmoveSettings.berserkLunge ) / ( LUNGE_MSEC * 0.001f );
-				// the distance so far, from the speed's straight build-up
-				float	dist = bg_pmoveSettings.berserkLunge * s + 0.5f * rate * s * s;
+				float	build = LUNGE_MSEC * 0.001f;
+				float	dist, speed, steps, step, part, level;
+				vec3_t	flat;
+
+				// the distance so far: the straight build-up, then the decay
+				if ( s <= build ) {
+					dist = bg_pmoveSettings.berserkLunge * s + 0.5f * rate * s * s;
+					speed = bg_pmoveSettings.berserkLunge + rate * s;
+				} else {
+					// 25 % less each 50 ms, straight between the steps (no
+					// pow() in the game modules)
+					dist = bg_pmoveSettings.berserkLunge * build + 0.5f * rate * build * build;
+					steps = ( s - build ) / ( LUNGE_DECAY_MSEC * 0.001f );
+					level = LUNGE_TOP;
+					for ( step = 0 ; step + 1 <= steps ; step++ ) {
+						dist += level * ( 1 + LUNGE_DECAY ) * 0.5f * LUNGE_DECAY_MSEC * 0.001f;
+						level *= LUNGE_DECAY;
+					}
+					part = steps - step;
+					speed = level * ( 1 - ( 1 - LUNGE_DECAY ) * part );
+					dist += ( level + speed ) * 0.5f * part * LUNGE_DECAY_MSEC * 0.001f;
+				}
 
 				// toward the target while it's known, else where he looks;
 				// the view turns toward it too, from 10 deg/s gaining
@@ -2639,25 +2671,43 @@ static void PM_Weapon( void ) {
 							pm->ps->delta_angles[k] += ANGLE2SHORT( d );
 						}
 					}
+				} else if ( ground ) {
+					vec3_t	yaw = { 0, 0, 0 };
+
+					yaw[YAW] = pm->ps->viewangles[YAW];
+					AngleVectors( yaw, forward, NULL, NULL );
 				} else {
 					AngleVectors( pm->ps->viewangles, forward, NULL, NULL );
 				}
-				if ( t <= LUNGE_MSEC + 1 && dist < LUNGE_REACH ) {
-					VectorScale( forward, bg_pmoveSettings.berserkLunge + rate * s, pm->ps->velocity );
-				} else {
-					// the stop: held under 100 u/s for 0.2 s
-					float	speed = VectorLength( pm->ps->velocity );
 
-					if ( t <= LUNGE_MSEC + 1 ) {
-						t = LUNGE_MSEC + 2;		// cut short by the reach
-					}
-					if ( speed > LUNGE_STOP_SPEED ) {
-						VectorScale( pm->ps->velocity, LUNGE_STOP_SPEED / speed, pm->ps->velocity );
-					}
-					if ( t > LUNGE_MSEC + 1 + LUNGE_STOP_MSEC ) {
-						t = 0;
+				// stopped by a wall or a player: last frame's lunge speed
+				// mostly gone across the ground
+				VectorSet( flat, pm->ps->velocity[0], pm->ps->velocity[1], 0 );
+				if ( t > 1 + pml.msec && VectorLength( flat ) < 0.5f * speed * sqrt( forward[0] * forward[0] + forward[1] * forward[1] ) ) {
+					t = LUNGE_END;
+				} else if ( dist + ( ground ? ( speed < BERSERK_RUN ? speed : BERSERK_RUN ) / bg_pmoveSettings.friction : 0 ) >= LUNGE_REACH || speed < BERSERK_RUN ) {
+					// its reach (on the ground counting the slide the floor
+					// stops him in afterwards), or slow enough to run again
+					t = LUNGE_END;
+				} else if ( state & LUNGE_TARGET || !ground ) {
+					VectorScale( forward, speed, pm->ps->velocity );
+				} else {
+					// on the ground: across it, the hop's rise kept
+					pm->ps->velocity[0] = forward[0] * speed;
+					pm->ps->velocity[1] = forward[1] * speed;
+				}
+			}
+			if ( t >= LUNGE_END ) {
+				// over: no more than the run speed is left of it
+				if ( t == LUNGE_END && ( state & 1023 ) ) {
+					float	h = sqrt( pm->ps->velocity[0] * pm->ps->velocity[0] + pm->ps->velocity[1] * pm->ps->velocity[1] );
+
+					if ( h > BERSERK_RUN ) {
+						pm->ps->velocity[0] *= BERSERK_RUN / h;
+						pm->ps->velocity[1] *= BERSERK_RUN / h;
 					}
 				}
+				t = 0;
 			}
 			pm->ps->stats[STAT_MOVE_STATE] = ( state & ~1023 ) | ( t > 1023 ? 1023 : t );
 		}

@@ -325,6 +325,10 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 	}
 	G_Damage( traceEnt, ent, ent, forward, tr.endpos,
 		damage, 0, G_AbilityActive( ent, ACTIVE_BERSERK ) ? MOD_BERSERK : MOD_GAUNTLET );
+	// FIX-65: a Berserk punch that lands ends its lunge (pmove reads 1023)
+	if ( G_AbilityActive( ent, ACTIVE_BERSERK ) && ( ent->client->ps.stats[STAT_MOVE_STATE] & 1023 ) ) {
+		ent->client->ps.stats[STAT_MOVE_STATE] |= 1023;
+	}
 	if ( traceEnt->client && ( BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_CHARRING ) ) {
 		G_Ignite( traceEnt, ent );
 	}
