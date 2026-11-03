@@ -23,6 +23,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "g_local.h"
 
+void G_TurretDestroy( gentity_t *turret, qboolean refund );
+
 
 
 /*
@@ -353,6 +355,15 @@ qboolean G_MoverPush( gentity_t *pusher, vec3_t move, vec3_t amove, gentity_t **
 			}
 		}
 #endif
+		// abilities.md FIX-62: a standing turret never moves; a mover reaching it breaks it
+		if ( check->classname && !strcmp( check->classname, "sentry_turret" ) ) {
+			if ( check->s.groundEntityNum == pusher->s.number
+				|| !( check->r.absmin[0] >= maxs[0] || check->r.absmin[1] >= maxs[1] || check->r.absmin[2] >= maxs[2]
+				|| check->r.absmax[0] <= mins[0] || check->r.absmax[1] <= mins[1] || check->r.absmax[2] <= mins[2] ) ) {
+				G_TurretDestroy( check, qfalse );
+			}
+			continue;
+		}
 		// only push items and players (and Strogg's body during the drone)
 		if ( check->s.eType != ET_ITEM && check->s.eType != ET_PLAYER && !check->physicsObject
 			&& !( check->classname && !strcmp( check->classname, "drone_body" ) ) ) {

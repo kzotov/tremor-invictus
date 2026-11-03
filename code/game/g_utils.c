@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "g_local.h"
 
+void G_TurretDestroy( gentity_t *turret, qboolean refund );
+
 typedef struct {
   char oldShader[MAX_QPATH];
   char newShader[MAX_QPATH];
@@ -538,6 +540,11 @@ void G_KillBox (gentity_t *ent) {
 
 	for (i=0 ; i<num ; i++) {
 		hit = &g_entities[touch[i]];
+		// abilities.md FIX-62: a turret at the exit breaks, its charge lost
+		if ( !hit->client && hit->inuse && hit->classname && !strcmp( hit->classname, "sentry_turret" ) ) {
+			G_TurretDestroy( hit, qfalse );
+			continue;
+		}
 		if ( !hit->client ) {
 			continue;
 		}

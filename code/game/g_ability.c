@@ -1284,6 +1284,7 @@ static void G_TurretThink( gentity_t *turret ) {
 }
 
 static void G_TurretLost( gentity_t *turret );
+void G_TurretDestroy( gentity_t *turret, qboolean refund );
 
 /*
 ================
@@ -1303,9 +1304,22 @@ static qboolean G_TurretRoom( gentity_t *turret, vec3_t spot, vec3_t mins, vec3_
 	}
 	VectorAdd( spot, mins, absmin );
 	VectorAdd( spot, maxs, absmax );
+	// abilities.md FIX-62: never on lava, slime or where nothing may drop
+	if ( trap_PointContents( spot, -1 ) & ( CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_NODROP ) ) {
+		return qfalse;
+	}
 	num = trap_EntitiesInBox( absmin, absmax, touch, MAX_GENTITIES );
 	for ( i = 0 ; i < num ; i++ ) {
-		if ( touch[i] < MAX_CLIENTS && g_entities[touch[i]].inuse && g_entities[touch[i]].health > 0 ) {
+		gentity_t	*other = &g_entities[touch[i]];
+
+		if ( touch[i] < MAX_CLIENTS && other->inuse && other->health > 0 ) {
+			return qfalse;
+		}
+		// nor on a jump pad, a teleporter (spectator ones aside) or a hurt trigger
+		if ( other->inuse && other->classname && ( other->r.contents & CONTENTS_TRIGGER )
+			&& trap_EntityContact( absmin, absmax, other )
+			&& ( !strcmp( other->classname, "trigger_push" ) || !strcmp( other->classname, "trigger_hurt" )
+			|| ( !strcmp( other->classname, "trigger_teleport" ) && !( other->spawnflags & 1 ) ) ) ) {
 			return qfalse;
 		}
 	}
@@ -1367,8 +1381,12 @@ static void G_TurretImpact( gentity_t *turret, trace_t *trace ) {
 	// no room anywhere and the charge comes back
 	VectorSet( mins, -12, -12, 0 );
 	VectorSet( maxs, 12, 12, 24 );
+	if ( trace->entityNum < ENTITYNUM_MAX_NORMAL && g_entities[trace->entityNum].s.eType == ET_MOVER ) {
+		G_TurretDestroy( turret, qtrue );
+		return;
+	}
 	if ( !G_TurretSpot( turret, trace->endpos, mins, maxs, point ) ) {
-		G_TurretLost( turret );
+		G_TurretDestroy( turret, qtrue );
 		return;
 	}
 
@@ -1416,6 +1434,26 @@ static void G_TurretLost( gentity_t *turret ) {
 			BG_AbilityCharges( &owner->client->ps ) + 1 );
 	}
 	G_FreeEntity( turret );
+}
+
+/*
+================
+G_TurretDestroy
+
+abilities.md FIX-62: a turret broken where it may not stand, with its
+destroyed effect; refund: its charge comes back (it never stood: no
+room, a hazard, a mover under it), not when a mover or a player arriving
+at a teleporter exit breaks a standing one
+================
+*/
+void G_TurretDestroy( gentity_t *turret, qboolean refund ) {
+	gentity_t	*owner = turret->parent;
+
+	if ( refund && owner && owner->inuse && owner->client ) {
+		BG_SetAbility( &owner->client->ps, BG_AbilityState( &owner->client->ps ),
+			BG_AbilityCharges( &owner->client->ps ) + 1 );
+	}
+	G_TurretDie( turret, NULL, NULL, 0, 0 );
 }
 
 /*
