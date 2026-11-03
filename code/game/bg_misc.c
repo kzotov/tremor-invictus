@@ -972,7 +972,7 @@ takes a tenth of the full wait off the ability's recharge
 */
 	{
 		"item_hourglass",
-		"sound/items/holdable.wav",
+		"sound/items/hourglass.wav",
 		{ "models/powerups/hourglass/hourglass.md3",
 		NULL, NULL, NULL},
 /* icon */		"icons/hourglass",

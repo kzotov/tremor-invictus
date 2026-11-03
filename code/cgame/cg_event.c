@@ -1029,6 +1029,8 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 					break;
 				}
 #endif
+			} else if ( item->giType == IT_HOURGLASS ) {
+				trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.hourglassSound );
 			} else {
 				trap_S_StartSound (NULL, es->number, CHAN_AUTO,	trap_S_RegisterSound( item->pickup_sound, qfalse ) );
 			}

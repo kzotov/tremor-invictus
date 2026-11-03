@@ -1135,6 +1135,68 @@ static void BotAbilityMovement(bot_state_t *bs, usercmd_t *ucmd) {
 
 /*
 ==============
+BotFloorUnder
+
+bots.md "Edges over open drops": whether there is floor under a bot's
+middle (a 30 u box, the size its navigation is built for) within a step
+==============
+*/
+static qboolean BotFloorUnder(bot_state_t *bs, vec3_t origin) {
+	vec3_t	mins = { -15, -15, -24 }, maxs = { 15, 15, 0 }, end;
+	trace_t	tr;
+
+	VectorCopy(origin, end);
+	end[2] -= 18;		// a step
+	trap_Trace(&tr, origin, mins, maxs, end, bs->client, MASK_PLAYERSOLID);
+	return tr.fraction < 1.0f || tr.startsolid;
+}
+
+/*
+==============
+BotEdgeGuard
+
+A bot's 40 u box can stand on a thin rim with its middle over the drop
+(Keel walking on air by the railgun on Arabian Night): on the ground with
+nothing under its middle, it first steps back to where the floor is, the
+nearest way to the way it was going, once it has stayed so for 0.3 s (a
+walk off a ledge on purpose passes in less). Bots only; players' edges are
+as ever
+==============
+*/
+static void BotEdgeGuard(bot_state_t *bs, bot_input_t *bi) {
+	vec3_t	dir, probe, best;
+	float	bestDot = -2, dot, a;
+	int		i;
+
+	static int	overSince[MAX_CLIENTS];
+
+	if (bs->cur_ps.groundEntityNum == ENTITYNUM_NONE || bs->cur_ps.pm_type != PM_NORMAL
+		|| BotFloorUnder(bs, bs->origin)) {
+		overSince[bs->client] = 0;
+		return;
+	}
+	// walking off a ledge on purpose crosses the edge in well under 0.3 s
+	if (!overSince[bs->client]) overSince[bs->client] = level.time;
+	if (level.time - overSince[bs->client] < 300) return;
+	for (i = 0; i < 16; i++) {
+		a = i * M_PI / 8;
+		VectorSet(dir, cos(a), sin(a), 0);
+		VectorMA(bs->origin, 24, dir, probe);
+		if (!BotFloorUnder(bs, probe)) continue;
+		dot = bi->speed > 0 ? DotProduct(dir, bi->dir) : 0;
+		if (dot > bestDot) {
+			bestDot = dot;
+			VectorCopy(dir, best);
+		}
+	}
+	if (bestDot < -1) return;		// floor nowhere near: a real drop, let it go
+	VectorCopy(best, bi->dir);
+	bi->speed = 400;
+	bi->actionflags &= ~(ACTION_JUMP|ACTION_CROUCH);
+}
+
+/*
+==============
 BotUpdateInput
 ==============
 */
@@ -1154,6 +1216,8 @@ void BotUpdateInput(bot_state_t *bs, int time, int elapsed_time) {
 	if (bi.actionflags & ACTION_RESPAWN) {
 		if (bs->lastucmd.buttons & BUTTON_ATTACK) bi.actionflags &= ~(ACTION_RESPAWN|ACTION_ATTACK);
 	}
+	//off a rim with the middle over a drop first
+	BotEdgeGuard(bs, &bi);
 	//convert the bot input to a usercmd
 	BotInputToUserCommand(&bi, &bs->lastucmd, bs->cur_ps.delta_angles, time);
 	//the champion's ability

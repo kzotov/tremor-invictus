@@ -701,6 +701,23 @@ static void CG_RegisterItemSounds( int itemNum ) {
 
 /*
 =================
+CG_SoundOr
+
+A sound that may be missing from the player's files: the fallback then
+=================
+*/
+static sfxHandle_t CG_SoundOr( const char *name, const char *fallback ) {
+	fileHandle_t	f;
+	int				len = trap_FS_FOpenFile( name, &f, FS_READ );
+
+	if ( f ) {
+		trap_FS_FCloseFile( f );
+	}
+	return trap_S_RegisterSound( len > 0 ? name : fallback, qfalse );
+}
+
+/*
+=================
 CG_RegisterSounds
 
 called during a precache command
@@ -801,6 +818,9 @@ static void CG_RegisterSounds( void ) {
 	cgs.media.tracerSound = trap_S_RegisterSound( "sound/weapons/machinegun/buletby1.wav", qfalse );
 	cgs.media.selectSound = trap_S_RegisterSound( "sound/weapons/change.wav", qfalse );
 	cgs.media.wearOffSound = trap_S_RegisterSound( "sound/items/wearoff.wav", qfalse );
+	// sound-clarity.md 6: Protection's own last-seconds tick, the hourglass its own pickup
+	cgs.media.protectWearOffSound = CG_SoundOr( "sound/items/protect_wearoff.wav", "sound/items/wearoff.wav" );
+	cgs.media.hourglassSound = CG_SoundOr( "sound/items/hourglass.wav", "sound/items/s_health.wav" );
 	cgs.media.useNothingSound = trap_S_RegisterSound( "sound/items/use_nothing.wav", qfalse );
 	cgs.media.gibSound = trap_S_RegisterSound( "sound/player/gibsplt1.wav", qfalse );
 	cgs.media.gibBounce1Sound = trap_S_RegisterSound( "sound/player/gibimp1.wav", qfalse );

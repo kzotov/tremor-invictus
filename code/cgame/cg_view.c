@@ -852,7 +852,9 @@ static void CG_PowerupTimerSounds( void ) {
 			continue;
 		}
 		if ( ( t - cg.time ) / POWERUP_BLINK_TIME != ( t - cg.oldTime ) / POWERUP_BLINK_TIME ) {
-			trap_S_StartSound( NULL, cg.snap->ps.clientNum, CHAN_ITEM, cgs.media.wearOffSound );
+			// local and on its own channel: the Quad's shot layer and the
+			// Protection's hit layer play on the item channel and buried it
+			trap_S_StartLocalSound( i == PW_BATTLESUIT ? cgs.media.protectWearOffSound : cgs.media.wearOffSound, CHAN_WEAROFF );
 		}
 	}
 }
