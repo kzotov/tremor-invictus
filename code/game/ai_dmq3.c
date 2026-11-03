@@ -2844,6 +2844,117 @@ void BotRoamGoal(bot_state_t *bs, vec3_t goal) {
 BotAttackMove
 ==================
 */
+/*
+==============
+BotHazardNear / BotSafeFloor
+
+bots-audit FIX-63: the map's hurt triggers (lava, slime and kill zones are
+mostly these, the rest is in the contents), gathered once a level; floor
+within 64 u under a point for a 30 u box, not a hazard
+==============
+*/
+#define MAX_HAZARDS		64
+
+static gentity_t	*hazards[MAX_HAZARDS];
+static int			numHazards, hazardsLevel = -1;
+
+float BotHazardDistance(vec3_t point) {
+	float	best = 99999, d;
+	int		i, j;
+	vec3_t	near;
+
+	if (hazardsLevel != level.startTime) {
+		gentity_t *ent;
+
+		numHazards = 0;
+		for (i = MAX_CLIENTS, ent = &g_entities[MAX_CLIENTS]; i < level.num_entities && numHazards < MAX_HAZARDS; i++, ent++) {
+			if (ent->inuse && ent->classname && !strcmp(ent->classname, "trigger_hurt")) hazards[numHazards++] = ent;
+		}
+		hazardsLevel = level.startTime;
+	}
+	for (i = 0; i < numHazards; i++) {
+		if (!hazards[i]->inuse || !hazards[i]->r.linked) continue;
+		for (j = 0; j < 3; j++) {
+			near[j] = point[j] < hazards[i]->r.absmin[j] ? hazards[i]->r.absmin[j]
+				: point[j] > hazards[i]->r.absmax[j] ? hazards[i]->r.absmax[j] : point[j];
+		}
+		d = Distance(near, point);
+		if (d < best) best = d;
+	}
+	return best;
+}
+
+qboolean BotSafeFloor(bot_state_t *bs, vec3_t point, float minNormal) {
+	vec3_t	mins = { -15, -15, -24 }, maxs = { 15, 15, 0 }, start, end;
+	trace_t	tr;
+
+	VectorCopy(point, start);
+	start[2] += 18;
+	VectorCopy(point, end);
+	end[2] -= 64;
+	trap_Trace(&tr, start, mins, maxs, end, bs->client, MASK_PLAYERSOLID);
+	if (tr.startsolid || tr.fraction >= 1 || tr.plane.normal[2] < minNormal) return qfalse;
+	if (tr.surfaceFlags & SURF_NOIMPACT) return qfalse;
+	end[0] = tr.endpos[0]; end[1] = tr.endpos[1]; end[2] = tr.endpos[2] - 30;
+	if (trap_PointContents(end, bs->client) & (CONTENTS_LAVA | CONTENTS_SLIME)) return qfalse;
+	return BotHazardDistance(tr.endpos) > 32;
+}
+
+/*
+==============
+BotSafeStep
+
+FIX-63: a fight move this way keeps the bot on safe floor 64 u on
+==============
+*/
+qboolean BotSafeStep(bot_state_t *bs, vec3_t dir) {
+	vec3_t	flat, probe;
+
+	VectorSet(flat, dir[0], dir[1], 0);
+	if (VectorNormalize(flat) < 0.01f) return qtrue;
+	VectorMA(bs->origin, 64, flat, probe);
+	return BotSafeFloor(bs, probe, 0.7f);
+}
+
+/*
+==================
+Fight tactics (bots-audit BOT-04): rules a bot uses sometimes, rolled per
+fight by skill (1 never, 2 10 %, 3 25 %, 4 45 %, 5 65 %) and kept for that
+fight; a new roll comes with a new enemy or 8 s after the last
+==================
+*/
+static int		botTactics[MAX_CLIENTS], botTacticEnemy[MAX_CLIENTS];
+static float	botTacticTime[MAX_CLIENTS];
+
+int BotTactics(bot_state_t *bs) {
+	float	chance, skill = bs->settings.skill;
+
+	if (bs->enemy != botTacticEnemy[bs->client] || FloatTime() - botTacticTime[bs->client] > 8) {
+		chance = skill >= 5 ? 0.65f : skill >= 4 ? 0.45f : skill >= 3 ? 0.25f : skill >= 2 ? 0.10f : 0;
+		botTactics[bs->client] = (random() < chance ? TACTIC_WALK : 0) | (random() < chance ? TACTIC_SPLASH : 0)
+			| (random() < chance ? TACTIC_PREFIRE : 0);
+		botTacticEnemy[bs->client] = bs->enemy;
+	}
+	if (bs->enemy >= 0) botTacticTime[bs->client] = FloatTime();
+	return botTactics[bs->client];
+}
+
+/*
+==================
+BotEnemyHoldsSplash
+
+The enemy player holds the Rocket Launcher or the Tri-bolt
+==================
+*/
+qboolean BotEnemyHoldsSplash(bot_state_t *bs) {
+	gentity_t *enemy;
+
+	if (bs->enemy < 0 || bs->enemy >= MAX_CLIENTS) return qfalse;
+	enemy = &g_entities[bs->enemy];
+	if (!enemy->inuse || !enemy->client) return qfalse;
+	return enemy->client->ps.weapon == WP_ROCKET_LAUNCHER || enemy->client->ps.weapon == WP_TRIBOLT;
+}
+
 bot_moveresult_t BotAttackMove(bot_state_t *bs, int tfl) {
 	int movetype, i, attackentity;
 	float attack_skill, jumper, croucher, dist, strafechange_time;
@@ -2898,6 +3009,11 @@ bot_moveresult_t BotAttackMove(bot_state_t *bs, int tfl) {
 		}
 	}
 	if (bs->attackcrouch_time > FloatTime()) movetype = MOVE_CROUCH;
+	//BOT-04: against rockets the bot walks: a jump gives splash a landing point
+	if ((BotTactics(bs) & TACTIC_WALK) && BotEnemyHoldsSplash(bs) && dist >= 250 && dist <= 1200
+		&& bs->cur_ps.groundEntityNum != ENTITYNUM_NONE) {
+		movetype = MOVE_WALK;
+	}
 	//if the bot should jump
 	if (movetype == MOVE_JUMP) {
 		//if jumped last frame
@@ -2923,10 +3039,10 @@ bot_moveresult_t BotAttackMove(bot_state_t *bs, int tfl) {
 	if (attack_skill <= 0.4) {
 		//just walk to or away from the enemy
 		if (dist > attack_dist + attack_range) {
-			if (trap_BotMoveInDirection(bs->ms, forward, 400, movetype)) return moveresult;
+			if (BotSafeStep(bs, forward) && trap_BotMoveInDirection(bs->ms, forward, 400, movetype)) return moveresult;
 		}
 		if (dist < attack_dist - attack_range) {
-			if (trap_BotMoveInDirection(bs->ms, backward, 400, movetype)) return moveresult;
+			if (BotSafeStep(bs, backward) && trap_BotMoveInDirection(bs->ms, backward, 400, movetype)) return moveresult;
 		}
 		return moveresult;
 	}
@@ -2935,6 +3051,9 @@ bot_moveresult_t BotAttackMove(bot_state_t *bs, int tfl) {
 	//get the strafe change time
 	strafechange_time = 0.4 + (1 - attack_skill) * 0.2;
 	if (attack_skill > 0.7) strafechange_time += crandom() * 0.2;
+	//walking against rockets: a new side every 0.35-0.7 s
+	if ((BotTactics(bs) & TACTIC_WALK) && BotEnemyHoldsSplash(bs) && dist >= 250 && dist <= 1200)
+		strafechange_time = 0.35 + random() * 0.35;
 	//if the strafe direction should be changed
 	if (bs->attackstrafe_time > strafechange_time) {
 		//some magic number :)
@@ -2967,8 +3086,9 @@ bot_moveresult_t BotAttackMove(bot_state_t *bs, int tfl) {
 				VectorAdd(sideward, backward, sideward);
 			}
 		}
-		//perform the movement
-		if (trap_BotMoveInDirection(bs->ms, sideward, 400, movetype))
+		//perform the movement (FIX-63: never off safe floor: a hurt trigger
+		//is no stop for the move prediction)
+		if (BotSafeStep(bs, sideward) && trap_BotMoveInDirection(bs->ms, sideward, 400, movetype))
 			return moveresult;
 		//movement failed, flip the strafe direction
 		bs->flags ^= BFL_STRAFERIGHT;
@@ -3819,6 +3939,8 @@ void BotAimAtEnemy(bot_state_t *bs) {
 	bs->ideal_viewangles[PITCH] = AngleMod(bs->ideal_viewangles[PITCH]);
 	bs->ideal_viewangles[YAW] += 6 * wi.hspread * crandom() * (1 - aim_accuracy);
 	bs->ideal_viewangles[YAW] = AngleMod(bs->ideal_viewangles[YAW]);
+	//BOT-04: splash at the floor (or a wall behind) by the enemy's feet
+	BotSplashAim(bs);
 	//if the bots should be really challenging
 	if (bot_challenge.integer) {
 		//if the bot is really accurate and has the enemy in view for some time
@@ -3829,6 +3951,62 @@ void BotAimAtEnemy(bot_state_t *bs) {
 			trap_EA_View(bs->client, bs->viewangles);
 		}
 	}
+}
+
+/*
+==================
+BotSplashAim
+
+BOT-04: with the Rocket Launcher or Tri-bolt against an enemy on the
+ground that a direct hit is unlikely to catch (beyond 400 u, or crossing
+the view faster than 250 u/s), the bot aims at the floor within 40 u of
+where the enemy's feet will be when the shot gets there, or at a wall
+behind them when that floor is out of sight; never under 150 u from itself
+==================
+*/
+void BotSplashAim(bot_state_t *bs) {
+	gentity_t	*enemy;
+	vec3_t		feet, to, side, start, end, point, up = { 0, 0, 1 };
+	float		dist, speed, cross, flight;
+	trace_t		tr;
+	int			weapon = bs->cur_ps.weapon;
+
+	if (weapon != WP_ROCKET_LAUNCHER && weapon != WP_TRIBOLT) return;
+	if (!(BotTactics(bs) & TACTIC_SPLASH) || bs->enemy < 0 || bs->enemy >= MAX_CLIENTS) return;
+	enemy = &g_entities[bs->enemy];
+	if (!enemy->inuse || !enemy->client || enemy->client->ps.groundEntityNum == ENTITYNUM_NONE) return;
+	if (FloatTime() - bs->enemyvisible_time > 1.5) return;
+	VectorSubtract(enemy->r.currentOrigin, bs->eye, to);
+	dist = VectorNormalize(to);
+	CrossProduct(to, up, side);
+	VectorNormalize(side);
+	cross = fabs(DotProduct(enemy->client->ps.velocity, side));
+	if (dist <= 400 && cross <= 250) return;
+	speed = weapon == WP_ROCKET_LAUNCHER ? 1000 : 1600;
+	flight = dist / speed;
+	//the feet then, on the floor under them
+	VectorMA(enemy->r.currentOrigin, flight, enemy->client->ps.velocity, feet);
+	VectorCopy(feet, start);
+	start[2] += 8;
+	VectorCopy(feet, end);
+	end[2] -= 64;
+	trap_Trace(&tr, start, NULL, NULL, end, bs->enemy, MASK_SOLID);
+	VectorCopy(tr.endpos, point);
+	point[2] += 2;
+	//out of sight: a wall behind them instead
+	trap_Trace(&tr, bs->eye, NULL, NULL, point, bs->client, MASK_SOLID);
+	if (tr.fraction < 1) {
+		VectorMA(feet, 40, to, end);
+		trap_Trace(&tr, feet, NULL, NULL, end, bs->enemy, MASK_SOLID);
+		if (tr.fraction >= 1) return;
+		VectorMA(tr.endpos, -2, to, point);
+		trap_Trace(&tr, bs->eye, NULL, NULL, point, bs->client, MASK_SOLID);
+		if (tr.fraction < 1) return;
+	}
+	if (Distance(point, bs->origin) < 150) return;
+	VectorCopy(point, bs->aimtarget);
+	VectorSubtract(point, bs->eye, to);
+	vectoangles(to, bs->ideal_viewangles);
 }
 
 /*

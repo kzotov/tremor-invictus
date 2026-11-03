@@ -1287,7 +1287,7 @@ static void BotEdgeGuard(bot_state_t *bs, bot_input_t *bi) {
 		a = i * M_PI / 8;
 		VectorSet(dir, cos(a), sin(a), 0);
 		VectorMA(bs->origin, 24, dir, probe);
-		if (!BotFloorUnder(bs, probe)) continue;
+		if (!BotFloorUnder(bs, probe) || BotHazardDistance(probe) < 32) continue;
 		dot = bi->speed > 0 ? DotProduct(dir, bi->dir) : 0;
 		if (dot > bestDot) {
 			bestDot = dot;
@@ -1304,18 +1304,22 @@ static void BotEdgeGuard(bot_state_t *bs, bot_input_t *bi) {
 ==============
 BotDodgeRockets / BotBunnyHop
 
-bots-audit BOT-03, champion movement: a sidestep jump from an enemy rocket
-coming within 300 u, and hops on long straight runs with no enemy in view,
-each hop 1.1 times faster up to 700 u/s (the strafe-jump a player makes)
+bots-audit BOT-03 with FIX-63: a sidestep on the ground from an enemy
+rocket coming within 300 u, to a side with safe floor 96 u away (none: no
+dodge), jumping only for one that would land within 80 u in under 0.25 s;
+hops on long straight safe runs with no enemy in view, each 1.1 times
+faster up to 700 u/s (500 within 300 u of a hazard)
 ==============
 */
 static qboolean BotDodgeRockets(bot_state_t *bs, bot_input_t *bi) {
 	static int	nextDodge[MAX_CLIENTS];
 	gentity_t	*ent, *self = &g_entities[bs->client];
-	vec3_t		to, vel, side, up = { 0, 0, 1 };
-	int			i;
+	vec3_t		to, vel, side, up = { 0, 0, 1 }, miss, probe;
+	int			i, s, first;
+	float		t;
+	qboolean	safe[2];
 
-	if (level.time < nextDodge[bs->client]) return qfalse;
+	if (level.time < nextDodge[bs->client] || bs->cur_ps.groundEntityNum == ENTITYNUM_NONE) return qfalse;
 	for (i = MAX_CLIENTS, ent = &g_entities[MAX_CLIENTS]; i < level.num_entities; i++, ent++) {
 		if (!ent->inuse || ent->s.eType != ET_MISSILE || ent->s.weapon != WP_ROCKET_LAUNCHER) continue;
 		if (!ent->parent || ent->parent == self || OnSameTeam(ent->parent, self)) continue;
@@ -1323,13 +1327,21 @@ static qboolean BotDodgeRockets(bot_state_t *bs, bot_input_t *bi) {
 		if (VectorLength(to) > 300) continue;
 		VectorCopy(ent->s.pos.trDelta, vel);
 		if (DotProduct(vel, to) <= 0) continue;		//going away
+		t = DotProduct(to, vel) / DotProduct(vel, vel);
+		VectorMA(to, -t, vel, miss);
 		VectorNormalize(vel);
 		CrossProduct(vel, up, side);
 		if (VectorNormalize(side) < 0.1f) continue;
-		if (rand() & 1) VectorScale(side, -1, side);
+		for (s = 0; s < 2; s++) {
+			VectorMA(bs->origin, s ? -96 : 96, side, probe);
+			safe[s] = BotSafeFloor(bs, probe, 0.7f);
+		}
+		if (!safe[0] && !safe[1]) return qfalse;		//nowhere safe to step: stay
+		first = safe[0] && safe[1] ? rand() & 1 : safe[1];
+		if (first) VectorScale(side, -1, side);
 		VectorCopy(side, bi->dir);
 		bi->speed = 400;
-		if (bs->cur_ps.groundEntityNum != ENTITYNUM_NONE) bi->actionflags |= ACTION_JUMP;
+		if (t < 0.25f && VectorLength(miss) < 80) bi->actionflags |= ACTION_JUMP;
 		nextDodge[bs->client] = level.time + 500;
 		return qtrue;
 	}
@@ -1338,16 +1350,29 @@ static qboolean BotDodgeRockets(bot_state_t *bs, bot_input_t *bi) {
 
 static void BotBunnyHop(bot_state_t *bs, bot_input_t *bi) {
 	gclient_t	*client = g_entities[bs->client].client;
-	vec3_t		flat;
-	float		speed, scale;
+	vec3_t		flat, probe, down;
+	trace_t		tr;
+	float		speed, scale, hop, cap = 700, d;
 
 	if (bs->cur_ps.groundEntityNum == ENTITYNUM_NONE || bi->speed < 300 || bs->cur_ps.pm_type != PM_NORMAL) return;
 	if (bs->enemy >= 0 && FloatTime() - bs->enemyvisible_time < 2) return;
 	VectorSet(flat, bs->cur_ps.velocity[0], bs->cur_ps.velocity[1], 0);
 	speed = VectorNormalize(flat);
 	if (speed < 300 || DotProduct(flat, bi->dir) < 0.94f) return;		//straight on, within 20 degrees
+	//FIX-63: level floor under it, and safe floor at both next landings and
+	//on to 400 u past them (no edge, turn-off or hazard close ahead)
+	VectorCopy(bs->origin, down);
+	down[2] -= 40;
+	trap_Trace(&tr, bs->origin, NULL, NULL, down, bs->client, MASK_PLAYERSOLID);
+	if (tr.fraction >= 1 || tr.plane.normal[2] < 0.9f) return;
+	hop = speed * 0.65f;
+	for (d = hop; d <= 2 * hop + 400; d += d < 2 * hop ? hop : 100) {
+		VectorMA(bs->origin, d, flat, probe);
+		if (!BotSafeFloor(bs, probe, 0.7f)) return;
+	}
+	if (BotHazardDistance(bs->origin) < 300) cap = 500;
 	bi->actionflags |= ACTION_JUMP;
-	scale = speed * 1.1f > 700 ? 700 / speed : 1.1f;
+	scale = speed * 1.1f > cap ? cap / speed : 1.1f;
 	if (scale > 1) {
 		client->ps.velocity[0] *= scale;
 		client->ps.velocity[1] *= scale;
@@ -1356,32 +1381,152 @@ static void BotBunnyHop(bot_state_t *bs, bot_input_t *bi) {
 
 /*
 ==============
-BotTimeItems
+BotItemControl
 
-bots-audit BOT-03: in a duel, with no enemy in view, a bot is at the mega
-health and the heavy armour 3 s before they come back
+bots-audit BOT-04, duels: the bot keeps a timer for the mega health, the
+armours and the power-ups from pickups it saw or heard (never from what
+only the server knows). Between fights it is at a due item 3 s early when
+it needs it or the enemy is weaker, 1 s early just to deny the mega, the
+heavy armour or a power-up; leading by 3 frags or more with under 2
+minutes left it holds by the strongest item
 ==============
 */
-static void BotTimeItems(bot_state_t *bs) {
-	static int	pushedFor[MAX_CLIENTS][2];
-	static char	*names[2] = { "Mega Health", "Heavy Armor" };
-	bot_goal_t	goal;
-	gentity_t	*ent;
-	int			n, num, travel;
+#define MAX_CONTROL_ITEMS	16
 
-	if (gametype != GT_TOURNAMENT || BotIsDead(bs) || (bs->enemy >= 0 && FloatTime() - bs->enemyvisible_time < 2)) return;
-	for (n = 0; n < 2; n++) {
-		for (num = trap_BotGetLevelItemGoal(-1, names[n], &goal); num >= 0; num = trap_BotGetLevelItemGoal(num, names[n], &goal)) {
-			if (goal.entitynum <= 0 || goal.entitynum >= ENTITYNUM_MAX_NORMAL) continue;
-			ent = &g_entities[goal.entitynum];
-			if (!ent->inuse || ent->think != RespawnItem || ent->nextthink <= level.time) continue;
-			if (pushedFor[bs->client][n] == ent->nextthink) continue;
-			travel = trap_AAS_AreaTravelTimeToGoalArea(bs->areanum, bs->origin, goal.areanum, bs->tfl) * 10;
-			if (travel <= 0 || ent->nextthink - level.time > travel + 3000) continue;
-			pushedFor[bs->client][n] = ent->nextthink;
-			trap_BotPushGoal(bs->gs, &goal);
+static int	controlItems[MAX_CONTROL_ITEMS], numControlItems, controlItemsLevel = -1;
+static int	knownRespawn[MAX_CLIENTS][MAX_CONTROL_ITEMS], pushedRespawn[MAX_CLIENTS][MAX_CONTROL_ITEMS];
+static qboolean	itemWasUp[MAX_CLIENTS][MAX_CONTROL_ITEMS];
+static char	*controlNames[] = { "Mega Health", "Heavy Armor", "Armor", "Quad Damage", "Battle Suit",
+	"Speed", "Invisibility", "Regeneration", NULL };
+
+static qboolean BotControlGoal(int entnum, bot_goal_t *goal) {
+	int n, num;
+
+	for (n = 0; controlNames[n]; n++) {
+		for (num = trap_BotGetLevelItemGoal(-1, controlNames[n], goal); num >= 0;
+			num = trap_BotGetLevelItemGoal(num, controlNames[n], goal)) {
+			if (goal->entitynum == entnum) return qtrue;
 		}
 	}
+	return qfalse;
+}
+
+static void BotFindControlItems(void) {
+	bot_goal_t	goal;
+	int			n, num;
+
+	numControlItems = 0;
+	for (n = 0; controlNames[n]; n++) {
+		for (num = trap_BotGetLevelItemGoal(-1, controlNames[n], &goal); num >= 0 && numControlItems < MAX_CONTROL_ITEMS;
+			num = trap_BotGetLevelItemGoal(num, controlNames[n], &goal)) {
+			if (goal.entitynum > 0 && goal.entitynum < ENTITYNUM_MAX_NORMAL) controlItems[numControlItems++] = goal.entitynum;
+		}
+	}
+	memset(knownRespawn, 0, sizeof(knownRespawn));
+	memset(pushedRespawn, 0, sizeof(pushedRespawn));
+	memset(itemWasUp, 0, sizeof(itemWasUp));
+	controlItemsLevel = level.startTime;
+}
+
+static void BotItemControl(bot_state_t *bs) {
+	static int	nextHold[MAX_CLIENTS];
+	gentity_t	*ent, *self = &g_entities[bs->client], *enemy = NULL;
+	bot_goal_t	goal;
+	trace_t		tr;
+	int			i, c = bs->client, travel, lead, own, enemyStrength = 0, maxArmor, strongest = -1;
+	qboolean	up, need, major;
+
+	if (gametype != GT_TOURNAMENT || BotIsDead(bs)) return;
+	if (controlItemsLevel != level.startTime) BotFindControlItems();
+	own = bs->inventory[INVENTORY_HEALTH] + bs->inventory[INVENTORY_ARMOR];
+	maxArmor = bg_classInfo[BG_Champion(bs->cur_ps.stats[STAT_CHAMPION])->bodyClass].maxArmor;
+	need = bs->inventory[INVENTORY_HEALTH] < bs->cur_ps.stats[STAT_MAX_HEALTH] || bs->inventory[INVENTORY_ARMOR] < maxArmor;
+	for (i = 0; i < level.maxclients; i++) {
+		if (i != c && g_entities[i].inuse && g_entities[i].client && g_entities[i].client->sess.sessionTeam != TEAM_SPECTATOR) {
+			enemy = &g_entities[i];
+			enemyStrength = enemy->health + enemy->client->ps.stats[STAT_ARMOR];
+		}
+	}
+	for (i = 0; i < numControlItems; i++) {
+		ent = &g_entities[controlItems[i]];
+		if (!ent->inuse || !ent->item) continue;
+		up = ent->r.linked && !(ent->r.svFlags & SVF_NOCLIENT);
+		//a pickup seen (in view) or heard (within 1250 u) starts the timer
+		if (itemWasUp[c][i] && !up && ent->nextthink > level.time) {
+			qboolean known = Distance(ent->r.currentOrigin, bs->origin) < 1250;
+
+			if (!known && trap_InPVS(bs->eye, ent->r.currentOrigin)) {
+				trap_Trace(&tr, bs->eye, NULL, NULL, ent->r.currentOrigin, c, MASK_SOLID);
+				known = tr.fraction >= 1;
+			}
+			if (known) knownRespawn[c][i] = ent->nextthink;
+		}
+		itemWasUp[c][i] = up;
+		major = ent->item->giType == IT_POWERUP || (ent->item->giType == IT_HEALTH && ent->item->quantity >= 100)
+			|| (ent->item->giType == IT_ARMOR && ent->item->quantity >= 100);
+		if (strongest < 0 && major && ent->item->giType != IT_POWERUP) strongest = i;
+		//between fights only
+		if (bs->enemy >= 0 && FloatTime() - bs->enemyvisible_time < 2) continue;
+		if (knownRespawn[c][i] <= level.time || pushedRespawn[c][i] == knownRespawn[c][i]) continue;
+		if (need || (enemy && enemyStrength < own)) lead = 3000;
+		else if (major) lead = 1000;
+		else continue;
+		if (!BotControlGoal(controlItems[i], &goal)) continue;
+		travel = trap_AAS_AreaTravelTimeToGoalArea(bs->areanum, bs->origin, goal.areanum, bs->tfl) * 10;
+		if (travel <= 0 || knownRespawn[c][i] - level.time > travel + lead) continue;
+		pushedRespawn[c][i] = knownRespawn[c][i];
+		trap_BotPushGoal(bs->gs, &goal);
+	}
+	//ahead by 3 or more with under 2 minutes to go: by the strongest item
+	if (strongest >= 0 && enemy && g_timelimit.integer > 0 && level.time >= nextHold[c]
+		&& bs->cur_ps.persistant[PERS_SCORE] - enemy->client->ps.persistant[PERS_SCORE] >= 3
+		&& level.startTime + g_timelimit.integer * 60000 - level.time < 120000
+		&& Distance(g_entities[controlItems[strongest]].r.currentOrigin, bs->origin) > 400
+		&& (bs->enemy < 0 || FloatTime() - bs->enemyvisible_time > 2)
+		&& BotControlGoal(controlItems[strongest], &goal)) {
+		trap_BotPushGoal(bs->gs, &goal);
+		nextHold[c] = level.time + 5000;
+	}
+	(void)self;
+}
+
+/*
+==============
+BotPrefire
+
+BOT-04: when the enemy dropped out of sight in the last 2 s, up to two
+Rocket Launcher or Tri-bolt shots at the floor where it was last seen
+==============
+*/
+static void BotPrefire(bot_state_t *bs, usercmd_t *ucmd) {
+	static int	shots[MAX_CLIENTS];
+	static float	lostAt[MAX_CLIENTS];
+	vec3_t		point, end, dir, angles;
+	trace_t		tr;
+	float		since = FloatTime() - bs->enemyvisible_time;
+	int			j, weapon = bs->cur_ps.weapon;
+
+	if (bs->enemy < 0 || bs->enemy >= MAX_CLIENTS || since < 0.2 || since > 2) return;
+	if (lostAt[bs->client] != bs->enemyvisible_time) {
+		lostAt[bs->client] = bs->enemyvisible_time;
+		shots[bs->client] = 0;
+	}
+	if (shots[bs->client] >= 2 || !(BotTactics(bs) & TACTIC_PREFIRE)) return;
+	if ((weapon != WP_ROCKET_LAUNCHER && weapon != WP_TRIBOLT) || bs->cur_ps.weaponTime > 0) return;
+	VectorCopy(bs->lastenemyorigin, point);
+	VectorCopy(point, end);
+	end[2] -= 64;
+	trap_Trace(&tr, point, NULL, NULL, end, bs->client, MASK_SOLID);
+	VectorCopy(tr.endpos, point);
+	point[2] += 2;
+	if (Distance(point, bs->origin) < 150) return;
+	trap_Trace(&tr, bs->eye, NULL, NULL, point, bs->client, MASK_SOLID);
+	if (tr.fraction < 1) return;
+	VectorSubtract(point, bs->eye, dir);
+	vectoangles(dir, angles);
+	for (j = 0; j < 3; j++) ucmd->angles[j] = ANGLE2SHORT(angles[j]) - bs->cur_ps.delta_angles[j];
+	ucmd->buttons |= BUTTON_ATTACK;
+	shots[bs->client]++;
 }
 
 /*
@@ -1399,6 +1544,7 @@ static void BotIdleWatchdog(bot_state_t *bs, bot_input_t *bi) {
 	static vec3_t	wanderDir[MAX_CLIENTS];
 	gentity_t		*ent = &g_entities[bs->client];
 	float			a;
+	int				j;
 
 	if (level.time < wanderUntil[bs->client]) {
 		VectorCopy(wanderDir[bs->client], bi->dir);
@@ -1423,9 +1569,15 @@ static void BotIdleWatchdog(bot_state_t *bs, bot_input_t *bi) {
 		if (!idleSince[bs->client]) idleSince[bs->client] = checkTime[bs->client];
 		G_LogPrintf("BotIdle: %i %i\n", bs->client, (level.time - idleSince[bs->client]) / 1000);
 		trap_BotEmptyGoalStack(bs->gs);
-		a = random() * 2 * M_PI;
-		VectorSet(wanderDir[bs->client], cos(a), sin(a), 0);
-		wanderUntil[bs->client] = level.time + 1000;
+		//a random way that keeps it on safe floor (none: it stays)
+		for (j = 0; j < 8; j++) {
+			a = random() * 2 * M_PI;
+			VectorSet(wanderDir[bs->client], cos(a), sin(a), 0);
+			if (BotSafeStep(bs, wanderDir[bs->client])) {
+				wanderUntil[bs->client] = level.time + 1000;
+				break;
+			}
+		}
 	}
 	checkTime[bs->client] = level.time;
 	VectorCopy(bs->origin, checkOrigin[bs->client]);
@@ -1481,8 +1633,8 @@ void BotUpdateInput(bot_state_t *bs, int time, int elapsed_time) {
 	BotEdgeGuard(bs, &bi);
 	//champion movement: rockets dodged, straight runs hopped
 	if (!BotDodgeRockets(bs, &bi)) BotBunnyHop(bs, &bi);
-	//duels: the mega and the heavy armour timed
-	BotTimeItems(bs);
+	//duels: the items timed from what the bot saw or heard
+	BotItemControl(bs);
 	//not standing about
 	BotIdleWatchdog(bs, &bi);
 	//convert the bot input to a usercmd
@@ -1495,6 +1647,8 @@ void BotUpdateInput(bot_state_t *bs, int time, int elapsed_time) {
 	}
 	//look where the ability aims, and slide
 	BotAbilityMovement(bs, &bs->lastucmd);
+	//shots at where the enemy just went out of sight
+	BotPrefire(bs, &bs->lastucmd);
 	//subtract the delta angles
 	for (j = 0; j < 3; j++) {
 		bs->viewangles[j] = AngleMod(bs->viewangles[j] - SHORT2ANGLE(bs->cur_ps.delta_angles[j]));

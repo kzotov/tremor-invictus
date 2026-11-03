@@ -60,6 +60,17 @@ qboolean BotInLavaOrSlime(bot_state_t *bs);
 qboolean EntityIsDead(aas_entityinfo_t *entinfo);
 //1 totem, 2 turret, 3 Strogg's body, 0 anything else
 int BotObjectKind(int entnum);
+//fight tactics (bots-audit BOT-04)
+#define TACTIC_WALK		1
+#define TACTIC_SPLASH	2
+#define TACTIC_PREFIRE	4
+int BotTactics(bot_state_t *bs);
+qboolean BotEnemyHoldsSplash(bot_state_t *bs);
+void BotSplashAim(bot_state_t *bs);
+//safe floor (FIX-63)
+float BotHazardDistance(vec3_t point);
+qboolean BotSafeFloor(bot_state_t *bs, vec3_t point, float minNormal);
+qboolean BotSafeStep(bot_state_t *bs, vec3_t dir);
 //returns true if the entity is invisible
 qboolean EntityIsInvisible(aas_entityinfo_t *entinfo);
 //returns true if the entity is shooting
