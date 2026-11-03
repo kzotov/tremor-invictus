@@ -133,14 +133,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define MODELINDEX_REDFLAG			34
 #define MODELINDEX_BLUEFLAG			35
 
-#ifndef MISSIONPACK
-//this game's items after the flags (bg_itemlist)
-#define MODELINDEX_HMG				36
-#define MODELINDEX_SSG				37
-#define MODELINDEX_NAILGUN			38
-#define MODELINDEX_HOURGLASS		39
-#define MODELINDEX_AMMOBOX			40
-#endif
+// (this game's items after the flags, 36-40 in baseq3: items.c gives their places)
 
 // mission pack only defines
 
