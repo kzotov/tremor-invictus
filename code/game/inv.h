@@ -77,6 +77,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define INVENTORY_SSG				51
 #define INVENTORY_HOURGLASS			52
 #define INVENTORY_AMMOBOX			53
+#define INVENTORY_ABILITYWAIT		54		// 1 while the champion's ability recharges
 //enemy stuff
 #define ENEMY_HORIZONTAL_DIST		200
 #define ENEMY_HEIGHT				201

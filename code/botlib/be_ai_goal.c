@@ -586,6 +586,23 @@ void BotInitLevelItems(void)
 			Log_Write("entity %s unknown item\r\n", classname);
 			continue;
 		} //end if
+		//bots-audit BOT-07: only the items the game spawns: its item set
+		//rule (notqc / notq3a by itemlayout), its mode keys, and no
+		//power-ups in a duel
+		{
+			int notit = 0;
+
+			AAS_IntForBSPEpairKey(ent, LibVarValue("itemlayout", "1") ? "notqc" : "notq3a", &notit);
+			if (notit) continue;
+			notit = 0;
+			if (g_gametype == GT_TOURNAMENT) AAS_IntForBSPEpairKey(ent, "notduel", &notit);
+			else if (g_gametype == GT_FFA) AAS_IntForBSPEpairKey(ent, "notffa", &notit);
+			if (notit) continue;
+			if (g_gametype == GT_TOURNAMENT && (!strncmp(classname, "item_quad", 9) || !strncmp(classname, "item_enviro", 11)
+				|| !strncmp(classname, "item_protection", 15) || !strncmp(classname, "item_haste", 10)
+				|| !strncmp(classname, "item_regen", 10) || !strncmp(classname, "item_invis", 10)
+				|| !strncmp(classname, "item_flight", 11))) continue;
+		}
 		//get the origin of the item
 		if (!AAS_VectorForBSPEpairKey(ent, "origin", origin))
 		{

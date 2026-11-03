@@ -1,16 +1,19 @@
-// The items bots know: this game's item list (bg_itemlist in bg_misc.c,
-// "modelindex" its place in that list), the inventory slot each fills
-// (inv.h) and when it comes back (bots-audit BOT-02). Our own data.
+// The items bots know: every classname a map may place, as the item this
+// game spawns there (bg_itemlist in bg_misc.c, "modelindex" its place in
+// that list; a map's shotgun and machinegun are the super and heavy ones,
+// its BFG the railgun, its armour shards hourglasses with
+// g_hourglassFromShards 1), the inventory slot each fills (inv.h) and when
+// it comes back (bots-audit BOT-02, BOT-07). Our own data.
 
 #include "inv.h"
 
 iteminfo "item_armor_shard"
 {
-	name		"Armor Shard"
-	modelindex	1
+	name		"Hourglass"
+	modelindex	39
 	type		0
-	index		INVENTORY_ARMOR
-	respawntime	25
+	index		INVENTORY_HOURGLASS
+	respawntime	30
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
 }
@@ -21,7 +24,7 @@ iteminfo "item_armor_combat"
 	modelindex	2
 	type		0
 	index		INVENTORY_ARMOR
-	respawntime	25
+	respawntime	30
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
 }
@@ -32,7 +35,7 @@ iteminfo "item_armor_body"
 	modelindex	3
 	type		0
 	index		INVENTORY_ARMOR
-	respawntime	25
+	respawntime	30
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
 }
@@ -43,7 +46,7 @@ iteminfo "item_health_small"
 	modelindex	4
 	type		0
 	index		INVENTORY_HEALTH
-	respawntime	35
+	respawntime	15
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
 }
@@ -70,13 +73,24 @@ iteminfo "item_health_large"
 	maxs		{15,15,15}
 }
 
+iteminfo "item_health_special"
+{
+	name		"50 Health"
+	modelindex	6
+	type		0
+	index		INVENTORY_HEALTH
+	respawntime	35
+	mins		{-15,-15,-15}
+	maxs		{15,15,15}
+}
+
 iteminfo "item_health_mega"
 {
 	name		"Mega Health"
 	modelindex	7
 	type		0
 	index		INVENTORY_HEALTH
-	respawntime	35
+	respawntime	30
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
 }
@@ -94,10 +108,32 @@ iteminfo "weapon_gauntlet"
 
 iteminfo "weapon_shotgun"
 {
-	name		"Shotgun"
-	modelindex	9
+	name		"Super Shotgun"
+	modelindex	37
 	type		0
-	index		INVENTORY_SHOTGUN
+	index		INVENTORY_SSG
+	respawntime	5
+	mins		{-15,-15,-15}
+	maxs		{15,15,15}
+}
+
+iteminfo "weapon_supershotgun"
+{
+	name		"Super Shotgun"
+	modelindex	37
+	type		0
+	index		INVENTORY_SSG
+	respawntime	5
+	mins		{-15,-15,-15}
+	maxs		{15,15,15}
+}
+
+iteminfo "weapon_ssg"
+{
+	name		"Super Shotgun"
+	modelindex	37
+	type		0
+	index		INVENTORY_SSG
 	respawntime	5
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
@@ -105,16 +141,49 @@ iteminfo "weapon_shotgun"
 
 iteminfo "weapon_machinegun"
 {
-	name		"Machinegun"
-	modelindex	10
+	name		"Heavy Machinegun"
+	modelindex	36
 	type		0
-	index		INVENTORY_MACHINEGUN
+	index		INVENTORY_HMG
+	respawntime	5
+	mins		{-15,-15,-15}
+	maxs		{15,15,15}
+}
+
+iteminfo "weapon_heavymachinegun"
+{
+	name		"Heavy Machinegun"
+	modelindex	36
+	type		0
+	index		INVENTORY_HMG
+	respawntime	5
+	mins		{-15,-15,-15}
+	maxs		{15,15,15}
+}
+
+iteminfo "weapon_hmg"
+{
+	name		"Heavy Machinegun"
+	modelindex	36
+	type		0
+	index		INVENTORY_HMG
 	respawntime	5
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
 }
 
 iteminfo "weapon_grenadelauncher"
+{
+	name		"Tri-bolt"
+	modelindex	11
+	type		0
+	index		INVENTORY_GRENADELAUNCHER
+	respawntime	5
+	mins		{-15,-15,-15}
+	maxs		{15,15,15}
+}
+
+iteminfo "weapon_tribolt"
 {
 	name		"Tri-bolt"
 	modelindex	11
@@ -158,6 +227,17 @@ iteminfo "weapon_railgun"
 	maxs		{15,15,15}
 }
 
+iteminfo "weapon_bfg"
+{
+	name		"Railgun"
+	modelindex	14
+	type		0
+	index		INVENTORY_RAILGUN
+	respawntime	5
+	mins		{-15,-15,-15}
+	maxs		{15,15,15}
+}
+
 iteminfo "weapon_plasmagun"
 {
 	name		"Super Nailgun"
@@ -169,12 +249,23 @@ iteminfo "weapon_plasmagun"
 	maxs		{15,15,15}
 }
 
-iteminfo "weapon_bfg"
+iteminfo "weapon_supernailgun"
 {
-	name		"BFG10K"
-	modelindex	16
+	name		"Super Nailgun"
+	modelindex	15
 	type		0
-	index		INVENTORY_BFG10K
+	index		INVENTORY_PLASMAGUN
+	respawntime	5
+	mins		{-15,-15,-15}
+	maxs		{15,15,15}
+}
+
+iteminfo "weapon_nailgun"
+{
+	name		"Nailgun"
+	modelindex	38
+	type		0
+	index		INVENTORY_NAILGUN
 	respawntime	5
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
@@ -197,7 +288,7 @@ iteminfo "ammo_shells"
 	modelindex	18
 	type		0
 	index		INVENTORY_SHELLS
-	respawntime	40
+	respawntime	20
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
 }
@@ -208,7 +299,7 @@ iteminfo "ammo_bullets"
 	modelindex	19
 	type		0
 	index		INVENTORY_BULLETS
-	respawntime	40
+	respawntime	20
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
 }
@@ -219,7 +310,18 @@ iteminfo "ammo_grenades"
 	modelindex	20
 	type		0
 	index		INVENTORY_GRENADES
-	respawntime	40
+	respawntime	20
+	mins		{-15,-15,-15}
+	maxs		{15,15,15}
+}
+
+iteminfo "ammo_bolts"
+{
+	name		"Bolts"
+	modelindex	20
+	type		0
+	index		INVENTORY_GRENADES
+	respawntime	20
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
 }
@@ -230,7 +332,7 @@ iteminfo "ammo_cells"
 	modelindex	21
 	type		0
 	index		INVENTORY_CELLS
-	respawntime	40
+	respawntime	20
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
 }
@@ -241,7 +343,7 @@ iteminfo "ammo_lightning"
 	modelindex	22
 	type		0
 	index		INVENTORY_LIGHTNINGAMMO
-	respawntime	40
+	respawntime	20
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
 }
@@ -252,7 +354,7 @@ iteminfo "ammo_rockets"
 	modelindex	23
 	type		0
 	index		INVENTORY_ROCKETS
-	respawntime	40
+	respawntime	20
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
 }
@@ -263,18 +365,18 @@ iteminfo "ammo_slugs"
 	modelindex	24
 	type		0
 	index		INVENTORY_SLUGS
-	respawntime	40
+	respawntime	20
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
 }
 
 iteminfo "ammo_bfg"
 {
-	name		"Bfg Ammo"
-	modelindex	25
+	name		"Slugs"
+	modelindex	24
 	type		0
-	index		INVENTORY_BFGAMMO
-	respawntime	40
+	index		INVENTORY_SLUGS
+	respawntime	20
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
 }
@@ -313,6 +415,17 @@ iteminfo "item_quad"
 }
 
 iteminfo "item_enviro"
+{
+	name		"Battle Suit"
+	modelindex	29
+	type		0
+	index		INVENTORY_ENVIRONMENTSUIT
+	respawntime	120
+	mins		{-15,-15,-15}
+	maxs		{15,15,15}
+}
+
+iteminfo "item_protection"
 {
 	name		"Battle Suit"
 	modelindex	29
@@ -389,39 +502,6 @@ iteminfo "team_CTF_blueflag"
 	maxs		{15,15,15}
 }
 
-iteminfo "weapon_hmg"
-{
-	name		"Heavy Machinegun"
-	modelindex	36
-	type		0
-	index		INVENTORY_HMG
-	respawntime	5
-	mins		{-15,-15,-15}
-	maxs		{15,15,15}
-}
-
-iteminfo "weapon_ssg"
-{
-	name		"Super Shotgun"
-	modelindex	37
-	type		0
-	index		INVENTORY_SSG
-	respawntime	5
-	mins		{-15,-15,-15}
-	maxs		{15,15,15}
-}
-
-iteminfo "weapon_nailgun"
-{
-	name		"Nailgun"
-	modelindex	38
-	type		0
-	index		INVENTORY_NAILGUN
-	respawntime	5
-	mins		{-15,-15,-15}
-	maxs		{15,15,15}
-}
-
 iteminfo "item_hourglass"
 {
 	name		"Hourglass"
@@ -439,7 +519,7 @@ iteminfo "item_ammo_box"
 	modelindex	40
 	type		0
 	index		INVENTORY_AMMOBOX
-	respawntime	40
+	respawntime	20
 	mins		{-15,-15,-15}
 	maxs		{15,15,15}
 }

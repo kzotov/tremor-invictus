@@ -2059,6 +2059,7 @@ void BotUpdateInventory(bot_state_t *bs) {
 	bs->inventory[INVENTORY_GRAPPLINGHOOK] = (bs->cur_ps.stats[STAT_WEAPONS] & (1 << WP_GRAPPLING_HOOK)) != 0;
 	//this game's weapons (bots-audit BOT-02)
 	bs->inventory[INVENTORY_HMG] = (bs->cur_ps.stats[STAT_WEAPONS] & (1 << WP_HEAVY_MACHINEGUN)) != 0;
+	bs->inventory[INVENTORY_ABILITYWAIT] = bs->cur_ps.stats[STAT_ABILITY_RECHARGE] > 0;
 	bs->inventory[INVENTORY_SSG] = (bs->cur_ps.stats[STAT_WEAPONS] & (1 << WP_SUPER_SHOTGUN)) != 0;
 #ifndef MISSIONPACK
 	bs->inventory[INVENTORY_NAILGUN] = (bs->cur_ps.stats[STAT_WEAPONS] & (1 << WP_NAILGUN)) != 0;
@@ -2664,6 +2665,13 @@ int BotWantsToRetreat(bot_state_t *bs) {
 			BotTacticLog(bs, "low_health");
 			return qtrue;
 		}
+		//BOT-07: an enemy with the Quad: out of its sight, unless with
+		//Protection or 100 more than it
+		if (g_entities[bs->enemy].client->ps.powerups[PW_QUAD] > level.time
+			&& bs->cur_ps.powerups[PW_BATTLESUIT] <= level.time && own < est + 100) {
+			BotTacticLog(bs, "avoid_quad");
+			return qtrue;
+		}
 		if (bs->cur_ps.weapon == WP_LIGHTNING && g_entities[bs->enemy].client->ps.weapon == WP_LIGHTNING && own < est - 50) {
 			BotTacticLog(bs, "lose_trade_leave");
 			return qtrue;
@@ -2733,6 +2741,17 @@ int BotWantsToChase(bot_state_t *bs) {
 		&& bs->inventory[INVENTORY_HEALTH] + bs->inventory[INVENTORY_ARMOR]
 		>= g_entities[bs->enemy].health + g_entities[bs->enemy].client->ps.stats[STAT_ARMOR])
 		return qtrue;
+	//BOT-07: stacking for a power-up, no chase beyond 500 u
+	if (bs->enemy >= 0 && bs->enemy < MAX_CLIENTS && level.time < botStacking[bs->client]
+		&& Distance(g_entities[bs->enemy].r.currentOrigin, bs->origin) > 500
+		&& bs->cur_ps.powerups[PW_QUAD] <= level.time) {
+		return qfalse;
+	}
+	//with the Quad: press and close in
+	if (bs->cur_ps.powerups[PW_QUAD] > level.time && bs->enemy >= 0) {
+		BotTacticLog(bs, "quad_press");
+		return qtrue;
+	}
 	//BOT-06: press a won trade, close in on a weak enemy
 	if (bs->settings.skill >= 3 && bs->enemy >= 0 && bs->enemy < MAX_CLIENTS && g_entities[bs->enemy].client) {
 		int own = bs->inventory[INVENTORY_HEALTH] + bs->inventory[INVENTORY_ARMOR];
@@ -3150,6 +3169,8 @@ int BotTactics(bot_state_t *bs) {
 
 	if (bs->enemy != botTacticEnemy[bs->client] || FloatTime() - botTacticTime[bs->client] > 8) {
 		chance = skill >= 5 ? 0.65f : skill >= 4 ? 0.45f : skill >= 3 ? 0.25f : skill >= 2 ? 0.10f : 0;
+		//with the Quad or Protection every rule is on (BOT-07)
+		if (bs->cur_ps.powerups[PW_QUAD] > level.time || bs->cur_ps.powerups[PW_BATTLESUIT] > level.time) chance = 1;
 		botTactics[bs->client] = (random() < chance ? TACTIC_WALK : 0) | (random() < chance ? TACTIC_SPLASH : 0)
 			| (random() < chance ? TACTIC_PREFIRE : 0);
 		botTacticEnemy[bs->client] = bs->enemy;

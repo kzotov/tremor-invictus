@@ -74,6 +74,7 @@ qboolean BotSafeStep(bot_state_t *bs, vec3_t dir);
 //BOT-06 (ai_main.c)
 int BotEnemyStack(bot_state_t *bs, int enemy);
 void BotTacticLog(bot_state_t *bs, const char *rule);
+extern int botStacking[MAX_CLIENTS];
 //returns true if the entity is invisible
 qboolean EntityIsInvisible(aas_entityinfo_t *entinfo);
 //returns true if the entity is shooting

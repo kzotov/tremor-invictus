@@ -1323,10 +1323,16 @@ static void BotAvoidHazardAreas(void) {
 		num = trap_AAS_BBoxAreas(ent->r.absmin, ent->r.absmax, areas, ARRAY_LEN(areas));
 		for (j = 0; j < num; j++) {
 			if (!trap_AAS_AreaInfo(areas[j], &info)) continue;
-			for (k = 0; k < 3; k++) {
-				if (info.center[k] < ent->r.absmin[k] || info.center[k] > ent->r.absmax[k]) break;
+			//the trigger's own brushes, not its box (bots-audit BOT-07)
+			{
+				vec3_t mins, maxs;
+
+				for (k = 0; k < 3; k++) {
+					mins[k] = info.center[k] - 8;
+					maxs[k] = info.center[k] + 8;
+				}
+				if (!trap_EntityContact(mins, maxs, ent)) continue;
 			}
-			if (k < 3) continue;
 			trap_AAS_EnableRoutingArea(areas[j], qfalse);
 			off++;
 		}
@@ -1534,8 +1540,11 @@ static void BotFindControlItems(void) {
 	controlItemsLevel = level.startTime;
 }
 
+int		botStacking[MAX_CLIENTS];		//level.time a bot stacks for a power-up until (no optional fights)
+
 static void BotItemControl(bot_state_t *bs) {
-	static int	nextHold[MAX_CLIENTS];
+	static int	nextHold[MAX_CLIENTS], nextWait[MAX_CLIENTS], nextStack[MAX_CLIENTS];
+	int			nextPowerup = 0, nextPowerupItem = -1;
 	gentity_t	*ent, *self = &g_entities[bs->client], *enemy = NULL;
 	bot_goal_t	goal;
 	trace_t		tr;
@@ -1565,7 +1574,8 @@ static void BotItemControl(bot_state_t *bs) {
 				trap_Trace(&tr, bs->eye, NULL, NULL, ent->r.currentOrigin, c, MASK_SOLID);
 				known = tr.fraction >= 1;
 			}
-			if (known) knownRespawn[c][i] = ent->nextthink;
+			//(a power-up's think is its warning first: itemDue is when it comes)
+			if (known) knownRespawn[c][i] = ent->item->giType == IT_POWERUP && ent->itemDue ? ent->itemDue : ent->nextthink;
 		}
 		itemWasUp[c][i] = up;
 		major = ent->item->giType == IT_POWERUP || (ent->item->giType == IT_HEALTH && ent->item->quantity >= 100)
@@ -1574,13 +1584,20 @@ static void BotItemControl(bot_state_t *bs) {
 		//rule), then from a pickup seen or heard; 5 s early with 100 or more
 		if (ent->item->giType == IT_POWERUP && !knownRespawn[c][i] && level.time < level.startTime + 90000)
 			knownRespawn[c][i] = level.startTime + 90000;
-		if (gametype != GT_TOURNAMENT && ent->item->giType != IT_POWERUP) continue;
+		//BOT-07: the mega, the heavy armour and the power-ups timed in every
+		//mode; the light armours in duels only
+		if (gametype != GT_TOURNAMENT && !major) continue;
+		if (ent->item->giType == IT_POWERUP && knownRespawn[c][i] > level.time
+			&& (!nextPowerup || knownRespawn[c][i] < nextPowerup)) {
+			nextPowerup = knownRespawn[c][i];
+			nextPowerupItem = i;
+		}
 		if (strongest < 0 && major && ent->item->giType != IT_POWERUP) strongest = i;
 		//between fights only
 		if (bs->enemy >= 0 && FloatTime() - bs->enemyvisible_time < 2) continue;
 		if (knownRespawn[c][i] <= level.time || pushedRespawn[c][i] == knownRespawn[c][i]) continue;
 		if (ent->item->giType == IT_POWERUP) {
-			if (own < 100) continue;
+			if (own < 125) continue;		//not stacked: let it go and keep stacking
 			lead = 5000;
 		}
 		else if (need || (enemy && BotEnemyStack(bs, enemy->s.number) < own)) lead = 3000;
@@ -1595,10 +1612,46 @@ static void BotItemControl(bot_state_t *bs) {
 		if (!BotControlGoal(controlItems[i], &goal)) continue;
 		travel = trap_AAS_AreaTravelTimeToGoalArea(bs->areanum, bs->origin, goal.areanum, bs->tfl) * 10;
 		if (travel <= 0 || knownRespawn[c][i] - level.time > travel + lead) continue;
-		if (ent->item->giType == IT_POWERUP && travel > 2000) continue;		//within 2000 u-ish of route
+		//within reach: a power-up 7 s of route (about 2000 u), a mega or a
+		//heavy armour 8 s (about 2500 u) outside duels
+		if (ent->item->giType == IT_POWERUP ? travel > 7000 : gametype != GT_TOURNAMENT && travel > 8000) continue;
 		pushedRespawn[c][i] = knownRespawn[c][i];
 		trap_BotPushGoal(bs->gs, &goal);
 		BotTacticLog(bs, ent->item->giType == IT_POWERUP ? "powerup_timing" : "item_control");
+	}
+	//BOT-07 stack before a power-up: from 35 s before it is due, under max
+	//health + 75, the nearest mega or armour that is up; no optional fights
+	//meanwhile; within 5 s of it and 400 u, it waits there
+	if (nextPowerup && nextPowerup - level.time <= 35000) {
+		ent = &g_entities[controlItems[nextPowerupItem]];
+		if (nextPowerup - level.time <= 5000 && own >= 125 && Distance(ent->r.currentOrigin, bs->origin) < 400
+			&& level.time >= nextWait[c] && BotControlGoal(controlItems[nextPowerupItem], &goal)) {
+			trap_BotPushGoal(bs->gs, &goal);
+			nextWait[c] = level.time + 1000;
+			BotTacticLog(bs, "wait_powerup");
+		} else if (own < bs->cur_ps.stats[STAT_MAX_HEALTH] + 75 && nextPowerup - level.time > 5000) {
+			botStacking[c] = level.time + 1500;
+			if (level.time >= nextStack[c] && (bs->enemy < 0 || FloatTime() - bs->enemyvisible_time > 2)) {
+				int		best = -1, bestTravel = 0;
+				gentity_t	*it;
+
+				nextStack[c] = level.time + 3000;
+				for (i = 0; i < numControlItems; i++) {
+					it = &g_entities[controlItems[i]];
+					if (!it->inuse || !it->item || !itemWasUp[c][i] || it->item->giType == IT_POWERUP) continue;
+					if (!BotControlGoal(controlItems[i], &goal)) continue;
+					travel = trap_AAS_AreaTravelTimeToGoalArea(bs->areanum, bs->origin, goal.areanum, bs->tfl);
+					if (travel > 0 && (best < 0 || travel < bestTravel)) {
+						best = i;
+						bestTravel = travel;
+					}
+				}
+				if (best >= 0 && BotControlGoal(controlItems[best], &goal)) {
+					trap_BotPushGoal(bs->gs, &goal);
+					BotTacticLog(bs, "stack_before_powerup");
+				}
+			}
+		}
 	}
 	//ahead by 3 or more with under 2 minutes to go: by the strongest item
 	if (gametype == GT_TOURNAMENT && strongest >= 0 && enemy && g_timelimit.integer > 0 && level.time >= nextHold[c]
@@ -1679,8 +1732,10 @@ static void BotMacro(bot_state_t *bs) {
 			return;
 		}
 	}
-	//FFA: toward a fight heard within 1500 u
-	if (gametype == GT_FFA && own >= 150 && random() < chance) {
+	//FFA: toward a fight heard within 1500 u (always with the Quad, never
+	//while stacking for a power-up)
+	if (bs->cur_ps.powerups[PW_QUAD] > level.time) chance = 1;
+	if (gametype == GT_FFA && own >= 150 && random() < chance && level.time >= botStacking[bs->client]) {
 		for (i = 0; i < level.maxclients; i++) {
 			other = &g_entities[i];
 			if (i == bs->client || !other->inuse || !other->client || other->health <= 0) continue;
@@ -2556,6 +2611,11 @@ int BotInitLibrary(void) {
 	trap_Cvar_VariableStringBuffer("g_gametype", buf, sizeof(buf));
 	if (!strlen(buf)) strcpy(buf, "0");
 	trap_BotLibVarSet("g_gametype", buf);
+	//this game's item set rule (g_itemLayout), so the bots know only the
+	//items that are there (bots-audit BOT-07)
+	trap_Cvar_VariableStringBuffer("g_itemLayout", buf, sizeof(buf));
+	if (!strlen(buf)) strcpy(buf, "1");
+	trap_BotLibVarSet("itemlayout", buf);
 	//bot developer mode and log file
 	trap_BotLibVarSet("bot_developer", bot_developer.string);
 	trap_Cvar_VariableStringBuffer("logfile", buf, sizeof(buf));
