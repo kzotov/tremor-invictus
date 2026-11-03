@@ -1765,18 +1765,138 @@ static float BotEnemyDistance(bot_state_t *bs) {
 	return Distance(entinfo.origin, bs->origin);
 }
 
+/*
+==================
+BotSituationWeapon
+
+bots-audit BOT-06: the weapon for the situation (the highest matching row
+wins, its second choice when the first can't be used); skill 2 uses only
+first choices, skill 1 the range table alone. 0 when nothing fits
+==================
+*/
+static int BotPick(bot_state_t *bs, const int *weapons) {
+	int i;
+
+	for (i = 0; weapons[i]; i++) {
+		if (BotHasWeapon(bs, weapons[i])) return weapons[i];
+	}
+	return 0;
+}
+
+static int BotSituationWeapon(bot_state_t *bs, const char **situation) {
+	static const int quadClose[] = { WP_SUPER_SHOTGUN, WP_SHOTGUN, 0 }, quadFar[] = { WP_ROCKET_LAUNCHER, 0 }, lg[] = { WP_LIGHTNING, 0 },
+		rail[] = { WP_RAILGUN, 0 }, railLg[] = { WP_RAILGUN, WP_LIGHTNING, 0 }, lgMg[] = { WP_LIGHTNING, WP_HEAVY_MACHINEGUN, WP_MACHINEGUN, 0 },
+		splash[] = { WP_ROCKET_LAUNCHER, WP_TRIBOLT, 0 }, below2[] = { WP_TRIBOLT, WP_LIGHTNING, 0 }, above[] = { WP_LIGHTNING, WP_RAILGUN, 0 },
+		mg[] = { WP_HEAVY_MACHINEGUN, WP_MACHINEGUN, 0 }, sg[] = { WP_SUPER_SHOTGUN, WP_SHOTGUN, 0 }, rl[] = { WP_ROCKET_LAUNCHER, 0 },
+		far2[] = { WP_HEAVY_MACHINEGUN, WP_MACHINEGUN, 0 };
+	gentity_t	*enemy;
+	vec3_t		dir;
+	float		dist, height, chance, skill = bs->settings.skill;
+	int			w = 0, est, own;
+	qboolean	second = skill >= 3, seen;
+
+	*situation = NULL;
+	if (skill < 2 || bs->enemy < 0 || bs->enemy >= MAX_CLIENTS) return 0;
+	enemy = &g_entities[bs->enemy];
+	if (!enemy->inuse || !enemy->client) return 0;
+	VectorSubtract(enemy->r.currentOrigin, bs->origin, dir);
+	height = dir[2];
+	dist = VectorLength(dir);
+	seen = FloatTime() - bs->enemyvisible_time < 0.2;
+	est = BotEnemyStack(bs, bs->enemy);
+	own = bs->inventory[INVENTORY_HEALTH] + bs->inventory[INVENTORY_ARMOR];
+	chance = skill >= 5 ? 0.65f : skill >= 4 ? 0.45f : skill >= 3 ? 0.25f : 0.10f;
+	//rail then finish (sometimes): the rail's long refire filled with the LG or MG
+	if (bs->cur_ps.weapon == WP_RAILGUN && bs->cur_ps.weaponTime > 300 && dist < 1200 && (BotTactics(bs) & TACTIC_PREFIRE) && random() < chance) {
+		*situation = "rail_then_finish";
+		BotTacticLog(bs, "rail_then_finish");
+		return BotPick(bs, lgMg);
+	}
+	//knock up and punish (sometimes): an enemy lifted by a blast
+	if (enemy->client->ps.groundEntityNum == ENTITYNUM_NONE && enemy->client->lasthurt_client == bs->client
+		&& (enemy->client->lasthurt_mod == MOD_ROCKET || enemy->client->lasthurt_mod == MOD_ROCKET_SPLASH)
+		&& (BotTactics(bs) & TACTIC_SPLASH)) {
+		*situation = "knock_up_punish";
+		BotTacticLog(bs, "knock_up_punish");
+		if ((w = BotPick(bs, lg)) || (w = BotPick(bs, rail))) return w;
+	}
+	if (enemy->client->ps.powerups[PW_QUAD] > level.time || enemy->client->ps.powerups[PW_BATTLESUIT] > level.time) {
+		*situation = "enemy_powerup";
+		if ((w = BotPick(bs, rail))) return w;
+		return second ? BotPick(bs, lg) : 0;
+	}
+	if (bs->cur_ps.powerups[PW_QUAD] > level.time) {
+		*situation = "own_quad";
+		if ((w = BotPick(bs, dist < 300 ? quadClose : quadFar))) return w;
+		return second ? BotPick(bs, lg) : 0;
+	}
+	if (est <= 80) {
+		*situation = "weak_enemy";
+		if (seen && dist > 300 && (w = BotPick(bs, rail))) return w;
+		return BotPick(bs, lgMg);
+	}
+	if (!seen && FloatTime() - bs->enemyvisible_time < 1.5) {
+		*situation = "out_of_sight";
+		if ((w = BotPick(bs, splash))) return w;
+		return second ? BotPick(bs, lg) : 0;
+	}
+	if (height < -64) {
+		*situation = "enemy_below";
+		if ((w = BotPick(bs, rl))) return w;
+		return second ? BotPick(bs, below2) : 0;
+	}
+	if (height > 64) {
+		*situation = "enemy_above";
+		if ((w = BotPick(bs, above))) return w;
+		return second ? BotPick(bs, mg) : 0;
+	}
+	if (dist < 200) {
+		*situation = "close";
+		if ((w = BotPick(bs, sg))) return w;
+		if (!second) return 0;
+		return own > 100 ? BotPick(bs, rl) : BotPick(bs, lg);
+	}
+	if (dist < 500) {
+		*situation = enemy->client->ps.groundEntityNum == ENTITYNUM_NONE ? "mid_air" : "mid_ground";
+		if ((w = BotPick(bs, lg))) return w;
+		if (!second) return 0;
+		if (enemy->client->ps.groundEntityNum == ENTITYNUM_NONE) {
+			if ((w = BotPick(bs, rail))) return w;
+			return dist < 300 ? BotPick(bs, rl) : 0;
+		}
+		if ((w = BotPick(bs, rl))) return w;
+		return dist < 300 ? BotPick(bs, sg) : 0;
+	}
+	if (dist < 768) {
+		*situation = "lg_range";
+		if ((w = BotPick(bs, lg))) return w;
+		return second ? BotPick(bs, rail) : 0;
+	}
+	*situation = "far";
+	if ((w = BotPick(bs, rail))) return w;
+	return second ? BotPick(bs, far2) : 0;
+}
+
 void BotChooseWeapon(bot_state_t *bs) {
-	int newweaponnum;
+	static int lastLogged[MAX_CLIENTS];
+	int newweaponnum, situ;
 	const botWeapon_t *best;
+	const char *situation;
 
 	if (bs->cur_ps.weaponstate == WEAPON_RAISING ||
 			bs->cur_ps.weaponstate == WEAPON_DROPPING) {
 		trap_EA_SelectWeapon(bs->client, bs->weaponnum);
 	}
 	else {
-		//this game's weapons from the coded table, the old bot data as a fallback
+		//the situation's weapon (BOT-06), else this game's weapons by range,
+		//the bot data as a last fallback
+		situ = BotSituationWeapon(bs, &situation);
 		best = BotBestWeapon(bs, BotEnemyDistance(bs));
-		newweaponnum = best ? best->weapon : trap_BotChooseBestFightWeapon(bs->ws, bs->inventory);
+		newweaponnum = situ ? situ : best ? best->weapon : trap_BotChooseBestFightWeapon(bs->ws, bs->inventory);
+		if (situ && lastLogged[bs->client] != newweaponnum) {
+			lastLogged[bs->client] = newweaponnum;
+			G_LogPrintf("BotWeapon: %i %s %i\n", bs->client, situation, newweaponnum);
+		}
 		if (bs->weaponnum != newweaponnum) bs->weaponchange_time = FloatTime();
 		bs->weaponnum = newweaponnum;
 		//BotAI_Print(PRT_MESSAGE, "bs->weaponnum = %d\n", bs->weaponnum);
@@ -2469,6 +2589,27 @@ float BotFeelingBad(bot_state_t *bs) {
 BotWantsToRetreat
 ==================
 */
+/*
+==================
+BotEnemiesInView
+
+Enemy players in view within 1500 u (BOT-06 avoid 1v2)
+==================
+*/
+static int BotEnemiesInView(bot_state_t *bs) {
+	int i, n = 0;
+	gentity_t *other, *self = &g_entities[bs->client];
+
+	for (i = 0; i < level.maxclients; i++) {
+		other = &g_entities[i];
+		if (i == bs->client || !other->inuse || !other->client || other->health <= 0 || OnSameTeam(other, self)
+			|| other->client->sess.sessionTeam == TEAM_SPECTATOR) continue;
+		if (Distance(other->r.currentOrigin, bs->origin) > 1500) continue;
+		if (BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360, i) > 0) n++;
+	}
+	return n;
+}
+
 int BotWantsToRetreat(bot_state_t *bs) {
 	aas_entityinfo_t entinfo;
 
@@ -2514,6 +2655,24 @@ int BotWantsToRetreat(bot_state_t *bs) {
 	//if the bot is getting the flag
 	if (bs->ltgtype == LTG_GETFLAG)
 		return qtrue;
+	//BOT-06 (skill 3 up): low health, a lost shaft trade, two enemies at once in FFA
+	if (bs->settings.skill >= 3 && bs->enemy >= 0 && bs->enemy < MAX_CLIENTS && g_entities[bs->enemy].client) {
+		int own = bs->inventory[INVENTORY_HEALTH] + bs->inventory[INVENTORY_ARMOR];
+		int est = BotEnemyStack(bs, bs->enemy);
+
+		if (own <= 50) {
+			BotTacticLog(bs, "low_health");
+			return qtrue;
+		}
+		if (bs->cur_ps.weapon == WP_LIGHTNING && g_entities[bs->enemy].client->ps.weapon == WP_LIGHTNING && own < est - 50) {
+			BotTacticLog(bs, "lose_trade_leave");
+			return qtrue;
+		}
+		if (gametype == GT_FFA && own < 200 && BotEnemiesInView(bs) >= 2) {
+			BotTacticLog(bs, "avoid_1v2");
+			return qtrue;
+		}
+	}
 	//
 	if (BotAggression(bs) < 50)
 		return qtrue;
@@ -2574,6 +2733,20 @@ int BotWantsToChase(bot_state_t *bs) {
 		&& bs->inventory[INVENTORY_HEALTH] + bs->inventory[INVENTORY_ARMOR]
 		>= g_entities[bs->enemy].health + g_entities[bs->enemy].client->ps.stats[STAT_ARMOR])
 		return qtrue;
+	//BOT-06: press a won trade, close in on a weak enemy
+	if (bs->settings.skill >= 3 && bs->enemy >= 0 && bs->enemy < MAX_CLIENTS && g_entities[bs->enemy].client) {
+		int own = bs->inventory[INVENTORY_HEALTH] + bs->inventory[INVENTORY_ARMOR];
+		int est = BotEnemyStack(bs, bs->enemy);
+
+		if (est <= 50 && Distance(g_entities[bs->enemy].r.currentOrigin, bs->origin) < 500) {
+			BotTacticLog(bs, "close_in_weak");
+			return qtrue;
+		}
+		if (own > est + 50 && own > 50) {
+			BotTacticLog(bs, "win_trade_press");
+			return qtrue;
+		}
+	}
 	//
 	if (BotAggression(bs) > 50)
 		return qtrue;
@@ -3055,6 +3228,14 @@ bot_moveresult_t BotAttackMove(bot_state_t *bs, int tfl) {
 		}
 	}
 	if (bs->attackcrouch_time > FloatTime()) movetype = MOVE_CROUCH;
+	//BOT-06 against hitscan (rail or LG) and in a shaft fight: walking,
+	//irregular sides; peek and hide: out of the line right after a rail shot
+	if (bs->enemy >= 0 && bs->enemy < MAX_CLIENTS && g_entities[bs->enemy].client
+		&& (g_entities[bs->enemy].client->ps.weapon == WP_LIGHTNING || g_entities[bs->enemy].client->ps.weapon == WP_RAILGUN)
+		&& bs->settings.skill >= 3) {
+		movetype = MOVE_WALK;
+		bs->attackcrouch_time = 0;
+	}
 	//BOT-04: against rockets the bot walks: a jump gives splash a landing point
 	if ((BotTactics(bs) & TACTIC_WALK) && BotEnemyHoldsSplash(bs) && dist >= 250 && dist <= 1200
 		&& bs->cur_ps.groundEntityNum != ENTITYNUM_NONE) {
@@ -3073,6 +3254,13 @@ bot_moveresult_t BotAttackMove(bot_state_t *bs, int tfl) {
 	if (bs->cur_ps.weapon == WP_GAUNTLET) {
 		attack_dist = 0;
 		attack_range = 0;
+	}
+	//a shaft fight: 400-650 u, outside the super shotgun's reach, inside the LG's
+	else if (bs->cur_ps.weapon == WP_LIGHTNING && bs->enemy >= 0 && bs->enemy < MAX_CLIENTS && g_entities[bs->enemy].client
+		&& g_entities[bs->enemy].client->ps.weapon == WP_LIGHTNING && dist < 768 && bs->settings.skill >= 3) {
+		attack_dist = 525;
+		attack_range = 125;
+		BotTacticLog(bs, "shaft_fight");
 	}
 	else {
 		//each weapon's own fight distance (bots-audit BOT-01)
@@ -3100,6 +3288,17 @@ bot_moveresult_t BotAttackMove(bot_state_t *bs, int tfl) {
 	//walking against rockets: a new side every 0.35-0.7 s
 	if ((BotTactics(bs) & TACTIC_WALK) && BotEnemyHoldsSplash(bs) && dist >= 250 && dist <= 1200)
 		strafechange_time = 0.35 + random() * 0.35;
+	//against hitscan: every 0.2-0.45 s
+	if (bs->enemy >= 0 && bs->enemy < MAX_CLIENTS && g_entities[bs->enemy].client && bs->settings.skill >= 3
+		&& (g_entities[bs->enemy].client->ps.weapon == WP_LIGHTNING || g_entities[bs->enemy].client->ps.weapon == WP_RAILGUN))
+		strafechange_time = 0.2 + random() * 0.25;
+	//peek and hide: rail against rail, out of the line just after its own shot
+	if (bs->cur_ps.weapon == WP_RAILGUN && bs->cur_ps.weaponTime > 1100 && bs->settings.skill >= 3
+		&& bs->enemy >= 0 && bs->enemy < MAX_CLIENTS && g_entities[bs->enemy].client
+		&& g_entities[bs->enemy].client->ps.weapon == WP_RAILGUN) {
+		BotTacticLog(bs, "peek_and_hide");
+		if (BotSafeStep(bs, backward) && trap_BotMoveInDirection(bs->ms, backward, 400, MOVE_WALK)) return moveresult;
+	}
 	//if the strafe direction should be changed
 	if (bs->attackstrafe_time > strafechange_time) {
 		//some magic number :)

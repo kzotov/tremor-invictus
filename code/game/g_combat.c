@@ -24,6 +24,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "g_local.h"
 
+void BotNoteDamage( int attacker, int target, int damage );
+void BotNotePickup( gentity_t *player, gentity_t *item );
+
 
 /*
 ============
@@ -1568,6 +1571,10 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			G_ChampionDamaged( targ, take );
 		}
 		targ->health = targ->health - take;
+		// bots-audit BOT-06: what a bot dealt lowers its estimate of the victim
+		if ( attacker->client && targ->client && ( attacker->r.svFlags & SVF_BOT ) ) {
+			BotNoteDamage( attacker->s.number, targ->s.number, take + asave );
+		}
 		if ( targ->client ) {
 			targ->client->ps.stats[STAT_HEALTH] = targ->health;
 		}

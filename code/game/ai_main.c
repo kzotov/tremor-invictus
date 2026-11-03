@@ -1415,6 +1415,78 @@ static void BotBunnyHop(bot_state_t *bs, bot_input_t *bi) {
 
 /*
 ==============
+Stack estimates (bots-audit BOT-06)
+
+What each bot thinks each player has in health and armour, from what it
+could know: 125 at a respawn, less what it dealt, more for pickups it saw or
+heard, an overcharge falling away at 1 a second
+==============
+*/
+static int		estStack[MAX_CLIENTS][MAX_CLIENTS], estSpawn[MAX_CLIENTS][MAX_CLIENTS], estTime[MAX_CLIENTS][MAX_CLIENTS];
+
+int BotEnemyStack(bot_state_t *bs, int enemy) {
+	gentity_t	*ent;
+	int			*est;
+
+	if (enemy < 0 || enemy >= MAX_CLIENTS || !g_entities[enemy].client) return 125;
+	ent = &g_entities[enemy];
+	est = &estStack[bs->client][enemy];
+	if (estSpawn[bs->client][enemy] != ent->client->ps.persistant[PERS_SPAWN_COUNT]) {
+		estSpawn[bs->client][enemy] = ent->client->ps.persistant[PERS_SPAWN_COUNT];
+		*est = 125;
+		estTime[bs->client][enemy] = level.time;
+	}
+	if (*est > 125) {
+		*est -= (level.time - estTime[bs->client][enemy]) / 1000;
+		if (*est < 125) *est = 125;
+	}
+	if (level.time - estTime[bs->client][enemy] >= 1000) estTime[bs->client][enemy] = level.time;
+	return *est;
+}
+
+void BotNoteDamage(int attacker, int target, int damage) {
+	if (attacker < 0 || attacker >= MAX_CLIENTS || target < 0 || target >= MAX_CLIENTS || !botstates[attacker]) return;
+	BotEnemyStack(botstates[attacker], target);
+	estStack[attacker][target] -= damage;
+	if (estStack[attacker][target] < 1) estStack[attacker][target] = 1;
+}
+
+void BotNotePickup(gentity_t *player, gentity_t *item) {
+	int			i, add = 0, who;
+	gitem_t		*it = item->item;
+	bot_state_t	*bs;
+
+	if (!player->client || !it) return;
+	who = player->s.number;
+	if (it->giType == IT_HEALTH || it->giType == IT_ARMOR) add = it->quantity;
+	if (!add) return;
+	for (i = 0; i < MAX_CLIENTS; i++) {
+		bs = botstates[i];
+		if (!bs || !bs->inuse || i == who) continue;
+		if (Distance(bs->origin, item->r.currentOrigin) > 1250 && !trap_InPVS(bs->eye, item->r.currentOrigin)) continue;
+		BotEnemyStack(bs, who);
+		estStack[i][who] += add;
+		if (estStack[i][who] > 300) estStack[i][who] = 300;
+	}
+}
+
+/*
+==============
+BotTacticLog
+==============
+*/
+void BotTacticLog(bot_state_t *bs, const char *rule) {
+	static int	last[MAX_CLIENTS];
+	static const char *lastRule[MAX_CLIENTS];
+
+	if (lastRule[bs->client] == rule && level.time - last[bs->client] < 3000) return;
+	lastRule[bs->client] = rule;
+	last[bs->client] = level.time;
+	G_LogPrintf("BotTactic: %i %s\n", bs->client, rule);
+}
+
+/*
+==============
 BotItemControl
 
 bots-audit BOT-04, duels: the bot keeps a timer for the mega health, the
@@ -1470,7 +1542,7 @@ static void BotItemControl(bot_state_t *bs) {
 	int			i, c = bs->client, travel, lead, own, enemyStrength = 0, maxArmor, strongest = -1;
 	qboolean	up, need, major;
 
-	if (gametype != GT_TOURNAMENT || BotIsDead(bs)) return;
+	if (BotIsDead(bs)) return;
 	if (controlItemsLevel != level.startTime) BotFindControlItems();
 	own = bs->inventory[INVENTORY_HEALTH] + bs->inventory[INVENTORY_ARMOR];
 	maxArmor = bg_classInfo[BG_Champion(bs->cur_ps.stats[STAT_CHAMPION])->bodyClass].maxArmor;
@@ -1498,21 +1570,38 @@ static void BotItemControl(bot_state_t *bs) {
 		itemWasUp[c][i] = up;
 		major = ent->item->giType == IT_POWERUP || (ent->item->giType == IT_HEALTH && ent->item->quantity >= 100)
 			|| (ent->item->giType == IT_ARMOR && ent->item->quantity >= 100);
+		//BOT-06 power-up timing, every mode: first at 90 s (the map's own
+		//rule), then from a pickup seen or heard; 5 s early with 100 or more
+		if (ent->item->giType == IT_POWERUP && !knownRespawn[c][i] && level.time < level.startTime + 90000)
+			knownRespawn[c][i] = level.startTime + 90000;
+		if (gametype != GT_TOURNAMENT && ent->item->giType != IT_POWERUP) continue;
 		if (strongest < 0 && major && ent->item->giType != IT_POWERUP) strongest = i;
 		//between fights only
 		if (bs->enemy >= 0 && FloatTime() - bs->enemyvisible_time < 2) continue;
 		if (knownRespawn[c][i] <= level.time || pushedRespawn[c][i] == knownRespawn[c][i]) continue;
-		if (need || (enemy && enemyStrength < own)) lead = 3000;
+		if (ent->item->giType == IT_POWERUP) {
+			if (own < 100) continue;
+			lead = 5000;
+		}
+		else if (need || (enemy && BotEnemyStack(bs, enemy->s.number) < own)) lead = 3000;
+		//behind in a duel: every due mega and armour contested
+		else if (enemy && g_timelimit.integer > 0 && enemy->client->ps.persistant[PERS_SCORE] - bs->cur_ps.persistant[PERS_SCORE] >= 3
+			&& level.startTime + g_timelimit.integer * 60000 - level.time < 180000) {
+			lead = 3000;
+			BotTacticLog(bs, "behind_in_duel");
+		}
 		else if (major) lead = 1000;
 		else continue;
 		if (!BotControlGoal(controlItems[i], &goal)) continue;
 		travel = trap_AAS_AreaTravelTimeToGoalArea(bs->areanum, bs->origin, goal.areanum, bs->tfl) * 10;
 		if (travel <= 0 || knownRespawn[c][i] - level.time > travel + lead) continue;
+		if (ent->item->giType == IT_POWERUP && travel > 2000) continue;		//within 2000 u-ish of route
 		pushedRespawn[c][i] = knownRespawn[c][i];
 		trap_BotPushGoal(bs->gs, &goal);
+		BotTacticLog(bs, ent->item->giType == IT_POWERUP ? "powerup_timing" : "item_control");
 	}
 	//ahead by 3 or more with under 2 minutes to go: by the strongest item
-	if (strongest >= 0 && enemy && g_timelimit.integer > 0 && level.time >= nextHold[c]
+	if (gametype == GT_TOURNAMENT && strongest >= 0 && enemy && g_timelimit.integer > 0 && level.time >= nextHold[c]
 		&& bs->cur_ps.persistant[PERS_SCORE] - enemy->client->ps.persistant[PERS_SCORE] >= 3
 		&& level.startTime + g_timelimit.integer * 60000 - level.time < 120000
 		&& Distance(g_entities[controlItems[strongest]].r.currentOrigin, bs->origin) > 400
@@ -1520,8 +1609,105 @@ static void BotItemControl(bot_state_t *bs) {
 		&& BotControlGoal(controlItems[strongest], &goal)) {
 		trap_BotPushGoal(bs->gs, &goal);
 		nextHold[c] = level.time + 5000;
+		BotTacticLog(bs, "hold_position");
 	}
 	(void)self;
+}
+
+/*
+==============
+BotMacro
+
+bots-audit BOT-06 between fights: the nearest big weapon (Rocket Launcher,
+Lightning Gun, Railgun) within 1500 u right after a spawn; in duels after a
+kill (sometimes) the strongest item; in FFA (sometimes, with 150 or more)
+toward fight sounds within 1500 u; in team modes back toward a teammate
+more than 800 u away
+==============
+*/
+static void BotPushGoalTo(bot_state_t *bs, vec3_t origin) {
+	bot_goal_t	goal;
+	int			area = BotPointAreaNum(origin);
+
+	if (!area) return;
+	memset(&goal, 0, sizeof(goal));
+	VectorCopy(origin, goal.origin);
+	goal.areanum = area;
+	VectorSet(goal.mins, -8, -8, -8);
+	VectorSet(goal.maxs, 8, 8, 8);
+	goal.entitynum = 0;
+	trap_BotPushGoal(bs->gs, &goal);
+}
+
+static void BotMacro(bot_state_t *bs) {
+	static int	lastSpawn[MAX_CLIENTS], nextMacro[MAX_CLIENTS];
+	static char	*bigWeapons[] = { "Rocket Launcher", "Lightning Gun", "Railgun", NULL };
+	bot_goal_t	goal, best;
+	gentity_t	*self = &g_entities[bs->client], *other;
+	int			i, num, travel, bestTravel = 1500 / 3, own;
+	float		chance = bs->settings.skill >= 5 ? 0.65f : bs->settings.skill >= 4 ? 0.45f : bs->settings.skill >= 3 ? 0.25f : bs->settings.skill >= 2 ? 0.10f : 0;
+
+	if (BotIsDead(bs) || level.time < nextMacro[bs->client]) return;
+	nextMacro[bs->client] = level.time + 1000;
+	if (bs->enemy >= 0 && FloatTime() - bs->enemyvisible_time < 2) return;
+	own = bs->inventory[INVENTORY_HEALTH] + bs->inventory[INVENTORY_ARMOR];
+	//weapon first: right after a spawn
+	if (lastSpawn[bs->client] != bs->cur_ps.persistant[PERS_SPAWN_COUNT]) {
+		lastSpawn[bs->client] = bs->cur_ps.persistant[PERS_SPAWN_COUNT];
+		best.areanum = 0;
+		for (i = 0; bigWeapons[i]; i++) {
+			for (num = trap_BotGetLevelItemGoal(-1, bigWeapons[i], &goal); num >= 0; num = trap_BotGetLevelItemGoal(num, bigWeapons[i], &goal)) {
+				travel = trap_AAS_AreaTravelTimeToGoalArea(bs->areanum, bs->origin, goal.areanum, bs->tfl);
+				if (travel > 0 && travel < bestTravel) {
+					bestTravel = travel;
+					best = goal;
+				}
+			}
+		}
+		if (best.areanum && !(bs->cur_ps.stats[STAT_WEAPONS] & ((1 << WP_ROCKET_LAUNCHER) | (1 << WP_LIGHTNING) | (1 << WP_RAILGUN)))) {
+			trap_BotPushGoal(bs->gs, &best);
+			BotTacticLog(bs, "weapon_first");
+			return;
+		}
+	}
+	//duels, after a kill: to the strongest item rather than the spawn
+	if (gametype == GT_TOURNAMENT && bs->enemydeath_time && FloatTime() - bs->enemydeath_time < 1.5 && random() < chance) {
+		for (num = trap_BotGetLevelItemGoal(-1, "Mega Health", &goal); num >= 0; num = -1) {
+			trap_BotPushGoal(bs->gs, &goal);
+			BotTacticLog(bs, "spawn_control");
+			bs->enemydeath_time = 0;
+			return;
+		}
+	}
+	//FFA: toward a fight heard within 1500 u
+	if (gametype == GT_FFA && own >= 150 && random() < chance) {
+		for (i = 0; i < level.maxclients; i++) {
+			other = &g_entities[i];
+			if (i == bs->client || !other->inuse || !other->client || other->health <= 0) continue;
+			if (!(other->s.eFlags & EF_FIRING) || Distance(other->r.currentOrigin, bs->origin) > 1500) continue;
+			BotPushGoalTo(bs, other->r.currentOrigin);
+			BotTacticLog(bs, "third_party");
+			return;
+		}
+	}
+	//team modes: stay within 800 u of a teammate
+	if (gametype >= GT_TEAM) {
+		float	nearest = 99999;
+		vec3_t	at;
+
+		for (i = 0; i < level.maxclients; i++) {
+			other = &g_entities[i];
+			if (i == bs->client || !other->inuse || !other->client || other->health <= 0 || !OnSameTeam(other, self)) continue;
+			if (Distance(other->r.currentOrigin, bs->origin) < nearest) {
+				nearest = Distance(other->r.currentOrigin, bs->origin);
+				VectorCopy(other->r.currentOrigin, at);
+			}
+		}
+		if (nearest > 800 && nearest < 99999) {
+			BotPushGoalTo(bs, at);
+			BotTacticLog(bs, "stay_together");
+		}
+	}
 }
 
 /*
@@ -1669,6 +1855,8 @@ void BotUpdateInput(bot_state_t *bs, int time, int elapsed_time) {
 	if (!BotDodgeRockets(bs, &bi)) BotBunnyHop(bs, &bi);
 	//duels: the items timed from what the bot saw or heard
 	BotItemControl(bs);
+	//between fights: weapon first, spawn control, third party, staying together
+	BotMacro(bs);
 	//not standing about
 	BotIdleWatchdog(bs, &bi);
 	//convert the bot input to a usercmd

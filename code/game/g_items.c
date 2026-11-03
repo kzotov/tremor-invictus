@@ -22,6 +22,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 #include "g_local.h"
 
+void BotNoteDamage( int attacker, int target, int damage );
+void BotNotePickup( gentity_t *player, gentity_t *item );
+
 /*
 
   Items are any object that a player can touch to gain some effect.
@@ -671,6 +674,8 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
 	if ( !respawn ) {
 		return;
 	}
+	// bots-audit BOT-06: bots that see or hear the pickup raise their estimate
+	BotNotePickup( other, ent );
 	G_MedalsPickup( other, ent );
 	if ( ent->item->giType == IT_POWERUP ) {
 		// after the item's own pickup sound, the announcer
