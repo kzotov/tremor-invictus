@@ -2092,7 +2092,8 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	"%s keys loaded",
 	" Default: %s.",
 	"Hit sound volume",
-	"How loud the hit and kill beeps are, against the other effects: 1 is as loud, 2 twice (the default)."
+	"How loud the hit and kill beeps are, against the other effects: 1 is as loud, 2 twice (the default).",
+	"Choo Choo"
 };
 
 /*
@@ -2446,7 +2447,8 @@ const medalInfo_t bg_medalInfo[MEDAL_NUM] = {
 	{ STR_MEDAL_FANATICISM,		"fanaticism" },
 	{ STR_MEDAL_SADISM,		"sadism" },
 	{ STR_MEDAL_EXECUTIONER,		"executioner" },
-	{ STR_MEDAL_OFFENSE,		"offense" }
+	{ STR_MEDAL_OFFENSE,		"offense" },
+	{ STR_MEDAL_CHOOCHOO,		"choochoo" }
 };
 
 /*

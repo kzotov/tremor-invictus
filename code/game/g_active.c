@@ -23,6 +23,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "g_local.h"
 
+void G_MedalsRushStart( gentity_t *ent );
+
 
 /*
 ===============
@@ -599,6 +601,9 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 		G_AbilityStarted( ent );
 		state = BG_AbilityState( &client->ps );		// (a refused start, as Master of Death's, is idle again)
 		charges = BG_AbilityCharges( &client->ps );	// (with its charge given back)
+	}
+	if ( client->abilityPrevState != ABILITY_RUSH && state == ABILITY_RUSH ) {
+		G_MedalsRushStart( ent );
 	}
 	// champion-audit.md: the end sound on every end (natural, second press,
 	// cancel), not on a second press that doesn't end it

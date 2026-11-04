@@ -35,7 +35,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define MEDAL_POINT_BLANK		64		// shotgun gap between bodies
 #define MEDAL_PRECISE_RANGE		1000	// rocket flight for Precise
 #define MEDAL_STOPWATCH_TIME	1000	// msec after an item appears
-#define MEDAL_DIEHARD_HEALTH	25
+#define MEDAL_DIEHARD_HEALTH	1		// exactly 1 health, armour aside
 #define MEDAL_ASSIST_TIME		3000	// msec a teammate's hit counts as an assist
 
 /*
@@ -311,6 +311,12 @@ G_MedalsKill
 An enemy killed by a player
 =================
 */
+static int	rushKills[MAX_CLIENTS];		// Bull Rush hit kills in this rush
+
+void G_MedalsRushStart( gentity_t *ent ) {
+	rushKills[ent->s.number] = 0;
+}
+
 static void G_MedalsKill( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int mod, qboolean abilityOn ) {
 	gclient_t	*client = attacker->client;
 	gclient_t	*victim = self->client;
@@ -321,6 +327,12 @@ static void G_MedalsKill( gentity_t *self, gentity_t *inflictor, gentity_t *atta
 		{ WP_TRIBOLT, 15, MEDAL_GOD_TB }, { WP_ROCKET_LAUNCHER, 20, MEDAL_GOD_RL },
 		{ WP_LIGHTNING, 20, MEDAL_GOD_LG }, { WP_RAILGUN, 20, MEDAL_GOD_RG }
 	};
+
+	// Choo Choo: two enemies by Bull Rush hits in one rush, once, at the
+	// second (the Heavyweight stomp is its own means of death)
+	if ( mod == MOD_BULLRUSH && ++rushKills[attacker->s.number] == 2 ) {
+		G_Medal( attacker, MEDAL_CHOOCHOO );
+	}
 
 	if ( !level.firstBlood && !level.warmupTime ) {
 		level.firstBlood = qtrue;

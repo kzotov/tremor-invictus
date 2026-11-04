@@ -163,6 +163,7 @@ typedef enum {
 	MEDAL_SADISM,
 	MEDAL_EXECUTIONER,
 	MEDAL_OFFENSE,			// team objectives: a kill at the enemy's flag base
+	MEDAL_CHOOCHOO,			// Scalebearer: two enemies in one Bull Rush
 	MEDAL_NUM
 } medal_t;
 
@@ -1362,6 +1363,7 @@ typedef enum {
 	STR_SET_DEFAULT_IS,				// settings help: the default value
 	STR_SET_HITVOLUME,
 	STR_SET_HITVOLUME_HELP,
+	STR_MEDAL_CHOOCHOO,
 
 	STR_NUM_STRINGS
 } stringId_t;

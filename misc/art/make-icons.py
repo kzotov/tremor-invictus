@@ -1202,6 +1202,12 @@ def md_doublewhammy():
     return Icon(C(18, 40, 8) | C(46, 24, 8) | L(4, 48, 60, 16, 4))
 
 
+def md_choochoo():
+    # a charging horned head with steam
+    head = C(28, 38, 14) | PL([(18, 28), (12, 16), (6, 14)], 4) | PL([(38, 28), (44, 16), (50, 14)], 4)
+    return Icon(head | C(50, 36, 4) | C(56, 28, 3) | C(60, 20, 2.5))
+
+
 def md_denied():
     return Icon(RG(32, 32, 22, 6) | L(12, 52, 52, 12, 6))
 
@@ -1368,7 +1374,7 @@ def md_victory():
 
 MEDAL_GLYPHS = {
     "firstblood": md_firstblood, "midair": md_midair, "airborne": md_airborne, "combokill": md_combokill,
-    "collateral": md_collateral, "doublewhammy": md_doublewhammy, "denied": md_denied, "revenge": md_revenge,
+    "collateral": md_collateral, "doublewhammy": md_doublewhammy, "choochoo": md_choochoo, "denied": md_denied, "revenge": md_revenge,
     "partybreaker": md_partybreaker, "perforated": md_perforated, "pointblank": md_pointblank,
     "precise": md_precise, "ringout": md_ringout, "stopwatch": md_stopwatch, "tank": md_tank,
     "diehard": md_diehard, "fromthegrave": md_fromthegrave, "kamikaze": md_kamikaze,
@@ -1393,7 +1399,7 @@ TIER_COLOR = {COMMON: (0.784, 0.816, 0.847), RARE: (0.235, 0.549, 0.941),
 MEDAL_TIER = {k: RARE for k in MEDAL_GLYPHS}
 MEDAL_TIER.update({k: COMMON for k in ("firstblood", "airborne", "pointblank", "stopwatch", "capture", "defend",
                                        "offense", "assist", "accuracy", "frags", "victory")})
-MEDAL_TIER.update({k: EPIC for k in ("gauntlet", "collateral", "doublewhammy", "partybreaker", "perforated",
+MEDAL_TIER.update({k: EPIC for k in ("gauntlet", "collateral", "doublewhammy", "choochoo", "partybreaker", "perforated",
                                      "fromthegrave", "kamikaze", "showstopper", "fighter", "crusher",
                                      "exterminator", "demolisher", "grimreaper", "rage", "fury", "frenzy",
                                      "riot", "dominating")})

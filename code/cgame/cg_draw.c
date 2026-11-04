@@ -3548,7 +3548,7 @@ or legendary, by the medal's key; 1 (rare) for anything not listed
 */
 static int CG_MedalTier( int nameString, qhandle_t shader ) {
 	static const char	*common = " firstblood airborne pointblank stopwatch capture defend offense assist accuracy frags victory ";
-	static const char	*epic = " gauntlet collateral doublewhammy partybreaker perforated fromthegrave kamikaze showstopper fighter "
+	static const char	*epic = " gauntlet collateral doublewhammy choochoo partybreaker perforated fromthegrave kamikaze showstopper fighter "
 		"crusher exterminator demolisher grimreaper rage fury frenzy riot dominating ";
 	static const char	*legendary = " avatarofdeath rampage merciless fanaticism sadism executioner powerupmassacre ";
 	char				key[64];

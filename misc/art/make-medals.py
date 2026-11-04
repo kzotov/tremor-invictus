@@ -44,6 +44,11 @@ def p_doublewhammy():
     return burst(0.42, 0.45, 0.15, 0.065, 8).outline(0.03), burst(0.6, 0.58, 0.15, 0.065, 8)
 
 
+def p_choochoo():
+    head = circle(0.46, 0.56, 0.16) | line(0.36, 0.46, 0.24, 0.3, 0.05) | line(0.56, 0.46, 0.68, 0.3, 0.05)
+    return head, circle(0.72, 0.5, 0.05) | circle(0.8, 0.42, 0.04) | circle(0.86, 0.34, 0.03)
+
+
 def p_denied():
     return (ring(0.5, 0.5, 0.17, 0.05) | box(0.5, 0.5, 0.07, 0.022) | box(0.5, 0.5, 0.022, 0.07),
             line(0.37, 0.63, 0.63, 0.37, 0.055))
@@ -331,7 +336,7 @@ MEDALS = [
     "grimreaper", "avatarofdeath", "killingspree",
     "rage", "frenzy", "rampage", "dominating", "powerupmassacre", "gauntletgod", "machinegungod",
     "shotgungod", "nailgungod", "triboltgod", "rocketgod", "lightninggod", "railgod", "damagedealer",
-    "netmaster", "assistant", "fury", "riot", "merciless", "fanaticism", "sadism", "executioner", "offense",
+    "netmaster", "assistant", "fury", "riot", "merciless", "fanaticism", "sadism", "executioner", "offense", "choochoo",
     "impressive", "excellent", "gauntlet", "defend", "capture", "assist", "accuracy", "frags", "victory",
 ]
 MASTERS = {"gauntletgod", "machinegungod", "shotgungod", "nailgungod", "triboltgod", "rocketgod",
