@@ -1302,6 +1302,38 @@ static void G_BerserkGuide( gentity_t *ent ) {
 
 /*
 ==============
+G_BotTraceMask
+
+bots.md FIX-66: a bot-only wall stops a bot from the side but is never a
+floor. A bot on the ground with no real floor within 4 u under its box
+stands on one, so it moves with the players' mask and falls as a player
+would, until it is on the ground clear of every bot-only brush (inside
+one, the bot mask would hold it stuck)
+==============
+*/
+static int G_BotTraceMask( gentity_t *ent ) {
+	static qboolean	playerMask[MAX_CLIENTS];
+	gclient_t		*client = ent->client;
+	qboolean		*falling = &playerMask[ent->s.number];
+	trace_t			tr;
+	vec3_t			end;
+
+	if ( client->ps.groundEntityNum != ENTITYNUM_NONE ) {
+		if ( *falling ) {
+			trap_Trace( &tr, client->ps.origin, ent->r.mins, ent->r.maxs, client->ps.origin, ent->s.number, CONTENTS_BOTCLIP );
+			*falling = tr.startsolid;
+		} else {
+			VectorCopy( client->ps.origin, end );
+			end[2] -= 4;
+			trap_Trace( &tr, client->ps.origin, ent->r.mins, ent->r.maxs, end, ent->s.number, MASK_PLAYERSOLID );
+			*falling = tr.fraction >= 1 && !tr.startsolid;
+		}
+	}
+	return *falling ? MASK_PLAYERSOLID : MASK_PLAYERSOLID | CONTENTS_BOTCLIP;
+}
+
+/*
+==============
 ClientThink
 
 This will be called once for each client frame, which will
@@ -1521,7 +1553,7 @@ void ClientThink_real( gentity_t *ent ) {
 		pm.tracemask = MASK_PLAYERSOLID & ~CONTENTS_BODY;
 	}
 	else if ( ent->r.svFlags & SVF_BOT ) {
-		pm.tracemask = MASK_PLAYERSOLID | CONTENTS_BOTCLIP;
+		pm.tracemask = G_BotTraceMask( ent );
 	}
 	else {
 		pm.tracemask = MASK_PLAYERSOLID;
