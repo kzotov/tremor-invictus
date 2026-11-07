@@ -994,6 +994,7 @@ typedef struct {
 	sfxHandle_t	wearOffSound;
 	sfxHandle_t	tenFragSound, fifteenFragSound;
 	sfxHandle_t	poolLoopSound, poolStopSound;
+	sfxHandle_t	teamWonSound, enemyWonSound, youWinSound, youLoseSound, placeSounds[8];
 	sfxHandle_t	protectWearOffSound;
 	sfxHandle_t	hourglassSound;
 	sfxHandle_t	footsteps[FOOTSTEP_TOTAL][4];
@@ -1501,6 +1502,9 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 //
 void CG_AdjustFrom640( float *x, float *y, float *w, float *h );
 int CG_FragLimit( void );
+#define RESULTS_MSEC			4000	// menu-style.md 5a: the results word
+#define PODIUM_MSEC				6000	// the podium
+#define PODIUM_WINNER_FORWARD	24		// the winner stands this much nearer
 void CG_FillRect( float x, float y, float width, float height, const float *color );
 void CG_DrawPic( float x, float y, float width, float height, qhandle_t hShader );
 float CG_LevelshotAspect( const char *map );

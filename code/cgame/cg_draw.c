@@ -6069,7 +6069,7 @@ static void CG_DrawIntermission( void ) {
 	// how long the end board stays (g_intermissionTime)
 	{
 		int		total = atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_intermissionTime" ) );
-		int		left = total - ( cg.time - cg.podiumTime - 6000 ) / 1000;		// (from the podium's end)
+		int		left = total - ( cg.time - cg.podiumTime - RESULTS_MSEC - PODIUM_MSEC ) / 1000;		// (from the podium's end)
 
 		if ( total > 0 && cg.podiumTime && !CG_ConfigString( CS_MAPVOTE )[0] ) {		// (a map vote has its own clock)
 			CG_HudText( 320, 462, 16, va( (char *)BG_String( STR_END_NEXT ), left > 0 ? left : 0 ), colorWhite, 1, 1 );
@@ -6626,7 +6626,15 @@ static void CG_DrawPillars( const int *clients, const int *heights, const int *t
 	for ( i = 0 ; i < count ; i++ ) {
 		y = ( ( count - 1 ) / 2.0f - i ) * spacing;
 		VectorSet( base, dist, y, PILLAR_TOP * dist / PILLAR_DIST + ( heights ? heights[i] : 0 ) );
-		CG_AddPillar( base, glows[teams ? teams[i] : 0], ranks ? ranks[i] : 0 );
+		// the podium: no pillars, one floor line, the winner a little forward
+		if ( ranks ) {
+			base[2] = PILLAR_TOP * dist / PILLAR_DIST;
+			if ( ranks[i] == 1 ) {
+				base[0] -= PODIUM_WINNER_FORWARD;
+			}
+		} else {
+			CG_AddPillar( base, glows[teams ? teams[i] : 0], 0 );
+		}
 		CG_AddPillarPlayer( clients[i], base );
 	}
 	trap_R_AddLightToScene( vec3_origin, 600, 1, 1, 1 );
@@ -7246,6 +7254,54 @@ The first seconds of the intermission: the top three on pillars of
 heights 3, 2 and 1, the winner in the middle
 =================
 */
+/*
+=================
+CG_DrawResults
+
+menu-style.md 5a, the first step after a match: the view stays, the HUD
+hidden, one large word (VICTORY, DEFEAT, TIE, in FFA your place) and one
+announcer line
+=================
+*/
+static void CG_DrawResults( void ) {
+	static int	said;
+	static const char	*places[] = { "1ST PLACE", "2ND PLACE", "3RD PLACE", "4TH PLACE", "5TH PLACE", "6TH PLACE", "7TH PLACE", "8TH PLACE" };
+	playerState_t	*ps = &cg.snap->ps;
+	int			team = ps->persistant[PERS_TEAM], rank = ps->persistant[PERS_RANK] & ~RANK_TIED_FLAG;
+	const char	*word = "";
+	sfxHandle_t	sfx = 0;
+
+	if ( team == TEAM_SPECTATOR && cgs.gametype < GT_TEAM ) {
+		word = "";
+	} else if ( cgs.gametype >= GT_TEAM ) {
+		int		own = team == TEAM_BLUE ? cg.teamScores[1] : cg.teamScores[0];
+		int		other = team == TEAM_BLUE ? cg.teamScores[0] : cg.teamScores[1];
+
+		if ( own == other ) {
+			word = "TIE";
+			sfx = cgs.media.teamsTiedSound;
+		} else if ( team != TEAM_SPECTATOR ) {
+			word = own > other ? "VICTORY" : "DEFEAT";
+			sfx = own > other ? cgs.media.teamWonSound : cgs.media.enemyWonSound;
+		}
+	} else if ( cgs.gametype == GT_TOURNAMENT ) {
+		word = rank == 0 ? "VICTORY" : "DEFEAT";
+		sfx = rank == 0 ? cgs.media.youWinSound : cgs.media.youLoseSound;
+	} else if ( rank >= 0 && rank < 8 ) {
+		word = places[rank];
+		sfx = cgs.media.placeSounds[rank];
+	}
+	if ( said != cg.podiumTime ) {
+		said = cg.podiumTime;
+		if ( sfx ) {
+			trap_S_StartLocalSound( sfx, CHAN_ANNOUNCER );
+		}
+	}
+	if ( word[0] ) {
+		CG_DrawStringExt( 320 - CG_DrawStrlen( word ) * GIANT_WIDTH / 2, 200, word, colorWhite, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
+	}
+}
+
 static void CG_DrawPodium( void ) {
 	static const vec4_t	dim = { 0.05f, 0.05f, 0.06f, 1.0f };		// a screen of its own
 	// konstantin-list-audit F1 1: duel 2 pillars, FFA 3, team modes the
@@ -8914,7 +8970,13 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 		if ( !cg.podiumTime ) {
 			cg.podiumTime = cg.time;
 		}
-		if ( cg.time - cg.podiumTime < 6000 && cg_drawLineup.integer ) {
+		// menu-style.md 5a: the results over the game view, then the podium,
+		// then the end board
+		if ( cg.time - cg.podiumTime < RESULTS_MSEC ) {
+			CG_DrawResults();
+			return;
+		}
+		if ( cg.time - cg.podiumTime < RESULTS_MSEC + PODIUM_MSEC && cg_drawLineup.integer ) {
 			CG_DrawPodium();
 			return;
 		}

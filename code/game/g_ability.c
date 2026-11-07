@@ -2570,7 +2570,7 @@ qboolean G_DroneAbsorbDamage( gentity_t *ent, int take ) {
 STROYENT CELLS
 
 A kill by a champion with this passive drops a cell; only such champions
-can pick it up, for health up to the maximum (it stays at full health).
+can pick it up, for health up to the over-max limit (it stays at that limit).
 
 ==============================================================================
 */
@@ -2603,9 +2603,9 @@ static void G_CellThink( gentity_t *cell ) {
 		if ( Distance( other->r.currentOrigin, cell->r.currentOrigin ) > 40 ) {
 			continue;
 		}
-		// heals to the base maximum only, and stays on the floor for later
-		// at full health (konstantin-list-audit 1)
-		max = other->client->ps.stats[STAT_MAX_HEALTH];
+		// heals over maximum up to the over-max limit, and stays on the
+		// floor only at that limit (FIX-80)
+		max = other->client->ps.stats[STAT_MAX_HEALTH] + G_ClassInfo( other->client )->maxHealthBonus;
 		if ( other->health >= max ) {
 			continue;
 		}
@@ -2615,6 +2615,7 @@ static void G_CellThink( gentity_t *cell ) {
 		}
 		other->client->ps.stats[STAT_HEALTH] = other->health;
 		G_ClearDamageOverTime( other );		// as any health pickup: burn and acid end
+		G_CutAbilityCooldown( other, 0.05f );
 		// the small health's pickup: its sound and a pickup feed line
 		{
 			gitem_t	*item = BG_FindItem( "5 Health" );
@@ -2661,7 +2662,10 @@ void G_DropStroyentCell( gentity_t *victim, gentity_t *attacker ) {
 	gentity_t	*cell;
 	int			seers = G_StroyentSeers();
 
-	if ( !seers || !victim->client ) {
+	// only a Strogg's kill of an enemy drops one; his own death none
+	if ( !seers || !victim->client || !attacker || !attacker->client || attacker == victim
+		|| !( BG_Champion( attacker->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_STROYENT )
+		|| OnSameTeam( attacker, victim ) ) {
 		return;
 	}
 	cell = G_Spawn();

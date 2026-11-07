@@ -473,8 +473,8 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_droneLaunchDelay, "g_droneLaunchDelay", "500", 0, 0, qtrue },
 	{ &g_droneRocketDamage, "g_droneRocketDamage", "75", 0, 0, qtrue },
 	{ &g_droneRocketRadius, "g_droneRocketRadius", "120", 0, 0, qtrue },
-	{ &g_stroyentHeal, "g_stroyentHeal", "20", 0, 0, qtrue },
-	{ &g_stroyentLife, "g_stroyentLife", "20000", 0, 0, qtrue },
+	{ &g_stroyentHeal, "g_stroyentHeal", "10", 0, 0, qtrue },
+	{ &g_stroyentLife, "g_stroyentLife", "15000", 0, 0, qtrue },
 	{ &g_lagHaxMs, "g_lagHaxMs", "80", CVAR_ARCHIVE | CVAR_LATCH, 0, qtrue },
 	{ &g_cylinderScale, "g_cylinderScale", "1.1", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_rewindDebug, "g_rewindDebug", "0", 0, 0, qtrue },
@@ -1703,7 +1703,7 @@ If one or more players have not acknowledged the continue, the game will
 wait 10 seconds before going on.
 =================
 */
-#define INTERMISSION_PODIUM_MSEC	6000	// the podium before the end board (cgame)
+#define INTERMISSION_PODIUM_MSEC	10000	// the results word and the podium before the end board (cgame)
 
 void CheckIntermissionExit( void ) {
 	int			ready, notReady, playerCount;

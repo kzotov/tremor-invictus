@@ -757,6 +757,13 @@ static void CG_RegisterSounds( void ) {
 	cgs.media.oneFragSound = trap_S_RegisterSound( "sound/feedback/1_frag.wav", qtrue );
 	cgs.media.tenFragSound = trap_S_RegisterSound( "sound/feedback/10_frags.wav", qtrue );
 	cgs.media.fifteenFragSound = trap_S_RegisterSound( "sound/feedback/15_frags.wav", qtrue );
+	cgs.media.youWinSound = trap_S_RegisterSound( "sound/feedback/voc_youwin.wav", qtrue );
+	cgs.media.youLoseSound = trap_S_RegisterSound( "sound/feedback/voc_youlose.wav", qtrue );
+	cgs.media.teamWonSound = trap_S_RegisterSound( "sound/feedback/team_won.wav", qtrue );
+	cgs.media.enemyWonSound = trap_S_RegisterSound( "sound/feedback/enemy_team_won.wav", qtrue );
+	for ( i = 0 ; i < 8 ; i++ ) {
+		cgs.media.placeSounds[i] = trap_S_RegisterSound( va( "sound/feedback/place_%i.wav", i + 1 ), qtrue );
+	}
 	cgs.media.poolLoopSound = trap_S_RegisterSound( "sound/world/pool_heal.wav", qfalse );
 	cgs.media.poolStopSound = trap_S_RegisterSound( "sound/world/pool_stop.wav", qfalse );
 	cgs.media.twoFragSound = trap_S_RegisterSound( "sound/feedback/2_frags.wav", qtrue );
