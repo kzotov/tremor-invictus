@@ -139,8 +139,8 @@ void TossClientItems( gentity_t *self ) {
 				drop = Drop_Item( self, item, angle );
 				// decide how many seconds it has left
 				drop->count = ( self->client->ps.powerups[ i ] - level.time ) / 1000;
-				if ( drop->count < 1 ) {
-					drop->count = 1;
+				if ( drop->count < 3 ) {
+					drop->count = 3;		// at least 3 s on what falls
 				}
 				angle += 45;
 			}
@@ -557,6 +557,9 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	self->client->ps.eFlags &= ~( EF_LASER | EF_DUALWIELD | EF_BARRIER );	// (no laser, second gun or shield on the body)
 	G_AbilityClientDied( self );
 	G_DropStroyentCell( self, attacker );
+	if ( meansOfDeath == MOD_BERSERK ) {
+		G_DropBloodPunch( self, attacker );
+	}
 #ifdef MISSIONPACK
 	if ((self->client->ps.eFlags & EF_TICKING) && self->activator) {
 		self->client->ps.eFlags &= ~EF_TICKING;
@@ -1313,9 +1316,15 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		G_AddEvent( targ, EV_POWERUP_BATTLESUIT, 0 );
 		damage *= g_protectionScale.value;
 	}
+	// Galena's totems carry her Protection
+	if ( !targ->client && targ->classname && !strcmp( targ->classname, "totem" ) && targ->parent && targ->parent->client
+		&& targ->parent->client->ps.powerups[PW_BATTLESUIT] && mod != MOD_TELEFRAG ) {
+		damage *= g_protectionScale.value;
+	}
 
-	// a hit on an enemy turret beeps as a hit on a player does
-	if ( attacker->client && !targ->client && targ->classname && !strcmp( targ->classname, "sentry_turret" )
+	// a hit on an enemy turret or totem beeps as a hit on a player does
+	if ( attacker->client && !targ->client && targ->classname
+		&& ( !strcmp( targ->classname, "sentry_turret" ) || !strcmp( targ->classname, "totem" ) )
 		&& targ->parent && targ->parent->client && !OnSameTeam( targ->parent, attacker ) && targ->health > 0 ) {
 		attacker->client->ps.persistant[PERS_HITS]++;
 	}
@@ -1357,6 +1366,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			} else if ( dflags & DAMAGE_RADIUS ) {
 				damage *= g_splashResistScale.value;
 			}
+		}
+		// Forged Skin: half from a fireball's blast
+		if ( ( passives & PASSIVE_FIREPROOF ) && mod == MOD_FIREBALL && ( dflags & DAMAGE_RADIUS ) ) {
+			damage *= 0.5f;
+		}
+		// Acid Fiend: half from an enemy's blobs
+		if ( ( passives & PASSIVE_ACIDPROOF ) && mod == MOD_ACID && as != attacker ) {
+			damage *= 0.5f;
 		}
 	}
 
@@ -1567,6 +1584,22 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if ( targ->client && asave ) {
 		targ->client->lastDamageTime = level.time;
 	}
+
+	// the number over a totem, as over a player
+	if ( take > 0 && attacker->client && !targ->client && targ->classname && !strcmp( targ->classname, "totem" )
+		&& targ->parent && targ->parent->client && G_AbilityEnemy( targ->parent, attacker ) ) {
+		gentity_t	*plum = G_TempEntity( targ->r.currentOrigin, EV_DAMAGEPLUM );
+
+		plum->s.origin[2] += 24;
+		plum->s.pos.trBase[2] += 24;
+		plum->s.time = take;
+		plum->s.otherEntityNum = attacker->s.number;
+		plum->s.otherEntityNum2 = targ->s.number;
+		plum->s.generic1 = mod;
+		plum->r.svFlags |= SVF_SINGLECLIENT;
+		plum->r.singleClient = attacker->s.number;
+	}
+	G_FireArmourSteal( attacker, as, take + asave, mod );
 
 	// do the damage
 	if (take) {

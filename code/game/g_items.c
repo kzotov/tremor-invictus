@@ -284,12 +284,9 @@ int Pickup_Weapon (gentity_t *ent, gentity_t *other) {
 		}
 	}
 
-	// tuned weapons: ammo up to the weapon's starting amount, never less
+	// tuned weapons: always the weapon's starting ammo on top, up to its maximum
 	if ( BG_WeaponTuned( ent->item->giTag ) && ent->count >= 0 ) {
-		quantity = BG_WeaponParam( ent->item->giTag, WPP_AMMOSTART ) - other->client->ps.ammo[ ent->item->giTag ];
-		if ( quantity < 0 ) {
-			quantity = 0;
-		}
+		quantity = BG_WeaponParam( ent->item->giTag, WPP_AMMOSTART );
 	}
 
 	// add the weapon; a heavy one replaces its starting weapon in the slot

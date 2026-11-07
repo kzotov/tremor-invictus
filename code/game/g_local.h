@@ -272,6 +272,8 @@ typedef struct {
 	qboolean	autoHop;			// userinfo cg_autoHop
 	char		netname[MAX_NETNAME];
 	int			maxHealth;			// for handicapping
+	int			injectionGain;		// Anarki: maximum health won this match
+	qboolean	hovertankDone;		// and the medal for it
 	int			accShots[WP_NUM_WEAPONS];	// this match, per weapon
 	int			accHits[WP_NUM_WEAPONS];
 	int			damageGiven;		// to enemies, health and armour
@@ -413,7 +415,9 @@ struct gclient_s {
 	int			hookDamageTaken;	// while hooked; the rope breaks at g_hookBreakDamage
 	int			armorRegenResidual;
 	qboolean	timeoutUsed;		// this match
-	qboolean	decaySkipped;		// slow decay: every other second
+	int			healthDecayTicks;	// seconds since health over max last fell
+	int			armorDecayTicks;	// and armour over base
+	int			fireStealHalf;		// Armour Steal: a point of fire damage left over
 	vec3_t		anchorOrigin;
 	struct gentity_s	*anchorEnt;
 	int			abilityPrevState;	// ability state after the last think
@@ -942,6 +946,8 @@ float G_BarrierScale( gentity_t *targ, int mod, const vec3_t dir );
 void G_BarrierHit( gentity_t *targ, int damage );
 qboolean G_DroneAbsorbDamage( gentity_t *ent, int take );
 void G_DropStroyentCell( gentity_t *victim, gentity_t *attacker );
+void G_DropBloodPunch( gentity_t *victim, gentity_t *attacker );
+void G_FireArmourSteal( gentity_t *attacker, gentity_t *victim, int damage, int mod );
 qboolean G_AbilityActive( gentity_t *ent, int active );
 
 #define	G_ClassInfo( client )	( &bg_classInfo[BG_Champion( (client)->ps.stats[STAT_CHAMPION] )->bodyClass] )
@@ -1167,6 +1173,7 @@ extern	vmCvar_t	g_cooldownHealth;
 extern	vmCvar_t	g_cooldownMega;
 extern	vmCvar_t	g_cooldownAmmo;
 extern	vmCvar_t	g_orbSpeed;
+extern	vmCvar_t	g_orbHealth;
 extern	vmCvar_t	g_orbLife;
 extern	vmCvar_t	g_orbFuse;
 extern	vmCvar_t	g_orbShotDamage;

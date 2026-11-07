@@ -783,6 +783,9 @@ void ClientUserinfoChanged( int clientNum ) {
 	}
 #endif
 	client->ps.stats[STAT_MAX_HEALTH] = client->pers.maxHealth;
+	if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_INJECTION ) {
+		client->ps.stats[STAT_MAX_HEALTH] += client->pers.injectionGain;
+	}
 
 	// champion, takes effect on the next spawn; bots pick the one matching their model
 	prevChampion = client->pers.champion;
@@ -1397,6 +1400,10 @@ void ClientSpawn(gentity_t *ent) {
 	client->ps.ammo[WP_GRAPPLING_HOOK] = -1;
 
 	// health will count down towards max_health
+	// Anarki's rise in maximum health lasts the match
+	if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_INJECTION ) {
+		client->ps.stats[STAT_MAX_HEALTH] += client->pers.injectionGain;
+	}
 	ent->health = client->ps.stats[STAT_HEALTH] = client->ps.stats[STAT_MAX_HEALTH] + 25;
 	G_MedalsSpawn( ent );
 	client->spawnProtectEnd = level.time + g_spawnProtection.integer;

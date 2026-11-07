@@ -368,8 +368,8 @@ static void G_OrbThink( gentity_t *orb ) {
 ================
 G_OrbDestroyed
 
-Shot down by another player: a small blast, and its owner gets half the
-cooldown back
+Shot down by anyone, its 75 health gone: a blast, and when an enemy did it
+its owner gets half the cooldown back
 ================
 */
 static void G_OrbDestroyed( gentity_t *orb, gentity_t *inflictor, gentity_t *attacker, int damage, int mod ) {
@@ -377,17 +377,18 @@ static void G_OrbDestroyed( gentity_t *orb, gentity_t *inflictor, gentity_t *att
 
 	orb->takedamage = qfalse;
 	orb->die = NULL;
-	if ( !attacker || attacker == owner || !owner || !owner->client || !attacker->client
-		|| !G_AbilityEnemy( owner, attacker ) ) {
-		orb->health = 1;
+	if ( !attacker || !owner || !owner->client || !attacker->client ) {
+		orb->health = g_orbHealth.integer;
 		orb->takedamage = qtrue;
 		orb->die = G_OrbDestroyed;
-		return;		// only an enemy's shots count (champion-audit.md)
+		return;		// only players' shots count
 	}
 	// the death blast: the same falloff, wider, and Ranger isn't spared
 	// the orb's own blast (Ranger's), everyone within 300 u, the shooter too
 	G_OrbBurst( orb->r.currentOrigin, owner, g_orbShotDamage.value, g_orbShotRadius.value, qfalse );
-	G_CutAbilityCooldown( owner, 0.5f );
+	if ( G_AbilityEnemy( owner, attacker ) ) {
+		G_CutAbilityCooldown( owner, 0.5f );
+	}
 	if ( owner->client->abilityEnt == orb ) {
 		owner->client->abilityEnt = NULL;
 		G_AbilityDone( owner );
@@ -431,7 +432,7 @@ static void G_FireOrb( gentity_t *ent ) {
 	VectorSet( orb->r.maxs, 8, 8, 8 );
 	orb->r.contents = CONTENTS_CORPSE;
 	orb->takedamage = qtrue;
-	orb->health = 1;
+	orb->health = g_orbHealth.integer;
 	orb->die = G_OrbDestroyed;
 	VectorCopy( forward, orb->movedir );
 	ent->client->abilityEnt = orb;
@@ -961,17 +962,58 @@ static void G_TotemDie( gentity_t *self, gentity_t *inflictor, gentity_t *attack
 	G_FreeEntity( self );
 }
 
+#define TOTEM_HEAL_DELAY	5000	// msec without damage before it heals
+#define TOTEM_HEAL_STEP		5		// a second, up to its full health
+
+static void G_TotemPain( gentity_t *self, gentity_t *attacker, int damage ) {
+	self->timestamp = level.time;
+	self->s.time2 = self->health | g_totemHealth.integer << 12;
+}
+
+/*
+================
+G_TotemHazard
+
+Lava, slime, nodrop or a hurt trigger at the spot
+================
+*/
+static qboolean G_TotemHazard( vec3_t spot ) {
+	vec3_t	absmin, absmax;
+	int		touch[MAX_GENTITIES], i, num;
+
+	if ( trap_PointContents( spot, -1 ) & ( CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_NODROP ) ) {
+		return qtrue;
+	}
+	VectorSet( absmin, spot[0] - 8, spot[1] - 8, spot[2] - 8 );
+	VectorSet( absmax, spot[0] + 8, spot[1] + 8, spot[2] + 16 );
+	num = trap_EntitiesInBox( absmin, absmax, touch, MAX_GENTITIES );
+	for ( i = 0 ; i < num ; i++ ) {
+		gentity_t	*other = &g_entities[touch[i]];
+
+		if ( other->inuse && other->classname && ( other->r.contents & CONTENTS_TRIGGER )
+			&& !strcmp( other->classname, "trigger_hurt" ) && trap_EntityContact( absmin, absmax, other ) ) {
+			return qtrue;
+		}
+	}
+	return qfalse;
+}
+
 /*
 ================
 G_TotemBurst
 
-An enemy came close: every enemy within the blast radius takes the hit
+An enemy came close: every enemy within the blast radius takes the hit,
+more with its owner's Quad; half of what it deals comes back to the owner
+as health
 ================
 */
 static void G_TotemBurst( gentity_t *totem, int damage ) {
-	gentity_t	*other;
-	int			i;
+	gentity_t	*other, *owner = totem->parent;
+	int			i, before, dealt = 0;
 
+	if ( owner && owner->client && owner->client->ps.powerups[PW_QUAD] ) {
+		damage *= g_quadfactor.value;
+	}
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
 		other = &g_entities[i];
 		if ( !other->inuse || !other->client || other->health <= 0 || !G_AbilityEnemy( totem->parent, other ) ) {
@@ -983,9 +1025,20 @@ static void G_TotemBurst( gentity_t *totem, int damage ) {
 			// each victim needs a clear line from the totem (champion-audit.md)
 			trap_Trace( &los, totem->r.currentOrigin, NULL, NULL, other->r.currentOrigin, totem->s.number, MASK_SOLID );
 			if ( los.fraction == 1.0f ) {
+				before = other->health + other->client->ps.stats[STAT_ARMOR];
 				G_Damage( other, totem, totem->parent, NULL, NULL, damage, 0, MOD_TOTEM );
+				dealt += before - other->health - other->client->ps.stats[STAT_ARMOR];
 			}
 		}
+	}
+	// life steal
+	if ( dealt > 1 && owner && owner->client && owner->health > 0
+		&& owner->health < owner->client->ps.stats[STAT_MAX_HEALTH] ) {
+		owner->health += dealt / 2;
+		if ( owner->health > owner->client->ps.stats[STAT_MAX_HEALTH] ) {
+			owner->health = owner->client->ps.stats[STAT_MAX_HEALTH];
+		}
+		owner->client->ps.stats[STAT_HEALTH] = owner->health;
 	}
 	// the burst: its flash and sound
 	{
@@ -1007,6 +1060,22 @@ static void G_TotemThink( gentity_t *totem ) {
 	float		dist;
 
 	totem->nextthink = level.time + ABILITY_FRAME * 2;
+	// its owner's power-ups show on it, and it heals after a quiet while
+	if ( totem->parent && totem->parent->client ) {
+		totem->s.powerups = totem->parent->client->ps.powerups[PW_QUAD] ? 1 << PW_QUAD : 0;
+		if ( totem->parent->client->ps.powerups[PW_BATTLESUIT] ) {
+			totem->s.powerups |= 1 << PW_BATTLESUIT;
+		}
+	}
+	if ( level.time - totem->timestamp >= TOTEM_HEAL_DELAY && totem->health < g_totemHealth.integer
+		&& level.time >= totem->pain_debounce_time ) {
+		totem->pain_debounce_time = level.time + 1000;
+		totem->health += TOTEM_HEAL_STEP;
+		if ( totem->health > g_totemHealth.integer ) {
+			totem->health = g_totemHealth.integer;
+		}
+		totem->s.time2 = totem->health | g_totemHealth.integer << 12;
+	}
 	if ( level.time < totem->abilityTime + g_totemArmTime.integer || !totem->parent || !totem->parent->client ) {
 		return;
 	}
@@ -1064,6 +1133,14 @@ static void G_TotemImpact( gentity_t *totem, trace_t *trace ) {
 	vec3_t	point;
 
 	VectorMA( trace->endpos, 2, trace->plane.normal, point );
+	// thrown into a hazard: 80 % of the cooldown back
+	if ( G_TotemHazard( point ) ) {
+		if ( totem->parent && totem->parent->client ) {
+			G_CutAbilityCooldown( totem->parent, 0.8f );
+		}
+		G_FreeEntity( totem );
+		return;
+	}
 	G_AbilityStop( totem, point );
 	totem->abilityImpact = NULL;
 	totem->s.eType = ET_GENERAL;
@@ -1078,8 +1155,16 @@ static void G_TotemImpact( gentity_t *totem, trace_t *trace ) {
 	VectorSet( totem->r.maxs, 8, 8, 16 );
 	totem->takedamage = qtrue;
 	totem->health = g_totemHealth.integer;
+	totem->s.time2 = totem->health | g_totemHealth.integer << 12;		// (its bar: CG_DrawObjectBars)
+	totem->timestamp = level.time;
+	totem->pain = G_TotemPain;
 	totem->die = G_TotemDie;
 	totem->abilityTime = level.time;
+	// its owner sees it through walls, so is always sent it
+	if ( totem->parent && totem->parent->s.number < 32 ) {
+		totem->r.svFlags |= SVF_BROADCASTMASK;
+		totem->r.singleClient = 1 << totem->parent->s.number;
+	}
 	totem->think = G_TotemThink;
 	totem->nextthink = level.time + ABILITY_FRAME;
 	trap_LinkEntity( totem );
@@ -1223,6 +1308,7 @@ static void G_TurretThink( gentity_t *turret ) {
 	int			i;
 
 	turret->nextthink = level.time + ABILITY_FRAME;
+	turret->s.time2 = ( turret->health > 0 ? turret->health : 0 ) | g_turretHealth.integer << 12;		// (its bar)
 	G_TurretUpkeep( turret );
 	// Eisen's HUD: the turret out, its health and armour (STAT_TURRET)
 	if ( turret->parent && turret->parent->client && turret->parent->inuse ) {
@@ -1886,7 +1972,8 @@ static void G_FireLaser( gentity_t *ent ) {
 ================
 G_BarrierHit
 
-The shield breaks after taking enough damage
+One energy pool for time and damage: each point taken burns the time 200
+points are worth of its 8 s, so it breaks at damage + 200 * time used / 8 s
 ================
 */
 void G_BarrierHit( gentity_t *targ, int damage ) {
@@ -1896,7 +1983,8 @@ void G_BarrierHit( gentity_t *targ, int damage ) {
 		return;
 	}
 	client->barrierDamage += damage;
-	if ( client->barrierDamage >= g_barrierHealth.integer ) {
+	client->ps.stats[STAT_ABILITY_TIME] -= damage * BG_AbilityParam( ACTIVE_BARRIER, AP_DURATION ) / g_barrierHealth.integer;
+	if ( client->barrierDamage >= g_barrierHealth.integer || client->ps.stats[STAT_ABILITY_TIME] <= 0 ) {
 		BG_SetAbility( &client->ps, ABILITY_IDLE, BG_AbilityCharges( &client->ps ) );
 		client->ps.stats[STAT_ABILITY_TIME] = 0;
 		G_AbilityEnded( targ );
@@ -2695,10 +2783,135 @@ void G_DropStroyentCell( gentity_t *victim, gentity_t *attacker ) {
 /*
 ==============================================================================
 
+BLOOD PUNCH
+
+A Berserk punch kill bursts into health bubbles that only Doom sees and
+takes, drifting to him
+
+==============================================================================
+*/
+
+#define BLOOD_BUBBLES		5
+#define BLOOD_BUBBLE_HEALTH	5
+#define BLOOD_BUBBLE_LIFE	10000
+#define BLOOD_BUBBLE_SPEED	240		// u/s toward him
+#define BLOOD_BUBBLE_REACH	40
+
+static void G_BloodBubbleThink( gentity_t *bubble ) {
+	gentity_t	*owner = bubble->parent;
+	vec3_t		origin, dir;
+	int			max;
+
+	if ( level.time >= bubble->abilityTime || !owner || !owner->inuse || !owner->client || owner->health <= 0 ) {
+		G_FreeEntity( bubble );
+		return;
+	}
+	BG_EvaluateTrajectory( &bubble->s.pos, level.time, origin );
+	VectorSubtract( owner->r.currentOrigin, origin, dir );
+	max = owner->client->ps.stats[STAT_MAX_HEALTH] + G_ClassInfo( owner->client )->maxHealthBonus;
+	if ( VectorNormalize( dir ) <= BLOOD_BUBBLE_REACH && owner->health < max ) {
+		owner->health += BLOOD_BUBBLE_HEALTH;
+		if ( owner->health > max ) {
+			owner->health = max;
+		}
+		owner->client->ps.stats[STAT_HEALTH] = owner->health;
+		G_ClearDamageOverTime( owner );		// as any health pickup
+		G_AddEvent( owner, EV_GENERAL_SOUND, G_SoundIndex( "sound/abilities/blood_bubble.wav" ) );
+		G_FreeEntity( bubble );
+		return;
+	}
+	VectorCopy( origin, bubble->s.pos.trBase );
+	VectorCopy( origin, bubble->r.currentOrigin );
+	bubble->s.pos.trTime = level.time;
+	bubble->s.pos.trType = TR_LINEAR;
+	VectorScale( dir, BLOOD_BUBBLE_SPEED, bubble->s.pos.trDelta );
+	trap_LinkEntity( bubble );
+	bubble->nextthink = level.time + ABILITY_FRAME;
+}
+
+void G_DropBloodPunch( gentity_t *victim, gentity_t *attacker ) {
+	gentity_t	*bubble;
+	int			i;
+
+	if ( !attacker || !attacker->client || attacker == victim || OnSameTeam( attacker, victim ) ) {
+		return;
+	}
+	G_AddEvent( attacker, EV_GENERAL_SOUND, G_SoundIndex( "sound/abilities/blood_punch.wav" ) );
+	for ( i = 0 ; i < BLOOD_BUBBLES ; i++ ) {
+		vec3_t	origin;
+
+		bubble = G_Spawn();
+		bubble->classname = "blood_bubble";
+		bubble->parent = attacker;
+		bubble->r.svFlags |= SVF_SINGLECLIENT;		// only he is sent them
+		bubble->r.singleClient = attacker->s.number;
+		bubble->s.eType = ET_GENERAL;
+		bubble->s.modelindex = G_ModelIndex( "models/powerups/health/small_cross.md3" );
+		VectorCopy( victim->r.currentOrigin, origin );
+		origin[0] += crandom() * 24;
+		origin[1] += crandom() * 24;
+		origin[2] += random() * 24;
+		G_SetOrigin( bubble, origin );
+		bubble->abilityTime = level.time + BLOOD_BUBBLE_LIFE;
+		bubble->think = G_BloodBubbleThink;
+		bubble->nextthink = level.time + ABILITY_FRAME;
+		trap_LinkEntity( bubble );
+	}
+}
+
+/*
+================
+G_FireArmourSteal
+
+Half of the fire damage Death Knight deals an enemy comes back as armour,
+within his cap (burn ticks are single points, so an odd one waits)
+================
+*/
+void G_FireArmourSteal( gentity_t *attacker, gentity_t *victim, int damage, int mod ) {
+	gclient_t	*client = attacker->client;
+	int			gain;
+
+	if ( !client || attacker == victim || !victim->client || damage <= 0 || attacker->health <= 0
+		|| ( mod != MOD_FIREBALL && mod != MOD_BURN )
+		|| BG_Champion( client->ps.stats[STAT_CHAMPION] )->active != ACTIVE_FLAMESTRIKE
+		|| !G_AbilityEnemy( attacker, victim ) ) {
+		return;
+	}
+	gain = damage + client->fireStealHalf;
+	client->fireStealHalf = gain & 1;
+	gain /= 2;
+	if ( client->ps.stats[STAT_ARMOR] < G_ClassInfo( client )->maxArmor ) {
+		client->ps.stats[STAT_ARMOR] += gain;
+		if ( client->ps.stats[STAT_ARMOR] > G_ClassInfo( client )->maxArmor ) {
+			client->ps.stats[STAT_ARMOR] = G_ClassInfo( client )->maxArmor;
+		}
+	}
+}
+
+/*
+==============================================================================
+
 STATE CHANGES
 
 ==============================================================================
 */
+
+/*
+================
+G_DualWieldAmmo
+
+B.J. reloads on use
+================
+*/
+static void G_DualWieldAmmo( gentity_t *ent ) {
+	Add_Ammo( ent, WP_MACHINEGUN, 25 );
+	Add_Ammo( ent, WP_SHOTGUN, 3 );
+	Add_Ammo( ent, WP_ROCKET_LAUNCHER, 3 );
+	Add_Ammo( ent, WP_LIGHTNING, 25 );
+	Add_Ammo( ent, WP_RAILGUN, 3 );
+	Add_Ammo( ent, WP_NAILGUN, 25 );
+	Add_Ammo( ent, WP_TRIBOLT, 3 );
+}
 
 /*
 ================
@@ -2758,6 +2971,7 @@ void G_AbilityFire( gentity_t *ent ) {
 		ent->client->abilityShotTime = level.time;
 		break;
 	case ACTIVE_BARRIER:		G_StartBarrier( ent ); break;
+	case ACTIVE_DUALWIELD:		G_DualWieldAmmo( ent ); break;
 	case ACTIVE_DRONE:			G_StartDrone( ent ); break;
 	case ACTIVE_SHELLSHOCK:		G_ShellShock( ent ); break;
 	case ACTIVE_SPINEVOLLEY:	G_SpineVolley( ent ); break;

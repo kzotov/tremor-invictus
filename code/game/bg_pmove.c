@@ -3080,9 +3080,10 @@ Double-tapping a movement direction dashes that way, on the ground or in
 the air, for a charge of stamina (movement.md Clutch fixes)
 ================
 */
-#define DODGE_STAMINA_UNIT	40		// one dodge; refills at 10 units a second
+#define DODGE_STAMINA_UNIT	40		// one dodge; refills a unit every 83 ms
+#define DODGE_STAMINA_STEP	83		// (0.3 of a dodge a second)
 #define DODGE_STAMINA_MAX	120
-#define DODGE_GAP			90		// msec between dodges
+#define DODGE_GAP			10		// msec between dodges
 #define DODGE_SPEED_CAP		2000
 #define TAP_DODGED			7		// TAP_DIR value right after a dodge
 
@@ -3096,9 +3097,9 @@ static void PM_AirDodge( void ) {
 		return;
 	}
 
-	// stamina: up to 3 dodges, a quarter charge back each second (whole
-	// steps of 100 ms, so prediction and server always agree)
-	stamina = pm->ps->generic1 + ( pm->cmd.serverTime / 100 - pml.oldCommandTime / 100 );
+	// stamina: up to 3 dodges, 0.3 of one back each second (whole steps,
+	// so prediction and server always agree)
+	stamina = pm->ps->generic1 + ( pm->cmd.serverTime / DODGE_STAMINA_STEP - pml.oldCommandTime / DODGE_STAMINA_STEP );
 	if ( stamina > DODGE_STAMINA_MAX ) {
 		stamina = DODGE_STAMINA_MAX;
 	}
@@ -3120,7 +3121,7 @@ static void PM_AirDodge( void ) {
 	fresh = held & ~( taps & TAP_HELD_MASK );
 
 	// no dodge with the Barrier up or the laser firing, in waist-deep
-	// water or on a hook; and none within 90 ms of the last (taps then
+	// water or on a hook; and none within 10 ms of the last (taps then
 	// don't count)
 	blocked = BG_AbilityState( pm->ps ) == ABILITY_ACTIVE || pm->waterlevel >= 2
 		|| ( pm->ps->pm_flags & PMF_GRAPPLE_PULL ) || BG_AbilityState( pm->ps ) == ABILITY_HOOK_PULL

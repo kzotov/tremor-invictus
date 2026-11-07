@@ -241,6 +241,23 @@ static void CG_Totem( centity_t *cent, refEntity_t *ent ) {
 	ent->shaderRGBA[3] = 255;
 	CG_TotemAxis( cent->lerpOrigin, ent );
 	trap_R_AddRefEntityToScene( ent );
+	// its owner's power-ups show on it
+	if ( s1->powerups & ( 1 << PW_QUAD ) ) {
+		refEntity_t	shell = *ent;
+
+		shell.customShader = cgs.media.quadShader;
+		trap_R_AddRefEntityToScene( &shell );
+	}
+	if ( s1->powerups & ( 1 << PW_BATTLESUIT ) ) {
+		refEntity_t	shell = *ent;
+
+		shell.customShader = cgs.media.battleSuitShader;
+		trap_R_AddRefEntityToScene( &shell );
+	}
+	// its owner sees it through walls
+	if ( s1->otherEntityNum == cg.snap->ps.clientNum ) {
+		CG_RevealObject( ent );
+	}
 
 	// the aura on the floor (the entity sits 2 units off what it hit)
 	radius = s1->angles2[0] > 0 ? s1->angles2[0] : 120;

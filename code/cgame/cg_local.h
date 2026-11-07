@@ -838,6 +838,7 @@ typedef struct {
 	qhandle_t	lightningShader;
 
 	qhandle_t	friendShader;
+	qhandle_t	foeArrowShader;		// over enemies Berserk marks and enemy objects
 
 	qhandle_t	balloonShader;
 	qhandle_t	connectionShader;
@@ -1788,6 +1789,9 @@ void CG_Respawn( void );
 void CG_TransitionPlayerState( playerState_t *ps, playerState_t *ops );
 qboolean CG_PlayerRevealed( int clientNum );
 void CG_RevealModel( const refEntity_t *ent, int clientNum );
+void CG_RevealObject( const refEntity_t *ent );
+qboolean CG_InGhostWalk( const entityState_t *state );
+qboolean CG_BerserkMarked( const entityState_t *state );
 // gaps.md GAP-17 announcer order, rarest first: lower is rarer
 #define MEDAL_RANK_HUMILIATOR	300
 #define MEDAL_RANK_IMPRESSIVE	340

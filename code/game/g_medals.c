@@ -42,7 +42,6 @@ static int	berserkKills[MAX_CLIENTS];	// kills in this Berserk
 static int	ghostEnd[MAX_CLIENTS];		// when the last Ghost Walk ended
 static int	evasiveArmed[MAX_CLIENTS];	// this Ghost Walk began hurt and low
 static int	evasiveCheck[MAX_CLIENTS];	// alive at this time: Evasive
-static qboolean	hovertankDone[MAX_CLIENTS];
 
 #define MEDAL_LOW_HEALTH		25		// Reanimation and Evasive: pressed at this or less
 #define MEDAL_EVASIVE_HURT		1000	// msec since an enemy's hit
@@ -261,7 +260,6 @@ void G_MedalsSpawn( gentity_t *ent ) {
 	client->lifeDamage = 0;
 	client->powerupKills = 0;
 	client->tankDone = qfalse;
-	hovertankDone[ent->s.number] = qfalse;
 	evasiveArmed[ent->s.number] = evasiveCheck[ent->s.number] = 0;
 	client->groundTime = level.time;
 	client->lastEnemyHurtTime = 0;
@@ -372,8 +370,8 @@ void G_MedalsAbilityFrame( gentity_t *ent, int prevState, int state ) {
 			G_Medal( ent, MEDAL_EVASIVE );
 		}
 	}
-	if ( active == ACTIVE_INJECTION && !hovertankDone[c] && ent->client->ps.stats[STAT_MAX_HEALTH] >= MEDAL_HOVERTANK_HEALTH ) {
-		hovertankDone[c] = qtrue;
+	if ( active == ACTIVE_INJECTION && !ent->client->pers.hovertankDone && ent->client->ps.stats[STAT_MAX_HEALTH] >= MEDAL_HOVERTANK_HEALTH ) {
+		ent->client->pers.hovertankDone = qtrue;		// (once a match: the rise stays)
 		G_Medal( ent, MEDAL_HOVERTANK );
 	}
 }

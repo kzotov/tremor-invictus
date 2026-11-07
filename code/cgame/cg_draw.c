@@ -3470,6 +3470,126 @@ void CG_RevealModel( const refEntity_t *ent, int clientNum ) {
 
 /*
 ===================
+CG_RevealObject
+
+A model shown through walls with the revealed players, for a thing of
+one's own
+===================
+*/
+void CG_RevealObject( const refEntity_t *ent ) {
+	if ( cg.numRevealModels >= MAX_REVEAL_MODELS ) {
+		return;
+	}
+	cg.revealModels[cg.numRevealModels] = *ent;
+	cg.revealModels[cg.numRevealModels].customShader = cgs.media.revealShader;
+	cg.numRevealModels++;
+}
+
+/*
+===================
+CG_BerserkMarked
+
+The local player is Doom in Berserk and this is an enemy
+===================
+*/
+qboolean CG_BerserkMarked( const entityState_t *state ) {
+	const playerState_t	*ps = &cg.predictedPlayerState;
+	int					num = state->clientNum;
+
+	if ( BG_Champion( ps->stats[STAT_CHAMPION] )->active != ACTIVE_BERSERK || BG_AbilityState( ps ) != ABILITY_ACTIVE
+		|| num == ps->clientNum || num < 0 || num >= MAX_CLIENTS ) {
+		return qfalse;
+	}
+	return cgs.gametype < GT_TEAM || cgs.clientinfo[num].team != ps->persistant[PERS_TEAM];
+}
+
+/*
+===================
+CG_DrawObjectBars
+
+A health bar over each totem and turret in sight, with an arrow on an
+enemy's; while Piercing Sight runs, enemies' health and armour over them;
+in Berserk an arrow over each enemy
+===================
+*/
+#define OBJECT_BAR_W	36
+#define OBJECT_BAR_H	4
+
+static void CG_DrawObjectBars( void ) {
+	const playerState_t	*ps = &cg.predictedPlayerState;
+	qboolean	sight = BG_Champion( ps->stats[STAT_CHAMPION] )->active == ACTIVE_PIERCINGSIGHT
+		&& BG_AbilityState( ps ) == ABILITY_ACTIVE;
+	int			i;
+
+	for ( i = 0 ; i < cg.snap->numEntities ; i++ ) {
+		entityState_t	*es = &cg.snap->entities[i];
+		centity_t		*cent = &cg_entities[es->number];
+		vec3_t			top;
+		float			x, y;
+
+		if ( es->eType == ET_PLAYER ) {
+			const char	*text;
+
+			// Berserk's enemy arrow
+			if ( CG_BerserkMarked( es ) && !( es->eFlags & EF_DEAD ) ) {
+				vec4_t	red = { 1, 0.13f, 0.1f, 1 };
+				trace_t	tr;
+
+				VectorCopy( cent->lerpOrigin, top );
+				top[2] += 48;
+				CG_Trace( &tr, cg.refdef.vieworg, NULL, NULL, top, ps->clientNum, MASK_SOLID );
+				if ( tr.fraction == 1.0f && CG_WorldToScreen( top, &x, &y ) ) {	// (in sight only)
+					trap_R_SetColor( red );
+					CG_DrawPic( x - 8, y - 16, 16, 16, cgs.media.foeArrowShader );
+					trap_R_SetColor( NULL );
+				}
+				continue;
+			}
+			if ( !sight || es->clientNum == ps->clientNum || ( es->eFlags & EF_DEAD ) || CG_InGhostWalk( es )
+				|| ( cgs.gametype >= GT_TEAM && cgs.clientinfo[es->clientNum].team == ps->persistant[PERS_TEAM] ) ) {
+				continue;
+			}
+			VectorCopy( cent->lerpOrigin, top );
+			top[2] += 56;
+			if ( !CG_WorldToScreen( top, &x, &y ) ) {
+				continue;
+			}
+			text = va( "%i / %i", (int)es->origin2[0], (int)es->origin2[1] );
+			CG_DrawSmallString( x - CG_DrawStrlen( text ) * SMALLCHAR_WIDTH * 0.5f, y - SMALLCHAR_HEIGHT, text, 1.0f );
+		} else if ( es->eType == ET_GENERAL && es->time2 && es->modelindex
+			&& ( cgs.gameModels[es->modelindex] == cgs.media.totemModel || cgs.gameModels[es->modelindex] == cgs.media.turretModel ) ) {
+			int		health = es->time2 & 0xfff, max = es->time2 >> 12;
+			qboolean	own = es->otherEntityNum == ps->clientNum;
+			qboolean	enemy = !own && ( cgs.gametype < GT_TEAM || es->otherEntityNum < 0 || es->otherEntityNum >= MAX_CLIENTS
+				|| cgs.clientinfo[es->otherEntityNum].team != ps->persistant[PERS_TEAM] );
+			vec4_t	back = { 0, 0, 0, 0.6f }, fill = { 0.15f, 0.62f, 1, 0.9f };
+			trace_t	tr;
+
+			if ( max <= 0 ) {
+				continue;
+			}
+			VectorCopy( cent->lerpOrigin, top );
+			top[2] += cgs.gameModels[es->modelindex] == cgs.media.totemModel ? 36 : 56;
+			CG_Trace( &tr, cg.refdef.vieworg, NULL, NULL, top, ps->clientNum, MASK_SOLID );
+			if ( ( tr.fraction < 1.0f && !own ) || !CG_WorldToScreen( top, &x, &y ) ) {
+				continue;
+			}
+			if ( enemy ) {
+				fill[0] = 1;
+				fill[1] = 0.13f;
+				fill[2] = 0.1f;
+				trap_R_SetColor( fill );
+				CG_DrawPic( x - 6, y - 18, 12, 12, cgs.media.foeArrowShader );
+				trap_R_SetColor( NULL );
+			}
+			CG_FillRect( x - OBJECT_BAR_W * 0.5f, y - OBJECT_BAR_H, OBJECT_BAR_W, OBJECT_BAR_H, back );
+			CG_FillRect( x - OBJECT_BAR_W * 0.5f, y - OBJECT_BAR_H, OBJECT_BAR_W * ( health > max ? 1.0f : (float)health / max ), OBJECT_BAR_H, fill );
+		}
+	}
+}
+
+/*
+===================
 CG_DrawRevealedModels
 
 The revealed players' silhouettes, over the rendered world
@@ -9060,6 +9180,7 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 			CG_DrawProxWarning();
 #endif      
 			CG_DrawShellShock();
+			CG_DrawObjectBars();
 			if(stereoFrame == STEREO_CENTER) {
 				CG_DrawCrosshair();
 				CG_DrawHitMarker();

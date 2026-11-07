@@ -329,6 +329,10 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 	if ( G_AbilityActive( ent, ACTIVE_BERSERK ) && ( ent->client->ps.stats[STAT_MOVE_STATE] & 1023 ) ) {
 		ent->client->ps.stats[STAT_MOVE_STATE] |= 1023;
 	}
+	// a landed punch puts Berserk back to its full time
+	if ( G_AbilityActive( ent, ACTIVE_BERSERK ) ) {
+		ent->client->ps.stats[STAT_ABILITY_TIME] = BG_AbilityParam( ACTIVE_BERSERK, AP_DURATION );
+	}
 	if ( traceEnt->client && ( BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_CHARRING ) ) {
 		G_Ignite( traceEnt, ent );
 	}

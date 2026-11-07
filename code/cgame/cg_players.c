@@ -2325,6 +2325,12 @@ void CG_AddRefEntityWithPowerups( refEntity_t *ent, entityState_t *state, int te
 			trap_R_AddRefEntityToScene( ent );
 		//}
 		CG_ColorAfterDraw( ent );
+		// Doom's Berserk: enemies show solid white
+		if ( CG_BerserkMarked( state ) ) {
+			ent->customShader = cgs.media.brightShader;
+			ent->shaderRGBA[0] = ent->shaderRGBA[1] = ent->shaderRGBA[2] = ent->shaderRGBA[3] = 255;
+			trap_R_AddRefEntityToScene( ent );
+		}
 
 		// (the barrier is the panel in front, CG_Player: no glow all over)
 		if ( state->powerups & ( 1 << PW_QUAD ) )

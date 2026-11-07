@@ -434,9 +434,11 @@ static void G_UseAbility( gentity_t *ent ) {
 		break;
 
 	case ACTIVE_INJECTION:
-		// a lasting rise in maximum health for this life, and no more debuffs
+		// a rise in maximum health for the match, deaths or not, and no
+		// more debuffs
 		if ( client->ps.stats[STAT_MAX_HEALTH] < client->pers.maxHealth + g_injectionMaxGainCap.integer ) {
 			client->ps.stats[STAT_MAX_HEALTH] += g_injectionMaxGain.integer;
+			client->pers.injectionGain = client->ps.stats[STAT_MAX_HEALTH] - client->pers.maxHealth;
 		}
 		max = client->ps.stats[STAT_MAX_HEALTH] + G_ClassInfo( client )->maxHealthBonus;
 		G_ClearDamageOverTime( ent );
@@ -456,6 +458,7 @@ static void G_UseAbility( gentity_t *ent ) {
 		// others' fade (CG_GhostLook); never 0
 		ent->s.frame = ( level.time & 0xffff ) ? level.time & 0xffff : 1;
 		ent->r.contents = 0;
+		G_ClearDamageOverTime( ent );		// burn and acid end with it
 		break;
 
 	default:
@@ -533,6 +536,11 @@ void G_UpdateRevealedPlayers( void ) {
 		}
 		ent->r.svFlags &= ~( SVF_BROADCAST | SVF_BROADCASTMASK );
 		seers = visors & ~( i < 32 ? 1 << i : 0 );
+		// what Piercing Sight reads over them
+		if ( visors ) {
+			ent->s.origin2[0] = ent->health;
+			ent->s.origin2[1] = ent->client->ps.stats[STAT_ARMOR];
+		}
 		if ( ent->client->ps.eFlags & EF_MARKED ) {
 			seers |= ent->s.time2;
 		}
@@ -906,6 +914,26 @@ qboolean ClientInactivityTimer( gclient_t *client ) {
 }
 
 /*
+====================
+G_DecayPeriod
+
+Seconds per point lost over the limit: 1, heavies 2; Galena's health 3,
+Eisen's armour 2
+====================
+*/
+static int G_DecayPeriod( gclient_t *client, qboolean armor ) {
+	const champion_t	*champ = BG_Champion( client->ps.stats[STAT_CHAMPION] );
+
+	if ( !armor && ( champ->passives & PASSIVE_SLOWDECAY ) ) {
+		return 3;
+	}
+	if ( champ->bodyClass == CLASS_HEAVY || ( armor && ( champ->passives & PASSIVE_ARMORREGEN ) ) ) {
+		return 2;
+	}
+	return 1;
+}
+
+/*
 ==================
 ClientTimerActions
 
@@ -970,30 +998,20 @@ void ClientTimerActions( gentity_t *ent, int msec ) {
 			}
 #endif
 		} else if ( !G_ClanArena() ) {
-			// count down health when over max; slow decay skips every other second
-			if ( ent->health > client->ps.stats[STAT_MAX_HEALTH] ) {
-				if ( ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_SLOWDECAY )
-					&& !client->decaySkipped ) {
-					client->decaySkipped = qtrue;
-				} else {
-					client->decaySkipped = qfalse;
-					ent->health--;
-				}
+			// count down health when over max, at the champion's rate
+			if ( ent->health > client->ps.stats[STAT_MAX_HEALTH]
+				&& ++client->healthDecayTicks >= G_DecayPeriod( client, qfalse ) ) {
+				client->healthDecayTicks = 0;
+				ent->health--;
 			}
 		}
 
 		// count down armor when over the class base armor (the clan arena stack stays)
 		if ( client->ps.stats[STAT_ARMOR] > G_ClassInfo( client )->baseArmor && !G_ClanArena() ) {
-			// Eisen's falls half as fast (1 every 2 s)
-			static qboolean	eisenSkip[MAX_CLIENTS];
-
-			if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_ARMORREGEN ) {
-				eisenSkip[ent->s.number] = !eisenSkip[ent->s.number];
-				if ( eisenSkip[ent->s.number] ) {
-					client->ps.stats[STAT_ARMOR]++;
-				}
+			if ( ++client->armorDecayTicks >= G_DecayPeriod( client, qtrue ) ) {
+				client->armorDecayTicks = 0;
+				client->ps.stats[STAT_ARMOR]--;
 			}
-			client->ps.stats[STAT_ARMOR]--;
 		}
 	}
 #ifdef MISSIONPACK
@@ -1482,6 +1500,11 @@ void ClientThink_real( gentity_t *ent ) {
 
 	// set speed
 	client->ps.speed = BG_Champion( client->ps.stats[STAT_CHAMPION] )->runSpeed;
+	// Visor with a flag runs 20 % slower
+	if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_PIERCINGSIGHT
+		&& ( client->ps.powerups[PW_REDFLAG] || client->ps.powerups[PW_BLUEFLAG] || client->ps.powerups[PW_NEUTRALFLAG] ) ) {
+		client->ps.speed *= 0.8f;
+	}
 	// slows (spines, Bull Rush hits, Plasma Trail) and Ranger's haste
 	if ( client->slowEndTime > level.time ) {
 		client->ps.speed *= client->slowScale > 0 ? client->slowScale : 0.7f;

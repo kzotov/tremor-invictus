@@ -1201,6 +1201,7 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.totemBeamShader = trap_R_RegisterShader( "ability/totem_beam" );
 	cgs.media.droneShimmerShader = trap_R_RegisterShader( "tremor/droneshimmer" );
 	cgs.media.brightShader = trap_R_RegisterShader( "tremor/bright" );
+	cgs.media.foeArrowShader = trap_R_RegisterShader( "sprites/foe" );
 	cgs.media.sportShader = trap_R_RegisterShader( "tremor/sport" );
 	cgs.media.tintShader = trap_R_RegisterShader( "tremor/tint" );
 	cgs.media.outlineShader = trap_R_RegisterShader( "tremor/outline" );

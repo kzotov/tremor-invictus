@@ -65,6 +65,7 @@ vmCvar_t	g_cooldownHealth;
 vmCvar_t	g_cooldownMega;
 vmCvar_t	g_cooldownAmmo;
 vmCvar_t	g_orbSpeed;
+vmCvar_t	g_orbHealth;
 vmCvar_t	g_orbLife;
 vmCvar_t	g_orbFuse;
 vmCvar_t	g_orbShotDamage;
@@ -407,13 +408,14 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_regenDelay, "g_regenDelay", "3000", 0, 0, qtrue },
 	{ &g_regenRate, "g_regenRate", "10", 0, 0, qtrue },
 	{ &g_selfDamageScale, "g_selfDamageScale", "0.25", 0, 0, qtrue },
-	{ &g_splashResistScale, "g_splashResistScale", "0.8", 0, 0, qtrue },
+	{ &g_splashResistScale, "g_splashResistScale", "0.67", 0, 0, qtrue },
 	{ &g_cooldownArmorLight, "g_cooldownArmorLight", "0.1", 0, 0, qtrue },
 	{ &g_cooldownArmorHeavy, "g_cooldownArmorHeavy", "0.2", 0, 0, qtrue },
 	{ &g_cooldownHealth, "g_cooldownHealth", "0.05", 0, 0, qtrue },
-	{ &g_cooldownMega, "g_cooldownMega", "0.2", 0, 0, qtrue },
-	{ &g_cooldownAmmo, "g_cooldownAmmo", "0.1", 0, 0, qtrue },
+	{ &g_cooldownMega, "g_cooldownMega", "0.1", 0, 0, qtrue },
+	{ &g_cooldownAmmo, "g_cooldownAmmo", "0.2", 0, 0, qtrue },
 	{ &g_orbSpeed, "g_orbSpeed", "900", 0, 0, qtrue },
+	{ &g_orbHealth, "g_orbHealth", "75", 0, 0, qtrue },
 	{ &g_orbLife, "g_orbLife", "15000", 0, 0, qtrue },
 	{ &g_orbFuse, "g_orbFuse", "500", 0, 0, qtrue },
 	{ &g_orbShotDamage, "g_orbShotDamage", "200", 0, 0, qtrue },		// shot down by another player
@@ -431,10 +433,10 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_fireballDamage, "g_fireballDamage", "20", 0, 0, qtrue },
 	{ &g_fireballSplash, "g_fireballSplash", "20", 0, 0, qtrue },
 	{ &g_fireballRadius, "g_fireballRadius", "128", 0, 0, qtrue },
-	{ &g_burnDamage, "g_burnDamage", "75", 0, 0, qtrue },
+	{ &g_burnDamage, "g_burnDamage", "45", 0, 0, qtrue },
 	{ &g_burnTime, "g_burnTime", "5000", 0, 0, qtrue },
-	{ &g_poisonDamage, "g_poisonDamage", "10", 0, 0, qtrue },
-	{ &g_poisonTime, "g_poisonTime", "10000", 0, 0, qtrue },
+	{ &g_poisonDamage, "g_poisonDamage", "15", 0, 0, qtrue },
+	{ &g_poisonTime, "g_poisonTime", "5000", 0, 0, qtrue },
 	{ &g_acidBlobs, "g_acidBlobs", "5", 0, 0, qtrue },
 	{ &g_acidInterval, "g_acidInterval", "200", 0, 0, qtrue },
 	{ &g_acidSpeed, "g_acidSpeed", "800", 0, 0, qtrue },
@@ -443,13 +445,13 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_acidPoolSize, "g_acidPoolSize", "20", 0, 0, qtrue },
 	{ &g_totemSpeed, "g_totemSpeed", "580", 0, 0, qtrue },
 	{ &g_totemArmTime, "g_totemArmTime", "1000", 0, 0, qtrue },
-	{ &g_totemHealth, "g_totemHealth", "25", 0, 0, qtrue },
+	{ &g_totemHealth, "g_totemHealth", "75", 0, 0, qtrue },
 	{ &g_totemHeal, "g_totemHeal", "50", 0, 0, qtrue },
-	{ &g_totemDamage, "g_totemDamage", "40", 0, 0, qtrue },
+	{ &g_totemDamage, "g_totemDamage", "50", 0, 0, qtrue },
 	{ &g_totemHealRadius, "g_totemHealRadius", "120", 0, 0, qtrue },
 	{ &g_totemHurtRadius, "g_totemHurtRadius", "120", 0, 0, qtrue },
 	{ &g_totemEnforcedHeal, "g_totemEnforcedHeal", "75", 0, 0, qtrue },
-	{ &g_totemEnforcedDamage, "g_totemEnforcedDamage", "60", 0, 0, qtrue },
+	{ &g_totemEnforcedDamage, "g_totemEnforcedDamage", "50", 0, 0, qtrue },
 	{ &g_totemMax, "g_totemMax", "3", 0, 0, qtrue },
 	{ &g_turretHealth, "g_turretHealth", "125", 0, 0, qtrue },
 	{ &g_turretDamage, "g_turretDamage", "15", 0, 0, qtrue },
@@ -468,7 +470,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_trailDamage, "g_trailDamage", "10", 0, 0, qtrue },	// every 200 ms
 	{ &g_trailBlast, "g_trailBlast", "25", 0, 0, qtrue },
 	{ &g_trailRadius, "g_trailRadius", "120", 0, 0, qtrue },
-	{ &g_droneHealth, "g_droneHealth", "90", CVAR_SERVERINFO, 0, qtrue },		// (the HUD's drone bar reads it)
+	{ &g_droneHealth, "g_droneHealth", "80", CVAR_SERVERINFO, 0, qtrue },		// (the HUD's drone bar reads it)
 	{ &g_droneDamage, "g_droneDamage", "15", 0, 0, qtrue },
 	{ &g_droneLaunchDelay, "g_droneLaunchDelay", "500", 0, 0, qtrue },
 	{ &g_droneRocketDamage, "g_droneRocketDamage", "75", 0, 0, qtrue },
@@ -535,7 +537,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_totemBlastRadius, "g_totemBlastRadius", "160", 0, 0, qtrue },
 	{ &g_turretDeployTime, "g_turretDeployTime", "1500", 0, 0, qtrue },	// arms after this
 	{ &g_turretTurnRate, "g_turretTurnRate", "140", 0, 0, qtrue },	// degrees a second
-	{ &g_reinforcedSelfScale, "g_reinforcedSelfScale", "0.4", 0, 0, qtrue },
+	{ &g_reinforcedSelfScale, "g_reinforcedSelfScale", "0.33", 0, 0, qtrue },
 	{ &g_collisionRepeat, "g_collisionRepeat", "500", 0, 0, qtrue },
 	{ &g_gravity, "g_gravity", "800", 0, 0, qtrue  },
 	{ &g_knockback, "g_knockback", "1000", 0, 0, qtrue  },
