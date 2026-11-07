@@ -1159,7 +1159,60 @@ static void G_TurretDie( gentity_t *self, gentity_t *inflictor, gentity_t *attac
 
 #define TURRET_FOV		140
 #define TURRET_IMPULSE	10
-#define TURRET_ARMOR	50		// absorbs two thirds of each hit until spent
+#define TURRET_HEALTH_NORMAL	100		// health above this falls away, below it heals when quiet
+#define TURRET_ARMOR_BASE		50		// armour above this falls away
+#define TURRET_ARMOR_CAP		75		// (armour absorbs two thirds of each hit until spent)
+#define TURRET_HEAL_WAIT		5000	// msec without damage before it heals
+#define TURRET_HEAL_RATE		5		// health a second
+
+/*
+================
+G_TurretRepair
+
+Armour Eisen picks up also goes on his standing turret
+================
+*/
+void G_TurretRepair( gentity_t *owner, int amount ) {
+	gentity_t	*turret = owner->client->turret;
+
+	if ( !turret || !turret->inuse || !turret->classname || strcmp( turret->classname, "sentry_turret" ) ) {
+		return;
+	}
+	turret->count += amount;
+	if ( turret->count > TURRET_ARMOR_CAP ) {
+		turret->count = TURRET_ARMOR_CAP;
+	}
+}
+
+/*
+================
+G_TurretUpkeep
+
+Each second: health over 100 falls 1, armour over 50 falls 1 each 2 s, and
+below 100 it heals 5 a second after 5 s without damage
+================
+*/
+static void G_TurretUpkeep( gentity_t *turret ) {
+	if ( turret->health < turret->splashRadius ) {
+		turret->timestamp = level.time;		// hurt since the last look
+	}
+	if ( level.time >= turret->fly_sound_debounce_time ) {
+		turret->fly_sound_debounce_time = level.time + 1000;
+		if ( turret->health > TURRET_HEALTH_NORMAL ) {
+			turret->health--;
+		} else if ( turret->health < TURRET_HEALTH_NORMAL && level.time - turret->timestamp >= TURRET_HEAL_WAIT ) {
+			turret->health += TURRET_HEAL_RATE;
+			if ( turret->health > TURRET_HEALTH_NORMAL ) {
+				turret->health = TURRET_HEALTH_NORMAL;
+			}
+		}
+		turret->splashDamage = !turret->splashDamage;
+		if ( turret->splashDamage && turret->count > TURRET_ARMOR_BASE ) {
+			turret->count--;
+		}
+	}
+	turret->splashRadius = turret->health;
+}
 #define TURRET_EYE_UP	14		// thrown from 0.35 m above the eye
 
 static void G_TurretThink( gentity_t *turret ) {
@@ -1170,6 +1223,7 @@ static void G_TurretThink( gentity_t *turret ) {
 	int			i;
 
 	turret->nextthink = level.time + ABILITY_FRAME;
+	G_TurretUpkeep( turret );
 	// Eisen's HUD: the turret out, its health and armour (STAT_TURRET)
 	if ( turret->parent && turret->parent->client && turret->parent->inuse ) {
 		turret->parent->client->ps.stats[STAT_TURRET] = TURRET_OUT | ( turret->health > 255 ? 255 : turret->health < 0 ? 0 : turret->health )
@@ -1295,6 +1349,8 @@ G_TurretRoom
 The turret's box at spot: clear of the world and of players
 ================
 */
+static qboolean	turretHazard;		// the last spot refused was a hazard
+
 static qboolean G_TurretRoom( gentity_t *turret, vec3_t spot, vec3_t mins, vec3_t maxs ) {
 	trace_t		tr;
 	vec3_t		absmin, absmax;
@@ -1308,6 +1364,7 @@ static qboolean G_TurretRoom( gentity_t *turret, vec3_t spot, vec3_t mins, vec3_
 	VectorAdd( spot, maxs, absmax );
 	// abilities.md FIX-62: never on lava, slime or where nothing may drop
 	if ( trap_PointContents( spot, -1 ) & ( CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_NODROP ) ) {
+		turretHazard = qtrue;
 		return qfalse;
 	}
 	num = trap_EntitiesInBox( absmin, absmax, touch, MAX_GENTITIES );
@@ -1323,6 +1380,7 @@ static qboolean G_TurretRoom( gentity_t *turret, vec3_t spot, vec3_t mins, vec3_
 			&& trap_EntityContact( absmin, absmax, other )
 			&& ( !strcmp( other->classname, "trigger_hurt" )
 			|| ( !strcmp( other->classname, "trigger_teleport" ) && !( other->spawnflags & 1 ) ) ) ) {
+			turretHazard = !strcmp( other->classname, "trigger_hurt" );
 			return qfalse;
 		}
 	}
@@ -1421,8 +1479,17 @@ static void G_TurretImpact( gentity_t *turret, trace_t *trace ) {
 			return;
 		}
 	}
+	turretHazard = qfalse;
 	if ( !G_TurretSpot( turret, trace->endpos, mins, maxs, point ) ) {
-		G_TurretDestroy( turret, qtrue );
+		// thrown into a hazard: 80 % of the cooldown back, not a charge
+		if ( turretHazard && turret->parent && turret->parent->client ) {
+			gentity_t	*owner = turret->parent;
+
+			G_TurretDestroy( turret, qfalse );
+			G_CutAbilityCooldown( owner, 0.8f );
+		} else {
+			G_TurretDestroy( turret, qtrue );
+		}
 		return;
 	}
 
@@ -1432,11 +1499,16 @@ static void G_TurretImpact( gentity_t *turret, trace_t *trace ) {
 	turret->s.generic1 = AV_NONE;
 	turret->s.otherEntityNum = turret->parent->s.number;		// drawn in its owner's colours
 	turret->r.contents = CONTENTS_CORPSE;
-	VectorCopy( mins, turret->r.mins );
-	VectorCopy( maxs, turret->r.maxs );
+	// standing, it is an easier target than the box it landed with
+	VectorSet( turret->r.mins, -24, -24, 0 );
+	VectorSet( turret->r.maxs, 24, 24, 48 );
 	turret->takedamage = qtrue;
 	turret->health = g_turretHealth.integer;
-	turret->count = TURRET_ARMOR;		// its armour (G_Damage)
+	turret->count = 0;					// its armour (G_Damage; Eisen's pickups add it)
+	turret->splashRadius = turret->health;
+	turret->timestamp = level.time;
+	turret->fly_sound_debounce_time = level.time + 1000;
+	turret->splashDamage = 0;
 	turret->die = G_TurretDie;
 	turret->think = G_TurretThink;
 	turret->nextthink = level.time + ABILITY_FRAME;
@@ -2542,6 +2614,7 @@ static void G_CellThink( gentity_t *cell ) {
 			other->health = max;
 		}
 		other->client->ps.stats[STAT_HEALTH] = other->health;
+		G_ClearDamageOverTime( other );		// as any health pickup: burn and acid end
 		// the small health's pickup: its sound and a pickup feed line
 		{
 			gitem_t	*item = BG_FindItem( "5 Health" );

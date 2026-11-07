@@ -838,9 +838,22 @@ static void CG_PowerupTimerSounds( void ) {
 		trap_S_AddLoopingSound( cg.snap->ps.clientNum, cg.refdef.vieworg, vec3_origin, cgs.media.shockRingSound );
 	}
 
+	// a healing pool: its loop while it heals, a stop sound on leaving
+	{
+		static qboolean	inPool;
+		qboolean		pool = cg.snap->ps.powerups[PW_HEALPOOL] > cg.time;
+
+		if ( pool && cgs.media.poolLoopSound ) {
+			trap_S_AddLoopingSound( cg.snap->ps.clientNum, cg.refdef.vieworg, vec3_origin, cgs.media.poolLoopSound );
+		} else if ( inPool && cgs.media.poolStopSound ) {
+			trap_S_StartLocalSound( cgs.media.poolStopSound, CHAN_LOCAL_SOUND );
+		}
+		inPool = pool;
+	}
+
 	// powerup timers going away
 	for ( i = 0 ; i < MAX_POWERUPS ; i++ ) {
-		if ( i == PW_BURNING || i == PW_POISONED || i == PW_SHELLSHOCK || i == PW_ZOOMLOCK ) {
+		if ( i == PW_BURNING || i == PW_POISONED || i == PW_SHELLSHOCK || i == PW_ZOOMLOCK || i == PW_HEALPOOL ) {
 			continue;		// not power-ups: no wear-off ticks
 		}
 		t = cg.snap->ps.powerups[i];

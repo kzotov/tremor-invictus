@@ -2093,7 +2093,19 @@ static const char *bg_stringsEnglish[STR_NUM_STRINGS] = {
 	" Default: %s.",
 	"Hit sound volume",
 	"How loud the hit and kill beeps are, against the other effects: 1 is as loud, 2 twice (the default).",
-	"Choo Choo"
+	"Choo Choo",
+	"Berserker",
+	"Daisy",
+	"Slayer",
+	"Hovertank",
+	"Reanimation",
+	"Junkie",
+	"Evasive",
+	"Inside Out",
+	"From the Shadows",
+	"Stomper",
+	"Roadkill",
+	"Ability Kill"
 };
 
 /*
@@ -2448,7 +2460,19 @@ const medalInfo_t bg_medalInfo[MEDAL_NUM] = {
 	{ STR_MEDAL_SADISM,		"sadism" },
 	{ STR_MEDAL_EXECUTIONER,		"executioner" },
 	{ STR_MEDAL_OFFENSE,		"offense" },
-	{ STR_MEDAL_CHOOCHOO,		"choochoo" }
+	{ STR_MEDAL_CHOOCHOO,		"choochoo" },
+	{ STR_MEDAL_BERSERKER,	"berserker" },
+	{ STR_MEDAL_DAISY,	"daisy" },
+	{ STR_MEDAL_SLAYER,	"slayer" },
+	{ STR_MEDAL_HOVERTANK,	"hovertank" },
+	{ STR_MEDAL_REANIMATION,	"reanimation" },
+	{ STR_MEDAL_JUNKIE,	"junkie" },
+	{ STR_MEDAL_EVASIVE,	"evasive" },
+	{ STR_MEDAL_INSIDEOUT,	"insideout" },
+	{ STR_MEDAL_FROMTHESHADOWS,	"fromtheshadows" },
+	{ STR_MEDAL_STOMPER,	"stomper" },
+	{ STR_MEDAL_ROADKILL,	"roadkill" },
+	{ STR_MEDAL_ABILITYKILL,	"abilitykill" }
 };
 
 /*
@@ -2960,9 +2984,12 @@ qboolean BG_CanItemBeGrabbed( int gametype, const entityState_t *ent, const play
 
 	case IT_HOURGLASS:
 		{
-			// only while the ability is recharging
+			// while the ability is recharging, and always under Shell Shock
 			int		active = BG_Champion( ps->stats[STAT_CHAMPION] )->active;
 
+			if ( ps->powerups[PW_SHELLSHOCK] > ps->commandTime ) {
+				return qtrue;
+			}
 			return active > ACTIVE_NONE && BG_AbilityCharges( ps ) < BG_AbilityParam( active, AP_CHARGES );
 		}
 

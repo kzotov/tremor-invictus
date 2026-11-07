@@ -37,6 +37,18 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define MEDAL_STOPWATCH_TIME	1000	// msec after an item appears
 #define MEDAL_DIEHARD_HEALTH	1		// exactly 1 health, armour aside
 #define MEDAL_ASSIST_TIME		3000	// msec a teammate's hit counts as an assist
+static int	rushKills[MAX_CLIENTS];		// Bull Rush hit kills in this rush
+static int	berserkKills[MAX_CLIENTS];	// kills in this Berserk
+static int	ghostEnd[MAX_CLIENTS];		// when the last Ghost Walk ended
+static int	evasiveArmed[MAX_CLIENTS];	// this Ghost Walk began hurt and low
+static int	evasiveCheck[MAX_CLIENTS];	// alive at this time: Evasive
+static qboolean	hovertankDone[MAX_CLIENTS];
+
+#define MEDAL_LOW_HEALTH		25		// Reanimation and Evasive: pressed at this or less
+#define MEDAL_EVASIVE_HURT		1000	// msec since an enemy's hit
+#define MEDAL_EVASIVE_ALIVE		1000	// msec alive after Ghost Walk
+#define MEDAL_SHADOWS_TIME		1000	// msec after Ghost Walk for From the Shadows
+#define MEDAL_HOVERTANK_HEALTH	110
 
 /*
 =================
@@ -249,6 +261,8 @@ void G_MedalsSpawn( gentity_t *ent ) {
 	client->lifeDamage = 0;
 	client->powerupKills = 0;
 	client->tankDone = qfalse;
+	hovertankDone[ent->s.number] = qfalse;
+	evasiveArmed[ent->s.number] = evasiveCheck[ent->s.number] = 0;
 	client->groundTime = level.time;
 	client->lastEnemyHurtTime = 0;
 	memset( client->hurtTime, 0, sizeof( client->hurtTime ) );
@@ -311,7 +325,78 @@ G_MedalsKill
 An enemy killed by a player
 =================
 */
-static int	rushKills[MAX_CLIENTS];		// Bull Rush hit kills in this rush
+/*
+=================
+G_MedalsAbilityPress
+
+An ability pressed, before it acts: Injection (Reanimation) and Ghost Walk
+(Evasive) count the health it was pressed at
+=================
+*/
+void G_MedalsAbilityPress( gentity_t *ent ) {
+	int		c = ent->s.number, active = BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->active;
+
+	if ( active == ACTIVE_INJECTION && ent->health <= MEDAL_LOW_HEALTH ) {
+		G_Medal( ent, MEDAL_REANIMATION );
+	}
+	if ( active == ACTIVE_GHOSTWALK ) {
+		evasiveArmed[c] = ent->health <= MEDAL_LOW_HEALTH
+			&& level.time - ent->client->lastDamageTime <= MEDAL_EVASIVE_HURT;
+	}
+}
+
+/*
+=================
+G_MedalsAbilityFrame
+
+Each frame with the ability's state: starts and ends of Berserk and Ghost
+Walk, Anarki's raised maximum health
+=================
+*/
+void G_MedalsAbilityFrame( gentity_t *ent, int prevState, int state ) {
+	int		c = ent->s.number, active = BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->active;
+
+	if ( prevState != ABILITY_ACTIVE && state == ABILITY_ACTIVE && active == ACTIVE_BERSERK ) {
+		berserkKills[c] = 0;
+	}
+	if ( prevState == ABILITY_ACTIVE && state != ABILITY_ACTIVE && active == ACTIVE_GHOSTWALK ) {
+		ghostEnd[c] = level.time;
+		if ( evasiveArmed[c] ) {
+			evasiveCheck[c] = level.time + MEDAL_EVASIVE_ALIVE;
+			evasiveArmed[c] = qfalse;
+		}
+	}
+	if ( evasiveCheck[c] && level.time >= evasiveCheck[c] ) {
+		evasiveCheck[c] = 0;
+		if ( ent->health > 0 ) {
+			G_Medal( ent, MEDAL_EVASIVE );
+		}
+	}
+	if ( active == ACTIVE_INJECTION && !hovertankDone[c] && ent->client->ps.stats[STAT_MAX_HEALTH] >= MEDAL_HOVERTANK_HEALTH ) {
+		hovertankDone[c] = qtrue;
+		G_Medal( ent, MEDAL_HOVERTANK );
+	}
+}
+
+/*
+=================
+G_AbilityKillMod
+
+A kill by an ability (abilities.md "Ability kills (medal)"): not the
+Heavyweight stomp, plain telefrags, falls or hazards
+=================
+*/
+static qboolean G_AbilityKillMod( gentity_t *inflictor, int mod ) {
+	switch ( mod ) {
+	case MOD_BULLRUSH: case MOD_ORB: case MOD_FIREBALL: case MOD_BURN: case MOD_ACID:
+	case MOD_TOTEM: case MOD_TURRET: case MOD_LASER: case MOD_PLASMATRAIL: case MOD_DRONE:
+	case MOD_SPINES: case MOD_STORM: case MOD_HOUND: case MOD_HOOKIMPACT: case MOD_GHOSTWALK:
+	case MOD_ORBTELEFRAG: case MOD_BERSERK: case MOD_LEAPINGKICK:
+		return qtrue;
+	default:
+		return inflictor && inflictor->classname && !strcmp( inflictor->classname, "swarm" );	// Keel's grenades
+	}
+}
 
 void G_MedalsRushStart( gentity_t *ent ) {
 	rushKills[ent->s.number] = 0;
@@ -332,6 +417,38 @@ static void G_MedalsKill( gentity_t *self, gentity_t *inflictor, gentity_t *atta
 	// second (the Heavyweight stomp is its own means of death)
 	if ( mod == MOD_BULLRUSH && ++rushKills[attacker->s.number] == 2 ) {
 		G_Medal( attacker, MEDAL_CHOOCHOO );
+	}
+	// Eisen's Shutdown: his turret killing a Clutch cuts his cooldown 20 %
+	if ( mod == MOD_TURRET && BG_Champion( self->client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_BARRIER ) {
+		G_CutAbilityCooldown( attacker, 0.2f );
+	}
+	// the champions' own (champion-medals.md)
+	if ( mod == MOD_BULLRUSH ) {
+		G_Medal( attacker, MEDAL_ROADKILL );
+	} else if ( mod == MOD_HEAVYWEIGHT ) {
+		G_Medal( attacker, MEDAL_STOMPER );
+	} else if ( mod == MOD_GHOSTWALK ) {
+		G_Medal( attacker, MEDAL_INSIDEOUT );
+	}
+	if ( G_AbilityActive( attacker, ACTIVE_BERSERK ) ) {
+		G_Medal( attacker, MEDAL_SLAYER );
+		if ( ++berserkKills[attacker->s.number] == 3 ) {
+			G_Medal( attacker, MEDAL_BERSERKER );
+		}
+	}
+	if ( mod == MOD_SHOTGUN && BG_Champion( client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_BERSERK
+		&& client->ps.groundEntityNum == ENTITYNUM_NONE && ( client->ps.pm_flags & PMF_AIRMOVE_USED ) ) {
+		G_Medal( attacker, MEDAL_DAISY );
+	}
+	if ( G_AbilityActive( attacker, ACTIVE_INJECTION ) ) {
+		G_Medal( attacker, MEDAL_JUNKIE );
+	}
+	if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active == ACTIVE_GHOSTWALK && ghostEnd[attacker->s.number]
+		&& level.time - ghostEnd[attacker->s.number] <= MEDAL_SHADOWS_TIME ) {
+		G_Medal( attacker, MEDAL_FROMTHESHADOWS );
+	}
+	if ( G_AbilityKillMod( inflictor, mod ) ) {
+		G_Medal( attacker, MEDAL_ABILITYKILL );
 	}
 
 	if ( !level.firstBlood && !level.warmupTime ) {

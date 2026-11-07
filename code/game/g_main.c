@@ -451,7 +451,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_totemEnforcedHeal, "g_totemEnforcedHeal", "75", 0, 0, qtrue },
 	{ &g_totemEnforcedDamage, "g_totemEnforcedDamage", "60", 0, 0, qtrue },
 	{ &g_totemMax, "g_totemMax", "3", 0, 0, qtrue },
-	{ &g_turretHealth, "g_turretHealth", "120", 0, 0, qtrue },
+	{ &g_turretHealth, "g_turretHealth", "125", 0, 0, qtrue },
 	{ &g_turretDamage, "g_turretDamage", "15", 0, 0, qtrue },
 	{ &g_turretInterval, "g_turretInterval", "200", 0, 0, qtrue },
 	{ &g_turretRange, "g_turretRange", "1500", 0, 0, qtrue },

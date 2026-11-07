@@ -49,6 +49,55 @@ def p_choochoo():
     return head, circle(0.72, 0.5, 0.05) | circle(0.8, 0.42, 0.04) | circle(0.86, 0.34, 0.03)
 
 
+def p_berserker():
+    return burst(0.5, 0.5, 0.2, 0.09, 10), circle(0.5, 0.5, 0.08)
+
+
+def p_daisy():
+    petals = circle(0.5, 0.3, 0.09) | circle(0.3, 0.5, 0.09) | circle(0.7, 0.5, 0.09) | circle(0.5, 0.7, 0.09)
+    return petals, circle(0.5, 0.5, 0.08)
+
+
+def p_slayer():
+    return line(0.28, 0.72, 0.72, 0.28, 0.07), line(0.3, 0.3, 0.7, 0.7, 0.05)
+
+
+def p_hovertank():
+    return box(0.5, 0.5, 0.2, 0.08, 0.03), line(0.3, 0.68, 0.7, 0.68, 0.04)
+
+
+def p_reanimation():
+    return box(0.5, 0.5, 0.05, 0.2), box(0.5, 0.45, 0.14, 0.05)
+
+
+def p_junkie():
+    return line(0.3, 0.7, 0.62, 0.38, 0.07), line(0.62, 0.38, 0.74, 0.26, 0.03)
+
+
+def p_evasive():
+    return arc(0.5, 0.5, 0.2, 0.05, 200, 340), circle(0.5, 0.58, 0.07)
+
+
+def p_insideout():
+    return ring(0.5, 0.5, 0.2, 0.05), burst(0.5, 0.5, 0.11, 0.05, 8)
+
+
+def p_fromtheshadows():
+    return circle(0.42, 0.5, 0.17) - circle(0.5, 0.45, 0.15), circle(0.62, 0.42, 0.05)
+
+
+def p_stomper():
+    return box(0.5, 0.36, 0.14, 0.12, 0.03), line(0.28, 0.66, 0.72, 0.66, 0.05)
+
+
+def p_roadkill():
+    return line(0.22, 0.68, 0.78, 0.68, 0.05), box(0.5, 0.48, 0.15, 0.09, 0.03)
+
+
+def p_abilitykill():
+    return ring(0.5, 0.5, 0.2, 0.05), box(0.5, 0.5, 0.05, 0.13)
+
+
 def p_denied():
     return (ring(0.5, 0.5, 0.17, 0.05) | box(0.5, 0.5, 0.07, 0.022) | box(0.5, 0.5, 0.022, 0.07),
             line(0.37, 0.63, 0.63, 0.37, 0.055))
@@ -337,6 +386,8 @@ MEDALS = [
     "rage", "frenzy", "rampage", "dominating", "powerupmassacre", "gauntletgod", "machinegungod",
     "shotgungod", "nailgungod", "triboltgod", "rocketgod", "lightninggod", "railgod", "damagedealer",
     "netmaster", "assistant", "fury", "riot", "merciless", "fanaticism", "sadism", "executioner", "offense", "choochoo",
+    "berserker", "daisy", "slayer", "hovertank", "reanimation", "junkie", "evasive", "insideout", "fromtheshadows",
+    "stomper", "roadkill", "abilitykill",
     "impressive", "excellent", "gauntlet", "defend", "capture", "assist", "accuracy", "frags", "victory",
 ]
 MASTERS = {"gauntletgod", "machinegungod", "shotgungod", "nailgungod", "triboltgod", "rocketgod",

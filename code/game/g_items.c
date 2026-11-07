@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 void BotNoteDamage( int attacker, int target, int damage );
 void BotNotePickup( gentity_t *player, gentity_t *item );
+void G_TurretRepair( gentity_t *owner, int amount );
 
 /*
 
@@ -389,10 +390,6 @@ int Pickup_Armor( gentity_t *ent, gentity_t *other ) {
 
 		if ( amount < 25 ) {
 			amount = g_shardArmor.integer;
-			// Eisen repairs from shards: double
-			if ( BG_Champion( other->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_ARMORREGEN ) {
-				amount *= 2;
-			}
 		} else if ( amount < 100 ) {
 			cap = G_ClassInfo( other->client )->baseArmor;
 		}
@@ -405,6 +402,13 @@ int Pickup_Armor( gentity_t *ent, gentity_t *other ) {
 	}
 #endif
 
+	// Eisen: what he picks up also repairs his turret, and his salvage cuts
+	// the cooldown (shard 5 %, armours 10 %)
+	if ( BG_Champion( other->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_ARMORREGEN ) {
+		G_TurretRepair( other, ent->item->quantity < 25 ? g_shardArmor.integer : ent->item->quantity );
+		G_CutAbilityCooldown( other, ent->item->quantity < 25 ? 0.05f : 0.1f );
+	}
+
 	// light armor cuts the cooldown less than heavy; shards not at all
 	if ( ( BG_Champion( other->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_ARMORCOOLDOWN )
 		&& ent->item->quantity >= 25 ) {
@@ -415,6 +419,52 @@ int Pickup_Armor( gentity_t *ent, gentity_t *other ) {
 }
 
 //======================================================================
+
+/*
+===============
+G_EisenDeny
+
+Eisen at his armour cap, 2.5 s within 64 u of a light armour: it is used up
+as if taken, so the enemy can't have it
+===============
+*/
+#define DENY_RANGE		64
+#define DENY_MSEC		2500
+
+void G_EisenDeny( gentity_t *ent, int msec ) {
+	static int	held[MAX_CLIENTS];
+	gentity_t	*item;
+	int			i, c = ent->s.number;
+
+	if ( ent->health <= 0 || ent->client->ps.stats[STAT_ARMOR] < G_MaxArmor( ent->client ) ) {
+		held[c] = 0;
+		return;
+	}
+	for ( i = MAX_CLIENTS, item = &g_entities[MAX_CLIENTS] ; i < level.num_entities ; i++, item++ ) {
+		if ( !item->inuse || item->s.eType != ET_ITEM || !item->item || item->item->giType != IT_ARMOR
+			|| item->item->quantity < 25 || item->item->quantity >= 100
+			|| ( item->s.eFlags & EF_NODRAW ) || ( item->flags & FL_DROPPED_ITEM ) ) {
+			continue;
+		}
+		if ( Distance( item->r.currentOrigin, ent->r.currentOrigin ) > DENY_RANGE ) {
+			continue;
+		}
+		held[c] += msec;
+		if ( held[c] >= DENY_MSEC ) {
+			held[c] = 0;
+			item->r.svFlags |= SVF_NOCLIENT;
+			item->s.eFlags |= EF_NODRAW;
+			item->r.contents = 0;
+			item->nextthink = level.time + g_respawnArmor.integer * 1000;
+			item->itemCycle = g_respawnArmor.integer * 1000;
+			item->think = RespawnItem;
+			trap_LinkEntity( item );
+			G_UpdateItemTimers();
+		}
+		return;
+	}
+	held[c] = 0;
+}
 
 /*
 ===============
@@ -749,6 +799,7 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
 		respawn = Pickup_Holdable(ent, other);
 		break;
 	case IT_HOURGLASS:
+		other->client->ps.powerups[PW_SHELLSHOCK] = 0;		// it ends Shell Shock at once
 		G_CutAbilityCooldown( other, 0.1f );
 		respawn = 30;
 		predict = qfalse;

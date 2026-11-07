@@ -762,8 +762,9 @@ qboolean S_AL_SrcInit( void )
 		qalGenSources(1, &srcList[i].alSource);
 		if(qalGetError() != AL_NO_ERROR)
 			break;
-		// gains above 1 (the announcer and hit volumes) are heard, not capped
-		qalSourcef(srcList[i].alSource, AL_MAX_GAIN, 4.0f);
+		// AL_MAX_GAIN is limited to [0, 1]. A larger value leaves an error
+		// that the next iteration mistakes for a failed source allocation.
+		qalSourcef(srcList[i].alSource, AL_MAX_GAIN, 1.0f);
 		srcCount++;
 	}
 
@@ -836,6 +837,8 @@ static void S_AL_SrcSetup(srcHandle_t src, sfxHandle_t sfx, alSrcPriority_t prio
 		curSource->curGain *= Com_Clamp( 0, 2, s_announcerVolume->value );
 	} else if ( channel == CHAN_HITBEEP ) {
 		curSource->curGain *= Com_Clamp( 0, 3, s_hitVolume->value );
+	} else if ( channel == CHAN_WEAROFF ) {
+		curSource->curGain *= 2;		// the last seconds' tick stands out (sound-clarity.md)
 	}
 	curSource->scaleGain = curSource->curGain;
 	curSource->local = local;
@@ -1666,6 +1669,8 @@ void S_AL_SrcUpdate( void )
 				curSource->curGain *= Com_Clamp( 0, 2, s_announcerVolume->value );
 			else if ( curSource->channel == CHAN_HITBEEP )
 				curSource->curGain *= Com_Clamp( 0, 3, s_hitVolume->value );
+			else if ( curSource->channel == CHAN_WEAROFF )
+				curSource->curGain *= 2;
 		}
 		if((s_alRolloff->modified) && (!curSource->local))
 			qalSourcef(curSource->alSource, AL_ROLLOFF_FACTOR, s_alRolloff->value);

@@ -992,6 +992,8 @@ typedef struct {
 	sfxHandle_t	selectSound;
 	sfxHandle_t	useNothingSound;
 	sfxHandle_t	wearOffSound;
+	sfxHandle_t	tenFragSound, fifteenFragSound;
+	sfxHandle_t	poolLoopSound, poolStopSound;
 	sfxHandle_t	protectWearOffSound;
 	sfxHandle_t	hourglassSound;
 	sfxHandle_t	footsteps[FOOTSTEP_TOTAL][4];
@@ -1498,6 +1500,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 // cg_drawtools.c
 //
 void CG_AdjustFrom640( float *x, float *y, float *w, float *h );
+int CG_FragLimit( void );
 void CG_FillRect( float x, float y, float width, float height, const float *color );
 void CG_DrawPic( float x, float y, float width, float height, qhandle_t hShader );
 float CG_LevelshotAspect( const char *map );

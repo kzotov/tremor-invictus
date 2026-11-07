@@ -674,6 +674,8 @@ static void S_Base_StartSoundEx( vec3_t origin, int entityNum, int entchannel, s
 		ch->master_vol = (int)( 127 * Com_Clamp( 0, 2, s_announcerVolume->value ) );
 	} else if ( entchannel == CHAN_HITBEEP ) {
 		ch->master_vol = (int)( 127 * Com_Clamp( 0, 3, s_hitVolume->value ) );
+	} else if ( entchannel == CHAN_WEAROFF ) {
+		ch->master_vol = 254;		// the last seconds' tick stands out (sound-clarity.md)
 	}
 	ch->entnum = entityNum;
 	ch->thesfx = sfx;

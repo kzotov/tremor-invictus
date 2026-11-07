@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "g_local.h"
 
 void G_MedalsRushStart( gentity_t *ent );
+void G_MedalsAbilityPress( gentity_t *ent );
+void G_MedalsAbilityFrame( gentity_t *ent, int prevState, int state );
 
 
 /*
@@ -425,6 +427,7 @@ static void G_UseAbility( gentity_t *ent ) {
 	gclient_t	*client = ent->client;
 	int			max;
 
+	G_MedalsAbilityPress( ent );		// (health before the ability acts)
 	switch ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->active ) {
 	case ACTIVE_HOOK:
 		Ability_HookFire( ent );
@@ -469,13 +472,20 @@ After a while without damage, refill health to the top of its 25 HP block
 =================
 */
 static void G_Regeneration( gentity_t *ent, int msec ) {
+	static int	seenHealth[MAX_CLIENTS], changed[MAX_CLIENTS];
 	gclient_t	*client = ent->client;
-	int			top, add;
+	int			top, add, c = ent->s.number;
 
 	if ( !( BG_Champion( client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_REGENERATION ) || !g_passiveRegen.integer ) {
 		return;
 	}
-	if ( ent->health <= 0 || level.time - client->lastDamageTime < g_regenDelay.integer ) {
+	// any change of health but its own restarts the wait: damage and heals
+	if ( ent->health != seenHealth[c] ) {
+		seenHealth[c] = ent->health;
+		changed[c] = level.time;
+	}
+	if ( ent->health <= 0 || level.time - client->lastDamageTime < g_regenDelay.integer
+		|| level.time - changed[c] < g_regenDelay.integer ) {
 		client->regenResidual = 0;
 		return;
 	}
@@ -486,11 +496,16 @@ static void G_Regeneration( gentity_t *ent, int msec ) {
 	client->regenResidual += msec * g_regenRate.integer;
 	add = client->regenResidual / 1000;
 	client->regenResidual -= add * 1000;
+	// healing that starts before burn or acid's first tick ends them
+	if ( add > 0 ) {
+		G_ClearDamageOverTime( ent );
+	}
 	ent->health += add;
 	if ( ent->health > top ) {
 		ent->health = top;
 	}
 	client->ps.stats[STAT_HEALTH] = ent->health;
+	seenHealth[c] = ent->health;
 }
 
 /*
@@ -618,6 +633,7 @@ static void G_AbilityUpkeep( gentity_t *ent, int msec ) {
 		}
 		G_AbilityEnded( ent );
 	}
+	G_MedalsAbilityFrame( ent, client->abilityPrevState, state );
 	client->abilityPrevState = state;
 
 	// clan arena: active abilities are off
@@ -968,6 +984,15 @@ void ClientTimerActions( gentity_t *ent, int msec ) {
 
 		// count down armor when over the class base armor (the clan arena stack stays)
 		if ( client->ps.stats[STAT_ARMOR] > G_ClassInfo( client )->baseArmor && !G_ClanArena() ) {
+			// Eisen's falls half as fast (1 every 2 s)
+			static qboolean	eisenSkip[MAX_CLIENTS];
+
+			if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_ARMORREGEN ) {
+				eisenSkip[ent->s.number] = !eisenSkip[ent->s.number];
+				if ( eisenSkip[ent->s.number] ) {
+					client->ps.stats[STAT_ARMOR]++;
+				}
+			}
 			client->ps.stats[STAT_ARMOR]--;
 		}
 	}

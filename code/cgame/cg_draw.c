@@ -5113,6 +5113,19 @@ static void CG_DrawLowHealth( void ) {
 	vec4_t	color;
 	int		i;
 
+	// a healing pool: a faint red edge while it heals (mechanics.md FIX-70)
+	if ( cg.snap->ps.powerups[PW_HEALPOOL] > cg.time ) {
+		static qhandle_t	edgeShader;
+
+		if ( !edgeShader ) {
+			edgeShader = trap_R_RegisterShaderNoMip( "gfx/tremor/blood_edge" );
+		}
+		color[0] = color[1] = color[2] = 1;
+		color[3] = 0.3f;
+		trap_R_SetColor( color );
+		trap_R_DrawStretchPic( 0, 0, w, h, 0, 0, 1, 1, edgeShader );
+		trap_R_SetColor( NULL );
+	}
 	if ( cg.lowHealthStep == LH_NONE ) {
 		return;
 	}
@@ -8399,7 +8412,7 @@ fades in over 0.34 s and out over 0.38 s
 #define STATUS_SLOTS	9
 
 static void CG_DrawStatusRow( void ) {
-	static const int	effects[] = { PW_QUAD, PW_BATTLESUIT, PW_HASTE, PW_INVIS, PW_REGEN, PW_FLIGHT, PW_BURNING, PW_POISONED, PW_SHELLSHOCK };
+	static const int	effects[] = { PW_QUAD, PW_BATTLESUIT, PW_HASTE, PW_INVIS, PW_REGEN, PW_FLIGHT, PW_BURNING, PW_POISONED, PW_SHELLSHOCK, PW_HEALPOOL };
 	static int			total[PW_NUM_POWERUPS], seen[PW_NUM_POWERUPS], gone[PW_NUM_POWERUPS], lastEnd[PW_NUM_POWERUPS];
 	static qhandle_t	icons[PW_NUM_POWERUPS];
 	static qboolean		loaded;
@@ -8419,6 +8432,7 @@ static void CG_DrawStatusRow( void ) {
 		icons[PW_BURNING] = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/glyphs/status_burning" );
 		icons[PW_POISONED] = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/glyphs/status_acid" );
 		icons[PW_REGEN] = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/glyphs/status_regen" );
+		icons[PW_HEALPOOL] = icons[PW_REGEN];
 		icons[PW_SHELLSHOCK] = trap_R_RegisterShaderNoMip( "gfx/tremor/icons/glyphs/status_slowed" );		// stunned
 		loaded = qtrue;
 	}

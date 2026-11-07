@@ -1208,6 +1208,54 @@ def md_choochoo():
     return Icon(head | C(50, 36, 4) | C(56, 28, 3) | C(60, 20, 2.5))
 
 
+def md_berserker():
+    return Icon(C(32, 32, 14) | L(12, 12, 52, 52, 5) | L(52, 12, 12, 52, 5))
+
+
+def md_daisy():
+    return Icon(C(32, 16, 8) | C(16, 32, 8) | C(48, 32, 8) | C(32, 48, 8) | C(32, 32, 6))
+
+
+def md_slayer():
+    return Icon(L(14, 50, 50, 14, 6) | L(16, 18, 46, 48, 4))
+
+
+def md_hovertank():
+    return Icon(C(32, 30, 16) | L(14, 52, 50, 52, 5))
+
+
+def md_reanimation():
+    return Icon(L(32, 10, 32, 54, 8) | L(14, 26, 50, 26, 8))
+
+
+def md_junkie():
+    return Icon(L(14, 50, 44, 20, 8) | L(44, 20, 54, 10, 3))
+
+
+def md_evasive():
+    return Icon(A(32, 32, 20, 5, 200, 340) | C(32, 40, 7))
+
+
+def md_insideout():
+    return Icon(RG(32, 32, 22, 5) | C(32, 32, 9))
+
+
+def md_fromtheshadows():
+    return Icon(RG(28, 32, 18, 8) | C(46, 24, 4))
+
+
+def md_stomper():
+    return Icon(C(32, 22, 14) | L(10, 50, 54, 50, 5))
+
+
+def md_roadkill():
+    return Icon(L(8, 46, 56, 46, 5) | C(32, 30, 12))
+
+
+def md_abilitykill():
+    return Icon(RG(32, 32, 22, 5) | L(32, 16, 32, 48, 6))
+
+
 def md_denied():
     return Icon(RG(32, 32, 22, 6) | L(12, 52, 52, 12, 6))
 
@@ -1374,7 +1422,10 @@ def md_victory():
 
 MEDAL_GLYPHS = {
     "firstblood": md_firstblood, "midair": md_midair, "airborne": md_airborne, "combokill": md_combokill,
-    "collateral": md_collateral, "doublewhammy": md_doublewhammy, "choochoo": md_choochoo, "denied": md_denied, "revenge": md_revenge,
+    "collateral": md_collateral, "doublewhammy": md_doublewhammy, "choochoo": md_choochoo, "denied": md_denied,
+    "berserker": md_berserker, "daisy": md_daisy, "slayer": md_slayer, "hovertank": md_hovertank,
+    "reanimation": md_reanimation, "junkie": md_junkie, "evasive": md_evasive, "insideout": md_insideout,
+    "fromtheshadows": md_fromtheshadows, "stomper": md_stomper, "roadkill": md_roadkill, "abilitykill": md_abilitykill, "revenge": md_revenge,
     "partybreaker": md_partybreaker, "perforated": md_perforated, "pointblank": md_pointblank,
     "precise": md_precise, "ringout": md_ringout, "stopwatch": md_stopwatch, "tank": md_tank,
     "diehard": md_diehard, "fromthegrave": md_fromthegrave, "kamikaze": md_kamikaze,

@@ -42,6 +42,91 @@ void multi_wait( gentity_t *ent ) {
 // the trigger was just activated
 // ent->activator should be set to the activator so it can be held through a delay
 // so wait for the delay time before firing
+/*
+==============
+Healing pools (mechanics.md FIX-70)
+
+A map's pool is a trigger that gives a hidden small health item. It isn't a
+pickup: each player in it on their own timer gets 5 health a second, up to
+maximum health, whatever the trigger's wait; no sound, feed line, log line
+or medal, no cooldown cut, burn and acid go on. None in Clan Arena, and
+none for Strogg flying the drone
+==============
+*/
+#define POOL_HEAL		5
+#define POOL_TICK		1000
+#define POOL_SHOWN		300		// msec the status lasts after the last touch
+
+static qboolean G_HealingPool( gentity_t *trigger ) {
+	gentity_t	*give = NULL, *item;
+
+	if ( !trigger->target ) {
+		return qfalse;
+	}
+	while ( ( give = G_Find( give, FOFS( targetname ), trigger->target ) ) != NULL ) {
+		if ( !give->classname || strcmp( give->classname, "target_give" ) || !give->target ) {
+			continue;
+		}
+		item = NULL;
+		while ( ( item = G_Find( item, FOFS( targetname ), give->target ) ) != NULL ) {
+			if ( item->item && item->item->giType == IT_HEALTH ) {
+				return qtrue;
+			}
+		}
+	}
+	return qfalse;
+}
+
+static void G_PoolTouch( gentity_t *ent ) {
+	static int	nextTick[MAX_CLIENTS];
+	gclient_t	*client = ent->client;
+	int			max = client->ps.stats[STAT_MAX_HEALTH];
+
+	if ( G_ClanArena() || client->droneBody || ent->health <= 0 || ent->health >= max ) {
+		return;
+	}
+	client->ps.powerups[PW_HEALPOOL] = level.time + POOL_SHOWN;
+	if ( level.time < nextTick[ent->s.number] ) {
+		return;
+	}
+	nextTick[ent->s.number] = level.time + POOL_TICK;
+	ent->health += POOL_HEAL;
+	if ( ent->health > max ) {
+		ent->health = max;
+	}
+	client->ps.stats[STAT_HEALTH] = ent->health;
+}
+
+/*
+==============
+G_PoolNear
+
+The middle of the nearest healing pool within range, for the bots
+==============
+*/
+qboolean G_PoolNear( vec3_t origin, float range, vec3_t pool ) {
+	gentity_t	*ent;
+	vec3_t		mid;
+	float		best = range, d;
+	int			i;
+	qboolean	found = qfalse;
+
+	for ( i = MAX_CLIENTS, ent = &g_entities[MAX_CLIENTS] ; i < level.num_entities ; i++, ent++ ) {
+		if ( !ent->inuse || !ent->classname || strcmp( ent->classname, "trigger_multiple" ) || !G_HealingPool( ent ) ) {
+			continue;
+		}
+		VectorAdd( ent->r.absmin, ent->r.absmax, mid );
+		VectorScale( mid, 0.5f, mid );
+		d = Distance( mid, origin );
+		if ( d < best ) {
+			best = d;
+			VectorCopy( mid, pool );
+			found = qtrue;
+		}
+	}
+	return found;
+}
+
 void multi_trigger( gentity_t *ent, gentity_t *activator ) {
 	ent->activator = activator;
 	if ( ent->nextthink ) {
@@ -79,6 +164,10 @@ void Use_Multi( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
 
 void Touch_Multi( gentity_t *self, gentity_t *other, trace_t *trace ) {
 	if( !other->client ) {
+		return;
+	}
+	if ( G_HealingPool( self ) ) {
+		G_PoolTouch( other );
 		return;
 	}
 	multi_trigger( self, other );

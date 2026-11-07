@@ -1192,7 +1192,9 @@ static const int cg_medalRank[MEDAL_NUM] = {
 	25,		// MEDAL_RIOT (25: between Rampage and Frenzy)
 	8, 6, 4, 2,		// Merciless, Fanaticism, Sadism, Executioner: rarer than Avatar of Death (10), the longest first (d)
 	MEDAL_RANK_TOTALS,	// MEDAL_OFFENSE (team objectives, with Defense and Capture)
-	70		// MEDAL_CHOOCHOO (as Double Whammy)
+	70,		// MEDAL_CHOOCHOO (as Double Whammy)
+	// the champion medals: with the rare kills
+	185, 195, 215, 175, 205, 215, 165, 95, 205, 225, 225, 335	// Berserker to Roadkill; Ability Kill, common
 };
 
 static void CG_Medal( int medal, int count ) {
@@ -1399,7 +1401,7 @@ static void CG_ServerCommand( void ) {
 			} else if ( id >= STR_EV_RED_FLAG_TAKEN && id <= STR_EV_BLUE_FLAG_CAPTURED ) {
 				CG_EventBanner( text, 2 );		// objectives
 			} else if ( id >= STR_EV_QUAD_SOON && id <= STR_EV_HAS_PROTECTION ) {
-				CG_EventBanner( text, 3 );		// power-ups
+				// power-ups: voice lines, HUD timers and icons only (messages.md FIX-76)
 			} else {
 				if ( ( id >= STR_SYS_VOTE_PASSED && id <= STR_SYS_TEAMVOTE_FAILED )
 					|| id == STR_SYS_VOTE_FORCED || id == STR_SYS_VOTE_VETOED || id == STR_SYS_VOTE_EXPIRED ) {

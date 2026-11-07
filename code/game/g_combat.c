@@ -1314,6 +1314,11 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		damage *= g_protectionScale.value;
 	}
 
+	// a hit on an enemy turret beeps as a hit on a player does
+	if ( attacker->client && !targ->client && targ->classname && !strcmp( targ->classname, "sentry_turret" )
+		&& targ->parent && targ->parent->client && !OnSameTeam( targ->parent, attacker ) && targ->health > 0 ) {
+		attacker->client->ps.persistant[PERS_HITS]++;
+	}
 	// add to the attacker's hit counter (if the target isn't a general entity like a prox mine)
 	// (Strogg's body during the drone counts as him)
 	if ( attacker->client && as->client

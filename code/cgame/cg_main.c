@@ -755,6 +755,10 @@ static void CG_RegisterSounds( void ) {
 	cgs.media.fiveMinuteSound = trap_S_RegisterSound( "sound/feedback/5_minute.wav", qtrue );
 	cgs.media.suddenDeathSound = trap_S_RegisterSound( "sound/feedback/sudden_death.wav", qtrue );
 	cgs.media.oneFragSound = trap_S_RegisterSound( "sound/feedback/1_frag.wav", qtrue );
+	cgs.media.tenFragSound = trap_S_RegisterSound( "sound/feedback/10_frags.wav", qtrue );
+	cgs.media.fifteenFragSound = trap_S_RegisterSound( "sound/feedback/15_frags.wav", qtrue );
+	cgs.media.poolLoopSound = trap_S_RegisterSound( "sound/world/pool_heal.wav", qfalse );
+	cgs.media.poolStopSound = trap_S_RegisterSound( "sound/world/pool_stop.wav", qfalse );
 	cgs.media.twoFragSound = trap_S_RegisterSound( "sound/feedback/2_frags.wav", qtrue );
 	cgs.media.threeFragSound = trap_S_RegisterSound( "sound/feedback/3_frags.wav", qtrue );
 	cgs.media.count3Sound = trap_S_RegisterSound( "sound/feedback/three.wav", qtrue );

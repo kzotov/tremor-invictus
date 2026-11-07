@@ -997,6 +997,7 @@ static qboolean BotHookTarget(bot_state_t *bs, qboolean seen, int health, vec3_t
 }
 
 void G_DroneEnd( gentity_t *ent, qboolean launch );
+qboolean G_PoolNear( vec3_t origin, float range, vec3_t pool );
 
 /*
 ==============
@@ -1347,8 +1348,8 @@ BotDodgeRockets / BotBunnyHop
 bots-audit BOT-03 with FIX-63: a sidestep on the ground from an enemy
 rocket coming within 300 u, to a side with safe floor 96 u away (none: no
 dodge), jumping only for one that would land within 80 u in under 0.25 s;
-hops on long straight safe runs with no enemy in view, each 1.1 times
-faster up to 700 u/s (500 within 300 u of a hazard)
+from skill 3, hops on long straight safe runs with no enemy in view,
+gaining speed gently in the air up to 500 u/s (400 near a hazard)
 ==============
 */
 static qboolean BotDodgeRockets(bot_state_t *bs, bot_input_t *bi) {
@@ -1389,15 +1390,35 @@ static qboolean BotDodgeRockets(bot_state_t *bs, bot_input_t *bi) {
 }
 
 static void BotBunnyHop(bot_state_t *bs, bot_input_t *bi) {
+	static qboolean	hopping[MAX_CLIENTS];
+	static int		lastGain[MAX_CLIENTS];
 	gclient_t	*client = g_entities[bs->client].client;
 	vec3_t		flat, probe, down;
 	trace_t		tr;
-	float		speed, scale, hop, cap = 700, d;
+	float		speed, scale, hop, cap = 500, d;
 
-	if (bs->cur_ps.groundEntityNum == ENTITYNUM_NONE || bi->speed < 300 || bs->cur_ps.pm_type != PM_NORMAL) return;
-	if (bs->enemy >= 0 && FloatTime() - bs->enemyvisible_time < 2) return;
-	VectorSet(flat, bs->cur_ps.velocity[0], bs->cur_ps.velocity[1], 0);
+	//(the live state: this runs every frame, bs->cur_ps only each bot think)
+	if (bs->settings.skill < 3 || client->ps.pm_type != PM_NORMAL) return;
+	VectorSet(flat, client->ps.velocity[0], client->ps.velocity[1], 0);
 	speed = VectorNormalize(flat);
+	//in the air the speed builds as a player's strafe jump does, gently and
+	//over the whole hop: a kick at take-off looks like a dash
+	if (client->ps.groundEntityNum == ENTITYNUM_NONE) {
+		if (hopping[bs->client] && speed > 300) {
+			if (BotHazardDistance(bs->origin) < 300) cap = 400;
+			scale = 1 + 0.15f * (level.time - lastGain[bs->client]) * 0.001f;
+			lastGain[bs->client] = level.time;
+			if (speed * scale <= cap) {
+				client->ps.velocity[0] *= scale;
+				client->ps.velocity[1] *= scale;
+			}
+		}
+		return;
+	}
+	hopping[bs->client] = qfalse;
+	lastGain[bs->client] = level.time;
+	if (bi->speed < 300) return;
+	if (bs->enemy >= 0 && FloatTime() - bs->enemyvisible_time < 2) return;
 	if (speed < 300 || DotProduct(flat, bi->dir) < 0.94f) return;		//straight on, within 20 degrees
 	//FIX-63: level floor under it, and safe floor at both next landings and
 	//on to 400 u past them (no edge, turn-off or hazard close ahead)
@@ -1410,13 +1431,8 @@ static void BotBunnyHop(bot_state_t *bs, bot_input_t *bi) {
 		VectorMA(bs->origin, d, flat, probe);
 		if (!BotSafeFloor(bs, probe, 0.7f)) return;
 	}
-	if (BotHazardDistance(bs->origin) < 300) cap = 500;
 	bi->actionflags |= ACTION_JUMP;
-	scale = speed * 1.1f > cap ? cap / speed : 1.1f;
-	if (scale > 1) {
-		client->ps.velocity[0] *= scale;
-		client->ps.velocity[1] *= scale;
-	}
+	hopping[bs->client] = qtrue;
 }
 
 /*
@@ -1742,6 +1758,16 @@ static void BotMacro(bot_state_t *bs) {
 			if (!(other->s.eFlags & EF_FIRING) || Distance(other->r.currentOrigin, bs->origin) > 1500) continue;
 			BotPushGoalTo(bs, other->r.currentOrigin);
 			BotTacticLog(bs, "third_party");
+			return;
+		}
+	}
+	//hurt with no fight: a healing pool within 600 u
+	if (bs->inventory[INVENTORY_HEALTH] < 50) {
+		vec3_t pool;
+
+		if (G_PoolNear(bs->origin, 600, pool)) {
+			BotPushGoalTo(bs, pool);
+			BotTacticLog(bs, "healing_pool");
 			return;
 		}
 	}

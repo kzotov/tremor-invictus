@@ -319,30 +319,27 @@ static void pushReward(sfxHandle_t sfx, qhandle_t shader, int rewardCount, int r
 
 /*
 ==================
-CG_EventLineFor
-
-An event line about the viewed player: "YOU ..." for yourself, the name
-for the player you follow (hud.md 8.3)
-==================
-*/
-static void CG_EventLineFor( playerState_t *ps, int own, int other, int priority ) {
-	char	text[MAX_STRING_CHARS];
-
-	if ( ( ps->pm_flags & PMF_FOLLOW ) && ps->clientNum >= 0 && ps->clientNum < MAX_CLIENTS ) {
-		Com_sprintf( text, sizeof( text ), BG_String( other ), cgs.clientinfo[ps->clientNum].name );
-		CG_EventBanner( text, priority );
-	} else {
-		CG_EventBanner( BG_String( own ), priority );
-	}
-}
-
-/*
-==================
 CG_CheckLocalSounds
 ==================
 */
+/*
+==================
+CG_FragLimit
+
+The mode's real frag limit: FFA, team deathmatch and duels have their own
+settings, and fraglimit itself may be 0
+==================
+*/
+int CG_FragLimit( void ) {
+	const char	*info = CG_ConfigString( CS_SERVERINFO );
+	const char	*key = cgs.gametype == GT_TOURNAMENT ? "g_duelFraglimit" : cgs.gametype == GT_TEAM ? "g_tdmFraglimit"
+		: cgs.gametype == GT_FFA && cgs.fraglimit <= 0 ? "g_ffaFraglimit" : NULL;
+
+	return key ? atoi( Info_ValueForKey( info, key ) ) : cgs.fraglimit;
+}
+
 void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
-	int			highScore, reward;
+	int			highScore, reward, limit;
 	sfxHandle_t sfx;
 
 	// don't play the sounds if the player just changed teams
@@ -472,11 +469,6 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 		}
 	}
 
-	// the holder's Quad Damage ran out (not lost by dying)
-	if ( ops->powerups[PW_QUAD] && !ps->powerups[PW_QUAD] && ps->stats[STAT_HEALTH] > 0 ) {
-		CG_EventLineFor( ps, STR_EV_QUAD_UP, STR_EV_QUAD_UP_OTHER, 3 );
-	}
-
 	// lead changes
 	if (!reward) {
 		//
@@ -486,13 +478,10 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 				if ( cgs.gametype < GT_TEAM) {
 					if (  ps->persistant[PERS_RANK] == 0 ) {
 						CG_AddBufferedSound(cgs.media.takenLeadSound);
-						CG_EventLineFor( ps, STR_EV_TAKEN_LEAD, STR_EV_TAKEN_LEAD_OTHER, 4 );
 					} else if ( ps->persistant[PERS_RANK] == RANK_TIED_FLAG ) {
 						CG_AddBufferedSound(cgs.media.tiedLeadSound);
-						CG_EventLineFor( ps, STR_EV_TIED_LEAD, STR_EV_TIED_LEAD_OTHER, 4 );
 					} else if ( ( ops->persistant[PERS_RANK] & ~RANK_TIED_FLAG ) == 0 ) {
 						CG_AddBufferedSound(cgs.media.lostLeadSound);
-						CG_EventLineFor( ps, STR_EV_LOST_LEAD, STR_EV_LOST_LEAD_OTHER, 4 );
 					}
 				}
 			}
@@ -511,34 +500,37 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
 		else if ( !( cg.timelimitWarnings & 2 ) && msec > (cgs.timelimit - 1) * 60 * 1000 ) {
 			cg.timelimitWarnings |= 1 | 2;
 			trap_S_StartLocalSound( cgs.media.oneMinuteSound, CHAN_ANNOUNCER );
-			CG_EventBanner( BG_String( STR_EV_1_MINUTE ), 4 );
 		}
 		else if ( cgs.timelimit > 5 && !( cg.timelimitWarnings & 1 ) && msec > (cgs.timelimit - 5) * 60 * 1000 ) {
 			cg.timelimitWarnings |= 1;
 			trap_S_StartLocalSound( cgs.media.fiveMinuteSound, CHAN_ANNOUNCER );
-			CG_EventBanner( BG_String( STR_EV_5_MINUTES ), 4 );
 		}
 	}
 
-	// fraglimit warnings
-	if ( cgs.fraglimit > 0 && cgs.gametype < GT_CTF) {
+	// fraglimit warnings: 15, 10, 3, 2 and 1 left, once each a match, by the
+	// mode's real limit (gaps.md FIX-74)
+	limit = CG_FragLimit();
+	if ( limit > 0 && cgs.gametype < GT_CTF ) {
+		static const struct { int left, bit; } calls[] = { { 1, 4 }, { 2, 2 }, { 3, 1 }, { 10, 8 }, { 15, 16 } };
+		sfxHandle_t	sounds[5];
+		int			i;
+
+		sounds[0] = cgs.media.oneFragSound;
+		sounds[1] = cgs.media.twoFragSound;
+		sounds[2] = cgs.media.threeFragSound;
+		sounds[3] = cgs.media.tenFragSound;
+		sounds[4] = cgs.media.fifteenFragSound;
 		highScore = cgs.scores1;
 
 		if (cgs.gametype == GT_TEAM && cgs.scores2 > highScore) {
 			highScore = cgs.scores2;
 		}
-
-		if ( !( cg.fraglimitWarnings & 4 ) && highScore == (cgs.fraglimit - 1) ) {
-			cg.fraglimitWarnings |= 1 | 2 | 4;
-			CG_AddBufferedSoundPriority(cgs.media.oneFragSound, 4);
-		}
-		else if ( cgs.fraglimit > 2 && !( cg.fraglimitWarnings & 2 ) && highScore == (cgs.fraglimit - 2) ) {
-			cg.fraglimitWarnings |= 1 | 2;
-			CG_AddBufferedSoundPriority(cgs.media.twoFragSound, 4);
-		}
-		else if ( cgs.fraglimit > 3 && !( cg.fraglimitWarnings & 1 ) && highScore == (cgs.fraglimit - 3) ) {
-			cg.fraglimitWarnings |= 1;
-			CG_AddBufferedSoundPriority(cgs.media.threeFragSound, 4);
+		for ( i = 0 ; i < 5 ; i++ ) {
+			if ( limit > calls[i].left && !( cg.fraglimitWarnings & calls[i].bit ) && highScore == limit - calls[i].left ) {
+				cg.fraglimitWarnings |= calls[i].bit;
+				CG_AddBufferedSoundPriority( sounds[i], 4 );
+				break;
+			}
 		}
 	}
 }
