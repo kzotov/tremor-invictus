@@ -62,8 +62,12 @@ Q_EXPORT intptr_t vmMain( int command, int arg0, int arg1, int arg2, int arg3, i
 	case CG_LAST_ATTACKER:
 		return CG_LastAttacker();
 	case CG_KEY_EVENT:
+#ifdef MISSIONPACK
 		CG_KeyEvent(arg0, arg1);
 		return 0;
+#else
+		return CG_KeyEvent(arg0, arg1);		// (qtrue: taken; the engine then skips its binding)
+#endif
 	case CG_MOUSE_EVENT:
 #ifdef MISSIONPACK
 		cgDC.cursorx = cgs.cursorX;
@@ -2371,10 +2375,12 @@ void CG_EventHandling(int type) {
 
 
 
-void CG_KeyEvent(int key, qboolean down) {
+qboolean CG_KeyEvent(int key, qboolean down) {
+	return CG_DeathKey( key, down );
 }
 
 void CG_MouseEvent(int x, int y) {
+	CG_DeathMouse( x, y );
 }
 #endif
 

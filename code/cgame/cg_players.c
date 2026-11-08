@@ -2511,6 +2511,7 @@ void CG_Player( centity_t *cent ) {
 		trap_R_AddRefEntityToScene( &legs );
 		CG_ColorAfterDraw( &legs );
 		CG_ColorReset();
+		CG_PowerupShells( &legs, cent->currentState.powerups );
 		return;
 	}
 

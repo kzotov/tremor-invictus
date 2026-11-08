@@ -1166,8 +1166,9 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		knockback = knockNext;
 	}
 	// the attacker's damage multiplier pushes too, at most double (Quad)
-	if ( attacker->client && attacker->client->ps.powerups[PW_QUAD] && mod != MOD_GRAPPLE && !( mod >= MOD_HEAVYWEIGHT && mod <= MOD_LEAPINGKICK ) ) {
-		knockback *= g_quadfactor.value < 2 ? g_quadfactor.value : 2;		// (not for abilities)
+	if ( attacker->client && attacker->client->ps.powerups[PW_QUAD] && mod != MOD_GRAPPLE
+		&& ( !( mod >= MOD_HEAVYWEIGHT && mod <= MOD_LEAPINGKICK ) || mod == MOD_TURRET || mod == MOD_DRONE ) ) {
+		knockback *= g_quadfactor.value < 2 ? g_quadfactor.value : 2;		// (not for abilities but the turret and Peeker: FIX-82)
 	}
 	if ( knockback > 132 ) {		// the cap is one rocket on yourself
 		knockback = 132;
@@ -1316,8 +1317,9 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		G_AddEvent( targ, EV_POWERUP_BATTLESUIT, 0 );
 		damage *= g_protectionScale.value;
 	}
-	// Galena's totems carry her Protection
-	if ( !targ->client && targ->classname && !strcmp( targ->classname, "totem" ) && targ->parent && targ->parent->client
+	// Galena's totems and Eisen's turret carry their owner's Protection
+	if ( !targ->client && targ->classname && ( !strcmp( targ->classname, "totem" ) || !strcmp( targ->classname, "sentry_turret" ) )
+		&& targ->parent && targ->parent->client
 		&& targ->parent->client->ps.powerups[PW_BATTLESUIT] && mod != MOD_TELEFRAG ) {
 		damage *= g_protectionScale.value;
 	}

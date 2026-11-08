@@ -1310,7 +1310,7 @@ void FireWeapon( gentity_t *ent ) {
 		gentity_t	*bolt = fire_plasma( ent, muzzle, forward );
 
 		bolt->classname = "drone_shot";
-		bolt->damage = g_droneDamage.integer;
+		bolt->damage = g_droneDamage.integer * ( ent->client->ps.powerups[PW_QUAD] ? g_quadfactor.value : 1 );		// (FIX-82)
 		bolt->splashDamage = 0;
 		bolt->splashRadius = 0;
 		bolt->methodOfDeath = MOD_DRONE;

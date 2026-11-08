@@ -263,6 +263,49 @@ static qboolean CG_KillerCamera( void ) {
 
 /*
 ===============
+CG_DeadFirstPerson
+
+Clan Arena keeps the first-person view while dead (hud.md FIX-83)
+===============
+*/
+static qboolean CG_DeadFirstPerson( void ) {
+	return cgs.gametype == GT_TEAM && atoi( Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_clanArena" ) );
+}
+
+/*
+===============
+CG_DeathBodyCamera
+
+hud.md FIX-83: from the death to the killer camera, your own body in third
+person: 120 u behind and 40 u above it, facing the killer's direction and
+looking at the body, pulled in by walls
+===============
+*/
+#define DEATH_CAM_ARM		120
+#define DEATH_CAM_UP		40
+
+static qboolean CG_DeathBodyCamera( void ) {
+	vec3_t		target, forward, angles, delta, mins = { -4, -4, -4 }, maxs = { 4, 4, 4 };
+	trace_t		tr;
+
+	if ( cg.snap->ps.stats[STAT_HEALTH] > 0 || cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR
+		|| ( cg.snap->ps.pm_flags & PMF_FOLLOW ) || cg_thirdPerson.integer || CG_DeadFirstPerson() ) {
+		return qfalse;
+	}
+	VectorCopy( cg.predictedPlayerState.origin, target );
+	VectorSet( angles, 0, cg.predictedPlayerState.stats[STAT_DEAD_YAW], 0 );
+	AngleVectors( angles, forward, NULL, NULL );
+	VectorMA( target, -DEATH_CAM_ARM, forward, cg.refdef.vieworg );
+	cg.refdef.vieworg[2] += DEATH_CAM_UP;
+	CG_Trace( &tr, target, mins, maxs, cg.refdef.vieworg, cg.predictedPlayerState.clientNum, MASK_SOLID );
+	VectorCopy( tr.endpos, cg.refdef.vieworg );
+	VectorSubtract( target, cg.refdef.vieworg, delta );
+	vectoangles( delta, cg.refdefViewAngles );
+	return qtrue;
+}
+
+/*
+===============
 CG_OffsetThirdPersonView
 
 ===============
@@ -804,6 +847,8 @@ static int CG_CalcViewValues( void ) {
 
 	if ( CG_KillerCamera() ) {
 		// the death camera follows the killer
+	} else if ( CG_DeathBodyCamera() ) {
+		// before that, your own body
 	} else if ( cg.renderingThirdPerson ) {
 		// back away from character
 		CG_OffsetThirdPersonView();
@@ -1119,11 +1164,14 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 
 	// update cg.predictedPlayerState
 	CG_PredictPlayerState();
+#ifndef MISSIONPACK
+	CG_UpdateDeathCursor();		// the death screen's mouse (FIX-84)
+#endif
 	CG_SlideSounds();
 
 	// decide on third person view
 	cg.renderingThirdPerson = cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR
-							&& (cg_thirdPerson.integer || (cg.snap->ps.stats[STAT_HEALTH] <= 0)
+							&& (cg_thirdPerson.integer || (cg.snap->ps.stats[STAT_HEALTH] <= 0 && !CG_DeadFirstPerson())
 								|| ( cg_specThirdPerson.integer && ( cg.snap->ps.pm_flags & PMF_FOLLOW ) ));
 
 	// build cg.refdef

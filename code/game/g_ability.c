@@ -1315,6 +1315,16 @@ static void G_TurretThink( gentity_t *turret ) {
 
 	turret->nextthink = level.time + ABILITY_FRAME;
 	turret->s.time2 = ( turret->health > 0 ? turret->health : 0 ) | g_turretHealth.integer << 12;		// (its bar)
+	// its owner's Quad and Protection show on it (FIX-82)
+	turret->s.powerups = 0;
+	if ( turret->parent && turret->parent->client ) {
+		if ( turret->parent->client->ps.powerups[PW_QUAD] ) {
+			turret->s.powerups |= 1 << PW_QUAD;
+		}
+		if ( turret->parent->client->ps.powerups[PW_BATTLESUIT] ) {
+			turret->s.powerups |= 1 << PW_BATTLESUIT;
+		}
+	}
 	G_TurretUpkeep( turret );
 	// Eisen's HUD: the turret out, its health and armour (STAT_TURRET)
 	if ( turret->parent && turret->parent->client && turret->parent->inuse ) {
@@ -1417,6 +1427,10 @@ static void G_TurretThink( gentity_t *turret ) {
 		VectorMA( muzzle, 20, dir, muzzle );	// start outside the turret's own box
 		bolt = fire_plasma( turret->parent, muzzle, dir );
 		bolt->damage = g_turretDamage.integer;
+		// the owner's Quad drives its bolts (FIX-82)
+		if ( turret->parent->client && turret->parent->client->ps.powerups[PW_QUAD] ) {
+			bolt->damage *= g_quadfactor.value;
+		}
 		bolt->splashDamage = 0;
 		bolt->wpTuned = qtrue;		// impulse 10: x0.9 on others, x1.5 on Eisen (champion-audit.md)
 		bolt->wpKnock = TURRET_IMPULSE * 0.9f;
@@ -2576,7 +2590,7 @@ void G_DroneEnd( gentity_t *ent, qboolean launch ) {
 		tent = G_TempEntity( client->ps.origin, EV_DRONE_EXPLODE );		// (its own blast, not a rocket's)
 		tent->s.eventParm = DirToByte( vec3_origin );
 		body->takedamage = qfalse;		// the blast spares his own body
-		G_RadiusDamage( client->ps.origin, ent, g_droneRocketDamage.integer, g_droneRocketRadius.integer, ent, MOD_DRONE );
+		G_RadiusDamage( client->ps.origin, ent, g_droneRocketDamage.integer * ( client->ps.powerups[PW_QUAD] ? g_quadfactor.value : 1 ), g_droneRocketRadius.integer, ent, MOD_DRONE );
 	}
 	// no machinegun bullet left from the drone's gun
 	client->ps.ammo[WP_MACHINEGUN] = client->droneMGAmmo;

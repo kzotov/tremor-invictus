@@ -1469,7 +1469,11 @@ void CG_UpdateCvars( void );
 int CG_CrosshairPlayer( void );
 int CG_LastAttacker( void );
 void CG_LoadMenus(const char *menuFile);
+#ifdef MISSIONPACK
 void CG_KeyEvent(int key, qboolean down);
+#else
+qboolean CG_KeyEvent(int key, qboolean down);
+#endif
 void CG_MouseEvent(int x, int y);
 void CG_EventHandling(int type);
 void CG_RankRunFrame( void );
@@ -1790,6 +1794,10 @@ void CG_TransitionPlayerState( playerState_t *ps, playerState_t *ops );
 qboolean CG_PlayerRevealed( int clientNum );
 void CG_RevealModel( const refEntity_t *ent, int clientNum );
 void CG_RevealObject( const refEntity_t *ent );
+void CG_PowerupShells( const refEntity_t *ent, int powerups );
+void CG_UpdateDeathCursor( void );
+void CG_DeathMouse( int dx, int dy );
+qboolean CG_DeathKey( int key, qboolean down );
 qboolean CG_InGhostWalk( const entityState_t *state );
 qboolean CG_BerserkMarked( const entityState_t *state );
 // gaps.md GAP-17 announcer order, rarest first: lower is rarer

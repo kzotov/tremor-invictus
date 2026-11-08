@@ -47,6 +47,7 @@ qboolean	key_overstrikeMode;
 
 int				anykeydown;
 qkey_t		keys[MAX_KEYS];
+static qboolean	cgameTookKey[MAX_KEYS];	// presses the cgame's cursor took (their release goes there too)
 
 
 typedef struct {
@@ -1222,7 +1223,8 @@ void CL_ParseBinding( int key, qboolean down, unsigned time )
 	Q_strncpyz( buf, keys[key].binding, sizeof( buf ) );
 
 	// run all bind commands if console, ui, etc aren't reading keys
-	allCommands = ( Key_GetCatcher( ) == 0 );
+	// (the cgame's cursor on the death screen lets bindings through: FIX-84)
+	allCommands = ( ( Key_GetCatcher( ) & ~KEYCATCH_CGAME ) == 0 );
 
 	// allow button up commands if in game even if key catcher is set
 	allowUpCmds = ( clc.state != CA_DISCONNECTED );
@@ -1326,11 +1328,10 @@ void CL_KeyDownEvent( int key, unsigned time )
 			return;
 		}
 
-		// escape always gets out of CGAME stuff
+		// escape always gets out of CGAME stuff, and on to the menu
 		if (Key_GetCatcher( ) & KEYCATCH_CGAME) {
 			Key_SetCatcher( Key_GetCatcher( ) & ~KEYCATCH_CGAME );
 			VM_Call (cgvm, CG_EVENT_HANDLING, CGAME_EVENT_NONE);
-			return;
 		}
 
 		if ( !( Key_GetCatcher( ) & KEYCATCH_UI ) ) {
@@ -1346,6 +1347,17 @@ void CL_KeyDownEvent( int key, unsigned time )
 		}
 
 		VM_Call( uivm, UI_KEY_EVENT, key, qtrue );
+		return;
+	}
+
+	// the cgame's cursor alone: it takes what it wants (a click on its
+	// chooser), anything else runs the key's binding as usual
+	if ( Key_GetCatcher( ) == KEYCATCH_CGAME && cgvm ) {
+		if ( VM_Call( cgvm, CG_KEY_EVENT, key, qtrue ) ) {
+			cgameTookKey[key] = qtrue;
+			return;
+		}
+		CL_ParseBinding( key, qtrue, time );
 		return;
 	}
 
@@ -1391,6 +1403,15 @@ void CL_KeyUpEvent( int key, unsigned time )
 	if ( key == K_CONSOLE || ( key == K_ESCAPE && keys[K_SHIFT].down ) )
 		return;
 
+	// a release the cgame's cursor took the press of
+	if ( cgameTookKey[key] ) {
+		cgameTookKey[key] = qfalse;
+		if ( cgvm ) {
+			VM_Call( cgvm, CG_KEY_EVENT, key, qfalse );
+		}
+		return;
+	}
+
 	//
 	// key up events only perform actions if the game key binding is
 	// a button command (leading + sign).  These will be processed even in
@@ -1401,7 +1422,7 @@ void CL_KeyUpEvent( int key, unsigned time )
 
 	if ( Key_GetCatcher( ) & KEYCATCH_UI && uivm ) {
 		VM_Call( uivm, UI_KEY_EVENT, key, qfalse );
-	} else if ( Key_GetCatcher( ) & KEYCATCH_CGAME && cgvm ) {
+	} else if ( Key_GetCatcher( ) & KEYCATCH_CGAME && Key_GetCatcher( ) != KEYCATCH_CGAME && cgvm ) {
 		VM_Call( cgvm, CG_KEY_EVENT, key, qfalse );
 	}
 }

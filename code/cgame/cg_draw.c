@@ -5410,6 +5410,270 @@ respawn (not where champions are fixed for the match)
 static void CG_HudText( float x, float y, float size, const char *s, const vec4_t color, int align, float scale );
 
 /*
+==============================================================================
+
+DEATH-SCREEN CHOOSER (UX-05, FIX-84)
+
+After the kill card a button opens the chooser: the champion row (where the
+mode lets the champion change) and the three starting weapons. Mouse only:
+while dead a cursor runs (KEYCATCH_CGAME); a click on the chooser is taken,
+any other click or key does what it is bound to (fire respawns).
+
+==============================================================================
+*/
+
+#define CHOOSER_DELAY		720		// after the kill card
+#define CHOOSER_SLIDE		720
+#define CHOOSER_CHAMP_TILE	64		// design pixels
+#define CHOOSER_CHAMP_PITCH	72
+
+static struct {
+	qboolean	on;				// the cursor is ours
+	qboolean	open;
+	int			openTime;
+	float		x, y;			// the cursor, 640 x 480
+	int			press;			// the tile under a held click, -1 none
+} deathUI;
+
+static const int	starterWeapons[3] = { WP_MACHINEGUN, WP_SHOTGUN, WP_NAILGUN };
+static const char	*starterCodes[3] = { "mg", "sg", "ng" };
+
+static qboolean CG_ChampionChangeAllowed( void ) {
+	const char	*info = CG_ConfigString( CS_SERVERINFO );
+
+	return !atoi( Info_ValueForKey( info, "g_roundDuel" ) ) && !( cgs.gametype == GT_TOURNAMENT && !cg.warmup );
+}
+
+static qboolean CG_DeathCursorWanted( void ) {
+	return cg.snap && cg.snap->ps.stats[STAT_HEALTH] <= 0 && cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR
+		&& !( cg.snap->ps.pm_flags & PMF_FOLLOW ) && cg.snap->ps.pm_type != PM_INTERMISSION && CG_HudModern()
+		&& cg.deathTime && cg.time - cg.deathTime >= CHOOSER_DELAY && cg.time - cg.deathTime <= 30000
+		&& !( trap_Key_GetCatcher() & ( KEYCATCH_UI | KEYCATCH_CONSOLE | KEYCATCH_MESSAGE ) );
+}
+
+/*
+=================
+CG_UpdateDeathCursor
+
+Each frame: takes the mouse while the death screen wants it, gives it back after
+=================
+*/
+void CG_UpdateDeathCursor( void ) {
+	if ( CG_DeathCursorWanted() ) {
+		if ( !deathUI.on ) {
+			deathUI.on = qtrue;
+			deathUI.open = qfalse;
+			deathUI.press = -1;
+			deathUI.x = 320;
+			deathUI.y = 300;
+		}
+		if ( !( trap_Key_GetCatcher() & KEYCATCH_CGAME ) ) {
+			trap_Key_SetCatcher( trap_Key_GetCatcher() | KEYCATCH_CGAME );
+		}
+	} else if ( deathUI.on ) {
+		deathUI.on = qfalse;
+		deathUI.open = qfalse;
+		if ( trap_Key_GetCatcher() & KEYCATCH_CGAME ) {
+			trap_Key_SetCatcher( trap_Key_GetCatcher() & ~KEYCATCH_CGAME );
+		}
+	}
+}
+
+void CG_DeathMouse( int dx, int dy ) {
+	if ( !deathUI.on ) {
+		return;
+	}
+	deathUI.x += dx * 640.0f / cgs.glconfig.vidWidth * 1.5f;
+	deathUI.y += dy * 480.0f / cgs.glconfig.vidHeight * 1.5f;
+	deathUI.x = deathUI.x < 0 ? 0 : deathUI.x > 640 ? 640 : deathUI.x;
+	deathUI.y = deathUI.y < 0 ? 0 : deathUI.y > 480 ? 480 : deathUI.y;
+}
+
+// the slide: 0 shut to 1 open
+static float CG_ChooserOpen( void ) {
+	float	f;
+
+	if ( !deathUI.open ) {
+		return 0;
+	}
+	f = ( cg.time - deathUI.openTime ) / (float)CHOOSER_SLIDE;
+	return f > 1 ? 1 : f;
+}
+
+// tile rectangles in the 640 x 480 frame: 0-2 weapons, 3.. champions, -2 the button
+static qboolean CG_ChooserRect( int tile, float *x, float *y, float *w, float *h ) {
+	float	drop = ( 1.0f - CG_ChooserOpen() ) * HY( 260 );
+
+	if ( tile == -2 ) {
+		*x = HX_C( 775 ); *y = HY( 869 ); *w = 367 * DP; *h = 52 * DP;
+		return !deathUI.open;
+	}
+	if ( !deathUI.open ) {
+		return qfalse;
+	}
+	if ( tile < 3 ) {
+		*x = HX_C( 690 + 183 * tile ); *y = HY( 835 ) + drop; *w = 169 * DP; *h = 89 * DP;
+		return qtrue;
+	}
+	tile -= 3;
+	if ( tile >= bg_numChampions || !CG_ChampionChangeAllowed() ) {
+		return qfalse;
+	}
+	*x = HX_C( 960 - bg_numChampions * CHOOSER_CHAMP_PITCH / 2 + tile * CHOOSER_CHAMP_PITCH + ( CHOOSER_CHAMP_PITCH - CHOOSER_CHAMP_TILE ) / 2 );
+	*y = HY( 636 ) + drop;
+	*w = *h = CHOOSER_CHAMP_TILE * DP;
+	return qtrue;
+}
+
+static int CG_ChooserHit( void ) {
+	float	x, y, w, h;
+	int		i;
+
+	for ( i = -2 ; i < 3 + bg_numChampions ; i++ ) {
+		if ( i == -1 || !CG_ChooserRect( i, &x, &y, &w, &h ) ) {
+			continue;
+		}
+		if ( deathUI.x >= x && deathUI.x < x + w && deathUI.y >= y && deathUI.y < y + h ) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+/*
+=================
+CG_DeathKey
+
+A key while the cursor is ours: qtrue when the chooser took it (a click on
+it), qfalse to run the key's binding
+=================
+*/
+qboolean CG_DeathKey( int key, qboolean down ) {
+	int		hit;
+
+	if ( !deathUI.on || key != K_MOUSE1 ) {
+		return qfalse;
+	}
+	hit = CG_ChooserHit();
+	if ( down ) {
+		if ( hit == -1 ) {
+			return qfalse;
+		}
+		deathUI.press = hit;
+		if ( hit == -2 ) {
+			deathUI.open = qtrue;
+			deathUI.openTime = cg.time;
+		} else if ( hit < 3 ) {
+			trap_SendConsoleCommand( va( "ui_startWeapon %s\n", starterCodes[hit] ) );
+		} else {
+			char	weapon[8];
+			const char	*name = BG_Champion( hit - 3 )->name;
+
+			trap_Cvar_Set( "champion", name );
+			// the weapon remembered for that champion
+			trap_Cvar_VariableStringBuffer( va( "ui_startWeapon_%s", name ), weapon, sizeof( weapon ) );
+			if ( weapon[0] ) {
+				trap_SendConsoleCommand( va( "ui_startWeapon %s\n", weapon ) );
+			}
+		}
+		trap_S_StartLocalSound( cgs.media.selectSound, CHAN_LOCAL_SOUND );
+		return qtrue;
+	}
+	deathUI.press = -1;
+	return qtrue;		// (the engine only asks about a release it gave us)
+}
+
+/*
+=================
+CG_DeathChooser
+
+hud.md / ux-hig-review §5 death screen: the button, then the champion and
+weapon rows sliding up, and the cursor
+=================
+*/
+static void CG_DeathChooser( void ) {
+	static const vec4_t	grey = { 0.6f, 0.6f, 0.6f, 1 }, dim = { 0, 0, 0, 0.54f }, tileBack = { 0.08f, 0.08f, 0.09f, 0.9f };
+	static const vec4_t	pressRed = { 1, 0.14f, 0.14f, 1 }, frame = { 1, 1, 1, 0.85f }, hoverBack = { 0.16f, 0.16f, 0.18f, 0.95f };
+	char		current[8], champ[64], labels[64], *label, *bar;
+	float		x, y, w, h, open = CG_ChooserOpen();
+	int			i, hit, picked;
+	vec4_t		fade;
+
+	if ( !deathUI.on ) {
+		return;
+	}
+	hit = CG_ChooserHit();
+	if ( !deathUI.open ) {
+		// the button
+		CG_ChooserRect( -2, &x, &y, &w, &h );
+		CG_FillRect( x, y, w, h, hit == -2 ? hoverBack : tileBack );
+		CG_DrawRect( x, y, w, h, 1, hit == -2 ? colorWhite : grey );
+		CG_HudText( x + w / 2, y + 16 * DP, 17, BG_String( STR_DEATH_CHOOSE ), hit == -2 ? colorWhite : grey, 1, 1 );
+	} else {
+		CG_FillRect( 0, 0, 640, 480, dim );
+		fade[0] = fade[1] = fade[2] = 1;
+		fade[3] = 0.58f * open;
+		// the champion row
+		trap_Cvar_VariableStringBuffer( "champion", champ, sizeof( champ ) );
+		picked = BG_ChampionForName( champ );
+		if ( picked < 0 ) {
+			picked = cg.snap->ps.stats[STAT_CHAMPION];
+		}
+		if ( CG_ChampionChangeAllowed() ) {
+			CG_HudText( 320, HY( 589 ) + ( 1.0f - open ) * HY( 260 ), 19, BG_String( STR_DEATH_CHOOSE_CHAMPION ), fade, 1, 1 );
+			for ( i = 0 ; i < bg_numChampions ; i++ ) {
+				qhandle_t	pic = CG_ChampionPortrait( i, qtrue );
+
+				CG_ChooserRect( 3 + i, &x, &y, &w, &h );
+				CG_FillRect( x, y, w, h, tileBack );
+				if ( pic ) {
+					CG_DrawPic( x, y, w, h, pic );
+				}
+				if ( i == picked ) {
+					CG_DrawRect( x - 2, y - 2, w + 4, h + 4, 1, frame );
+				} else if ( hit == 3 + i ) {
+					CG_DrawRect( x, y, w, h, 1, deathUI.press == hit ? pressRed : grey );
+				}
+			}
+		}
+		// the weapon row
+		CG_HudText( HX_C( 962 ), HY( 795 ) + ( 1.0f - open ) * HY( 260 ), 19, BG_String( STR_DEATH_CHOOSE_WEAPON ), fade, 1, 1 );
+		trap_Cvar_VariableStringBuffer( "cg_startWeapon", current, sizeof( current ) );
+		Q_strncpyz( labels, BG_String( STR_DEATH_STARTERS ), sizeof( labels ) );		// "MG|SG|NG"
+		label = labels;
+		for ( i = 0 ; i < 3 ; i++ ) {
+			qboolean	on = !Q_stricmp( current, starterCodes[i] ) || ( !current[0] && i == 0 );
+			const float	*color = deathUI.press == i ? pressRed : hit == i || on ? (const float *)colorWhite : grey;
+
+			bar = label ? strchr( label, '|' ) : NULL;
+			if ( bar ) {
+				*bar = 0;
+			}
+			CG_ChooserRect( i, &x, &y, &w, &h );
+			CG_FillRect( x, y, w, h, hit == i ? hoverBack : tileBack );
+			CG_RegisterWeapon( starterWeapons[i] );
+			if ( cg_weapons[starterWeapons[i]].weaponIcon ) {
+				CG_DrawPic( x + 25 * DP, y + 8 * DP, 144 * DP * 0.75f, 60 * DP, cg_weapons[starterWeapons[i]].weaponIcon );
+			}
+			CG_HudText( x + w / 2, y + 68 * DP, 13, label ? label : starterCodes[i], color, 1, 1 );
+			if ( on ) {
+				CG_DrawRect( x - 18 * DP, y - 16 * DP, 205 * DP, 121 * DP, 1, frame );
+			}
+			label = bar ? bar + 1 : NULL;
+		}
+	}
+	// the cursor
+	{
+		static qhandle_t	cursor;
+
+		if ( !cursor ) {
+			cursor = trap_R_RegisterShaderNoMip( "gfx/tremor/cursor" );
+		}
+		CG_DrawPic( deathUI.x - 8, deathUI.y - 8, 16, 16, cursor );
+	}
+}
+
+/*
 =================
 CG_DrawDeathScreenModern
 
@@ -5480,45 +5744,9 @@ static void CG_DrawDeathScreenModern( void ) {
 		CG_HudText( 320, HY( 226 ), 50, line, colorWhite, 1, 1 );
 	}
 
-	// WPN-10: the starting weapon for the next spawn, chosen with the weapon
-	// keys, over the respawn button
-	{
-		static const int	starters[3] = { WP_MACHINEGUN, WP_SHOTGUN, WP_NAILGUN };
-		static const char	*codes[3] = { "mg", "sg", "ng" };
-		char	current[8], part[3][32];
-		int		i;
-		float	x, total = 0, cw = 20 * DP * 0.62f;
-
-		char	labels[64], *label, *bar;
-
-		CG_HudText( 320, HY( 890 ), 17, BG_String( STR_DEATH_CHOOSE ), grey, 1, 1 );
-		trap_Cvar_VariableStringBuffer( "cg_startWeapon", current, sizeof( current ) );
-		Q_strncpyz( labels, BG_String( STR_DEATH_STARTERS ), sizeof( labels ) );		// "MG|SG|NG"
-		label = labels;
-		for ( i = 0 ; i < 3 ; i++ ) {
-			const char	*key = CG_BindName( va( "weapon %i", BG_WeaponSlot( starters[i] ) ) );
-
-			bar = label ? strchr( label, '|' ) : NULL;
-			if ( bar ) {
-				*bar = 0;
-			}
-			// an unbound slot shows the command to bind
-			if ( key[0] ) {
-				Com_sprintf( part[i], sizeof( part[i] ), "%s [%s]", label ? label : codes[i], key );
-			} else {
-				Com_sprintf( part[i], sizeof( part[i] ), "%s [/weapon %i]", label ? label : codes[i], BG_WeaponSlot( starters[i] ) );
-			}
-			label = bar ? bar + 1 : NULL;
-			total += ( CG_DrawStrlen( part[i] ) + ( i < 2 ? 3 : 0 ) ) * cw;
-		}
-		x = 320 - total / 2;
-		for ( i = 0 ; i < 3 ; i++ ) {
-			qboolean	on = !Q_stricmp( current, codes[i] ) || ( !current[0] && i == 0 );
-
-			CG_HudText( x, HY( 920 ), 20, part[i], on ? colorWhite : grey, 0, 1 );
-			x += ( CG_DrawStrlen( part[i] ) + 3 ) * cw;
-		}
-	}
+	// UX-05 / FIX-84: the starting weapon (and champion) for the next spawn,
+	// chosen with the mouse only (CG_DeathChooser)
+	CG_DeathChooser();
 
 	// the respawn button: the time left in it, then RESPAWN
 	left = cg.deathRespawn - ( cg.time - cg.deathTime );
@@ -5654,51 +5882,16 @@ static void CG_DrawDeathScreen( void ) {
 			SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
 	}
 
-	// WPN-10: the starting weapon for the next spawn, chosen here with the
-	// weapon keys (the slot number shown by each)
+	// the starting weapon for the next spawn (chosen in the menus; FIX-84:
+	// no weapon keys while dead)
 	{
-		static const int	starters[3] = { WP_MACHINEGUN, WP_SHOTGUN, WP_NAILGUN };
-		static const char	*codes[3] = { "mg", "sg", "ng" };
-		char	current[8], part[3][32];
-		int		i, total = 0;
-		float	x;
-		qboolean	keyless = qfalse;
+		char	current[8];
 
 		trap_Cvar_VariableStringBuffer( "cg_startWeapon", current, sizeof( current ) );
-		for ( i = 0 ; i < 3 ; i++ ) {
-			// the key bound to that weapon slot, or the command without one
-			const char	*key = CG_BindName( va( "weapon %i", BG_WeaponSlot( starters[i] ) ) );
-
-			char	code[8];
-
-			Q_strncpyz( code, codes[i], sizeof( code ) );
-			Q_strupr( code );
-			if ( !key[0] ) {
-				key = "-";		// nothing bound: a hint goes under the row
-				keyless = qtrue;
-			}
-			Com_sprintf( part[i], sizeof( part[i] ), "%s [%s]", code, key );
-			total += CG_DrawStrlen( part[i] ) + 2;
-		}
-		Com_sprintf( line, sizeof( line ), BG_String( STR_MENU_START_WEAPON ), "" );
-		total += CG_DrawStrlen( line );
-		x = 320 - total * SMALLCHAR_WIDTH / 2;
+		Q_strupr( current );
+		Com_sprintf( line, sizeof( line ), BG_String( STR_MENU_START_WEAPON ), current[0] ? current : "MG" );
 		y += SMALLCHAR_HEIGHT + 6;
-		CG_DrawSmallStringColor( x, y, line, grey );
-		x += CG_DrawStrlen( line ) * SMALLCHAR_WIDTH;
-		for ( i = 0 ; i < 3 ; i++ ) {
-			qboolean	on = !Q_stricmp( current, codes[i] ) || ( !current[0] && i == 0 );
-
-			CG_DrawSmallStringColor( x, y, part[i], on ? colorWhite : grey );
-			x += ( CG_DrawStrlen( part[i] ) + 2 ) * SMALLCHAR_WIDTH;
-		}
-		if ( keyless ) {
-			const char	*hint = BG_String( STR_DEATH_BIND_HINT );
-
-			y += SMALLCHAR_HEIGHT + 2;
-			CG_DrawStringExt( 320 - CG_DrawStrlen( hint ) * TINYCHAR_WIDTH / 2, y, hint, grey, qfalse, qtrue,
-				TINYCHAR_WIDTH, TINYCHAR_HEIGHT, 0 );
-		}
+		CG_DrawSmallStringColor( 320 - CG_DrawStrlen( line ) * SMALLCHAR_WIDTH / 2, y, line, grey );
 	}
 }
 
