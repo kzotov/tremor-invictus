@@ -1194,7 +1194,20 @@ static const int cg_medalRank[MEDAL_NUM] = {
 	MEDAL_RANK_TOTALS,	// MEDAL_OFFENSE (team objectives, with Defense and Capture)
 	70,		// MEDAL_CHOOCHOO (as Double Whammy)
 	// the champion medals: with the rare kills
-	185, 195, 215, 175, 205, 215, 165, 95, 205, 225, 225, 335	// Berserker to Roadkill; Ability Kill, common
+	185, 195, 215, 175, 205, 215, 165, 95, 205, 225, 225, 335,	// Berserker to Roadkill; Ability Kill, common
+	// group 2, three a champion: the one-kill medal commonest, the multi ones rarest (d)
+	215, 175, 165,	// Handyman, Fortress, Weapons Factory
+	215, 185, 205,	// Air Assault, Psi Radar, Bombardment
+	215, 195, 95,	// Disintegrator, Shub Slayer, Deadly Slipgate
+	175, 195, 225,	// Shooting Range, Controller, Seer
+	175, 205, 215,	// Plague, Meltdown, Venomous
+	195, 215, 175,	// The Rock, Drill, Shocker
+	215, 185, 195,	// Damned, Blessed, Cursed
+	225, 165, 175,	// Macedonian, Mein Leben, Get Psyched
+	205, 215, 175,	// Slider, Slalom, Black Swan
+	195, 175, 185,	// Pineapple, Nade Spam, Mortar
+	215, 165, 205,	// Inferno, Trident, Smelter
+	205, 215, 175	// Rope Trick, Swinger, Floor is Lava
 };
 
 static void CG_Medal( int medal, int count ) {

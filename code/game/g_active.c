@@ -507,6 +507,9 @@ static void G_Regeneration( gentity_t *ent, int msec ) {
 	if ( ent->health > top ) {
 		ent->health = top;
 	}
+	if ( add > 0 ) {
+		client->regenTime = level.time;
+	}
 	client->ps.stats[STAT_HEALTH] = ent->health;
 	seenHealth[c] = ent->health;
 }

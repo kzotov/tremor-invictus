@@ -49,6 +49,24 @@ static int	evasiveCheck[MAX_CLIENTS];	// alive at this time: Evasive
 #define MEDAL_SHADOWS_TIME		1000	// msec after Ghost Walk for From the Shadows
 #define MEDAL_HOVERTANK_HEALTH	110
 
+// group 2 (champion-medals.md: our readings of the names)
+static int	useKills[MAX_CLIENTS];		// kills in this use of a timed ability
+static int	orbTeleTime[MAX_CLIENTS];	// Ranger's last teleport to the orb
+static int	wallSeen[MAX_CLIENTS][MAX_CLIENTS];	// Visor saw them through a wall at this time
+static qboolean	useDone[MAX_CLIENTS];		// this use's once-only medal given
+static int	tridentVictim[MAX_CLIENTS], tridentHits[MAX_CLIENTS];
+static int	totemHealed[MAX_CLIENTS];	// health Galena's totems gave this life
+static int	salvo[MAX_CLIENTS], salvoTime[MAX_CLIENTS], salvoKills[MAX_CLIENTS], salvoKilled[MAX_CLIENTS];
+
+#define MEDAL_SHUB_TIME			1000	// msec after an orb teleport
+#define MEDAL_CONTROLLER_TIME	2000	// msec since seen through a wall
+#define MEDAL_ROCK_DAMAGE		100
+#define MEDAL_BLESSED_HEAL		50
+#define MEDAL_SALVO_GAP			1500	// throws closer than this are one salvo
+#define MEDAL_MORTAR_RANGE		1000
+#define MEDAL_LAVA_TIME			3000	// msec off the ground
+#define MEDAL_SLIDE_SPEED		330
+
 /*
 =================
 G_Medal
@@ -261,6 +279,7 @@ void G_MedalsSpawn( gentity_t *ent ) {
 	client->powerupKills = 0;
 	client->tankDone = qfalse;
 	evasiveArmed[ent->s.number] = evasiveCheck[ent->s.number] = 0;
+	totemHealed[ent->s.number] = 0;
 	client->groundTime = level.time;
 	client->lastEnemyHurtTime = 0;
 	memset( client->hurtTime, 0, sizeof( client->hurtTime ) );
@@ -357,6 +376,34 @@ void G_MedalsAbilityFrame( gentity_t *ent, int prevState, int state ) {
 	if ( prevState != ABILITY_ACTIVE && state == ABILITY_ACTIVE && active == ACTIVE_BERSERK ) {
 		berserkKills[c] = 0;
 	}
+	// the timed abilities' per-use counts
+	if ( prevState != ABILITY_ACTIVE && state == ABILITY_ACTIVE ) {
+		useKills[c] = 0;
+		useDone[c] = qfalse;
+		tridentVictim[c] = -1;
+		tridentHits[c] = 0;
+	}
+	// Controller: who Piercing Sight shows through a wall
+	if ( state == ABILITY_ACTIVE && active == ACTIVE_PIERCINGSIGHT ) {
+		vec3_t	eye;
+		int		i;
+
+		VectorCopy( ent->client->ps.origin, eye );
+		eye[2] += ent->client->ps.viewheight;
+		for ( i = 0 ; i < level.maxclients ; i++ ) {
+			gentity_t	*other = &g_entities[i];
+			trace_t		tr;
+
+			if ( i == c || !other->inuse || !other->client || other->health <= 0 || OnSameTeam( ent, other )
+				|| other->client->sess.sessionTeam == TEAM_SPECTATOR ) {
+				continue;
+			}
+			trap_Trace( &tr, eye, NULL, NULL, other->r.currentOrigin, c, MASK_SOLID );
+			if ( tr.fraction < 1.0f ) {
+				wallSeen[c][i] = level.time;
+			}
+		}
+	}
 	if ( prevState == ABILITY_ACTIVE && state != ABILITY_ACTIVE && active == ACTIVE_GHOSTWALK ) {
 		ghostEnd[c] = level.time;
 		if ( evasiveArmed[c] ) {
@@ -398,6 +445,246 @@ static qboolean G_AbilityKillMod( gentity_t *inflictor, int mod ) {
 
 void G_MedalsRushStart( gentity_t *ent ) {
 	rushKills[ent->s.number] = 0;
+}
+
+/*
+=================
+Group 2 hooks, called from the abilities
+=================
+*/
+void G_MedalsOrbTeleport( gentity_t *ent ) {
+	orbTeleTime[ent->s.number] = level.time;
+}
+
+// Plague: three enemies poisoned by one Sorlag at once, once a spit
+void G_MedalsPoison( gentity_t *attacker ) {
+	int		i, count = 0, c;
+
+	if ( !attacker || !attacker->client ) {
+		return;
+	}
+	c = attacker->s.number;
+	if ( useDone[c] ) {
+		return;
+	}
+	for ( i = 0 ; i < level.maxclients ; i++ ) {
+		gclient_t	*cl = &level.clients[i];
+
+		if ( i != c && cl->pers.connected == CON_CONNECTED && g_entities[i].health > 0
+			&& cl->poisonEndTime > level.time && cl->poisonAttacker == c ) {
+			count++;
+		}
+	}
+	if ( count >= 3 ) {
+		useDone[c] = qtrue;
+		G_Medal( attacker, MEDAL_PLAGUE );
+	}
+}
+
+// The Rock: the shield took 100 in one use
+void G_MedalsShieldHit( gentity_t *ent, int before, int after ) {
+	if ( before < MEDAL_ROCK_DAMAGE && after >= MEDAL_ROCK_DAMAGE ) {
+		G_Medal( ent, MEDAL_THEROCK );
+	}
+}
+
+// Trident: all three fireballs of one strike on the same enemy
+void G_MedalsFireballHit( gentity_t *attacker, gentity_t *victim ) {
+	int		c;
+
+	if ( !attacker || !attacker->client || !victim->client || attacker == victim || OnSameTeam( attacker, victim ) ) {
+		return;
+	}
+	c = attacker->s.number;
+	if ( tridentVictim[c] != victim->s.number ) {
+		tridentVictim[c] = victim->s.number;
+		tridentHits[c] = 0;
+	}
+	if ( ++tridentHits[c] == 3 ) {
+		G_Medal( attacker, MEDAL_TRIDENT );
+	}
+}
+
+// Blessed: 50 health healed by Galena's totems in one life (herself and allies)
+void G_MedalsTotemHeal( gentity_t *owner, int amount ) {
+	int		c;
+
+	if ( !owner || !owner->client || amount <= 0 ) {
+		return;
+	}
+	c = owner->s.number;
+	if ( totemHealed[c] < MEDAL_BLESSED_HEAL && totemHealed[c] + amount >= MEDAL_BLESSED_HEAL ) {
+		G_Medal( owner, MEDAL_BLESSED );
+	}
+	totemHealed[c] += amount;
+}
+
+// Psi Radar: the drone shows two enemies at once, once a flight
+void G_MedalsDroneReveal( gentity_t *ent, int shown ) {
+	if ( shown >= 2 && !useDone[ent->s.number] ) {
+		useDone[ent->s.number] = qtrue;
+		G_Medal( ent, MEDAL_PSIRADAR );
+	}
+}
+
+// Keel's throws: one salvo while they come close together
+int G_MedalsSalvo( gentity_t *ent ) {
+	int		c = ent->s.number;
+
+	if ( level.time - salvoTime[c] > MEDAL_SALVO_GAP ) {
+		salvo[c]++;
+	}
+	salvoTime[c] = level.time;
+	return salvo[c];
+}
+
+/*
+=================
+G_MedalsChampionKill
+
+Group 2: the champions' own medals for a kill of an enemy
+=================
+*/
+static void G_MedalsChampionKill( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int mod ) {
+	gclient_t	*client = attacker->client;
+	int			c = attacker->s.number, active = BG_Champion( client->ps.stats[STAT_CHAMPION] )->active;
+	qboolean	dot = !inflictor || inflictor->s.number == ENTITYNUM_WORLD;	// burn or poison ticking
+
+	switch ( mod ) {
+	// Eisen
+	case MOD_TURRET:
+		G_Medal( attacker, MEDAL_HANDYMAN );
+		if ( inflictor && inflictor->activator && inflictor->activator->inuse && inflictor->activator->classname
+			&& !strcmp( inflictor->activator->classname, "sentry_turret" ) && ++inflictor->activator->medalKills == 2 ) {
+			G_Medal( attacker, MEDAL_FORTRESS );
+		}
+		if ( ++client->pers.turretKills == 3 ) {
+			G_Medal( attacker, MEDAL_WEAPONSFACTORY );
+		}
+		break;
+	// Strogg: the drone's gun, or its blast
+	case MOD_DRONE:
+		G_Medal( attacker, inflictor && inflictor->s.eType == ET_MISSILE ? MEDAL_AIRASSAULT : MEDAL_BOMBARDMENT );
+		break;
+	// Ranger
+	case MOD_ORB:
+		G_Medal( attacker, MEDAL_DISINTEGRATOR );
+		break;
+	case MOD_ORBTELEFRAG:
+		G_Medal( attacker, MEDAL_DEADLYSLIPGATE );
+		break;
+	// Sorlag: poison after the pool or after the hit
+	case MOD_ACID:
+		if ( dot ) {
+			G_Medal( attacker, self->client->poisonPool ? MEDAL_MELTDOWN : MEDAL_VENOMOUS );
+		}
+		break;
+	// Clutch
+	case MOD_LASER:
+		G_Medal( attacker, MEDAL_DRILL );
+		if ( active == ACTIVE_BARRIER && ++useKills[c] == 2 ) {
+			G_Medal( attacker, MEDAL_SHOCKER );
+		}
+		break;
+	// Galena
+	case MOD_TOTEM:
+		G_Medal( attacker, MEDAL_DAMNED );
+		break;
+	// Slash
+	case MOD_PLASMATRAIL:
+		G_Medal( attacker, MEDAL_SLALOM );
+		if ( active == ACTIVE_PLASMATRAIL && ++useKills[c] == 2 ) {
+			G_Medal( attacker, MEDAL_BLACKSWAN );
+		}
+		break;
+	// Death Knight: the burn, or the ground fire
+	case MOD_BURN:
+		if ( active == ACTIVE_FLAMESTRIKE ) {
+			G_Medal( attacker, dot ? MEDAL_INFERNO : MEDAL_SMELTER );
+		}
+		break;
+	// Athena
+	case MOD_HOOKIMPACT:
+		G_Medal( attacker, MEDAL_SWINGER );
+		break;
+	default:
+		break;
+	}
+
+	// Ranger: soon after a teleport to the orb
+	if ( active == ACTIVE_ORB && mod != MOD_ORBTELEFRAG && orbTeleTime[c] && level.time - orbTeleTime[c] <= MEDAL_SHUB_TIME ) {
+		G_Medal( attacker, MEDAL_SHUBSLAYER );
+	}
+	// Visor
+	if ( G_AbilityActive( attacker, ACTIVE_PIERCINGSIGHT ) ) {
+		G_Medal( attacker, MEDAL_SEER );
+		if ( ++useKills[c] == 3 ) {
+			G_Medal( attacker, MEDAL_SHOOTINGRANGE );
+		}
+	}
+	if ( active == ACTIVE_PIERCINGSIGHT && wallSeen[c][self->s.number]
+		&& level.time - wallSeen[c][self->s.number] <= MEDAL_CONTROLLER_TIME ) {
+		wallSeen[c][self->s.number] = 0;
+		G_Medal( attacker, MEDAL_CONTROLLER );
+	}
+	// Galena: anything killing an enemy by one of her standing totems
+	if ( active == ACTIVE_TOTEM && mod != MOD_TOTEM ) {
+		gentity_t	*t;
+		int			i;
+
+		for ( i = MAX_CLIENTS, t = &g_entities[MAX_CLIENTS] ; i < level.num_entities ; i++, t++ ) {
+			if ( t->inuse && t->parent == attacker && t->classname && !strcmp( t->classname, "totem" ) && t->takedamage
+				&& Distance( t->r.currentOrigin, self->r.currentOrigin ) <= g_totemHurtRadius.value ) {
+				G_Medal( attacker, MEDAL_CURSED );
+				break;
+			}
+		}
+	}
+	// B.J.
+	if ( G_AbilityActive( attacker, ACTIVE_DUALWIELD ) ) {
+		G_Medal( attacker, MEDAL_MACEDONIAN );
+		if ( ++useKills[c] == 3 ) {
+			G_Medal( attacker, MEDAL_GETPSYCHED );
+		}
+	}
+	if ( active == ACTIVE_DUALWIELD && attacker->health > 0 && attacker->health <= MEDAL_LOW_HEALTH
+		&& client->regenTime && level.time - client->regenTime <= 1000 ) {
+		G_Medal( attacker, MEDAL_MEINLEBEN );
+	}
+	// Slash: on a slide
+	if ( BG_Champion( client->ps.stats[STAT_CHAMPION] )->moveStyle == MOVE_SLIDE && active == ACTIVE_PLASMATRAIL
+		&& client->ps.groundEntityNum != ENTITYNUM_NONE && ( client->ps.pm_flags & PMF_DUCKED )
+		&& client->ps.stats[STAT_MOVE_STATE] > 0
+		&& sqrt( client->ps.velocity[0] * client->ps.velocity[0] + client->ps.velocity[1] * client->ps.velocity[1] ) > MEDAL_SLIDE_SPEED ) {
+		G_Medal( attacker, MEDAL_SLIDER );
+	}
+	// Keel's grenades
+	if ( inflictor && inflictor->classname && !strcmp( inflictor->classname, "swarm" ) ) {
+		if ( mod == MOD_GRENADE ) {
+			G_Medal( attacker, MEDAL_PINEAPPLE );
+		}
+		if ( Distance( attacker->r.currentOrigin, self->r.currentOrigin ) > MEDAL_MORTAR_RANGE ) {
+			G_Medal( attacker, MEDAL_MORTAR );
+		}
+		if ( salvoKilled[c] != inflictor->medalSalvo ) {
+			salvoKilled[c] = inflictor->medalSalvo;
+			salvoKills[c] = 0;
+		}
+		if ( ++salvoKills[c] == 2 ) {
+			G_Medal( attacker, MEDAL_NADESPAM );
+		}
+	}
+	// Athena
+	if ( active == ACTIVE_HOOK ) {
+		int		state = BG_AbilityState( &client->ps );
+
+		if ( state == ABILITY_HOOK_PULL || ( client->ps.pm_flags & PMF_GRAPPLE_PULL ) ) {
+			G_Medal( attacker, MEDAL_ROPETRICK );
+		}
+		if ( client->ps.groundEntityNum == ENTITYNUM_NONE && level.time - client->groundTime >= MEDAL_LAVA_TIME ) {
+			G_Medal( attacker, MEDAL_FLOORISLAVA );
+		}
+	}
 }
 
 static void G_MedalsKill( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int mod, qboolean abilityOn ) {
@@ -448,6 +735,7 @@ static void G_MedalsKill( gentity_t *self, gentity_t *inflictor, gentity_t *atta
 	if ( G_AbilityKillMod( inflictor, mod ) ) {
 		G_Medal( attacker, MEDAL_ABILITYKILL );
 	}
+	G_MedalsChampionKill( self, inflictor, attacker, mod );
 
 	if ( !level.firstBlood && !level.warmupTime ) {
 		level.firstBlood = qtrue;

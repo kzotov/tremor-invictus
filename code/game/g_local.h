@@ -182,7 +182,8 @@ struct gentity_s {
 	int			itemDue;		// a power-up: level.time it appears (its think may be the warning first)
 	int			itemCycle;		// msec from taken to back, for the timers' pies
 	struct gentity_s	*powerupNext;	// a shared power-up spot's master: the team member coming next (FIX-64)
-	int			medalKills;		// kills by this missile, for Collateral Damage
+	int			medalKills;		// kills by this missile, for Collateral Damage (a turret: Fortress)
+	int			medalSalvo;		// Keel's grenade: its salvo, for Nade Spam
 	int			medalSpawnTime;	// level.time this item last respawned, for Stopwatch
 
 	// weapon numbers carried by a projectile (wpTuned set)
@@ -274,6 +275,7 @@ typedef struct {
 	int			maxHealth;			// for handicapping
 	int			injectionGain;		// Anarki: maximum health won this match
 	qboolean	hovertankDone;		// and the medal for it
+	int			turretKills;		// Eisen: Weapons Factory
 	int			accShots[WP_NUM_WEAPONS];	// this match, per weapon
 	int			accHits[WP_NUM_WEAPONS];
 	int			damageGiven;		// to enemies, health and armour
@@ -368,6 +370,8 @@ struct gclient_s {
 	int			weaponKills[WP_NUM_WEAPONS];
 	int			assists;
 	int			groundTime;			// level.time last on the ground
+	int			regenTime;			// B.J.: last regeneration step (Mein Leben)
+	qboolean	poisonPool;			// the poison came from a pool (Meltdown), not a hit
 	int			hurtTime[MAX_CLIENTS];		// when each client last hurt this one
 	int			comboTime[MAX_CLIENTS];		// ... with anything but the railgun
 	int			lastEnemyHurt;		// the last enemy to hurt this one, for Ring Out
@@ -783,6 +787,13 @@ void		G_MedalsPickup( gentity_t *ent, gentity_t *item );
 void		G_MedalsRail( gentity_t *ent, int hits );
 void		G_MedalOffense( gentity_t *attacker, gentity_t *targ );
 void		G_MedalsSpawn( gentity_t *ent );
+void		G_MedalsOrbTeleport( gentity_t *ent );
+void		G_MedalsPoison( gentity_t *attacker );
+void		G_MedalsShieldHit( gentity_t *ent, int before, int after );
+void		G_MedalsFireballHit( gentity_t *attacker, gentity_t *victim );
+void		G_MedalsTotemHeal( gentity_t *owner, int amount );
+void		G_MedalsDroneReveal( gentity_t *ent, int shown );
+int			G_MedalsSalvo( gentity_t *ent );
 void		G_SendAwards( void );
 void		G_Announce( int clientNum, const char *key );
 void		G_SysMsg( int clientNum, int id, const char *a, const char *b );

@@ -473,6 +473,7 @@ static void G_OrbTeleport( gentity_t *ent ) {
 		return;		// nowhere to stand; keep the orb
 	}
 
+	G_MedalsOrbTeleport( ent );
 	// inhuman haste: faster for a while after each teleport that happens
 	if ( BG_Champion( ent->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_HASTE ) {
 		ent->client->hasteEndTime = level.time + 3000;
@@ -576,6 +577,7 @@ static void G_ThrowGrenade( gentity_t *ent ) {
 	gren->wpKnockSelf = g_swarmKnock.value * 3.0f;
 	gren->abilityImpact = G_GrenadeImpact;
 	gren->count = 0;
+	gren->medalSalvo = G_MedalsSalvo( ent );
 }
 
 /*
@@ -648,6 +650,7 @@ static void G_FireballImpact( gentity_t *ball, trace_t *trace ) {
 		G_NextKnockback( FIREBALL_IMPULSE );
 		G_Damage( other, ball, ball->parent, NULL, trace->endpos, g_fireballDamage.integer, 0, MOD_FIREBALL );
 		if ( other->client ) {
+			G_MedalsFireballHit( ball->parent, other );
 			G_Ignite( other, ball->parent );
 		}
 	}
@@ -861,6 +864,8 @@ static void G_AcidPoolThink( gentity_t *pool ) {
 		other = &g_entities[touch[i]];
 		if ( other->client && other->health > 0 ) {
 			G_Poison( other, pool->parent );
+			other->client->poisonPool = qtrue;
+			G_MedalsPoison( pool->parent );
 		}
 	}
 	pool->nextthink = level.time + ABILITY_FRAME * 2;
@@ -879,6 +884,8 @@ static void G_AcidImpact( gentity_t *blob, trace_t *trace ) {
 		G_Damage( other, blob, blob->parent, velocity, trace->endpos, g_acidDamage.integer, 0, MOD_ACID );
 		if ( other->client ) {
 			G_Poison( other, blob->parent );
+			other->client->poisonPool = qfalse;
+			G_MedalsPoison( blob->parent );
 		}
 	}
 
@@ -1112,10 +1119,9 @@ static void G_TotemThink( gentity_t *totem ) {
 			}
 			G_AbilityMark( totem, other->s.number );
 			heal = enforced ? g_totemEnforcedHeal.integer : g_totemHeal.integer;
+			heal = other->health + heal > max ? max - other->health : heal;
 			other->health += heal;
-			if ( other->health > max ) {
-				other->health = max;
-			}
+			G_MedalsTotemHeal( totem->parent, heal );
 			other->client->ps.stats[STAT_HEALTH] = other->health;
 			G_ClearDamageOverTime( other );
 			// the heal shown and heard, at the totem and on the ally
@@ -1417,6 +1423,7 @@ static void G_TurretThink( gentity_t *turret ) {
 		bolt->wpKnockSelf = TURRET_IMPULSE * 1.5f;
 		bolt->methodOfDeath = MOD_TURRET;
 		bolt->splashMethodOfDeath = MOD_TURRET;
+		bolt->activator = turret;		// (whose kill, for Fortress)
 		VectorScale( dir, g_turretBoltSpeed.value, bolt->s.pos.trDelta );
 		SnapVector( bolt->s.pos.trDelta );
 		G_AddEvent( turret, EV_GENERAL_SOUND, G_SoundIndex( "sound/abilities/turret_shot.wav" ) );
@@ -1982,6 +1989,7 @@ void G_BarrierHit( gentity_t *targ, int damage ) {
 	if ( !client || client->barrierMode != 1 || !G_AbilityActive( targ, ACTIVE_BARRIER ) ) {
 		return;
 	}
+	G_MedalsShieldHit( targ, client->barrierDamage, client->barrierDamage + damage );
 	client->barrierDamage += damage;
 	client->ps.stats[STAT_ABILITY_TIME] -= damage * BG_AbilityParam( ACTIVE_BARRIER, AP_DURATION ) / g_barrierHealth.integer;
 	if ( client->barrierDamage >= g_barrierHealth.integer || client->ps.stats[STAT_ABILITY_TIME] <= 0 ) {
@@ -3111,7 +3119,7 @@ void G_AbilityClientThink( gentity_t *ent, int msec ) {
 	if ( G_AbilityActive( ent, ACTIVE_DRONE ) ) {
 		gentity_t	*other;
 		trace_t		tr;
-		int			i;
+		int			i, shown = 0;
 
 		for ( i = 0, other = g_entities ; i < level.maxclients ; i++, other++ ) {
 			if ( !other->inuse || !other->client || other == ent || other->health <= 0 || !G_AbilityEnemy( ent, other )
@@ -3146,8 +3154,10 @@ void G_AbilityClientThink( gentity_t *ent, int msec ) {
 				}
 				other->client->revealEndTime = level.time + 300;
 				other->client->revealTeam = g_gametype.integer >= GT_TEAM ? client->sess.sessionTeam : 1000 + ent->s.number;
+				shown++;
 			}
 		}
+		G_MedalsDroneReveal( ent, shown );
 	}
 
 	if ( G_AbilityActive( ent, ACTIVE_PLASMATRAIL ) ) {
