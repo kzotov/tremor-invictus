@@ -51,6 +51,7 @@ static int	evasiveCheck[MAX_CLIENTS];	// alive at this time: Evasive
 
 // group 2 (champion-medals.md: our readings of the names)
 static int	useKills[MAX_CLIENTS];		// kills in this use of a timed ability
+static int	championMedalTime[MAX_CLIENTS];	// when a champion medal was last given
 static int	orbTeleTime[MAX_CLIENTS];	// Ranger's last teleport to the orb
 static int	wallSeen[MAX_CLIENTS][MAX_CLIENTS];	// Visor saw them through a wall at this time
 static qboolean	useDone[MAX_CLIENTS];		// this use's once-only medal given
@@ -82,6 +83,10 @@ static void G_Medal( gentity_t *ent, int medal ) {
 		return;
 	}
 	count = ++client->medals[medal];
+	// a champion's own medal this frame: the plain Ability Kill gives way
+	if ( medal == MEDAL_CHOOCHOO || ( medal >= MEDAL_BERSERKER && medal < MEDAL_NUM && medal != MEDAL_ABILITYKILL ) ) {
+		championMedalTime[ent->s.number] = level.time;
+	}
 
 	// Xaero banks a Leaping Kick on these medals with the matching weapon
 	if ( ( medal == MEDAL_POINTBLANK && ( ent->s.weapon == WP_SHOTGUN || ent->s.weapon == WP_SUPER_SHOTGUN ) )
@@ -732,10 +737,11 @@ static void G_MedalsKill( gentity_t *self, gentity_t *inflictor, gentity_t *atta
 		&& level.time - ghostEnd[attacker->s.number] <= MEDAL_SHADOWS_TIME ) {
 		G_Medal( attacker, MEDAL_FROMTHESHADOWS );
 	}
-	if ( G_AbilityKillMod( inflictor, mod ) ) {
+	G_MedalsChampionKill( self, inflictor, attacker, mod );
+	// Ability Kill only where the champion has no medal of its own for it
+	if ( G_AbilityKillMod( inflictor, mod ) && championMedalTime[attacker->s.number] != level.time ) {
 		G_Medal( attacker, MEDAL_ABILITYKILL );
 	}
-	G_MedalsChampionKill( self, inflictor, attacker, mod );
 
 	if ( !level.firstBlood && !level.warmupTime ) {
 		level.firstBlood = qtrue;
