@@ -2687,6 +2687,8 @@ can pick it up, for health up to the over-max limit (it stays at that limit).
 
 static int G_StroyentSeers( void );
 
+#define CELL_CHECK_SPAN		( ABILITY_FRAME + 25 )	// msec of a player's path a check covers
+
 static void G_CellThink( gentity_t *cell ) {
 	gentity_t	*other;
 	int			i, max;
@@ -2710,8 +2712,22 @@ static void G_CellThink( gentity_t *cell ) {
 		if ( !( BG_Champion( other->client->ps.stats[STAT_CHAMPION] )->passives & PASSIVE_STROYENT ) ) {
 			continue;
 		}
-		if ( Distance( other->r.currentOrigin, cell->r.currentOrigin ) > 40 ) {
-			continue;
+		// within 40 u of the path since the last check, not only of where
+		// they stand: a slide crosses more than that between two checks
+		{
+			vec3_t	from, path, to;
+			float	t, len2;
+
+			VectorMA( other->r.currentOrigin, -0.001f * CELL_CHECK_SPAN, other->client->ps.velocity, from );
+			VectorSubtract( other->r.currentOrigin, from, path );
+			VectorSubtract( cell->r.currentOrigin, from, to );
+			len2 = DotProduct( path, path );
+			t = len2 > 0 ? DotProduct( to, path ) / len2 : 0;
+			t = t < 0 ? 0 : t > 1 ? 1 : t;
+			VectorMA( from, t, path, from );
+			if ( Distance( from, cell->r.currentOrigin ) > 40 ) {
+				continue;
+			}
 		}
 		// heals over maximum up to the over-max limit, and stays on the
 		// floor only at that limit (FIX-80)
@@ -2735,7 +2751,7 @@ static void G_CellThink( gentity_t *cell ) {
 		G_FreeEntity( cell );
 		return;
 	}
-	cell->nextthink = level.time + ABILITY_FRAME * 2;
+	cell->nextthink = level.time + ABILITY_FRAME;
 }
 
 /*
