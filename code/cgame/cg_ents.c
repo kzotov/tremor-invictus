@@ -440,6 +440,14 @@ static void CG_Item( centity_t *cent ) {
 
 	item = &bg_itemlist[ es->modelindex ];
 	if ( cg_simpleItems.integer && item->giType != IT_TEAM ) {
+		trace_t	tr;
+
+		// the icons are 2D pictures, drawn without a depth test: show one
+		// only where the item can be seen, never through walls
+		CG_Trace( &tr, cg.refdef.vieworg, NULL, NULL, cent->lerpOrigin, cg.snap->ps.clientNum, MASK_SOLID );
+		if ( tr.fraction < 1.0f ) {
+			return;
+		}
 		memset( &ent, 0, sizeof( ent ) );
 		ent.reType = RT_SPRITE;
 		VectorCopy( cent->lerpOrigin, ent.origin );
